@@ -35,4 +35,43 @@ class UserProgress {
 
   /// Storage key for Hive.
   String get storageKey => '${scriptureId}_${gameType.name}';
+
+  /// Serialize to a JSON-compatible map for Hive storage.
+  Map<String, dynamic> toJson() {
+    return {
+      'scriptureId': scriptureId,
+      'gameType': gameType.name,
+      'highestDifficultyCompleted': highestDifficultyCompleted.name,
+      'totalAttempts': totalAttempts,
+      'correctAttempts': correctAttempts,
+      'currentStreak': currentStreak,
+      'bestStreak': bestStreak,
+      'bestTime': bestTime,
+      'lastPracticed': lastPracticed?.toIso8601String(),
+      'accuracy': accuracy,
+      'masteryLevel': masteryLevel.name,
+      'needsReview': needsReview,
+    };
+  }
+
+  /// Deserialize from a JSON-compatible map stored in Hive.
+  factory UserProgress.fromJson(Map<String, dynamic> json) {
+    return UserProgress(
+      scriptureId: json['scriptureId'] as String,
+      gameType: GameType.values.byName(json['gameType'] as String),
+      highestDifficultyCompleted: DifficultyLevel.values
+          .byName(json['highestDifficultyCompleted'] as String),
+      totalAttempts: json['totalAttempts'] as int,
+      correctAttempts: json['correctAttempts'] as int,
+      currentStreak: json['currentStreak'] as int,
+      bestStreak: json['bestStreak'] as int,
+      bestTime: json['bestTime'] as int?,
+      lastPracticed: json['lastPracticed'] != null
+          ? DateTime.parse(json['lastPracticed'] as String)
+          : null,
+      accuracy: (json['accuracy'] as num).toDouble(),
+      masteryLevel: MasteryLevel.values.byName(json['masteryLevel'] as String),
+      needsReview: json['needsReview'] as bool,
+    );
+  }
 }
