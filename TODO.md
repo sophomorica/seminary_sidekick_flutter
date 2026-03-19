@@ -219,6 +219,109 @@
 
 ---
 
+## P0 — Testing
+
+> See `TESTING.md` for the full testing architecture guide with patterns, examples, and conventions.
+
+### TASK-020: Test Infrastructure Setup
+- **status**: `open`
+- **claimed_by**: —
+- **priority**: P0
+- **estimated_effort**: Small
+- **files_to_touch**: `pubspec.yaml`, NEW `test/helpers/test_helpers.dart`, DELETE `test/widget_test.dart`
+- **description**: Add `mockito` and `fake_async` to dev_dependencies. Create test directory structure. Create shared test fixtures in `test_helpers.dart`. Delete the boilerplate `widget_test.dart`.
+- **acceptance_criteria**:
+  - [ ] `mockito` and `fake_async` in pubspec.yaml dev_dependencies
+  - [ ] `flutter pub get` succeeds
+  - [ ] `test/helpers/test_helpers.dart` exists with 5 test scriptures
+  - [ ] Directory structure: `test/{models,providers,screens,helpers}/`
+  - [ ] Boilerplate `widget_test.dart` deleted
+- **depends_on**: —
+- **notes**: See TESTING.md "Step 0" and "Step 2" for exact contents.
+
+### TASK-021: Model Unit Tests
+- **status**: `open`
+- **claimed_by**: —
+- **priority**: P0
+- **estimated_effort**: Small
+- **files_to_touch**: NEW `test/models/scripture_test.dart`, NEW `test/models/user_progress_test.dart`, NEW `test/models/enums_test.dart`
+- **description**: Test all model classes — word splitting, difficulty scoring, equality, enum values.
+- **acceptance_criteria**:
+  - [ ] Scripture: words split, verse numbers stripped, difficultyScore tiers, copyWith, equality
+  - [ ] UserProgress: default construction, storageKey format
+  - [ ] Enums: all values present, labels non-empty, mastery ordering
+  - [ ] All tests pass
+- **depends_on**: TASK-020
+
+### TASK-022: Progress Provider Tests
+- **status**: `open`
+- **claimed_by**: —
+- **priority**: P0
+- **estimated_effort**: Medium
+- **files_to_touch**: NEW `test/providers/progress_provider_test.dart`
+- **description**: Test ProgressNotifier — recordAttempt accuracy calculation, streak logic, mastery thresholds, overall stats aggregation. This is the most important provider to test.
+- **acceptance_criteria**:
+  - [ ] recordAttempt: first attempt, correct, incorrect, streak reset, best time, difficulty progression
+  - [ ] Mastery thresholds: 0-49%, 50-69%, 70-84%, 85-94%, 95%+
+  - [ ] needsReview: true < 80%, false >= 80%
+  - [ ] getProgress: missing key returns null
+  - [ ] getOverallStats: empty state, with data, streak calculation
+  - [ ] Game type isolation: different game types don't cross-contaminate
+  - [ ] All tests pass
+- **depends_on**: TASK-020
+
+### TASK-023: Scripture Provider Tests
+- **status**: `open`
+- **claimed_by**: —
+- **priority**: P0
+- **estimated_effort**: Small
+- **files_to_touch**: NEW `test/providers/scripture_provider_test.dart`
+- **description**: Test read-only providers — all scriptures, by book, by ID, search. Uses ProviderContainer.
+- **acceptance_criteria**:
+  - [ ] scripturesProvider returns 100 entries
+  - [ ] scripturesByBookProvider filters correctly, no empty books
+  - [ ] scriptureByIdProvider: valid ID returns scripture, invalid returns null
+  - [ ] searchScripturesProvider: by reference, name, key phrase, case insensitive, no match
+  - [ ] All tests pass
+- **depends_on**: TASK-020
+
+### TASK-024: Matching Game Provider Tests
+- **status**: `open`
+- **claimed_by**: —
+- **priority**: P0
+- **estimated_effort**: Medium
+- **files_to_touch**: NEW `test/providers/matching_game_provider_test.dart`
+- **description**: Test MatchingGameNotifier — game initialization, selection, matching, completion, star rating.
+- **acceptance_criteria**:
+  - [ ] startGame: correct pair count per difficulty, book filter works
+  - [ ] selectPhrase/selectReference: state updates
+  - [ ] Correct match: correctMatches increments, pair marked
+  - [ ] Wrong match: incorrectAttempts increments
+  - [ ] Game completion: isComplete when all pairs matched
+  - [ ] Star rating: 0 misses=3, 1-2=2, 3+=1
+  - [ ] All tests pass
+- **depends_on**: TASK-020
+
+### TASK-025: Word Builder Provider Tests
+- **status**: `open`
+- **claimed_by**: —
+- **priority**: P0
+- **estimated_effort**: Large
+- **files_to_touch**: NEW `test/providers/word_builder_provider_test.dart`
+- **description**: Test WordBuilderNotifier — both chunk-tap and typing modes across all 4 difficulty tiers. Most complex test file.
+- **acceptance_criteria**:
+  - [ ] Chunk mode: beginner=3-word chunks, intermediate=2-word + distractors
+  - [ ] selectChunk: correct placement, wrong tap, distractor tap
+  - [ ] Typing mode: correct char, wrong char (advanced vs master behavior)
+  - [ ] Advanced: error blocks further typing, backspace clears error
+  - [ ] Master: wrong char resets everything, backspace ignored
+  - [ ] Case insensitive typing
+  - [ ] Multi-scripture progression and completion
+  - [ ] All tests pass
+- **depends_on**: TASK-020
+
+---
+
 ## Completed
 
 _(Move tasks here when done)_
