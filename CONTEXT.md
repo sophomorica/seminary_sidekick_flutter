@@ -171,3 +171,4 @@ audioplayers: ^5.2.1        # Sound effects (imported, not used yet)
 See `TODO.md` for what needs to be built next.
 See `AGENTS.md` for how to coordinate work on this repo.
 See `ARCHITECTURE.md` for conventions and patterns to follow.
+See `TESTING.md` for the test architecture guide (test suite not yet built).
