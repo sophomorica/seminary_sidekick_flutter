@@ -81,7 +81,7 @@ enum GameType {
 enum DifficultyLevel {
   beginner(
     label: 'Beginner',
-    description: '4 scriptures, no timer, forgiving',
+    description: 'Tap 3-word chunks in order',
     scriptureCount: 4,
     hasTimer: false,
     allowRetry: true,
@@ -89,27 +89,27 @@ enum DifficultyLevel {
   ),
   intermediate(
     label: 'Intermediate',
-    description: '8 scriptures, timed, some distractors',
+    description: 'Tap 2-word chunks, distractors mixed in',
     scriptureCount: 8,
     hasTimer: true,
     allowRetry: true,
-    extraDistractors: 2,
+    extraDistractors: 3,
   ),
   advanced(
     label: 'Advanced',
-    description: '12 scriptures, timed, many distractors',
-    scriptureCount: 12,
+    description: 'Type the passage — errors show red',
+    scriptureCount: 4,
     hasTimer: true,
     allowRetry: false,
-    extraDistractors: 4,
+    extraDistractors: 0,
   ),
   master(
     label: 'Master',
-    description: 'All scriptures, strict timing, no mercy',
-    scriptureCount: 25,
+    description: 'Type perfectly — any error resets all',
+    scriptureCount: 4,
     hasTimer: true,
     allowRetry: false,
-    extraDistractors: 6,
+    extraDistractors: 0,
   );
 
   const DifficultyLevel({
