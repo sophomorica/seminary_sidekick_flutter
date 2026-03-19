@@ -5,6 +5,7 @@ import '../models/enums.dart';
 import '../theme/app_theme.dart';
 import 'games/matching_game_screen.dart';
 import 'games/word_builder_screen.dart';
+import 'games/quiz_game_screen.dart';
 
 class GamesHubScreen extends ConsumerWidget {
   const GamesHubScreen({Key? key}) : super(key: key);
@@ -56,8 +57,7 @@ class _GameCardState extends State<_GameCard> {
   @override
   Widget build(BuildContext context) {
     final color = _getColorForGame(widget.gameType);
-    final isAvailable = widget.gameType == GameType.matching ||
-        widget.gameType == GameType.wordOrder;
+    final isAvailable = true;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
@@ -297,6 +297,15 @@ class _GameCardState extends State<_GameCard> {
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => WordBuilderScreen(
+            difficulty: _selectedDifficulty,
+            bookFilter: _selectedBook,
+          ),
+        ),
+      );
+    } else if (widget.gameType == GameType.quiz) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => QuizGameScreen(
             difficulty: _selectedDifficulty,
             bookFilter: _selectedBook,
           ),

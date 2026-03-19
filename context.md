@@ -14,7 +14,7 @@ A Flutter app to help users master 95 Doctrinal Mastery scriptures through inter
 
 ### High Priority
 - [x] **Persist user progress with Hive** — Hive is initialized in `main.dart` but progress is never saved/loaded. Wire up `ProgressNotifier` to read/write from a Hive box so data survives app restarts.
-- [ ] **Implement Quick Quiz game** — Third game type is stubbed as "Coming Soon" in the Games Hub. Design and implement a multiple-choice quiz where users identify the correct reference, key phrase, or scripture text.
+- [x] **Implement Quick Quiz game** — Third game type is stubbed as "Coming Soon" in the Games Hub. Design and implement a multiple-choice quiz where users identify the correct reference, key phrase, or scripture text.
 - [ ] **Add search UI** — `searchScripturesProvider` exists but there's no search bar or screen. Add a search interface to the home screen or scripture list.
 
 ### Medium Priority
