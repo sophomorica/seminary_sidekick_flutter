@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import '../models/user_progress.dart';
 import '../models/enums.dart';
@@ -22,9 +23,35 @@ class UserStats {
   });
 }
 
-/// StateNotifier for managing user progress
+/// StateNotifier for managing user progress with Hive persistence.
 class ProgressNotifier extends StateNotifier<Map<String, UserProgress>> {
+  static const _boxName = 'user_progress';
+  late final Box<Map> _box;
+
   ProgressNotifier() : super({});
+
+  /// Open the Hive box and load persisted progress into state.
+  Future<void> init() async {
+    _box = await Hive.openBox<Map>(_boxName);
+    final loaded = <String, UserProgress>{};
+    for (final key in _box.keys) {
+      try {
+        final raw = _box.get(key);
+        if (raw != null) {
+          loaded[key as String] =
+              UserProgress.fromJson(Map<String, dynamic>.from(raw));
+        }
+      } catch (_) {
+        // Skip corrupted entries
+      }
+    }
+    state = loaded;
+  }
+
+  /// Persist a single progress entry to Hive.
+  void _persist(String key, UserProgress progress) {
+    _box.put(key, progress.toJson());
+  }
 
   /// Generate storage key for a scripture/game combination
   String _getStorageKey(String scriptureId, GameType gameType) {
@@ -101,6 +128,7 @@ class ProgressNotifier extends StateNotifier<Map<String, UserProgress>> {
     );
 
     state = {...state, key: updated};
+    _persist(key, updated);
   }
 
   /// Get progress for a scripture/game combination
@@ -198,14 +226,17 @@ final progressByScriptureProvider =
     Provider.family<UserProgress?, (String, GameType)>(
   (ref, params) {
     final (scriptureId, gameType) = params;
-    final notifier = ref.read(progressProvider.notifier);
-    return notifier.getProgress(scriptureId, gameType);
+    final progressMap = ref.watch(progressProvider);
+    final key = '${scriptureId}_${gameType.name}';
+    return progressMap[key];
   },
 );
 
 /// Provider to get overall user statistics
 final userStatsProvider = Provider<UserStats>(
   (ref) {
+    // Watch the progress state so stats recompute when progress changes
+    ref.watch(progressProvider);
     final notifier = ref.read(progressProvider.notifier);
     return notifier.getOverallStats();
   },
@@ -215,7 +246,8 @@ final userStatsProvider = Provider<UserStats>(
 final masteryLevelProvider = Provider.family<MasteryLevel, (String, GameType)>(
   (ref, params) {
     final (scriptureId, gameType) = params;
-    final notifier = ref.read(progressProvider.notifier);
-    return notifier.getMasteryLevel(scriptureId, gameType);
+    final progressMap = ref.watch(progressProvider);
+    final key = '${scriptureId}_${gameType.name}';
+    return progressMap[key]?.masteryLevel ?? MasteryLevel.newScripture;
   },
 );

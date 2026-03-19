@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'app.dart';
+import 'providers/progress_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,9 +28,14 @@ void main() async {
     ),
   );
 
+  final container = ProviderContainer();
+  // Load persisted progress before app starts
+  await container.read(progressProvider.notifier).init();
+
   runApp(
-    const ProviderScope(
-      child: SeminarySidekickApp(),
+    UncontrolledProviderScope(
+      container: container,
+      child: const SeminarySidekickApp(),
     ),
   );
 }
