@@ -127,7 +127,7 @@ class HomeScreen extends ConsumerWidget {
                     book: book,
                     passageCount: bookScriptures.length,
                     onTap: () {
-                      context.go('/scriptures/${book.name}');
+                      context.push('/scriptures/${book.name}');
                     },
                   );
                 }).toList(),
@@ -156,7 +156,7 @@ class HomeScreen extends ConsumerWidget {
                   return ScriptureCard(
                     scripture: scripture,
                     onTap: () {
-                      context.go('/scripture/${scripture.id}');
+                      context.push('/scripture/${scripture.id}');
                     },
                   );
                 },

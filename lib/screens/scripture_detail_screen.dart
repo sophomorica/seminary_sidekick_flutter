@@ -7,14 +7,15 @@ import '../providers/scripture_provider.dart';
 import '../providers/progress_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/mastery_badge.dart';
+import 'memorize_screen.dart';
 
 class ScriptureDetailScreen extends ConsumerWidget {
   final String scriptureId;
 
   const ScriptureDetailScreen({
-    Key? key,
+    super.key,
     required this.scriptureId,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -115,6 +116,32 @@ class ScriptureDetailScreen extends ConsumerWidget {
                           ),
                     ),
                   ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Memorize button — prominent CTA
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          MemorizeScreen(scripture: scripture),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.psychology_alt, size: 22),
+                label: const Text('Memorize This Scripture'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.secondary,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  textStyle: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),

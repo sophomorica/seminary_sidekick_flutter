@@ -70,7 +70,7 @@ class ScriptureListScreen extends ConsumerWidget {
                   padding: const EdgeInsets.only(bottom: 8.0),
                   child: GestureDetector(
                     onTap: () {
-                      context.go('/scripture/${scripture.id}');
+                      context.push('/scripture/${scripture.id}');
                     },
                     child: Card(
                       child: Padding(

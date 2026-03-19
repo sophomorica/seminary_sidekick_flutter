@@ -553,10 +553,24 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     final spans = <TextSpan>[];
     final target = state.targetText;
     final typed = state.typedChars;
+    final isMaster = widget.difficulty == DifficultyLevel.master;
+
+    // For Advanced: pre-compute which indices are "first letter of a word"
+    // so we can show those as hints.
+    final firstLetterIndices = <int>{};
+    if (!isMaster) {
+      bool prevWasSpace = true; // treat start of text as word boundary
+      for (int i = 0; i < target.length; i++) {
+        if (prevWasSpace && target[i] != ' ') {
+          firstLetterIndices.add(i);
+        }
+        prevWasSpace = target[i] == ' ';
+      }
+    }
 
     for (int i = 0; i < target.length; i++) {
       if (i < typed.length) {
-        // This character has been typed
+        // Already typed — show green or red
         final tc = typed[i];
         spans.add(TextSpan(
           text: tc.char,
@@ -566,13 +580,12 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
             backgroundColor: tc.isCorrect
                 ? AppTheme.success.withOpacity(0.08)
                 : AppTheme.error.withOpacity(0.12),
-            decoration:
-                tc.isCorrect ? null : TextDecoration.underline,
+            decoration: tc.isCorrect ? null : TextDecoration.underline,
             decorationColor: AppTheme.error,
           ),
         ));
-      } else if (i == typed.length) {
-        // Cursor position — show the expected char with a blinking-style highlight
+      } else if (i == typed.length && !isMaster) {
+        // Cursor position (Advanced only) — highlight the next expected char
         spans.add(TextSpan(
           text: target[i],
           style: TextStyle(
@@ -582,13 +595,48 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
           ),
         ));
       } else {
-        // Not yet reached — dim placeholder
-        spans.add(TextSpan(
-          text: target[i],
-          style: TextStyle(
-            color: Colors.grey.shade300,
-          ),
-        ));
+        // Not yet reached
+        if (isMaster) {
+          // Master: show nothing — just an underscore for letters,
+          // but preserve spaces so word boundaries are visible.
+          final ch = target[i];
+          if (ch == ' ') {
+            spans.add(const TextSpan(text: ' '));
+          } else if (ch == '\n') {
+            spans.add(const TextSpan(text: '\n'));
+          } else {
+            spans.add(TextSpan(
+              text: '_',
+              style: TextStyle(
+                color: Colors.grey.shade300,
+                letterSpacing: 1,
+              ),
+            ));
+          }
+        } else {
+          // Advanced: show first letter of each word, hide the rest
+          final ch = target[i];
+          if (ch == ' ' || ch == '\n') {
+            spans.add(TextSpan(text: ch));
+          } else if (firstLetterIndices.contains(i)) {
+            // First letter hint — show it dimly
+            spans.add(TextSpan(
+              text: ch,
+              style: TextStyle(
+                color: AppTheme.accent.withOpacity(0.4),
+                fontWeight: FontWeight.w600,
+              ),
+            ));
+          } else {
+            spans.add(TextSpan(
+              text: '_',
+              style: TextStyle(
+                color: Colors.grey.shade300,
+                letterSpacing: 1,
+              ),
+            ));
+          }
+        }
       }
     }
 
@@ -642,7 +690,9 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
               decoration: InputDecoration(
                 hintText: state.hasActiveError
                     ? 'Delete the error and try again...'
-                    : 'Type the scripture...',
+                    : (isMaster
+                        ? 'Type from memory — no peeking!'
+                        : 'Type the scripture (first letters shown)...'),
                 hintStyle: TextStyle(color: Colors.grey.shade400),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
