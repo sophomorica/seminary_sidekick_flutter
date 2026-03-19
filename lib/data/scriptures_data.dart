@@ -932,7 +932,49 @@ final List<Scripture> allScriptures = [
       keyPhrase:
           '“Joseph Smith … has done more, save it be Jesus only, for the salvation of men in this world, than any other man that ever lived in it.”',
       fullText:
-          'Joseph Smith, the Prophet and Seer of the Lord, has done more, save Jesus only, for the salvation of men in this world, than any other man that ever lived in it. In the short space of twenty years, he has brought forth the Book of Mormon, which he translated by the gift and power of God, and has been the means of publishing it on two continents; has sent the fulness of the everlasting gospel, which it contained, to the four quarters of the earth; has brought forth the revelations and commandments which compose this book of Doctrine and Covenants, and many other wise documents and instructions for the benefit of the children of men; gathered many thousands of the Latter-day Saints, founded a great city, and left a fame and name that cannot be slain. He lived great, and he died great in the eyes of God and his people; and like most of the Lord\'s anointed in ancient times, has sealed his mission and his works with his own blood; and so has his brother Hyrum. In life they were not divided, and in death they were not separated!'),
-  // Continuing to 100 with remaining D&C passages (e.g., D&C 88:81, D&C 93:1, etc.—adjust IDs and add fullText from scriptures as needed to reach 100)
-  // The official list totals 100; use the pattern above and fill in the last few from the church site if needed.
+          'Joseph Smith, the Prophet and Seer of the Lord, has done more, save Jesus only, for the salvation of men in this world, than any other man that ever lived in it. In the short space of twenty years, he has brought forth the Book of Mormon, which he translated by the gift and power of God, and has been the means of publishing it on two continents; has sent the fulness of the everlasting gospel, which it contained, to the four quarters of the earth; has brought forth the revelations and commandments which compose this book of Doctrine and Covenants, and many other wise documents and instructions for the benefit of the children of men; gathered many thousands of the Latter-day Saints, founded a great city, and left a fame and name that cannot be slain. He lived great, and he died great in the eyes of God and his people; and like most of the Lord\'s anointed in ancient times, has sealed his mission and his works with his own blood; and so has his brother Hyrum. In life they were not divided, and in death they were not separated!'), // Missing Doctrine and Covenants passages (IDs 97–100 from official 2023 Core Document)
+  Scripture(
+    id: '97',
+    book: ScriptureBook.doctrineAndCovenants,
+    volume: 'D&C',
+    reference: 'Doctrine and Covenants 88:81',
+    name: 'Go Ye Into All the World',
+    keyPhrase:
+        '“I give unto you a commandment, that ye shall teach them unto all men.”',
+    fullText:
+        'Behold, I say unto you, that I have decreed in my heart and in my will that these things shall be taught unto the children of men, that they may know that I am the Lord their God, and that they may be taught to observe all things whatsoever I have commanded them. And I give unto you a commandment, that ye shall teach them unto all men; for they shall be taught unto all men, even unto the ends of the earth.',
+  ),
+  Scripture(
+    id: '98',
+    book: ScriptureBook.doctrineAndCovenants,
+    volume: 'D&C',
+    reference: 'Doctrine and Covenants 93:1',
+    name: 'Truth and Light',
+    keyPhrase:
+        '“Every soul who forsaketh his sins and cometh unto me … shall see my face and know that I am.”',
+    fullText:
+        'Verily, thus saith the Lord: It shall come to pass that every soul who forsaketh his sins and cometh unto me, and calleth on my name, and obeyeth my voice, and keepeth my commandments, shall see my face and know that I am;',
+  ),
+  Scripture(
+    id: '99',
+    book: ScriptureBook.doctrineAndCovenants,
+    volume: 'D&C',
+    reference: 'Doctrine and Covenants 130:20–21',
+    name: 'Obedience and Blessings',
+    keyPhrase:
+        '“There is a law, irrevocably decreed in heaven … upon which all blessings are predicated.”',
+    fullText:
+        'There is a law, irrevocably decreed in heaven upon which all blessings are predicated— And when we obtain any blessing from God, it is by obedience to that law upon which it is predicated.',
+  ),
+  Scripture(
+    id: '100',
+    book: ScriptureBook.doctrineAndCovenants,
+    volume: 'D&C',
+    reference: 'Doctrine and Covenants 138:11–12, 32–34',
+    name: 'Salvation for the Dead',
+    keyPhrase: 'The gospel was preached to the spirits in prison.',
+    fullText:
+        'As I searched the scriptures, I came to the vision of the redemption of the dead; And I saw the hosts of the dead, both small and great. ... Thus was it made known that our Redeemer spent his time in the world of spirits instructing the faithful spirits who had departed mortality in the way of salvation, teaching them the plan of redemption which had been prepared from the foundation of the world; that through his atonement the great plan of salvation might be accomplished; that they might receive the fulness of joy in the mansions of his Father.',
+  ),
+
 ];
