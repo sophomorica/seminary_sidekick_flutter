@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/enums.dart';
 import '../../providers/word_builder_provider.dart';
+import '../../providers/progress_provider.dart';
 import '../../theme/app_theme.dart';
 import 'game_results_screen.dart';
 
@@ -813,6 +814,23 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
 
   void _navigateToResults(WordBuilderState state) {
     _timer.cancel();
+
+    // Record progress for each scripture in the session
+    final progressNotifier = ref.read(progressProvider.notifier);
+    final totalTime = (state.completionTime ?? _elapsed).inSeconds;
+    final timePerScripture = state.totalScriptures > 0
+        ? totalTime ~/ state.totalScriptures
+        : null;
+    for (final scripture in state.scriptureQueue) {
+      progressNotifier.recordAttempt(
+        scriptureId: scripture.id,
+        gameType: GameType.wordOrder,
+        correct: true, // all scriptures completed to finish the game
+        time: timePerScripture,
+        difficultyCompleted: widget.difficulty,
+      );
+    }
+
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => GameResultsScreen(

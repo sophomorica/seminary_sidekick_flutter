@@ -47,6 +47,7 @@ class QuizGameState {
   final bool isComplete;
   final DateTime startTime;
   final Duration? completionTime;
+  final List<bool> questionResults; // per-question: true=correct, false=wrong
 
   const QuizGameState({
     required this.difficulty,
@@ -61,6 +62,7 @@ class QuizGameState {
     this.isComplete = false,
     required this.startTime,
     this.completionTime,
+    this.questionResults = const [],
   });
 
   int get totalQuestions => questions.length;
@@ -87,6 +89,7 @@ class QuizGameState {
     bool? isComplete,
     DateTime? startTime,
     Duration? completionTime,
+    List<bool>? questionResults,
     bool clearSelectedAnswer = false,
   }) {
     return QuizGameState(
@@ -102,6 +105,7 @@ class QuizGameState {
       isCorrect: isCorrect ?? this.isCorrect,
       isComplete: isComplete ?? this.isComplete,
       startTime: startTime ?? this.startTime,
+      questionResults: questionResults ?? this.questionResults,
       completionTime: completionTime ?? this.completionTime,
     );
   }
@@ -241,6 +245,7 @@ class QuizGameNotifier extends StateNotifier<QuizGameState> {
           correct ? state.correctAnswers + 1 : null,
       incorrectAnswers:
           !correct ? state.incorrectAnswers + 1 : null,
+      questionResults: [...state.questionResults, correct],
     );
   }
 

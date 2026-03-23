@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/enums.dart';
 import '../../providers/quiz_game_provider.dart';
+import '../../providers/progress_provider.dart';
 import '../../theme/app_theme.dart';
 import 'game_results_screen.dart';
 
@@ -274,6 +275,25 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
   void _onGameComplete(QuizGameState finalState) {
     _elapsedTimer?.cancel();
     HapticFeedback.heavyImpact();
+
+    // Record progress for each question/scripture
+    final progressNotifier = ref.read(progressProvider.notifier);
+    final timePerQuestion = finalState.totalQuestions > 0
+        ? (finalState.completionTime ?? _elapsed).inSeconds ~/
+            finalState.totalQuestions
+        : null;
+    for (int i = 0; i < finalState.questions.length; i++) {
+      final question = finalState.questions[i];
+      final wasCorrect =
+          i < finalState.questionResults.length && finalState.questionResults[i];
+      progressNotifier.recordAttempt(
+        scriptureId: question.scripture.id,
+        gameType: GameType.quiz,
+        correct: wasCorrect,
+        time: timePerQuestion,
+        difficultyCompleted: wasCorrect ? widget.difficulty : null,
+      );
+    }
 
     Future.delayed(const Duration(milliseconds: 400), () {
       if (!mounted) return;

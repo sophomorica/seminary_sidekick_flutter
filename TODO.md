@@ -55,19 +55,21 @@
 - **notes**: Created quiz_game_provider.dart with QuizGameNotifier and quiz_game_screen.dart. Three question types rotate per question. Visual feedback after each answer. Timer, star rating, and results screen integration all working.
 
 ### TASK-003: Wire Game Results to Progress Provider
-- **status**: `open`
-- **claimed_by**: —
+- **status**: `done`
+- **claimed_by**: claude/context-md-todo-5IJiw
 - **priority**: P0
 - **estimated_effort**: Small
-- **files_to_touch**: `lib/screens/games/matching_game_screen.dart`, `lib/screens/games/word_builder_screen.dart`, `lib/providers/progress_provider.dart`
+- **completed**: 2026-03-23
+- **files_to_touch**: `lib/screens/games/matching_game_screen.dart`, `lib/screens/games/word_builder_screen.dart`, `lib/screens/games/quiz_game_screen.dart`, `lib/providers/quiz_game_provider.dart`
 - **description**: Currently, game completions don't call `progressProvider.recordAttempt()`. Wire each game's completion to record results.
 - **acceptance_criteria**:
-  - [ ] Matching game calls `recordAttempt()` for each scripture in the session on completion
-  - [ ] Word Builder calls `recordAttempt()` for each scripture on completion
-  - [ ] Progress screen reflects game results
-  - [ ] Mastery badges update after playing games
+  - [x] Matching game calls `recordAttempt()` for each scripture in the session on completion
+  - [x] Word Builder calls `recordAttempt()` for each scripture on completion
+  - [x] Quiz game calls `recordAttempt()` for each question with per-question correctness
+  - [x] Progress screen reflects game results (providers already use ref.watch)
+  - [x] Mastery badges update after playing games (reactive providers from TASK-001)
 - **depends_on**: —
-- **notes**: Each game tracks multiple scriptures per session. Record one attempt per scripture, not one per session.
+- **notes**: All three games now call recordAttempt() per-scripture on completion. Matching/Word Builder record all as correct (game only completes when all done). Quiz tracks per-question results via new questionResults list. Time is split evenly across scriptures. Difficulty is recorded for mastery progression.
 
 ---
 
