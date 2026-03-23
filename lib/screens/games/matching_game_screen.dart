@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/enums.dart';
 import '../../models/scripture.dart';
 import '../../providers/matching_game_provider.dart';
+import '../../providers/progress_provider.dart';
 import '../../theme/app_theme.dart';
 import 'game_results_screen.dart';
 
@@ -287,6 +288,22 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
   void _onGameComplete(MatchingGameState finalState) {
     _elapsedTimer?.cancel();
     HapticFeedback.heavyImpact();
+
+    // Record progress for each scripture in the session
+    final progressNotifier = ref.read(progressProvider.notifier);
+    final timePerScripture = finalState.totalPairs > 0
+        ? (finalState.completionTime ?? _elapsed).inSeconds ~/
+            finalState.totalPairs
+        : null;
+    for (final pair in finalState.pairs) {
+      progressNotifier.recordAttempt(
+        scriptureId: pair.scripture.id,
+        gameType: GameType.matching,
+        correct: true, // all pairs matched to complete the game
+        time: timePerScripture,
+        difficultyCompleted: widget.difficulty,
+      );
+    }
 
     Future.delayed(const Duration(milliseconds: 800), () {
       if (!mounted) return;
