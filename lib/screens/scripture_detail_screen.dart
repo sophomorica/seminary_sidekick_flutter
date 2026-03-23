@@ -4,12 +4,13 @@ import 'package:go_router/go_router.dart';
 
 import '../models/enums.dart';
 import '../providers/scripture_provider.dart';
+import '../providers/notes_provider.dart';
 import '../providers/progress_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/mastery_badge.dart';
 import 'memorize_screen.dart';
 
-class ScriptureDetailScreen extends ConsumerWidget {
+class ScriptureDetailScreen extends ConsumerStatefulWidget {
   final String scriptureId;
 
   const ScriptureDetailScreen({
@@ -18,8 +19,42 @@ class ScriptureDetailScreen extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final scripture = ref.watch(scriptureByIdProvider(scriptureId));
+  ConsumerState<ScriptureDetailScreen> createState() =>
+      _ScriptureDetailScreenState();
+}
+
+class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
+  late final TextEditingController _notesController;
+  bool _isEditingNotes = false;
+  final FocusNode _notesFocusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    final existingNote =
+        ref.read(noteByScriptureProvider(widget.scriptureId));
+    _notesController = TextEditingController(text: existingNote ?? '');
+  }
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    _notesFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _saveNotes() {
+    ref
+        .read(notesProvider.notifier)
+        .saveNote(widget.scriptureId, _notesController.text);
+    setState(() => _isEditingNotes = false);
+    _notesFocusNode.unfocus();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scripture = ref.watch(scriptureByIdProvider(widget.scriptureId));
+    final note = ref.watch(noteByScriptureProvider(widget.scriptureId));
 
     if (scripture == null) {
       return Scaffold(
@@ -155,7 +190,7 @@ class ScriptureDetailScreen extends ConsumerWidget {
                   ),
             ),
             const SizedBox(height: 12),
-            ..._buildMasteryCards(context, ref, scriptureId),
+            ..._buildMasteryCards(context, ref, widget.scriptureId),
             const SizedBox(height: 24),
 
             // Notes section
@@ -165,19 +200,75 @@ class ScriptureDetailScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Notes',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Notes',
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                        ),
+                        if (_isEditingNotes)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              TextButton(
+                                onPressed: () {
+                                  _notesController.text = note ?? '';
+                                  setState(() => _isEditingNotes = false);
+                                  _notesFocusNode.unfocus();
+                                },
+                                child: const Text('Cancel'),
+                              ),
+                              const SizedBox(width: 4),
+                              TextButton(
+                                onPressed: _saveNotes,
+                                child: const Text('Save'),
+                              ),
+                            ],
+                          )
+                        else
+                          IconButton(
+                            icon: const Icon(Icons.edit, size: 20),
+                            onPressed: () {
+                              setState(() => _isEditingNotes = true);
+                              _notesFocusNode.requestFocus();
+                            },
                           ),
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Add notes...',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey.shade500,
-                          ),
-                    ),
+                    const SizedBox(height: 8),
+                    if (_isEditingNotes)
+                      TextField(
+                        controller: _notesController,
+                        focusNode: _notesFocusNode,
+                        maxLines: null,
+                        minLines: 3,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: const InputDecoration(
+                          hintText: 'Add your notes about this scripture...',
+                          border: OutlineInputBorder(),
+                        ),
+                      )
+                    else
+                      GestureDetector(
+                        onTap: () {
+                          setState(() => _isEditingNotes = true);
+                          _notesFocusNode.requestFocus();
+                        },
+                        child: Text(
+                          note ?? 'Tap to add notes...',
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: note != null
+                                        ? null
+                                        : Colors.grey.shade500,
+                                    height: 1.5,
+                                  ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -192,7 +283,7 @@ class ScriptureDetailScreen extends ConsumerWidget {
                   ),
             ),
             const SizedBox(height: 12),
-            ..._buildPracticeButtons(context, scriptureId),
+            ..._buildPracticeButtons(context, widget.scriptureId),
             const SizedBox(height: 32),
           ],
         ),
