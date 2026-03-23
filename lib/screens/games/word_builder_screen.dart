@@ -170,21 +170,21 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: AppTheme.dark.withOpacity(0.08),
+              color: AppTheme.dark.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.timer_outlined,
-                    size: 16, color: AppTheme.dark.withOpacity(0.6)),
+                    size: 16, color: AppTheme.dark.withValues(alpha: 0.6)),
                 const SizedBox(width: 4),
                 Text(
                   '$minutes:$seconds',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.dark.withOpacity(0.7),
+                    color: AppTheme.dark.withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -229,7 +229,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -334,7 +334,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
               final borderColor = isNext
                   ? Color.lerp(
                       chunkColor,
-                      chunkColor.withOpacity(0.3),
+                      chunkColor.withValues(alpha: 0.3),
                       _slotPulseController.value,
                     )!
                   : Colors.grey.shade300;
@@ -346,15 +346,15 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                 decoration: BoxDecoration(
                   color: placed != null
                       ? (isPulsing
-                          ? chunkColor.withOpacity(0.2)
-                          : chunkColor.withOpacity(0.1))
+                          ? chunkColor.withValues(alpha: 0.2)
+                          : chunkColor.withValues(alpha: 0.1))
                       : (isNext
-                          ? chunkColor.withOpacity(0.04)
+                          ? chunkColor.withValues(alpha: 0.04)
                           : Colors.white),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: placed != null
-                        ? chunkColor.withOpacity(0.5)
+                        ? chunkColor.withValues(alpha: 0.5)
                         : borderColor,
                     width: isNext ? 2 : 1,
                   ),
@@ -366,7 +366,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                     fontWeight:
                         placed != null ? FontWeight.w600 : FontWeight.normal,
                     color: placed != null
-                        ? chunkColor.withOpacity(0.9)
+                        ? chunkColor.withValues(alpha: 0.9)
                         : Colors.grey.shade400,
                   ),
                 ),
@@ -394,13 +394,13 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
           final chunk = state.availablePool[index];
           final isShaking = _shakingPoolIndex == index;
           final tileColor = chunk.isDistractor
-              ? AppTheme.warning.withOpacity(0.06)
+              ? AppTheme.warning.withValues(alpha: 0.06)
               : _chunkPalette[chunk.colorIndex % _chunkPalette.length]
-                  .withOpacity(0.08);
+                  .withValues(alpha: 0.08);
           final borderCol = chunk.isDistractor
-              ? AppTheme.warning.withOpacity(0.3)
+              ? AppTheme.warning.withValues(alpha: 0.3)
               : _chunkPalette[chunk.colorIndex % _chunkPalette.length]
-                  .withOpacity(0.3);
+                  .withValues(alpha: 0.3);
 
           return AnimatedBuilder(
             animation: _shakeAnimation,
@@ -428,7 +428,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
+                        color: Colors.black.withValues(alpha: 0.04),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -578,8 +578,8 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
             color: tc.isCorrect ? AppTheme.success : AppTheme.error,
             fontWeight: FontWeight.w600,
             backgroundColor: tc.isCorrect
-                ? AppTheme.success.withOpacity(0.08)
-                : AppTheme.error.withOpacity(0.12),
+                ? AppTheme.success.withValues(alpha: 0.08)
+                : AppTheme.error.withValues(alpha: 0.12),
             decoration: tc.isCorrect ? null : TextDecoration.underline,
             decorationColor: AppTheme.error,
           ),
@@ -591,7 +591,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
           style: TextStyle(
             color: AppTheme.accent,
             fontWeight: FontWeight.w700,
-            backgroundColor: AppTheme.accent.withOpacity(0.15),
+            backgroundColor: AppTheme.accent.withValues(alpha: 0.15),
           ),
         ));
       } else {
@@ -623,7 +623,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
             spans.add(TextSpan(
               text: ch,
               style: TextStyle(
-                color: AppTheme.accent.withOpacity(0.4),
+                color: AppTheme.accent.withValues(alpha: 0.4),
                 fontWeight: FontWeight.w600,
               ),
             ));
@@ -647,7 +647,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-      color: AppTheme.error.withOpacity(0.1),
+      color: AppTheme.error.withValues(alpha: 0.1),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

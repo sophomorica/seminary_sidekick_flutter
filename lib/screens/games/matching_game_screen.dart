@@ -360,7 +360,7 @@ class _ProgressHeader extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -459,7 +459,7 @@ class _MatchTile extends StatelessWidget {
           width: MediaQuery.of(context).size.width * 0.42,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppTheme.primary.withOpacity(0.95),
+            color: AppTheme.primary.withValues(alpha: 0.95),
             borderRadius: BorderRadius.circular(AppTheme.radiusMd),
           ),
           child: Text(
@@ -524,15 +524,15 @@ class _MatchTile extends StatelessWidget {
     Color textColor;
 
     if (matched) {
-      bgColor = AppTheme.success.withOpacity(0.15);
+      bgColor = AppTheme.success.withValues(alpha: 0.15);
       borderColor = AppTheme.success;
       textColor = AppTheme.success;
     } else if (isHovering) {
-      bgColor = AppTheme.accent.withOpacity(0.15);
+      bgColor = AppTheme.accent.withValues(alpha: 0.15);
       borderColor = AppTheme.accent;
       textColor = AppTheme.dark;
     } else if (isSelected) {
-      bgColor = AppTheme.primary.withOpacity(0.12);
+      bgColor = AppTheme.primary.withValues(alpha: 0.12);
       borderColor = AppTheme.primary;
       textColor = AppTheme.primaryDark;
     } else {
@@ -552,7 +552,7 @@ class _MatchTile extends StatelessWidget {
         boxShadow: isSelected
             ? [
                 BoxShadow(
-                  color: AppTheme.primary.withOpacity(0.15),
+                  color: AppTheme.primary.withValues(alpha: 0.15),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),

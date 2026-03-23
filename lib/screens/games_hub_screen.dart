@@ -57,12 +57,12 @@ class _GameCardState extends State<_GameCard> {
   @override
   Widget build(BuildContext context) {
     final color = _getColorForGame(widget.gameType);
-    final isAvailable = true;
+    const isAvailable = true;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Card(
-        color: color.withOpacity(0.05),
+        color: color.withValues(alpha: 0.05),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -74,7 +74,7 @@ class _GameCardState extends State<_GameCard> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.2),
+                      color: color.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -160,9 +160,9 @@ class _GameCardState extends State<_GameCard> {
                           onSelected: (_) {
                             setState(() => _selectedDifficulty = difficulty);
                           },
-                          selectedColor: color.withOpacity(0.2),
+                          selectedColor: color.withValues(alpha: 0.2),
                           side: BorderSide(
-                            color: isSelected ? color : color.withOpacity(0.3),
+                            color: isSelected ? color : color.withValues(alpha: 0.3),
                           ),
                           labelStyle: TextStyle(
                             color: isSelected ? color : Colors.grey.shade700,
@@ -227,7 +227,7 @@ class _GameCardState extends State<_GameCard> {
         onSelected: (_) {
           setState(() => _selectedBook = book);
         },
-        selectedColor: accentColor.withOpacity(0.2),
+        selectedColor: accentColor.withValues(alpha: 0.2),
         side: BorderSide(
           color: isSelected ? accentColor : Colors.grey.shade300,
         ),

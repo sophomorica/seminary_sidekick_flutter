@@ -94,7 +94,7 @@ class AppTheme {
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: Colors.white,
         selectedItemColor: primary,
-        unselectedItemColor: dark.withOpacity(0.5),
+        unselectedItemColor: dark.withValues(alpha: 0.5),
         type: BottomNavigationBarType.fixed,
         elevation: 8,
       ),
@@ -155,7 +155,7 @@ class AppTheme {
       bodySmall: GoogleFonts.inter(
         fontSize: 12,
         fontWeight: FontWeight.normal,
-        color: dark.withOpacity(0.7),
+        color: dark.withValues(alpha: 0.7),
         height: 1.4,
       ),
       labelLarge: GoogleFonts.inter(
@@ -228,7 +228,7 @@ class AppTheme {
     return NavigationBarThemeData(
       backgroundColor: Colors.white,
       elevation: 8,
-      indicatorColor: primary.withOpacity(0.15),
+      indicatorColor: primary.withValues(alpha: 0.15),
       labelTextStyle: WidgetStateProperty.all(
         GoogleFonts.inter(
           fontSize: 12,
@@ -242,7 +242,7 @@ class AppTheme {
   static ChipThemeData _buildChipTheme() {
     return ChipThemeData(
       backgroundColor: cream,
-      selectedColor: primary.withOpacity(0.2),
+      selectedColor: primary.withValues(alpha: 0.2),
       padding: const EdgeInsets.symmetric(horizontal: spacingSm, vertical: spacingXs),
       labelStyle: GoogleFonts.inter(
         fontSize: 13,

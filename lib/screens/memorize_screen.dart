@@ -320,7 +320,7 @@ class _MemorizeScreenState extends State<MemorizeScreen>
               _buildStatChip(
                 Icons.visibility_off,
                 '$_hiddenCount',
-                AppTheme.dark.withOpacity(0.5),
+                AppTheme.dark.withValues(alpha: 0.5),
               ),
               const SizedBox(width: 12),
               // Mode indicator
@@ -328,7 +328,7 @@ class _MemorizeScreenState extends State<MemorizeScreen>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.1),
+                  color: AppTheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -351,7 +351,7 @@ class _MemorizeScreenState extends State<MemorizeScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -399,7 +399,7 @@ class _MemorizeScreenState extends State<MemorizeScreen>
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -465,9 +465,9 @@ class _MemorizeScreenState extends State<MemorizeScreen>
       case WordVisibility.visible:
         return Colors.transparent;
       case WordVisibility.firstLetter:
-        return AppTheme.accent.withOpacity(0.06);
+        return AppTheme.accent.withValues(alpha: 0.06);
       case WordVisibility.hidden:
-        return AppTheme.dark.withOpacity(0.04);
+        return AppTheme.dark.withValues(alpha: 0.04);
     }
   }
 
@@ -476,7 +476,7 @@ class _MemorizeScreenState extends State<MemorizeScreen>
       case WordVisibility.visible:
         return Colors.transparent;
       case WordVisibility.firstLetter:
-        return AppTheme.accent.withOpacity(0.2);
+        return AppTheme.accent.withValues(alpha: 0.2);
       case WordVisibility.hidden:
         return Colors.grey.shade200;
     }

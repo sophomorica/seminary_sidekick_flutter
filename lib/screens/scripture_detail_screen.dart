@@ -93,7 +93,7 @@ class ScriptureDetailScreen extends ConsumerWidget {
 
             // Key phrase
             Card(
-              color: AppTheme.secondary.withOpacity(0.1),
+              color: AppTheme.secondary.withValues(alpha: 0.1),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(

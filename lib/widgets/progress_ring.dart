@@ -97,7 +97,7 @@ class _ProgressRingPainter extends CustomPainter {
 
     // Background circle
     final backgroundPaint = Paint()
-      ..color = Colors.grey.withOpacity(0.2)
+      ..color = Colors.grey.withValues(alpha: 0.2)
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;

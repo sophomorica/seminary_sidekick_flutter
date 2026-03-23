@@ -137,10 +137,10 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
                             borderRadius:
                                 BorderRadius.circular(AppTheme.radiusMd),
                             border: Border.all(
-                                color: AppTheme.gold.withOpacity(0.3)),
+                                color: AppTheme.gold.withValues(alpha: 0.3)),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.04),
+                                color: Colors.black.withValues(alpha: 0.04),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
@@ -347,7 +347,7 @@ class _ProgressHeader extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -445,7 +445,7 @@ class _AnswerOption extends StatelessWidget {
         trailingIcon = null;
       }
     } else if (isSelected) {
-      bgColor = AppTheme.gold.withOpacity(0.1);
+      bgColor = AppTheme.gold.withValues(alpha: 0.1);
       borderColor = AppTheme.gold;
       textColor = AppTheme.dark;
       trailingIcon = null;
