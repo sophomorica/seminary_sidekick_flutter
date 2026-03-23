@@ -67,8 +67,10 @@ enum MasteryLevel {
 
 /// The three game types (expandable later).
 enum GameType {
-  matching('Scripture Match', 'Match passages to their references', Icons.swap_horiz),
-  wordOrder('Word Builder', 'Arrange scrambled words in order', Icons.sort_by_alpha),
+  matching('Scripture Match', 'Match passages to their references',
+      Icons.swap_horiz),
+  wordOrder(
+      'Word Builder', 'Arrange scrambled words in order', Icons.sort_by_alpha),
   quiz('Quick Quiz', 'Test your knowledge of key phrases', Icons.quiz);
 
   const GameType(this.displayName, this.description, this.icon);
@@ -127,4 +129,43 @@ enum DifficultyLevel {
   final bool hasTimer;
   final bool allowRetry;
   final int extraDistractors;
+
+  /// Returns a description tailored to the specific [gameType].
+  String descriptionForGame(GameType gameType) {
+    switch (gameType) {
+      case GameType.matching:
+        switch (this) {
+          case DifficultyLevel.beginner:
+            return 'Match 4 passages to their references';
+          case DifficultyLevel.intermediate:
+            return 'Match 8 passages — timed';
+          case DifficultyLevel.advanced:
+            return 'Match 4 passages — timed, no retries';
+          case DifficultyLevel.master:
+            return 'Match 4 passages — timed, no retries, rapid pace';
+        }
+      case GameType.wordOrder:
+        switch (this) {
+          case DifficultyLevel.beginner:
+            return 'Tap 3-word chunks in order';
+          case DifficultyLevel.intermediate:
+            return 'Tap 2-word chunks, distractors mixed in';
+          case DifficultyLevel.advanced:
+            return 'Type the passage — first letters shown as hints';
+          case DifficultyLevel.master:
+            return 'Type blind — any mistake resets all progress';
+        }
+      case GameType.quiz:
+        switch (this) {
+          case DifficultyLevel.beginner:
+            return '4 questions — pick the right answer';
+          case DifficultyLevel.intermediate:
+            return '8 questions — timed';
+          case DifficultyLevel.advanced:
+            return '4 questions — timed, no retries';
+          case DifficultyLevel.master:
+            return '4 questions — timed, no retries, no second chances';
+        }
+    }
+  }
 }

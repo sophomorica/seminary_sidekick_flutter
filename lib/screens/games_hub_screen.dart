@@ -8,7 +8,7 @@ import 'games/word_builder_screen.dart';
 import 'games/quiz_game_screen.dart';
 
 class GamesHubScreen extends ConsumerWidget {
-  const GamesHubScreen({Key? key}) : super(key: key);
+  const GamesHubScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -88,44 +88,21 @@ class _GameCardState extends State<_GameCard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                widget.gameType.displayName,
-                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color: color,
-                                    ),
-                              ),
-                            ),
-                            if (!isAvailable) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade200,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  'Soon',
-                                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                        color: Colors.grey.shade600,
-                                      ),
-                                ),
-                              ),
-                            ],
-                          ],
+                        Text(
+                          widget.gameType.displayName,
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: color,
+                                  ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           widget.gameType.description,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Colors.grey.shade600,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.grey.shade600,
+                                  ),
                         ),
                       ],
                     ),
@@ -189,8 +166,9 @@ class _GameCardState extends State<_GameCard> {
                           ),
                           labelStyle: TextStyle(
                             color: isSelected ? color : Colors.grey.shade700,
-                            fontWeight:
-                                isSelected ? FontWeight.w600 : FontWeight.normal,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.normal,
                           ),
                         ),
                       );
@@ -199,7 +177,7 @@ class _GameCardState extends State<_GameCard> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  _selectedDifficulty.description,
+                  _selectedDifficulty.descriptionForGame(widget.gameType),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Colors.grey.shade500,
                         fontStyle: FontStyle.italic,
@@ -222,27 +200,6 @@ class _GameCardState extends State<_GameCard> {
                         Icon(Icons.play_arrow, size: 24),
                         SizedBox(width: 8),
                         Text('Play', style: TextStyle(fontSize: 16)),
-                      ],
-                    ),
-                  ),
-                ),
-              ] else ...[
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey.shade300,
-                      foregroundColor: Colors.grey.shade600,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    onPressed: null,
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.lock_outline, size: 20),
-                        SizedBox(width: 8),
-                        Text('Coming Soon'),
                       ],
                     ),
                   ),
