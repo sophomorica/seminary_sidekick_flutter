@@ -273,7 +273,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
             child: LinearProgressIndicator(
               value: state.scriptureProgress,
               backgroundColor: Colors.grey.shade200,
-              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.secondary),
+              valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.secondary),
               minHeight: 4,
             ),
           ),
@@ -648,11 +648,11 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
       color: AppTheme.error.withValues(alpha: 0.1),
-      child: Row(
+      child: const Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.refresh, color: AppTheme.error, size: 18),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           Text(
             'Wrong character! Starting over...',
             style: TextStyle(
@@ -711,7 +711,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 suffixIcon: isMaster
                     ? IconButton(
-                        icon: Icon(Icons.mic, color: AppTheme.accent),
+                        icon: const Icon(Icons.mic, color: AppTheme.accent),
                         onPressed: () {
                           // Speech-to-text placeholder
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -790,7 +790,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.check_circle, color: AppTheme.success, size: 48),
+          const Icon(Icons.check_circle, color: AppTheme.success, size: 48),
           const SizedBox(height: 12),
           Text(
             state.isComplete ? 'All Done!' : 'Scripture Complete!',

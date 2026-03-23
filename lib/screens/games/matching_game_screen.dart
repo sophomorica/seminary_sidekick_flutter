@@ -322,7 +322,7 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
               Navigator.of(ctx).pop();
               Navigator.of(context).pop();
             },
-            child: Text(
+            child: const Text(
               'Quit',
               style: TextStyle(color: AppTheme.error),
             ),
@@ -380,7 +380,7 @@ class _ProgressHeader extends StatelessWidget {
               if (incorrect > 0)
                 Row(
                   children: [
-                    Icon(Icons.close, size: 16, color: AppTheme.error),
+                    const Icon(Icons.close, size: 16, color: AppTheme.error),
                     const SizedBox(width: 2),
                     Text(
                       '$incorrect miss${incorrect == 1 ? '' : 'es'}',

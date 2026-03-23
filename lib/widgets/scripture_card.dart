@@ -13,11 +13,11 @@ class ScriptureCard extends ConsumerWidget {
   final EdgeInsetsGeometry? padding;
 
   const ScriptureCard({
-    Key? key,
+    super.key,
     required this.scripture,
     this.onTap,
     this.padding,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

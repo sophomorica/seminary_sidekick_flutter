@@ -333,7 +333,7 @@ class _MemorizeScreenState extends State<MemorizeScreen>
                 ),
                 child: Text(
                   _mode.label,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: AppTheme.primary,

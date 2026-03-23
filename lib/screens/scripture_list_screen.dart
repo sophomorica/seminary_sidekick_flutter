@@ -11,9 +11,9 @@ class ScriptureListScreen extends ConsumerWidget {
   final String bookId;
 
   const ScriptureListScreen({
-    Key? key,
+    super.key,
     required this.bookId,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

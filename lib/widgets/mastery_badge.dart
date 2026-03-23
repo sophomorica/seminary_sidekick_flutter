@@ -7,24 +7,22 @@ class MasteryBadge extends StatelessWidget {
   final bool expanded;
 
   const MasteryBadge({
-    Key? key,
+    super.key,
     required this.masteryLevel,
     this.expanded = false,
-  }) : super(key: key);
+  });
 
   /// Compact version showing just a dot
   const MasteryBadge.compact({
-    Key? key,
+    super.key,
     required this.masteryLevel,
-  })  : expanded = false,
-        super(key: key);
+  })  : expanded = false;
 
   /// Expanded version showing dot and label
   const MasteryBadge.expanded({
-    Key? key,
+    super.key,
     required this.masteryLevel,
-  })  : expanded = true,
-        super(key: key);
+  })  : expanded = true;
 
   @override
   Widget build(BuildContext context) {

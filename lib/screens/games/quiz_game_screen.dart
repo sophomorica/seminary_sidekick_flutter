@@ -310,7 +310,7 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
               Navigator.of(ctx).pop();
               Navigator.of(context).pop();
             },
-            child: Text('Quit', style: TextStyle(color: AppTheme.error)),
+            child: const Text('Quit', style: TextStyle(color: AppTheme.error)),
           ),
         ],
       ),
@@ -367,19 +367,19 @@ class _ProgressHeader extends StatelessWidget {
               Row(
                 children: [
                   if (correct > 0) ...[
-                    Icon(Icons.check_circle, size: 16, color: AppTheme.success),
+                    const Icon(Icons.check_circle, size: 16, color: AppTheme.success),
                     const SizedBox(width: 2),
                     Text('$correct',
-                        style: TextStyle(
+                        style: const TextStyle(
                             color: AppTheme.success,
                             fontWeight: FontWeight.w600)),
                   ],
                   if (correct > 0 && incorrect > 0) const SizedBox(width: 12),
                   if (incorrect > 0) ...[
-                    Icon(Icons.cancel, size: 16, color: AppTheme.error),
+                    const Icon(Icons.cancel, size: 16, color: AppTheme.error),
                     const SizedBox(width: 2),
                     Text('$incorrect',
-                        style: TextStyle(
+                        style: const TextStyle(
                             color: AppTheme.error,
                             fontWeight: FontWeight.w600)),
                   ],

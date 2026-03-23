@@ -9,7 +9,7 @@ import '../theme/app_theme.dart';
 import '../widgets/scripture_card.dart';
 
 class HomeScreen extends ConsumerWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

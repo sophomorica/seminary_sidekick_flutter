@@ -9,14 +9,14 @@ class ProgressRing extends StatefulWidget {
   final Curve animationCurve;
 
   const ProgressRing({
-    Key? key,
+    super.key,
     required this.value,
     this.size = 120,
     this.color = Colors.blue,
     this.label,
     this.animationDuration = const Duration(milliseconds: 800),
     this.animationCurve = Curves.easeInOut,
-  }) : super(key: key);
+  });
 
   @override
   State<ProgressRing> createState() => _ProgressRingState();

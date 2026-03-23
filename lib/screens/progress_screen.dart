@@ -9,7 +9,7 @@ import '../theme/app_theme.dart';
 import '../widgets/progress_ring.dart';
 
 class ProgressScreen extends ConsumerWidget {
-  const ProgressScreen({Key? key}) : super(key: key);
+  const ProgressScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
