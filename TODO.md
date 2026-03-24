@@ -74,17 +74,19 @@
 ## P1 — Important for Quality
 
 ### TASK-004: Notes Editing on Scripture Detail
-- **status**: `open`
-- **claimed_by**: —
+- **status**: `done`
+- **claimed_by**: claude/affectionate-buck
 - **priority**: P1
 - **estimated_effort**: Small
+- **completed**: 2026-03-23
 - **files_to_touch**: `lib/screens/scripture_detail_screen.dart`, `lib/models/scripture.dart`, possibly a new notes provider
 - **description**: The notes section on scripture detail is a placeholder. Make it editable with a text field and persist via Hive.
 - **acceptance_criteria**:
-  - [ ] Tap notes section to edit
-  - [ ] Notes persist across app restarts
-  - [ ] Notes are per-scripture (use scripture ID as key)
+  - [x] Tap notes section to edit
+  - [x] Notes persist across app restarts
+  - [x] Notes are per-scripture (use scripture ID as key)
 - **depends_on**: TASK-001 (Hive wiring patterns)
+- **notes**: Created `lib/providers/notes_provider.dart` with NotesNotifier backed by a `scripture_notes` Hive box. Scripture detail screen converted to ConsumerStatefulWidget with inline edit/save/cancel UX. Notes initialized in main.dart alongside progress.
 
 ### TASK-005: Sound Effects & Audio Feedback
 - **status**: `open`
