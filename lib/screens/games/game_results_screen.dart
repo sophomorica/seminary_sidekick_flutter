@@ -1,3 +1,5 @@
+import 'dart:math';
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -12,6 +14,7 @@ class GameResultsScreen extends StatefulWidget {
   final int totalPairs;
   final Duration completionTime;
   final int starRating; // 1-3
+  final bool isNewMastery; // True when user first reaches "Mastered" level
 
   const GameResultsScreen({
     super.key,
@@ -22,6 +25,7 @@ class GameResultsScreen extends StatefulWidget {
     required this.totalPairs,
     required this.completionTime,
     required this.starRating,
+    this.isNewMastery = false,
   });
 
   @override
@@ -34,10 +38,17 @@ class _GameResultsScreenState extends State<GameResultsScreen>
   late AnimationController _statsController;
   late Animation<double> _starsScale;
   late Animation<double> _statsSlide;
+  late ConfettiController _confettiController;
+
+  bool get _shouldCelebrate => widget.starRating == 3 || widget.isNewMastery;
 
   @override
   void initState() {
     super.initState();
+
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 3),
+    );
 
     _starsController = AnimationController(
       duration: const Duration(milliseconds: 600),
@@ -65,6 +76,13 @@ class _GameResultsScreenState extends State<GameResultsScreen>
       if (mounted) _statsController.forward();
     });
 
+    // Fire confetti after stars animate in
+    if (_shouldCelebrate) {
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (mounted) _confettiController.play();
+      });
+    }
+
     // Celebration haptics
     HapticFeedback.heavyImpact();
     Future.delayed(const Duration(milliseconds: 300), () {
@@ -74,6 +92,7 @@ class _GameResultsScreenState extends State<GameResultsScreen>
 
   @override
   void dispose() {
+    _confettiController.dispose();
     _starsController.dispose();
     _statsController.dispose();
     super.dispose();
@@ -102,7 +121,9 @@ class _GameResultsScreenState extends State<GameResultsScreen>
 
     return Scaffold(
       backgroundColor: AppTheme.offWhite,
-      body: SafeArea(
+      body: Stack(
+        children: [
+          SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -229,6 +250,81 @@ class _GameResultsScreenState extends State<GameResultsScreen>
             ],
           ),
         ),
+      ),
+
+          // Confetti overlay — IgnorePointer ensures it never blocks interaction
+          if (_shouldCelebrate)
+            Align(
+              alignment: Alignment.topCenter,
+              child: IgnorePointer(
+                child: ConfettiWidget(
+                confettiController: _confettiController,
+                blastDirection: pi / 2, // straight down
+                blastDirectionality: BlastDirectionality.explosive,
+                maxBlastForce: 20,
+                minBlastForce: 8,
+                emissionFrequency: 0.05,
+                numberOfParticles: 25,
+                gravity: 0.2,
+                shouldLoop: false,
+                colors: const [
+                  AppTheme.primary,
+                  AppTheme.secondary,
+                  AppTheme.accent,
+                  Color(0xFFFFD54F), // gold
+                  Color(0xFFFF8A65), // warm orange
+                  Color(0xFF81C784), // soft green
+                ],
+              ),
+              ),
+            ),
+
+          // Mastery banner overlay
+          if (widget.isNewMastery)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                child: Container(
+                  margin: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF64B5F6), Color(0xFF42A5F5)],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF64B5F6).withValues(alpha: 0.4),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.workspace_premium,
+                          color: Colors.white, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Scripture Mastered!',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

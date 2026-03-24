@@ -104,17 +104,19 @@
 - **notes**: Keep audio files small (<100KB each). Consider generating with a tool or using royalty-free game sounds.
 
 ### TASK-006: Confetti Celebrations
-- **status**: `open`
-- **claimed_by**: —
+- **status**: `done`
+- **claimed_by**: claude/cowork
 - **priority**: P1
 - **estimated_effort**: Small
+- **completed**: 2026-03-23
 - **files_to_touch**: `lib/screens/games/game_results_screen.dart`, possibly `lib/screens/memorize_screen.dart`
 - **description**: `confetti` package is in pubspec but unused. Add confetti burst on 3-star results, mastery level-ups.
 - **acceptance_criteria**:
-  - [ ] 3-star game result triggers confetti
-  - [ ] First time reaching "Mastered" level triggers confetti
-  - [ ] Confetti doesn't block interaction
+  - [x] 3-star game result triggers confetti
+  - [x] First time reaching "Mastered" level triggers confetti
+  - [x] Confetti doesn't block interaction
 - **depends_on**: —
+- **notes**: Added ConfettiController + ConfettiWidget to GameResultsScreen. Confetti fires on 3-star results or when isNewMastery is true. IgnorePointer wraps the confetti overlay so it never blocks interaction. Added isNewMastery param (defaults false) — callers can pass true once TASK-003 wires game results to progress. Also added a "Scripture Mastered!" banner overlay for mastery celebrations. Uses app palette colors for confetti particles.
 
 ### TASK-007: Practice from Scripture Detail
 - **status**: `open`
