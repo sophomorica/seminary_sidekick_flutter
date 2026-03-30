@@ -7,9 +7,9 @@ import '../helpers/test_helpers.dart';
 void main() {
   group('Scripture — word splitting', () {
     test('words are split from fullText', () {
-      final scripture = testScriptures[0]; // test-1: 20 words
+      final scripture = testScriptures[0]; // test-1: 24 words
       expect(scripture.words, isNotEmpty);
-      expect(scripture.words.length, 20);
+      expect(scripture.words.length, 24);
       expect(scripture.words, everyElement(isNotEmpty));
     });
 

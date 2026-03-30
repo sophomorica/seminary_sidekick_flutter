@@ -124,15 +124,20 @@ class QuizGameNotifier extends StateNotifier<QuizGameState> {
   void startGame({
     required DifficultyLevel difficulty,
     ScriptureBook? bookFilter,
+    List<Scripture>? scriptures,
   }) {
-    List<Scripture> available = List.from(allScriptures);
-    if (bookFilter != null) {
-      available = available.where((s) => s.book == bookFilter).toList();
+    List<Scripture> selected;
+    if (scriptures != null && scriptures.isNotEmpty) {
+      selected = List.from(scriptures);
+    } else {
+      List<Scripture> available = List.from(allScriptures);
+      if (bookFilter != null) {
+        available = available.where((s) => s.book == bookFilter).toList();
+      }
+      available.shuffle(_random);
+      final count = min(difficulty.scriptureCount, available.length);
+      selected = available.take(count).toList();
     }
-    available.shuffle(_random);
-
-    final count = min(difficulty.scriptureCount, available.length);
-    final selected = available.take(count).toList();
 
     // Build a pool of distractors from all scriptures not selected
     final distractorPool =

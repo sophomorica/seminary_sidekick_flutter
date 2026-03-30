@@ -115,17 +115,21 @@ class MatchingGameNotifier extends StateNotifier<MatchingGameState> {
   void startGame({
     required DifficultyLevel difficulty,
     ScriptureBook? bookFilter,
+    List<Scripture>? scriptures,
   }) {
-    // Get available scriptures
-    List<Scripture> available = List.from(allScriptures);
-    if (bookFilter != null) {
-      available = available.where((s) => s.book == bookFilter).toList();
+    // Use provided scriptures or select from pool
+    List<Scripture> selected;
+    if (scriptures != null && scriptures.isNotEmpty) {
+      selected = List.from(scriptures);
+    } else {
+      List<Scripture> available = List.from(allScriptures);
+      if (bookFilter != null) {
+        available = available.where((s) => s.book == bookFilter).toList();
+      }
+      available.shuffle(_random);
+      final count = min(difficulty.scriptureCount, available.length);
+      selected = available.take(count).toList();
     }
-    available.shuffle(_random);
-
-    // Pick the right number based on difficulty
-    final count = min(difficulty.scriptureCount, available.length);
-    final selected = available.take(count).toList();
 
     // Create match pairs
     final pairs = selected.map((s) => MatchPair(scripture: s)).toList();

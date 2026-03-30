@@ -3,12 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../models/enums.dart';
+import '../models/scripture.dart';
 import '../providers/scripture_provider.dart';
 import '../providers/notes_provider.dart';
 import '../providers/progress_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/mastery_badge.dart';
 import 'memorize_screen.dart';
+import 'games/matching_game_screen.dart';
+import 'games/word_builder_screen.dart';
+import 'games/quiz_game_screen.dart';
 
 class ScriptureDetailScreen extends ConsumerStatefulWidget {
   final String scriptureId;
@@ -341,15 +345,16 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
     BuildContext context,
     String scriptureId,
   ) {
+    final scripture = ref.read(scriptureByIdProvider(scriptureId));
+    if (scripture == null) return [];
+
     return GameType.values.map((gameType) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 8.0),
         child: SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: () {
-              context.go('/games');
-            },
+            onPressed: () => _showDifficultyPicker(context, gameType, scripture),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -362,5 +367,97 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
         ),
       );
     }).toList();
+  }
+
+  void _showDifficultyPicker(
+    BuildContext context,
+    GameType gameType,
+    Scripture scripture,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Choose Difficulty',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  scripture.reference,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.primary,
+                        fontStyle: FontStyle.italic,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ...DifficultyLevel.values.map((difficulty) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: OutlinedButton(
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        _launchGame(gameType, difficulty, scripture);
+                      },
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      child: Text(
+                        difficulty.label,
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _launchGame(
+    GameType gameType,
+    DifficultyLevel difficulty,
+    Scripture scripture,
+  ) {
+    final scriptures = [scripture];
+    Widget screen;
+    switch (gameType) {
+      case GameType.matching:
+        screen = MatchingGameScreen(
+          difficulty: difficulty,
+          scriptures: scriptures,
+        );
+      case GameType.wordOrder:
+        screen = WordBuilderScreen(
+          difficulty: difficulty,
+          scriptures: scriptures,
+        );
+      case GameType.quiz:
+        screen = QuizGameScreen(
+          difficulty: difficulty,
+          scriptures: scriptures,
+        );
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => screen),
+    );
   }
 }

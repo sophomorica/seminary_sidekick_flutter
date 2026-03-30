@@ -212,20 +212,25 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
   void startGame({
     required DifficultyLevel difficulty,
     ScriptureBook? bookFilter,
+    List<Scripture>? scriptures,
   }) {
     final mode = (difficulty == DifficultyLevel.beginner ||
             difficulty == DifficultyLevel.intermediate)
         ? WordBuilderMode.chunkTap
         : WordBuilderMode.typing;
 
-    List<Scripture> available = List.from(allScriptures);
-    if (bookFilter != null) {
-      available = available.where((s) => s.book == bookFilter).toList();
+    List<Scripture> selected;
+    if (scriptures != null && scriptures.isNotEmpty) {
+      selected = List.from(scriptures);
+    } else {
+      List<Scripture> available = List.from(allScriptures);
+      if (bookFilter != null) {
+        available = available.where((s) => s.book == bookFilter).toList();
+      }
+      available.shuffle(_random);
+      final count = min(difficulty.scriptureCount, available.length);
+      selected = available.take(count).toList();
     }
-    available.shuffle(_random);
-
-    final count = min(difficulty.scriptureCount, available.length);
-    final selected = available.take(count).toList();
 
     state = WordBuilderState(
       difficulty: difficulty,

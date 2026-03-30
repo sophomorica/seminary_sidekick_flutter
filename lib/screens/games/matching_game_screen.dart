@@ -12,11 +12,13 @@ import 'game_results_screen.dart';
 class MatchingGameScreen extends ConsumerStatefulWidget {
   final DifficultyLevel difficulty;
   final ScriptureBook? bookFilter;
+  final List<Scripture>? scriptures;
 
   const MatchingGameScreen({
     super.key,
     required this.difficulty,
     this.bookFilter,
+    this.scriptures,
   });
 
   @override
@@ -62,6 +64,7 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
       ref.read(matchingGameProvider.notifier).startGame(
             difficulty: widget.difficulty,
             bookFilter: widget.bookFilter,
+            scriptures: widget.scriptures,
           );
       _startTimer();
     });

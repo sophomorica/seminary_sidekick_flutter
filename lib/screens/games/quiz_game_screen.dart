@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/enums.dart';
+import '../../models/scripture.dart';
 import '../../providers/progress_provider.dart';
 import '../../providers/quiz_game_provider.dart';
 import '../../theme/app_theme.dart';
@@ -11,11 +12,13 @@ import 'game_results_screen.dart';
 class QuizGameScreen extends ConsumerStatefulWidget {
   final DifficultyLevel difficulty;
   final ScriptureBook? bookFilter;
+  final List<Scripture>? scriptures;
 
   const QuizGameScreen({
     super.key,
     required this.difficulty,
     this.bookFilter,
+    this.scriptures,
   });
 
   @override
@@ -33,6 +36,7 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
       ref.read(quizGameProvider.notifier).startGame(
             difficulty: widget.difficulty,
             bookFilter: widget.bookFilter,
+            scriptures: widget.scriptures,
           );
       _startTimer();
     });
