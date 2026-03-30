@@ -5,17 +5,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/enums.dart';
 import '../../models/scripture.dart';
 import '../../providers/matching_game_provider.dart';
+import '../../providers/progress_provider.dart';
 import '../../theme/app_theme.dart';
 import 'game_results_screen.dart';
 
 class MatchingGameScreen extends ConsumerStatefulWidget {
   final DifficultyLevel difficulty;
   final ScriptureBook? bookFilter;
+  final List<Scripture>? scriptures;
 
   const MatchingGameScreen({
     super.key,
     required this.difficulty,
     this.bookFilter,
+    this.scriptures,
   });
 
   @override
@@ -61,6 +64,7 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
       ref.read(matchingGameProvider.notifier).startGame(
             difficulty: widget.difficulty,
             bookFilter: widget.bookFilter,
+            scriptures: widget.scriptures,
           );
       _startTimer();
     });
@@ -287,6 +291,19 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
   void _onGameComplete(MatchingGameState finalState) {
     _elapsedTimer?.cancel();
     HapticFeedback.heavyImpact();
+
+    // Record an attempt for each scripture in the session
+    final progressNotifier = ref.read(progressProvider.notifier);
+    final timeInSeconds = (finalState.completionTime ?? _elapsed).inSeconds;
+    for (final pair in finalState.pairs) {
+      progressNotifier.recordAttempt(
+        scriptureId: pair.scripture.id,
+        gameType: GameType.matching,
+        correct: true, // All pairs are matched at completion
+        time: timeInSeconds,
+        difficultyCompleted: widget.difficulty,
+      );
+    }
 
     Future.delayed(const Duration(milliseconds: 800), () {
       if (!mounted) return;

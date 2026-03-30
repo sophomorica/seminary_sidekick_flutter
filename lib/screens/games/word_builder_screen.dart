@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/enums.dart';
+import '../../models/scripture.dart';
+import '../../providers/progress_provider.dart';
 import '../../providers/word_builder_provider.dart';
 import '../../theme/app_theme.dart';
 import 'game_results_screen.dart';
@@ -11,11 +13,13 @@ import 'game_results_screen.dart';
 class WordBuilderScreen extends ConsumerStatefulWidget {
   final DifficultyLevel difficulty;
   final ScriptureBook? bookFilter;
+  final List<Scripture>? scriptures;
 
   const WordBuilderScreen({
     super.key,
     required this.difficulty,
     this.bookFilter,
+    this.scriptures,
   });
 
   @override
@@ -60,6 +64,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       ref.read(wordBuilderProvider.notifier).startGame(
             difficulty: widget.difficulty,
             bookFilter: widget.bookFilter,
+            scriptures: widget.scriptures,
           );
     });
 
@@ -813,6 +818,20 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
 
   void _navigateToResults(WordBuilderState state) {
     _timer.cancel();
+
+    // Record an attempt for each scripture in the session
+    final progressNotifier = ref.read(progressProvider.notifier);
+    final timeInSeconds = (state.completionTime ?? _elapsed).inSeconds;
+    for (final scripture in state.scriptureQueue) {
+      progressNotifier.recordAttempt(
+        scriptureId: scripture.id,
+        gameType: GameType.wordOrder,
+        correct: true, // All scriptures are completed at this point
+        time: timeInSeconds,
+        difficultyCompleted: widget.difficulty,
+      );
+    }
+
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => GameResultsScreen(
