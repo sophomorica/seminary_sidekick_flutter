@@ -55,19 +55,20 @@
 - **notes**: Created quiz_game_provider.dart with QuizGameNotifier and quiz_game_screen.dart. Three question types rotate per question. Visual feedback after each answer. Timer, star rating, and results screen integration all working.
 
 ### TASK-003: Wire Game Results to Progress Provider
-- **status**: `open`
-- **claimed_by**: —
+- **status**: `done`
+- **claimed_by**: claude/cowork
 - **priority**: P0
 - **estimated_effort**: Small
-- **files_to_touch**: `lib/screens/games/matching_game_screen.dart`, `lib/screens/games/word_builder_screen.dart`, `lib/providers/progress_provider.dart`
+- **completed**: 2026-03-28
+- **files_to_touch**: `lib/screens/games/matching_game_screen.dart`, `lib/screens/games/word_builder_screen.dart`, `lib/screens/games/quiz_game_screen.dart`, `lib/providers/progress_provider.dart`
 - **description**: Currently, game completions don't call `progressProvider.recordAttempt()`. Wire each game's completion to record results.
 - **acceptance_criteria**:
-  - [ ] Matching game calls `recordAttempt()` for each scripture in the session on completion
-  - [ ] Word Builder calls `recordAttempt()` for each scripture on completion
-  - [ ] Progress screen reflects game results
-  - [ ] Mastery badges update after playing games
+  - [x] Matching game calls `recordAttempt()` for each scripture in the session on completion
+  - [x] Word Builder calls `recordAttempt()` for each scripture on completion
+  - [x] Progress screen reflects game results
+  - [x] Mastery badges update after playing games
 - **depends_on**: —
-- **notes**: Each game tracks multiple scriptures per session. Record one attempt per scripture, not one per session.
+- **notes**: Each game tracks multiple scriptures per session. Record one attempt per scripture, not one per session. Matching game records all scriptures as correct on completion (since all pairs must be matched). Word Builder records all scriptures as correct on completion (since all must be typed/tapped). Quiz records per-question results at submit time with correct/incorrect based on the actual answer. Also wired quiz_game_screen.dart (not in original files_to_touch since it was built after TASK-003 was written).
 
 ---
 
@@ -181,19 +182,20 @@
 - **depends_on**: TASK-001
 
 ### TASK-011: Game-Specific Difficulty Descriptions
-- **status**: `open`
-- **claimed_by**: —
+- **status**: `done`
+- **claimed_by**: claude/cowork
 - **priority**: P2
 - **estimated_effort**: Small
+- **completed**: 2026-03-28
 - **files_to_touch**: `lib/models/enums.dart`, `lib/screens/games_hub_screen.dart`
 - **description**: DifficultyLevel descriptions are currently Word Builder-specific ("Tap 3-word chunks"). Each game should show its own description.
 - **acceptance_criteria**:
-  - [ ] Matching game shows matching-relevant descriptions
-  - [ ] Word Builder shows current descriptions
-  - [ ] Quiz shows quiz-relevant descriptions
-  - [ ] Games hub renders the right description per game
+  - [x] Matching game shows matching-relevant descriptions
+  - [x] Word Builder shows current descriptions
+  - [x] Quiz shows quiz-relevant descriptions
+  - [x] Games hub renders the right description per game
 - **depends_on**: —
-- **notes**: Could add a `Map<GameType, String>` to DifficultyLevel, or handle in the UI layer.
+- **notes**: Already implemented via `descriptionForGame(GameType)` method on DifficultyLevel enum. Returns tailored descriptions for all 4 difficulty tiers across all 3 game types (matching, wordOrder, quiz). Games hub calls `_selectedDifficulty.descriptionForGame(widget.gameType)` to render the correct description per game card.
 
 ---
 
@@ -230,24 +232,25 @@
 > See `TESTING.md` for the full testing architecture guide with patterns, examples, and conventions.
 
 ### TASK-020: Test Infrastructure Setup
-- **status**: `open`
-- **claimed_by**: —
+- **status**: `done`
+- **claimed_by**: claude/cowork
 - **priority**: P0
 - **estimated_effort**: Small
+- **completed**: 2026-03-28
 - **files_to_touch**: `pubspec.yaml`, NEW `test/helpers/test_helpers.dart`, DELETE `test/widget_test.dart`
 - **description**: Add `mockito` and `fake_async` to dev_dependencies. Create test directory structure. Create shared test fixtures in `test_helpers.dart`. Delete the boilerplate `widget_test.dart`.
 - **acceptance_criteria**:
-  - [ ] `mockito` and `fake_async` in pubspec.yaml dev_dependencies
-  - [ ] `flutter pub get` succeeds
-  - [ ] `test/helpers/test_helpers.dart` exists with 5 test scriptures
-  - [ ] Directory structure: `test/{models,providers,screens,helpers}/`
-  - [ ] Boilerplate `widget_test.dart` deleted
+  - [x] `mockito` and `fake_async` in pubspec.yaml dev_dependencies
+  - [ ] `flutter pub get` succeeds (run locally — Flutter not available in sandbox)
+  - [x] `test/helpers/test_helpers.dart` exists with 5 test scriptures
+  - [x] Directory structure: `test/{models,providers,screens,helpers}/`
+  - [x] Boilerplate `widget_test.dart` deleted
 - **depends_on**: —
-- **notes**: See TESTING.md "Step 0" and "Step 2" for exact contents.
+- **notes**: Added mockito ^5.4.4 and fake_async ^1.3.1 to dev_dependencies. Created test directory structure with models/, providers/, screens/, helpers/ subdirectories. Created test_helpers.dart with 5 test scriptures matching TESTING.md spec. Deleted boilerplate widget_test.dart. Run `flutter pub get` locally to resolve new dependencies.
 
 ### TASK-021: Model Unit Tests
-- **status**: `open`
-- **claimed_by**: —
+- **status**: `in_progress`
+- **claimed_by**: claude/cowork
 - **priority**: P0
 - **estimated_effort**: Small
 - **files_to_touch**: NEW `test/models/scripture_test.dart`, NEW `test/models/user_progress_test.dart`, NEW `test/models/enums_test.dart`
@@ -292,8 +295,8 @@
 - **depends_on**: TASK-020
 
 ### TASK-024: Matching Game Provider Tests
-- **status**: `open`
-- **claimed_by**: —
+- **status**: `in_progress`
+- **claimed_by**: claude/cowork
 - **priority**: P0
 - **estimated_effort**: Medium
 - **files_to_touch**: NEW `test/providers/matching_game_provider_test.dart`

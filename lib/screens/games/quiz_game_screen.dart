@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/enums.dart';
+import '../../providers/progress_provider.dart';
 import '../../providers/quiz_game_provider.dart';
 import '../../theme/app_theme.dart';
 import 'game_results_screen.dart';
@@ -60,8 +61,20 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
     final gameState = ref.watch(quizGameProvider);
     final notifier = ref.read(quizGameProvider.notifier);
 
-    // Navigate to results when complete
+    // Record progress when a question is answered, navigate on complete
     ref.listen<QuizGameState>(quizGameProvider, (prev, next) {
+      // Record attempt when a question is submitted
+      if (next.isAnswered && !(prev?.isAnswered ?? false)) {
+        final question = next.currentQuestion;
+        if (question != null) {
+          ref.read(progressProvider.notifier).recordAttempt(
+            scriptureId: question.scripture.id,
+            gameType: GameType.quiz,
+            correct: next.isCorrect,
+            difficultyCompleted: widget.difficulty,
+          );
+        }
+      }
       if (next.isComplete && !(prev?.isComplete ?? false)) {
         _onGameComplete(next);
       }
