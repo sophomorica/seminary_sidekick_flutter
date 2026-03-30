@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:seminary_sidekick/models/enums.dart';
-import 'package:seminary_sidekick/models/scripture.dart';
 import 'package:seminary_sidekick/providers/scripture_provider.dart';
 
 void main() {

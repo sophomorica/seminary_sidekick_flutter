@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:seminary_sidekick/providers/word_builder_provider.dart';
 import 'package:seminary_sidekick/models/enums.dart';
 import 'package:seminary_sidekick/models/scripture.dart';
-import 'package:seminary_sidekick/models/scripture.dart' as scripture_model;
 
 import '../helpers/test_helpers.dart';
 
@@ -262,7 +261,7 @@ void main() {
 
       final correctChar = notifier.state.targetText[0];
       notifier.onType(correctChar); // Type correct first
-      notifier.onType(correctChar + 'x'); // Then wrong
+      notifier.onType('${correctChar}x'); // Then wrong
 
       expect(notifier.state.typedChars[1].isCorrect, isFalse);
       expect(notifier.state.hasActiveError, isTrue);
@@ -277,13 +276,13 @@ void main() {
 
       final correctChar = notifier.state.targetText[0];
       notifier.onType(correctChar); // Correct
-      notifier.onType(correctChar + 'x'); // Wrong - now has error
+      notifier.onType('${correctChar}x'); // Wrong - now has error
       expect(notifier.state.hasActiveError, isTrue);
 
       // Try to type more - should be blocked
-      final blockedText = correctChar + 'x' + notifier.state.targetText[1];
+      final blockedText = '${correctChar}x${notifier.state.targetText[1]}';
       notifier.onType(blockedText);
-      expect(notifier.state.typedText, correctChar + 'x'); // Should not change
+      expect(notifier.state.typedText, '${correctChar}x'); // Should not change
     });
 
     test(
@@ -293,7 +292,7 @@ void main() {
 
       final correctChar = notifier.state.targetText[0];
       notifier.onType(correctChar); // Correct
-      notifier.onType(correctChar + 'x'); // Wrong
+      notifier.onType('${correctChar}x'); // Wrong
 
       expect(notifier.state.hasActiveError, isTrue);
       expect(notifier.state.typedChars.length, 2);
@@ -314,7 +313,7 @@ void main() {
       notifier.onType(correctChar); // Correct first
       expect(notifier.state.correctPlacements, 1);
 
-      notifier.onType(correctChar + 'x'); // Then wrong
+      notifier.onType('${correctChar}x'); // Then wrong
 
       expect(notifier.state.typedText, isEmpty);
       expect(notifier.state.typedChars, isEmpty);
@@ -402,7 +401,7 @@ void main() {
       expect(correctAcrossBefore, 3);
 
       // Type wrong to trigger reset
-      notifier.onType(notifier.state.targetText.substring(0, 3) + 'x');
+      notifier.onType('${notifier.state.targetText.substring(0, 3)}x');
 
       expect(notifier.state.correctUnitsAcrossAll, correctAcrossBefore - 3);
     });

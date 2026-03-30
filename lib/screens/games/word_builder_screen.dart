@@ -7,6 +7,8 @@ import '../../models/enums.dart';
 import '../../models/scripture.dart';
 import '../../providers/progress_provider.dart';
 import '../../providers/word_builder_provider.dart';
+import '../../services/audio_service.dart';
+import '../../services/speech_service.dart';
 import '../../theme/app_theme.dart';
 import 'game_results_screen.dart';
 
@@ -43,6 +45,11 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
   // Typing mode
   final _typingController = TextEditingController();
   final _typingFocusNode = FocusNode();
+
+  // Speech-to-text
+  final _speechService = SpeechService.instance;
+  bool _isSpeechListening = false;
+  String _lastRecognizedText = '';
 
   // Chunk colors for visual distinction
   static const _chunkPalette = [
@@ -106,6 +113,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     _slotPulseController.dispose();
     _typingController.dispose();
     _typingFocusNode.dispose();
+    _speechService.stopListening();
     super.dispose();
   }
 
@@ -120,6 +128,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     ref.listen<WordBuilderState>(wordBuilderProvider, (prev, next) {
       if (next.isComplete && !(prev?.isComplete ?? false)) {
         _timer.cancel();
+        ref.read(audioProvider.notifier).play(SoundEffect.complete);
         Future.delayed(const Duration(milliseconds: 600), () {
           if (mounted) _navigateToResults(next);
         });
@@ -127,25 +136,18 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       // For typing mode: if a Master reset happened, clear the text controller
       if (next.lastFeedback == 'reset' && prev?.lastFeedback != 'reset') {
         _typingController.clear();
+        _lastRecognizedText = '';
       }
     });
 
-    return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) async {
-        if (didPop) return;
-        final shouldPop = await _onWillPop();
-        if (shouldPop && mounted) Navigator.of(context).pop();
-      },
-      child: Scaffold(
-        backgroundColor: AppTheme.offWhite,
-        appBar: _buildAppBar(state),
-        body: state.currentScripture == null
-            ? const Center(child: CircularProgressIndicator())
-            : (state.mode == WordBuilderMode.chunkTap
-                ? _buildChunkTapBody(state)
-                : _buildTypingBody(state)),
-      ),
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: _buildAppBar(state),
+      body: state.currentScripture == null
+          ? const Center(child: CircularProgressIndicator())
+          : (state.mode == WordBuilderMode.chunkTap
+              ? _buildChunkTapBody(state)
+              : _buildTypingBody(state)),
     );
   }
 
@@ -158,12 +160,13 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     final seconds = _elapsed.inSeconds.remainder(60).toString().padLeft(2, '0');
 
     return AppBar(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       leading: IconButton(
         icon: const Icon(Icons.close),
         onPressed: () async {
           final shouldPop = await _onWillPop();
-          if (shouldPop && mounted) Navigator.of(context).pop();
+          if (!mounted) return;
+          if (shouldPop) Navigator.of(context).pop();
         },
       ),
       title: Row(
@@ -175,21 +178,31 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: AppTheme.dark.withValues(alpha: 0.08),
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.timer_outlined,
-                    size: 16, color: AppTheme.dark.withValues(alpha: 0.6)),
+                    size: 16,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.6)),
                 const SizedBox(width: 4),
                 Text(
                   '$minutes:$seconds',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.dark.withValues(alpha: 0.7),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -197,13 +210,25 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
           ),
         ],
       ),
+      actions: [
+        IconButton(
+          icon: Icon(
+            ref.watch(audioProvider).isMuted
+                ? Icons.volume_off
+                : Icons.volume_up,
+            size: 20,
+          ),
+          onPressed: () => ref.read(audioProvider.notifier).toggleMute(),
+          tooltip: ref.watch(audioProvider).isMuted ? 'Unmute' : 'Mute',
+        ),
+      ],
     );
   }
 
   Widget _buildProgressHeader(WordBuilderState state) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      color: AppTheme.surface,
+      color: Theme.of(context).colorScheme.surface,
       child: Row(
         children: [
           // Scripture progress
@@ -218,12 +243,12 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
           ),
           const Spacer(),
           if (state.incorrectAttempts > 0)
-            _buildPill(Icons.close, AppTheme.error,
-                '${state.incorrectAttempts}'),
+            _buildPill(
+                Icons.close, AppTheme.error, '${state.incorrectAttempts}'),
           if (state.mode == WordBuilderMode.typing && state.resetCount > 0) ...[
             const SizedBox(width: 8),
-            _buildPill(Icons.refresh, AppTheme.warning,
-                '${state.resetCount} resets'),
+            _buildPill(
+                Icons.refresh, AppTheme.warning, '${state.resetCount} resets'),
           ],
         ],
       ),
@@ -267,7 +292,10 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
           Text(
             state.currentScripture?.name ?? '',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey.shade600,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.6),
                   fontStyle: FontStyle.italic,
                 ),
             textAlign: TextAlign.center,
@@ -277,8 +305,10 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: state.scriptureProgress,
-              backgroundColor: Colors.grey.shade200,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.secondary),
+              backgroundColor:
+                  Theme.of(context).colorScheme.surfaceContainerHighest,
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(AppTheme.secondary),
               minHeight: 4,
             ),
           ),
@@ -331,7 +361,8 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
           final isNext =
               index == state.nextChunkIndex && !state.isScriptureComplete;
           final isPulsing = _pulsingSlot == index;
-          final chunkColor = _chunkPalette[target.colorIndex % _chunkPalette.length];
+          final chunkColor =
+              _chunkPalette[target.colorIndex % _chunkPalette.length];
 
           return AnimatedBuilder(
             animation: _slotPulseController,
@@ -342,7 +373,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                       chunkColor.withValues(alpha: 0.3),
                       _slotPulseController.value,
                     )!
-                  : Colors.grey.shade300;
+                  : Theme.of(context).colorScheme.outlineVariant;
 
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
@@ -355,7 +386,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                           : chunkColor.withValues(alpha: 0.1))
                       : (isNext
                           ? chunkColor.withValues(alpha: 0.04)
-                          : Colors.white),
+                          : Theme.of(context).colorScheme.surface),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: placed != null
@@ -372,7 +403,10 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                         placed != null ? FontWeight.w600 : FontWeight.normal,
                     color: placed != null
                         ? chunkColor.withValues(alpha: 0.9)
-                        : Colors.grey.shade400,
+                        : Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.35),
                   ),
                 ),
               );
@@ -444,7 +478,9 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: isShaking ? AppTheme.error : AppTheme.dark,
+                      color: isShaking
+                          ? AppTheme.error
+                          : Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -465,6 +501,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     final newState = ref.read(wordBuilderProvider);
     if (newState.lastFeedback == 'correct') {
       HapticFeedback.lightImpact();
+      ref.read(audioProvider.notifier).play(SoundEffect.correct);
       setState(() => _pulsingSlot = newState.nextChunkIndex - 1);
       _pulseController.forward(from: 0).then((_) {
         if (mounted) setState(() => _pulsingSlot = null);
@@ -482,6 +519,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       }
     } else if (newState.lastFeedback == 'incorrect') {
       HapticFeedback.mediumImpact();
+      ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
       setState(() => _shakingPoolIndex = poolIndex);
       _shakeController.forward(from: 0).then((_) {
         if (mounted) {
@@ -509,12 +547,10 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
         ),
 
         // Feedback banner for Master resets
-        if (state.lastFeedback == 'reset')
-          _buildResetBanner(),
+        if (state.lastFeedback == 'reset') _buildResetBanner(),
 
         // Text input area
-        if (!state.isScriptureComplete)
-          _buildTypingInput(state),
+        if (!state.isScriptureComplete) _buildTypingInput(state),
 
         if (state.isScriptureComplete)
           Expanded(
@@ -536,9 +572,10 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+          border:
+              Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         child: RichText(
           text: TextSpan(
@@ -613,7 +650,10 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
             spans.add(TextSpan(
               text: '_',
               style: TextStyle(
-                color: Colors.grey.shade300,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.25),
                 letterSpacing: 1,
               ),
             ));
@@ -636,7 +676,10 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
             spans.add(TextSpan(
               text: '_',
               style: TextStyle(
-                color: Colors.grey.shade300,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.25),
                 letterSpacing: 1,
               ),
             ));
@@ -677,9 +720,9 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         border: Border(
-          top: BorderSide(color: Colors.grey.shade200),
+          top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
         ),
       ),
       child: Row(
@@ -698,17 +741,21 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                     : (isMaster
                         ? 'Type from memory — no peeking!'
                         : 'Type the scripture (first letters shown)...'),
-                hintStyle: TextStyle(color: Colors.grey.shade400),
+                hintStyle: TextStyle(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.35)),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
+                  borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
-                    color: state.hasActiveError
-                        ? AppTheme.error
-                        : AppTheme.accent,
+                    color:
+                        state.hasActiveError ? AppTheme.error : AppTheme.accent,
                     width: 2,
                   ),
                 ),
@@ -716,17 +763,13 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 suffixIcon: isMaster
                     ? IconButton(
-                        icon: const Icon(Icons.mic, color: AppTheme.accent),
-                        onPressed: () {
-                          // Speech-to-text placeholder
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content:
-                                  Text('Speech-to-text coming soon!'),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        },
+                        icon: Icon(
+                          _isSpeechListening ? Icons.mic_off : Icons.mic,
+                          color: _isSpeechListening
+                              ? AppTheme.error
+                              : AppTheme.accent,
+                        ),
+                        onPressed: _toggleSpeechListening,
                       )
                     : null,
               ),
@@ -736,8 +779,10 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                 // If Master reset, controller is cleared via the listener
                 if (newState.lastFeedback == 'reset') {
                   HapticFeedback.heavyImpact();
+                  ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
                 } else if (newState.lastFeedback == 'incorrect') {
                   HapticFeedback.mediumImpact();
+                  ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
                 }
 
                 if (newState.isScriptureComplete) {
@@ -747,9 +792,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                     Future.delayed(const Duration(milliseconds: 1000), () {
                       if (mounted) {
                         _typingController.clear();
-                        ref
-                            .read(wordBuilderProvider.notifier)
-                            .nextScripture();
+                        ref.read(wordBuilderProvider.notifier).nextScripture();
                         _typingFocusNode.requestFocus();
                       }
                     });
@@ -764,6 +807,101 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
   }
 
   // ═══════════════════════════════════════════════════════════════
+  // SPEECH-TO-TEXT
+  // ═══════════════════════════════════════════════════════════════
+
+  Future<void> _toggleSpeechListening() async {
+    if (_isSpeechListening) {
+      await _speechService.stopListening();
+      setState(() => _isSpeechListening = false);
+      return;
+    }
+
+    // Start listening
+    setState(() {
+      _isSpeechListening = true;
+      _lastRecognizedText = '';
+    });
+
+    await _speechService.startListening(
+      onResult: _onSpeechResult,
+      onError: (errorMessage) {
+        if (!mounted) return;
+        setState(() => _isSpeechListening = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      },
+    );
+
+    // If initialization failed (service set _isListening back to false)
+    if (!_speechService.isListening && mounted) {
+      setState(() => _isSpeechListening = false);
+    }
+  }
+
+  /// Called whenever the speech recognizer has new text.
+  /// Feeds the new characters one-by-one into [onType] to match the
+  /// existing typing mode logic.
+  void _onSpeechResult(String recognizedText) {
+    if (!mounted) return;
+
+    // Find the new characters since last callback
+    final newChars = recognizedText.length > _lastRecognizedText.length
+        ? recognizedText.substring(_lastRecognizedText.length)
+        : '';
+    _lastRecognizedText = recognizedText;
+
+    if (newChars.isEmpty) return;
+
+    // Feed each character through onType, building up the typed text
+    final notifier = ref.read(wordBuilderProvider.notifier);
+    final currentState = ref.read(wordBuilderProvider);
+
+    String simulatedText = currentState.typedText;
+    for (final char in newChars.split('')) {
+      simulatedText += char;
+      notifier.onType(simulatedText);
+
+      // Check if a Master reset happened (typedText got cleared)
+      final stateAfter = ref.read(wordBuilderProvider);
+      if (stateAfter.typedText.isEmpty && simulatedText.isNotEmpty) {
+        // Reset happened — sync our simulated text
+        simulatedText = '';
+        _typingController.clear();
+      }
+
+      if (stateAfter.isScriptureComplete) {
+        // Stop listening when scripture is complete
+        _speechService.stopListening();
+        setState(() => _isSpeechListening = false);
+
+        HapticFeedback.heavyImpact();
+        _typingFocusNode.unfocus();
+        if (!stateAfter.isComplete) {
+          Future.delayed(const Duration(milliseconds: 1000), () {
+            if (mounted) {
+              _typingController.clear();
+              _lastRecognizedText = '';
+              ref.read(wordBuilderProvider.notifier).nextScripture();
+            }
+          });
+        }
+        return;
+      }
+    }
+
+    // Keep the text controller in sync
+    _typingController.text = ref.read(wordBuilderProvider).typedText;
+    _typingController.selection = TextSelection.collapsed(
+      offset: _typingController.text.length,
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
   // SHARED HELPERS
   // ═══════════════════════════════════════════════════════════════
 
@@ -772,19 +910,26 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
         children: [
-          Expanded(child: Divider(color: Colors.grey.shade300)),
+          Expanded(
+              child:
+                  Divider(color: Theme.of(context).colorScheme.outlineVariant)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Text(
               'Tap the next chunk',
               style: TextStyle(
-                color: Colors.grey.shade500,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.5),
                 fontSize: 12,
                 fontStyle: FontStyle.italic,
               ),
             ),
           ),
-          Expanded(child: Divider(color: Colors.grey.shade300)),
+          Expanded(
+              child:
+                  Divider(color: Theme.of(context).colorScheme.outlineVariant)),
         ],
       ),
     );
@@ -808,7 +953,12 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
             const SizedBox(height: 4),
             Text(
               'Loading next scripture...',
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+              style: TextStyle(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.5),
+                  fontSize: 13),
             ),
           ],
         ],

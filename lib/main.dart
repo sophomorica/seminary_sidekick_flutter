@@ -6,6 +6,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'app.dart';
 import 'providers/notes_provider.dart';
 import 'providers/progress_provider.dart';
+import 'providers/theme_provider.dart';
+import 'services/audio_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,13 +21,11 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // Status bar style
+  // Status bar style — theme-dependent overlays are handled by the
+  // MaterialApp, but we still set the status bar to transparent.
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-      systemNavigationBarColor: Colors.white,
-      systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
 
@@ -33,6 +33,8 @@ void main() async {
   // Load persisted data before app starts
   await container.read(progressProvider.notifier).init();
   await container.read(notesProvider.notifier).init();
+  await container.read(themeProvider.notifier).init();
+  await container.read(audioProvider.notifier).init();
 
   runApp(
     UncontrolledProviderScope(

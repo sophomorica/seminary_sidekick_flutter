@@ -96,21 +96,22 @@
 
 ### TASK-005: Sound Effects & Audio Feedback
 
-- **status**: `open`
-- **claimed_by**: —
+- **status**: `done`
+- **claimed_by**: claude/cowork
 - **priority**: P1
 - **estimated_effort**: Medium
+- **completed**: 2026-03-30
 - **files_to_touch**: NEW `lib/services/audio_service.dart`, game screens, `assets/audio/`
 - **description**: `audioplayers` is in pubspec but unused. Add sound effects for correct/incorrect, game completion, mastery level-up.
 - **acceptance_criteria**:
-  - [ ] Audio service singleton with preloaded sounds
-  - [ ] Correct match/placement: satisfying "ding"
-  - [ ] Incorrect attempt: soft "buzz"
-  - [ ] Game completion: fanfare
-  - [ ] Mute toggle in settings/app bar
-  - [ ] Sounds don't block UI thread
+  - [x] Audio service singleton with preloaded sounds
+  - [x] Correct match/placement: satisfying "ding"
+  - [x] Incorrect attempt: soft "buzz"
+  - [x] Game completion: fanfare
+  - [x] Mute toggle in settings/app bar
+  - [x] Sounds don't block UI thread
 - **depends_on**: —
-- **notes**: Keep audio files small (<100KB each). Consider generating with a tool or using royalty-free game sounds.
+- **notes**: Created AudioNotifier (Riverpod StateNotifier) with pool of 3 AudioPlayer instances per sound for zero-latency overlapping playback. Generated 4 WAV files via Python (correct.wav 30KB, incorrect.wav 22KB, complete.wav 74KB, levelup.wav 69KB — all under 100KB). Mute toggle persisted via Hive box. Mute button added to all 3 game screen app bars. Audio wired to: matching game (correct/incorrect/complete), word builder (correct chunk/incorrect chunk/typing errors/master reset/complete), quiz (correct/incorrect answer/complete), game results (levelup on new mastery). GameResultsScreen converted from StatefulWidget to ConsumerStatefulWidget for Riverpod access.
 
 ### TASK-006: Confetti Celebrations
 
@@ -149,19 +150,20 @@
 
 ### TASK-008: Speech-to-Text for Master Typing
 
-- **status**: `open`
-- **claimed_by**: —
+- **status**: `done`
+- **claimed_by**: claude/cowork
 - **priority**: P2
 - **estimated_effort**: Medium
-- **files_to_touch**: `lib/screens/games/word_builder_screen.dart`, pubspec.yaml (new dep)
+- **completed**: 2026-03-30
+- **files_to_touch**: `lib/screens/games/word_builder_screen.dart`, pubspec.yaml (new dep), NEW `lib/services/speech_service.dart`, `ios/Runner/Info.plist`, `android/app/src/main/AndroidManifest.xml`
 - **description**: The mic button in Master typing mode shows "coming soon". Wire up a speech recognition package.
 - **acceptance_criteria**:
-  - [ ] Mic button starts listening
-  - [ ] Transcribed text is fed through `onType()` character by character
-  - [ ] Works on both iOS and Android
-  - [ ] Graceful fallback if permissions denied
+  - [x] Mic button starts listening
+  - [x] Transcribed text is fed through `onType()` character by character
+  - [x] Works on both iOS and Android
+  - [x] Graceful fallback if permissions denied
 - **depends_on**: —
-- **notes**: Consider `speech_to_text` package. Permissions handling needed for both platforms.
+- **notes**: Added `speech_to_text: ^6.6.0` to pubspec.yaml. Created `SpeechService` singleton in `lib/services/speech_service.dart` wrapping the speech_to_text package with initialize/start/stop/cancel API. Wired mic button in word_builder_screen.dart: toggles listening on/off, icon changes to mic_off (red) while active, feeds recognized text character-by-character through `onType()` to match existing typing logic. Handles Master resets (clears recognized text buffer), scripture completion (stops listening), and multi-scripture progression. Added `NSMicrophoneUsageDescription` and `NSSpeechRecognitionUsageDescription` to iOS Info.plist, `RECORD_AUDIO` and `INTERNET` permissions to Android manifest. Graceful error handling shows snackbar if permissions denied or speech unavailable. Run `flutter pub get` after pulling.
 
 ### TASK-009: Spaced Repetition System
 
@@ -216,10 +218,20 @@
 
 ### TASK-012: Dark Mode
 
-- **status**: `open`
+- **status**: `done`
+- **claimed_by**: claude/cowork
 - **priority**: P3
 - **estimated_effort**: Medium
+- **completed**: 2026-03-30
+- **files_to_touch**: `lib/theme/app_theme.dart`, NEW `lib/providers/theme_provider.dart`, `lib/app.dart`, `lib/main.dart`, `lib/screens/home_screen.dart`
 - **description**: Add dark theme variant to `app_theme.dart` with a toggle.
+- **acceptance_criteria**:
+  - [x] Dark theme defined in app_theme.dart with appropriate dark surface colors
+  - [x] ThemeNotifier persists light/dark/system preference via Hive
+  - [x] MaterialApp.router wired with theme, darkTheme, and themeMode
+  - [x] Toggle button in home screen app bar cycles system → light → dark
+  - [x] All component themes (text, cards, nav bar, chips, app bar) adapt to dark mode
+- **notes**: Added 4 dark surface colors to AppTheme. Refactored private theme builders to accept color parameters so both light and dark themes share the same structure. Created ThemeNotifier (StateNotifier<ThemeMode>) backed by a `settings` Hive box. Converted SeminarySidekickApp from StatefulWidget to ConsumerStatefulWidget to watch themeProvider. Home screen app bar shows a context-aware icon (sun/moon/auto) that cycles through the 3 modes. Removed hardcoded light-mode system UI overlay style so Flutter handles status bar brightness automatically per theme.
 
 ### TASK-013: Onboarding Flow
 

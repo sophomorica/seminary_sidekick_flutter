@@ -5,7 +5,7 @@ import 'package:seminary_sidekick/models/enums.dart';
 void main() {
   group('UserProgress — default construction', () {
     test('default values are correct', () {
-      final progress = UserProgress(
+      const progress = UserProgress(
         scriptureId: 'test-1',
         gameType: GameType.matching,
       );
@@ -58,7 +58,7 @@ void main() {
 
   group('UserProgress — storageKey', () {
     test('storageKey format is scriptureId_gameTypeName', () {
-      final progress = UserProgress(
+      const progress = UserProgress(
         scriptureId: 'test-1',
         gameType: GameType.matching,
       );
@@ -66,7 +66,7 @@ void main() {
     });
 
     test('storageKey for wordOrder', () {
-      final progress = UserProgress(
+      const progress = UserProgress(
         scriptureId: '42',
         gameType: GameType.wordOrder,
       );
@@ -74,7 +74,7 @@ void main() {
     });
 
     test('storageKey for quiz', () {
-      final progress = UserProgress(
+      const progress = UserProgress(
         scriptureId: 'test-5',
         gameType: GameType.quiz,
       );
@@ -118,7 +118,7 @@ void main() {
     });
 
     test('toJson produces expected keys', () {
-      final progress = UserProgress(
+      const progress = UserProgress(
         scriptureId: 'test-1',
         gameType: GameType.matching,
       );

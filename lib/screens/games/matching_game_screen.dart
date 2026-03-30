@@ -6,6 +6,7 @@ import '../../models/enums.dart';
 import '../../models/scripture.dart';
 import '../../providers/matching_game_provider.dart';
 import '../../providers/progress_provider.dart';
+import '../../services/audio_service.dart';
 import '../../theme/app_theme.dart';
 import 'game_results_screen.dart';
 
@@ -108,7 +109,7 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
     });
 
     return Scaffold(
-      backgroundColor: AppTheme.offWhite,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.close),
@@ -116,6 +117,17 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
         ),
         title: Text(widget.difficulty.label),
         actions: [
+          // Mute toggle
+          IconButton(
+            icon: Icon(
+              ref.watch(audioProvider).isMuted
+                  ? Icons.volume_off
+                  : Icons.volume_up,
+              size: 20,
+            ),
+            onPressed: () => ref.read(audioProvider.notifier).toggleMute(),
+            tooltip: ref.watch(audioProvider).isMuted ? 'Unmute' : 'Mute',
+          ),
           // Timer display
           Padding(
             padding: const EdgeInsets.only(right: 16),
@@ -123,7 +135,7 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.timer_outlined, size: 18, color: Colors.grey.shade600),
+                  Icon(Icons.timer_outlined, size: 18, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                   const SizedBox(width: 4),
                   Text(
                     _formatDuration(_elapsed),
@@ -204,7 +216,7 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
           child: Text(
             title,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: Colors.grey.shade500,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                   letterSpacing: 1,
                 ),
             textAlign: TextAlign.center,
@@ -265,6 +277,7 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
 
   void _onCorrectMatch() {
     HapticFeedback.mediumImpact();
+    ref.read(audioProvider.notifier).play(SoundEffect.correct);
     _pulseController.forward().then((_) => _pulseController.reverse());
 
     // Mark matched items for animation
@@ -282,6 +295,7 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
 
   void _onIncorrectMatch() {
     HapticFeedback.heavyImpact();
+    ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
     _shakeController.forward().then((_) {
       _shakeController.reset();
       ref.read(matchingGameProvider.notifier).clearFeedback();
@@ -291,6 +305,7 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
   void _onGameComplete(MatchingGameState finalState) {
     _elapsedTimer?.cancel();
     HapticFeedback.heavyImpact();
+    ref.read(audioProvider.notifier).play(SoundEffect.complete);
 
     // Record an attempt for each scripture in the session
     final progressNotifier = ref.read(progressProvider.notifier);
@@ -374,10 +389,10 @@ class _ProgressHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -415,7 +430,7 @@ class _ProgressHeader extends StatelessWidget {
             child: LinearProgressIndicator(
               value: total > 0 ? matched / total : 0,
               minHeight: 6,
-              backgroundColor: Colors.grey.shade200,
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.success),
             ),
           ),
@@ -547,15 +562,15 @@ class _MatchTile extends StatelessWidget {
     } else if (isHovering) {
       bgColor = AppTheme.accent.withValues(alpha: 0.15);
       borderColor = AppTheme.accent;
-      textColor = AppTheme.dark;
+      textColor = Theme.of(context).colorScheme.onSurface;
     } else if (isSelected) {
       bgColor = AppTheme.primary.withValues(alpha: 0.12);
       borderColor = AppTheme.primary;
-      textColor = AppTheme.primaryDark;
+      textColor = Theme.of(context).colorScheme.primary;
     } else {
-      bgColor = Colors.white;
-      borderColor = Colors.grey.shade300;
-      textColor = AppTheme.dark;
+      bgColor = Theme.of(context).colorScheme.surface;
+      borderColor = Theme.of(context).colorScheme.outlineVariant;
+      textColor = Theme.of(context).colorScheme.onSurface;
     }
 
     return AnimatedContainer(

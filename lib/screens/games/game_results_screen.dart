@@ -2,11 +2,13 @@ import 'dart:math';
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/enums.dart';
+import '../../services/audio_service.dart';
 import '../../theme/app_theme.dart';
 
-class GameResultsScreen extends StatefulWidget {
+class GameResultsScreen extends ConsumerStatefulWidget {
   final GameType gameType;
   final DifficultyLevel difficulty;
   final int correctMatches;
@@ -29,10 +31,10 @@ class GameResultsScreen extends StatefulWidget {
   });
 
   @override
-  State<GameResultsScreen> createState() => _GameResultsScreenState();
+  ConsumerState<GameResultsScreen> createState() => _GameResultsScreenState();
 }
 
-class _GameResultsScreenState extends State<GameResultsScreen>
+class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
     with TickerProviderStateMixin {
   late AnimationController _starsController;
   late AnimationController _statsController;
@@ -83,11 +85,14 @@ class _GameResultsScreenState extends State<GameResultsScreen>
       });
     }
 
-    // Celebration haptics
+    // Celebration haptics and audio
     HapticFeedback.heavyImpact();
     Future.delayed(const Duration(milliseconds: 300), () {
       HapticFeedback.mediumImpact();
     });
+    if (widget.isNewMastery) {
+      ref.read(audioProvider.notifier).play(SoundEffect.levelup);
+    }
   }
 
   @override
@@ -120,7 +125,7 @@ class _GameResultsScreenState extends State<GameResultsScreen>
     };
 
     return Scaffold(
-      backgroundColor: AppTheme.offWhite,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           SafeArea(
@@ -142,7 +147,7 @@ class _GameResultsScreenState extends State<GameResultsScreen>
                       child: Icon(
                         isFilled ? Icons.star_rounded : Icons.star_outline_rounded,
                         size: index == 1 ? 72 : 56, // Middle star bigger
-                        color: isFilled ? AppTheme.gold : Colors.grey.shade300,
+                        color: isFilled ? AppTheme.gold : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
                       ),
                     );
                   }),
@@ -161,7 +166,7 @@ class _GameResultsScreenState extends State<GameResultsScreen>
               Text(
                 subtitle,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey.shade600,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                 textAlign: TextAlign.center,
               ),

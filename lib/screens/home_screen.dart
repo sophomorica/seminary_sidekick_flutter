@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../models/enums.dart';
 import '../providers/scripture_provider.dart';
 import '../providers/progress_provider.dart';
+import '../providers/theme_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/scripture_card.dart';
 
@@ -37,11 +38,31 @@ class HomeScreen extends ConsumerWidget {
         ? (allScriptures..shuffle()).take(3).toList()
         : needsReviewScriptures.take(3).toList();
 
+    final themeMode = ref.watch(themeProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Seminary Sidekick'),
         elevation: 0,
-        backgroundColor: AppTheme.surface,
+        actions: [
+          IconButton(
+            icon: Icon(
+              switch (themeMode) {
+                ThemeMode.light => Icons.light_mode,
+                ThemeMode.dark => Icons.dark_mode,
+                ThemeMode.system => Icons.brightness_auto,
+              },
+            ),
+            tooltip: switch (themeMode) {
+              ThemeMode.light => 'Light mode (tap for dark)',
+              ThemeMode.dark => 'Dark mode (tap for system)',
+              ThemeMode.system => 'System mode (tap for light)',
+            },
+            onPressed: () {
+              ref.read(themeProvider.notifier).toggle();
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -60,9 +81,7 @@ class HomeScreen extends ConsumerWidget {
                   const SizedBox(height: 8),
                   Text(
                     'Continue your spiritual journey through daily practice',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey.shade600,
-                        ),
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
               ),
@@ -92,7 +111,7 @@ class HomeScreen extends ConsumerWidget {
                     label: 'Streak',
                     value: stats.currentStreak.toString(),
                     icon: Icons.local_fire_department,
-                    color: Colors.orange,
+                    color: AppTheme.accent,
                   ),
                 ],
               ),

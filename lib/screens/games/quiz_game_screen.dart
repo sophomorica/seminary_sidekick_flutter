@@ -6,6 +6,7 @@ import '../../models/enums.dart';
 import '../../models/scripture.dart';
 import '../../providers/progress_provider.dart';
 import '../../providers/quiz_game_provider.dart';
+import '../../services/audio_service.dart';
 import '../../theme/app_theme.dart';
 import 'game_results_screen.dart';
 
@@ -77,6 +78,10 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
             correct: next.isCorrect,
             difficultyCompleted: widget.difficulty,
           );
+          // Play audio feedback
+          ref.read(audioProvider.notifier).play(
+            next.isCorrect ? SoundEffect.correct : SoundEffect.incorrect,
+          );
         }
       }
       if (next.isComplete && !(prev?.isComplete ?? false)) {
@@ -87,7 +92,7 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
     final question = gameState.currentQuestion;
 
     return Scaffold(
-      backgroundColor: AppTheme.offWhite,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.close),
@@ -95,6 +100,16 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
         ),
         title: Text(widget.difficulty.label),
         actions: [
+          IconButton(
+            icon: Icon(
+              ref.watch(audioProvider).isMuted
+                  ? Icons.volume_off
+                  : Icons.volume_up,
+              size: 20,
+            ),
+            onPressed: () => ref.read(audioProvider.notifier).toggleMute(),
+            tooltip: ref.watch(audioProvider).isMuted ? 'Unmute' : 'Mute',
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: Center(
@@ -102,7 +117,7 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.timer_outlined,
-                      size: 18, color: Colors.grey.shade600),
+                      size: 18, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                   const SizedBox(width: 4),
                   Text(
                     _formatDuration(_elapsed),
@@ -150,14 +165,14 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
                         Container(
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.surface,
                             borderRadius:
                                 BorderRadius.circular(AppTheme.radiusMd),
                             border: Border.all(
                                 color: AppTheme.gold.withValues(alpha: 0.3)),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.04),
+                                color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.04),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
@@ -199,7 +214,7 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppTheme.gold,
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              disabledBackgroundColor: Colors.grey.shade300,
+                              disabledBackgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                             ),
                             onPressed: gameState.selectedAnswer != null
                                 ? () {
@@ -234,8 +249,8 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: gameState.isCorrect
-                                  ? AppTheme.successLight
-                                  : AppTheme.errorLight,
+                                  ? AppTheme.success.withValues(alpha: 0.15)
+                                  : AppTheme.error.withValues(alpha: 0.15),
                               borderRadius:
                                   BorderRadius.circular(AppTheme.radiusMd),
                             ),
@@ -291,6 +306,7 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
   void _onGameComplete(QuizGameState finalState) {
     _elapsedTimer?.cancel();
     HapticFeedback.heavyImpact();
+    ref.read(audioProvider.notifier).play(SoundEffect.complete);
 
     Future.delayed(const Duration(milliseconds: 400), () {
       if (!mounted) return;
@@ -361,10 +377,10 @@ class _ProgressHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -410,7 +426,7 @@ class _ProgressHeader extends StatelessWidget {
             child: LinearProgressIndicator(
               value: total > 0 ? (current - 1) / total : 0,
               minHeight: 6,
-              backgroundColor: Colors.grey.shade200,
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.gold),
             ),
           ),
@@ -446,30 +462,30 @@ class _AnswerOption extends StatelessWidget {
 
     if (isAnswered) {
       if (isCorrect) {
-        bgColor = AppTheme.successLight;
+        bgColor = AppTheme.success.withValues(alpha: 0.15);
         borderColor = AppTheme.success;
         textColor = AppTheme.success;
         trailingIcon = Icons.check_circle;
       } else if (isSelected) {
-        bgColor = AppTheme.errorLight;
+        bgColor = AppTheme.error.withValues(alpha: 0.15);
         borderColor = AppTheme.error;
         textColor = AppTheme.error;
         trailingIcon = Icons.cancel;
       } else {
-        bgColor = Colors.white;
-        borderColor = Colors.grey.shade200;
-        textColor = Colors.grey.shade400;
+        bgColor = Theme.of(context).colorScheme.surface;
+        borderColor = Theme.of(context).colorScheme.outlineVariant;
+        textColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4);
         trailingIcon = null;
       }
     } else if (isSelected) {
       bgColor = AppTheme.gold.withValues(alpha: 0.1);
       borderColor = AppTheme.gold;
-      textColor = AppTheme.dark;
+      textColor = Theme.of(context).colorScheme.onSurface;
       trailingIcon = null;
     } else {
-      bgColor = Colors.white;
-      borderColor = Colors.grey.shade300;
-      textColor = AppTheme.dark;
+      bgColor = Theme.of(context).colorScheme.surface;
+      borderColor = Theme.of(context).colorScheme.outlineVariant;
+      textColor = Theme.of(context).colorScheme.onSurface;
       trailingIcon = null;
     }
 
