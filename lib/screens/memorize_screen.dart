@@ -17,9 +17,9 @@ enum MemorizeMode {
 
 /// Tracks the visibility state of a single word.
 enum WordVisibility {
-  visible,     // Full word shown
+  visible, // Full word shown
   firstLetter, // Only first letter + underscores
-  hidden,      // Completely replaced with underscores
+  hidden, // Completely replaced with underscores
 }
 
 /// A word in the passage with its display state.
@@ -102,7 +102,6 @@ class _MemorizeScreenState extends State<MemorizeScreen>
     // Create a random order for hiding
     _hideOrder = List.generate(words.length, (i) => i);
     _hideOrder.shuffle(_random);
-
   }
 
   void _hideNextWord() {
@@ -157,7 +156,7 @@ class _MemorizeScreenState extends State<MemorizeScreen>
       for (final w in _words) {
         w.visibility = WordVisibility.visible;
       }
-  
+
       _hideOrder.shuffle(_random);
       _lastChangedIndex = null;
     });
@@ -233,7 +232,12 @@ class _MemorizeScreenState extends State<MemorizeScreen>
                       mode == _mode
                           ? Icons.radio_button_checked
                           : Icons.radio_button_off,
-                      color: mode == _mode ? AppTheme.primary : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: mode == _mode
+                          ? AppTheme.primary
+                          : Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.6),
                       size: 20,
                     ),
                     const SizedBox(width: 12),
@@ -245,7 +249,11 @@ class _MemorizeScreenState extends State<MemorizeScreen>
                                 const TextStyle(fontWeight: FontWeight.w600)),
                         Text(mode.description,
                             style: TextStyle(
-                                fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
+                                fontSize: 12,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.6))),
                       ],
                     ),
                   ],
@@ -292,7 +300,10 @@ class _MemorizeScreenState extends State<MemorizeScreen>
           Text(
             widget.scripture.name,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.6),
                   fontStyle: FontStyle.italic,
                 ),
           ),
@@ -326,7 +337,10 @@ class _MemorizeScreenState extends State<MemorizeScreen>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -372,13 +386,12 @@ class _MemorizeScreenState extends State<MemorizeScreen>
         borderRadius: BorderRadius.circular(4),
         child: LinearProgressIndicator(
           value: _memorizeProgress,
-          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+          backgroundColor:
+              Theme.of(context).colorScheme.surfaceContainerHighest,
           valueColor: AlwaysStoppedAnimation<Color>(
             _memorizeProgress < 0.5
                 ? AppTheme.secondary
-                : (_memorizeProgress < 1.0
-                    ? AppTheme.accent
-                    : AppTheme.gold),
+                : (_memorizeProgress < 1.0 ? AppTheme.accent : AppTheme.gold),
           ),
           minHeight: 5,
         ),
@@ -397,7 +410,8 @@ class _MemorizeScreenState extends State<MemorizeScreen>
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.04),
+              color:
+                  Theme.of(context).colorScheme.shadow.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -518,15 +532,15 @@ class _MemorizeScreenState extends State<MemorizeScreen>
 
   Widget _buildControlBar() {
     final allHidden = _visibleCount == 0 && _partialCount == 0;
-    final allVisible =
-        _visibleCount == _words.length;
+    final allVisible = _visibleCount == _words.length;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         border: Border(
-          top: BorderSide(color: Theme.of(context).colorScheme.surfaceContainerHighest),
+          top: BorderSide(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest),
         ),
       ),
       child: SafeArea(
@@ -544,12 +558,11 @@ class _MemorizeScreenState extends State<MemorizeScreen>
                       ? Icons.text_decrease
                       : Icons.visibility_off,
                 ),
-                label: Text(allHidden
-                    ? 'All Words Hidden'
-                    : 'Hide Next Word'),
+                label: Text(allHidden ? 'All Words Hidden' : 'Hide Next Word'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary,
-                  disabledBackgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  disabledBackgroundColor:
+                      Theme.of(context).colorScheme.surfaceContainerHighest,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
               ),

@@ -3,6 +3,7 @@
 ## Recommended Settings for `main` branch:
 
 ### Branch protection rules:
+
 - ✅ Require a pull request before merging
 - ✅ Require approvals (1 reviewer minimum)
 - ✅ Dismiss stale pull request approvals when new commits are pushed
@@ -10,9 +11,11 @@
 - ✅ Require branches to be up to date before merging
 
 ### Required status checks:
+
 - ✅ `test (Run Flutter Tests)` - from the flutter-ci.yml workflow
 
 ### Include administrators:
+
 - ✅ Enforce these rules for administrators too
 
 ## Setup Instructions:

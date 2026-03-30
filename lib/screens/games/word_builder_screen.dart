@@ -178,21 +178,31 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.timer_outlined,
-                    size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
+                    size: 16,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.6)),
                 const SizedBox(width: 4),
                 Text(
                   '$minutes:$seconds',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -233,12 +243,12 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
           ),
           const Spacer(),
           if (state.incorrectAttempts > 0)
-            _buildPill(Icons.close, AppTheme.error,
-                '${state.incorrectAttempts}'),
+            _buildPill(
+                Icons.close, AppTheme.error, '${state.incorrectAttempts}'),
           if (state.mode == WordBuilderMode.typing && state.resetCount > 0) ...[
             const SizedBox(width: 8),
-            _buildPill(Icons.refresh, AppTheme.warning,
-                '${state.resetCount} resets'),
+            _buildPill(
+                Icons.refresh, AppTheme.warning, '${state.resetCount} resets'),
           ],
         ],
       ),
@@ -282,7 +292,10 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
           Text(
             state.currentScripture?.name ?? '',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.6),
                   fontStyle: FontStyle.italic,
                 ),
             textAlign: TextAlign.center,
@@ -292,8 +305,10 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: state.scriptureProgress,
-              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.secondary),
+              backgroundColor:
+                  Theme.of(context).colorScheme.surfaceContainerHighest,
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(AppTheme.secondary),
               minHeight: 4,
             ),
           ),
@@ -346,7 +361,8 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
           final isNext =
               index == state.nextChunkIndex && !state.isScriptureComplete;
           final isPulsing = _pulsingSlot == index;
-          final chunkColor = _chunkPalette[target.colorIndex % _chunkPalette.length];
+          final chunkColor =
+              _chunkPalette[target.colorIndex % _chunkPalette.length];
 
           return AnimatedBuilder(
             animation: _slotPulseController,
@@ -387,7 +403,10 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                         placed != null ? FontWeight.w600 : FontWeight.normal,
                     color: placed != null
                         ? chunkColor.withValues(alpha: 0.9)
-                        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.35),
+                        : Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.35),
                   ),
                 ),
               );
@@ -459,7 +478,9 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: isShaking ? AppTheme.error : Theme.of(context).colorScheme.onSurface,
+                      color: isShaking
+                          ? AppTheme.error
+                          : Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -526,12 +547,10 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
         ),
 
         // Feedback banner for Master resets
-        if (state.lastFeedback == 'reset')
-          _buildResetBanner(),
+        if (state.lastFeedback == 'reset') _buildResetBanner(),
 
         // Text input area
-        if (!state.isScriptureComplete)
-          _buildTypingInput(state),
+        if (!state.isScriptureComplete) _buildTypingInput(state),
 
         if (state.isScriptureComplete)
           Expanded(
@@ -555,7 +574,8 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+          border:
+              Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         child: RichText(
           text: TextSpan(
@@ -630,7 +650,10 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
             spans.add(TextSpan(
               text: '_',
               style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.25),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.25),
                 letterSpacing: 1,
               ),
             ));
@@ -653,7 +676,10 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
             spans.add(TextSpan(
               text: '_',
               style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.25),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.25),
                 letterSpacing: 1,
               ),
             ));
@@ -715,17 +741,21 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                     : (isMaster
                         ? 'Type from memory — no peeking!'
                         : 'Type the scripture (first letters shown)...'),
-                hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.35)),
+                hintStyle: TextStyle(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.35)),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+                  borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
-                    color: state.hasActiveError
-                        ? AppTheme.error
-                        : AppTheme.accent,
+                    color:
+                        state.hasActiveError ? AppTheme.error : AppTheme.accent,
                     width: 2,
                   ),
                 ),
@@ -762,9 +792,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                     Future.delayed(const Duration(milliseconds: 1000), () {
                       if (mounted) {
                         _typingController.clear();
-                        ref
-                            .read(wordBuilderProvider.notifier)
-                            .nextScripture();
+                        ref.read(wordBuilderProvider.notifier).nextScripture();
                         _typingFocusNode.requestFocus();
                       }
                     });
@@ -882,19 +910,26 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
         children: [
-          Expanded(child: Divider(color: Theme.of(context).colorScheme.outlineVariant)),
+          Expanded(
+              child:
+                  Divider(color: Theme.of(context).colorScheme.outlineVariant)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Text(
               'Tap the next chunk',
               style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.5),
                 fontSize: 12,
                 fontStyle: FontStyle.italic,
               ),
             ),
           ),
-          Expanded(child: Divider(color: Theme.of(context).colorScheme.outlineVariant)),
+          Expanded(
+              child:
+                  Divider(color: Theme.of(context).colorScheme.outlineVariant)),
         ],
       ),
     );
@@ -918,7 +953,12 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
             const SizedBox(height: 4),
             Text(
               'Loading next scripture...',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5), fontSize: 13),
+              style: TextStyle(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.5),
+                  fontSize: 13),
             ),
           ],
         ],

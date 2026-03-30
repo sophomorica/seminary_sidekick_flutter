@@ -35,8 +35,7 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
   @override
   void initState() {
     super.initState();
-    final existingNote =
-        ref.read(noteByScriptureProvider(widget.scriptureId));
+    final existingNote = ref.read(noteByScriptureProvider(widget.scriptureId));
     _notesController = TextEditingController(text: existingNote ?? '');
   }
 
@@ -118,11 +117,10 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                     const SizedBox(height: 12),
                     Text(
                       scripture.fullText,
-                      style:
-                          Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                height: 1.6,
-                                fontSize: 16,
-                              ),
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            height: 1.6,
+                            fontSize: 16,
+                          ),
                     ),
                   ],
                 ),
@@ -167,8 +165,7 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                 onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) =>
-                          MemorizeScreen(scripture: scripture),
+                      builder: (_) => MemorizeScreen(scripture: scripture),
                     ),
                   );
                 },
@@ -268,7 +265,10 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                               Theme.of(context).textTheme.bodyMedium?.copyWith(
                                     color: note != null
                                         ? null
-                                        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.5),
                                     height: 1.5,
                                   ),
                         ),
@@ -354,7 +354,8 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
         child: SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: () => _showDifficultyPicker(context, gameType, scripture),
+            onPressed: () =>
+                _showDifficultyPicker(context, gameType, scripture),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -414,7 +415,10 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                       },
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: BorderSide(color: Theme.of(context).colorScheme.surfaceContainerHighest),
+                        side: BorderSide(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest),
                       ),
                       child: Text(
                         difficulty.label,

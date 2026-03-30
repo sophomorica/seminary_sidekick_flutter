@@ -25,12 +25,14 @@ A gamified scripture memorization app for LDS Doctrinal Mastery passages. Master
 ### Installation
 
 1. Clone the repository:
+
    ```bash
    git clone <repository-url>
    cd seminary_sidekick
    ```
 
 2. Install dependencies:
+
    ```bash
    flutter pub get
    ```
@@ -45,21 +47,25 @@ A gamified scripture memorization app for LDS Doctrinal Mastery passages. Master
 ### Testing
 
 Run all tests:
+
 ```bash
 flutter test
 ```
 
 Run tests with coverage:
+
 ```bash
 flutter test --coverage
 ```
 
 Run local CI checks (same as GitHub Actions):
+
 ```bash
 ./scripts/ci.sh
 ```
 
 Run specific test file:
+
 ```bash
 flutter test test/providers/progress_provider_test.dart
 ```
@@ -67,11 +73,13 @@ flutter test test/providers/progress_provider_test.dart
 ### Code Quality
 
 Run static analysis:
+
 ```bash
 flutter analyze
 ```
 
 Format code:
+
 ```bash
 flutter format .
 ```
@@ -87,6 +95,7 @@ This project uses GitHub Actions for continuous integration:
 ### Branch Protection
 
 The `main` branch is protected and requires:
+
 - All tests to pass
 - Code analysis to pass
 - At least one approval for pull requests
