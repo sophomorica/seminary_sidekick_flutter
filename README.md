@@ -91,6 +91,8 @@ The `main` branch is protected and requires:
 - Code analysis to pass
 - At least one approval for pull requests
 
+See `.github/BRANCH_PROTECTION.md` for setup instructions.
+
 ## Architecture
 
 - **State Management**: Riverpod for reactive state management
