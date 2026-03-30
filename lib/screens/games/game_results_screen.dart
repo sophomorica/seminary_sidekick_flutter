@@ -125,7 +125,7 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
     };
 
     return Scaffold(
-      backgroundColor: AppTheme.offWhite,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           SafeArea(
@@ -147,7 +147,7 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
                       child: Icon(
                         isFilled ? Icons.star_rounded : Icons.star_outline_rounded,
                         size: index == 1 ? 72 : 56, // Middle star bigger
-                        color: isFilled ? AppTheme.gold : Colors.grey.shade300,
+                        color: isFilled ? AppTheme.gold : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
                       ),
                     );
                   }),
@@ -166,7 +166,7 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
               Text(
                 subtitle,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey.shade600,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                 textAlign: TextAlign.center,
               ),

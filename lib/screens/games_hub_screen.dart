@@ -16,7 +16,7 @@ class GamesHubScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Games'),
         elevation: 0,
-        backgroundColor: AppTheme.surface,
+        backgroundColor: Theme.of(context).colorScheme.surface,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -165,7 +165,7 @@ class _GameCardState extends State<_GameCard> {
                             color: isSelected ? color : color.withValues(alpha: 0.3),
                           ),
                           labelStyle: TextStyle(
-                            color: isSelected ? color : Colors.grey.shade700,
+                            color: isSelected ? color : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                             fontWeight: isSelected
                                 ? FontWeight.w600
                                 : FontWeight.normal,

@@ -151,7 +151,7 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                             height: 1.5,
                             fontStyle: FontStyle.italic,
-                            color: AppTheme.dark,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                     ),
                   ],

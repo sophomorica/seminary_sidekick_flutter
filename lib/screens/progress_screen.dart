@@ -20,7 +20,7 @@ class ProgressScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Your Progress'),
         elevation: 0,
-        backgroundColor: AppTheme.surface,
+        backgroundColor: Theme.of(context).colorScheme.surface,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),

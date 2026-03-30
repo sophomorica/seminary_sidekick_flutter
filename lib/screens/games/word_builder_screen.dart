@@ -178,21 +178,21 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: AppTheme.dark.withValues(alpha: 0.08),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.timer_outlined,
-                    size: 16, color: AppTheme.dark.withValues(alpha: 0.6)),
+                    size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                 const SizedBox(width: 4),
                 Text(
                   '$minutes:$seconds',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.dark.withValues(alpha: 0.7),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -218,7 +218,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
   Widget _buildProgressHeader(WordBuilderState state) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      color: AppTheme.surface,
+      color: Theme.of(context).colorScheme.surface,
       child: Row(
         children: [
           // Scripture progress
@@ -282,7 +282,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
           Text(
             state.currentScripture?.name ?? '',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey.shade600,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   fontStyle: FontStyle.italic,
                 ),
             textAlign: TextAlign.center,
@@ -292,7 +292,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: state.scriptureProgress,
-              backgroundColor: Colors.grey.shade200,
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.secondary),
               minHeight: 4,
             ),
@@ -357,7 +357,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                       chunkColor.withValues(alpha: 0.3),
                       _slotPulseController.value,
                     )!
-                  : Colors.grey.shade300;
+                  : Theme.of(context).colorScheme.outlineVariant;
 
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
@@ -370,7 +370,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                           : chunkColor.withValues(alpha: 0.1))
                       : (isNext
                           ? chunkColor.withValues(alpha: 0.04)
-                          : Colors.white),
+                          : Theme.of(context).colorScheme.surface),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: placed != null
@@ -387,7 +387,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                         placed != null ? FontWeight.w600 : FontWeight.normal,
                     color: placed != null
                         ? chunkColor.withValues(alpha: 0.9)
-                        : Colors.grey.shade400,
+                        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.35),
                   ),
                 ),
               );
@@ -459,7 +459,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: isShaking ? AppTheme.error : AppTheme.dark,
+                      color: isShaking ? AppTheme.error : Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -553,9 +553,9 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         child: RichText(
           text: TextSpan(
@@ -630,7 +630,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
             spans.add(TextSpan(
               text: '_',
               style: TextStyle(
-                color: Colors.grey.shade300,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.25),
                 letterSpacing: 1,
               ),
             ));
@@ -653,7 +653,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
             spans.add(TextSpan(
               text: '_',
               style: TextStyle(
-                color: Colors.grey.shade300,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.25),
                 letterSpacing: 1,
               ),
             ));
@@ -694,9 +694,9 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         border: Border(
-          top: BorderSide(color: Colors.grey.shade200),
+          top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
         ),
       ),
       child: Row(
@@ -715,10 +715,10 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                     : (isMaster
                         ? 'Type from memory — no peeking!'
                         : 'Type the scripture (first letters shown)...'),
-                hintStyle: TextStyle(color: Colors.grey.shade400),
+                hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.35)),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -882,19 +882,19 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
         children: [
-          Expanded(child: Divider(color: Colors.grey.shade300)),
+          Expanded(child: Divider(color: Theme.of(context).colorScheme.outlineVariant)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Text(
               'Tap the next chunk',
               style: TextStyle(
-                color: Colors.grey.shade500,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                 fontSize: 12,
                 fontStyle: FontStyle.italic,
               ),
             ),
           ),
-          Expanded(child: Divider(color: Colors.grey.shade300)),
+          Expanded(child: Divider(color: Theme.of(context).colorScheme.outlineVariant)),
         ],
       ),
     );
@@ -918,7 +918,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
             const SizedBox(height: 4),
             Text(
               'Loading next scripture...',
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5), fontSize: 13),
             ),
           ],
         ],
