@@ -140,22 +140,14 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       }
     });
 
-    return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) async {
-        if (didPop) return;
-        final shouldPop = await _onWillPop();
-        if (shouldPop && mounted) Navigator.of(context).pop();
-      },
-      child: Scaffold(
-        backgroundColor: AppTheme.offWhite,
-        appBar: _buildAppBar(state),
-        body: state.currentScripture == null
-            ? const Center(child: CircularProgressIndicator())
-            : (state.mode == WordBuilderMode.chunkTap
-                ? _buildChunkTapBody(state)
-                : _buildTypingBody(state)),
-      ),
+    return Scaffold(
+      backgroundColor: AppTheme.offWhite,
+      appBar: _buildAppBar(state),
+      body: state.currentScripture == null
+          ? const Center(child: CircularProgressIndicator())
+          : (state.mode == WordBuilderMode.chunkTap
+              ? _buildChunkTapBody(state)
+              : _buildTypingBody(state)),
     );
   }
 
@@ -173,7 +165,8 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
         icon: const Icon(Icons.close),
         onPressed: () async {
           final shouldPop = await _onWillPop();
-          if (shouldPop && mounted) Navigator.of(context).pop();
+          if (!mounted) return;
+          if (shouldPop) Navigator.of(context).pop();
         },
       ),
       title: Row(

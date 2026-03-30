@@ -94,9 +94,11 @@ class SpeechService {
       onResult: _handleResult,
       listenFor: const Duration(seconds: 30),
       pauseFor: const Duration(seconds: 3),
-      cancelOnError: false,
-      partialResults: true,
-      listenMode: ListenMode.dictation,
+      listenOptions: SpeechListenOptions(
+        cancelOnError: false,
+        partialResults: true,
+        listenMode: ListenMode.dictation,
+      ),
     );
   }
 

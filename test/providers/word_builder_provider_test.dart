@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:seminary_sidekick/providers/word_builder_provider.dart';
 import 'package:seminary_sidekick/models/enums.dart';
 import 'package:seminary_sidekick/models/scripture.dart';
-import 'package:seminary_sidekick/models/scripture.dart' as scripture_model;
 
 import '../helpers/test_helpers.dart';
 

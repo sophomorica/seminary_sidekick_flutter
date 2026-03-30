@@ -2,11 +2,13 @@ import 'dart:math';
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/enums.dart';
+import '../../services/audio_service.dart';
 import '../../theme/app_theme.dart';
 
-class GameResultsScreen extends StatefulWidget {
+class GameResultsScreen extends ConsumerStatefulWidget {
   final GameType gameType;
   final DifficultyLevel difficulty;
   final int correctMatches;
@@ -29,10 +31,10 @@ class GameResultsScreen extends StatefulWidget {
   });
 
   @override
-  State<GameResultsScreen> createState() => _GameResultsScreenState();
+  ConsumerState<GameResultsScreen> createState() => _GameResultsScreenState();
 }
 
-class _GameResultsScreenState extends State<GameResultsScreen>
+class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
     with TickerProviderStateMixin {
   late AnimationController _starsController;
   late AnimationController _statsController;
@@ -83,11 +85,14 @@ class _GameResultsScreenState extends State<GameResultsScreen>
       });
     }
 
-    // Celebration haptics
+    // Celebration haptics and audio
     HapticFeedback.heavyImpact();
     Future.delayed(const Duration(milliseconds: 300), () {
       HapticFeedback.mediumImpact();
     });
+    if (widget.isNewMastery) {
+      ref.read(audioProvider.notifier).play(SoundEffect.levelup);
+    }
   }
 
   @override

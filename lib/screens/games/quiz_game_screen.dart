@@ -306,6 +306,7 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
   void _onGameComplete(QuizGameState finalState) {
     _elapsedTimer?.cancel();
     HapticFeedback.heavyImpact();
+    ref.read(audioProvider.notifier).play(SoundEffect.complete);
 
     Future.delayed(const Duration(milliseconds: 400), () {
       if (!mounted) return;

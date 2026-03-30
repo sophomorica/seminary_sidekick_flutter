@@ -102,7 +102,7 @@ class _MemorizeScreenState extends State<MemorizeScreen>
     // Create a random order for hiding
     _hideOrder = List.generate(words.length, (i) => i);
     _hideOrder.shuffle(_random);
-    _hideStep = 0;
+
   }
 
   void _hideNextWord() {
@@ -157,7 +157,7 @@ class _MemorizeScreenState extends State<MemorizeScreen>
       for (final w in _words) {
         w.visibility = WordVisibility.visible;
       }
-      _hideStep = 0;
+  
       _hideOrder.shuffle(_random);
       _lastChangedIndex = null;
     });
@@ -171,7 +171,6 @@ class _MemorizeScreenState extends State<MemorizeScreen>
             ? WordVisibility.firstLetter
             : WordVisibility.hidden;
       }
-      _hideStep = _words.length;
       _lastChangedIndex = null;
     });
     HapticFeedback.mediumImpact();
