@@ -26,6 +26,12 @@ class AppTheme {
   static const Color surface = Color(0xFFF5F0E1);
   static const Color offWhite = Color(0xFFFAF8F0);
 
+  // ─── Dark Mode Surface Colors ─────────────────────────────────
+  static const Color darkBackground = Color(0xFF1A1B2E);   // Deep night blue
+  static const Color darkCard = Color(0xFF242640);          // Raised surface
+  static const Color darkSurfaceColor = Color(0xFF1F2035);  // Slightly lifted
+  static const Color darkOnSurface = Color(0xFFE8E6F0);    // Light text on dark
+
   // ─── Game Feedback Colors ───────────────────────────────────────
   static const Color success = Color(0xFF66BB6A);
   static const Color successLight = Color(0xFFE8F5E9);
@@ -83,13 +89,19 @@ class AppTheme {
       colorScheme: colorScheme,
       fontFamily: GoogleFonts.inter().fontFamily,
       scaffoldBackgroundColor: offWhite,
-      textTheme: _buildTextTheme(),
-      appBarTheme: _buildAppBarTheme(),
-      cardTheme: _buildCardTheme(),
+      textTheme: _buildTextTheme(dark),
+      appBarTheme: _buildAppBarTheme(dark),
+      cardTheme: _buildCardTheme(Colors.white),
       elevatedButtonTheme: _buildElevatedButtonTheme(),
       outlinedButtonTheme: _buildOutlinedButtonTheme(),
-      navigationBarTheme: _buildNavigationBarTheme(),
-      chipTheme: _buildChipTheme(),
+      navigationBarTheme: _buildNavigationBarTheme(
+        bgColor: Colors.white,
+        labelColor: dark,
+      ),
+      chipTheme: _buildChipTheme(
+        bgColor: cream,
+        labelColor: dark,
+      ),
 
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: Colors.white,
@@ -101,91 +113,138 @@ class AppTheme {
     );
   }
 
-  static TextTheme _buildTextTheme() {
+  // ─── Dark Theme ─────────────────────────────────────────────────
+  static ThemeData getDarkTheme() {
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: primary,
+      brightness: Brightness.dark,
+      primary: primaryLight,
+      secondary: secondaryLight,
+      tertiary: gold,
+      surface: darkSurfaceColor,
+      error: error,
+      onPrimary: darkBackground,
+      onSecondary: darkBackground,
+      onSurface: darkOnSurface,
+      onError: Colors.white,
+    );
+
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorScheme: colorScheme,
+      fontFamily: GoogleFonts.inter().fontFamily,
+      scaffoldBackgroundColor: darkBackground,
+      textTheme: _buildTextTheme(darkOnSurface),
+      appBarTheme: _buildAppBarTheme(darkOnSurface),
+      cardTheme: _buildCardTheme(darkCard),
+      elevatedButtonTheme: _buildElevatedButtonTheme(),
+      outlinedButtonTheme: _buildOutlinedButtonTheme(),
+      navigationBarTheme: _buildNavigationBarTheme(
+        bgColor: darkCard,
+        labelColor: darkOnSurface,
+      ),
+      chipTheme: _buildChipTheme(
+        bgColor: darkCard,
+        labelColor: darkOnSurface,
+      ),
+
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: darkCard,
+        selectedItemColor: primaryLight,
+        unselectedItemColor: darkOnSurface.withValues(alpha: 0.5),
+        type: BottomNavigationBarType.fixed,
+        elevation: 8,
+      ),
+    );
+  }
+
+  static TextTheme _buildTextTheme(Color textColor) {
+    final mutedColor = textColor.withValues(alpha: 0.7);
     return TextTheme(
       displayLarge: GoogleFonts.merriweather(
         fontSize: 32,
         fontWeight: FontWeight.bold,
-        color: dark,
+        color: textColor,
         height: 1.2,
       ),
       displayMedium: GoogleFonts.merriweather(
         fontSize: 28,
         fontWeight: FontWeight.bold,
-        color: dark,
+        color: textColor,
         height: 1.2,
       ),
       displaySmall: GoogleFonts.merriweather(
         fontSize: 24,
         fontWeight: FontWeight.bold,
-        color: dark,
+        color: textColor,
       ),
       headlineMedium: GoogleFonts.merriweather(
         fontSize: 20,
         fontWeight: FontWeight.w600,
-        color: dark,
+        color: textColor,
       ),
       headlineSmall: GoogleFonts.merriweather(
         fontSize: 18,
         fontWeight: FontWeight.w600,
-        color: dark,
+        color: textColor,
       ),
       titleLarge: GoogleFonts.inter(
         fontSize: 16,
         fontWeight: FontWeight.w600,
-        color: dark,
+        color: textColor,
       ),
       titleMedium: GoogleFonts.inter(
         fontSize: 14,
         fontWeight: FontWeight.w500,
-        color: dark,
+        color: textColor,
       ),
       bodyLarge: GoogleFonts.inter(
         fontSize: 16,
         fontWeight: FontWeight.normal,
-        color: dark,
+        color: textColor,
         height: 1.5,
       ),
       bodyMedium: GoogleFonts.inter(
         fontSize: 14,
         fontWeight: FontWeight.normal,
-        color: dark,
+        color: textColor,
         height: 1.5,
       ),
       bodySmall: GoogleFonts.inter(
         fontSize: 12,
         fontWeight: FontWeight.normal,
-        color: dark.withValues(alpha: 0.7),
+        color: mutedColor,
         height: 1.4,
       ),
       labelLarge: GoogleFonts.inter(
         fontSize: 14,
         fontWeight: FontWeight.w600,
-        color: dark,
+        color: textColor,
         letterSpacing: 0.5,
       ),
     );
   }
 
-  static AppBarTheme _buildAppBarTheme() {
+  static AppBarTheme _buildAppBarTheme(Color foreground) {
     return AppBarTheme(
       elevation: 0,
       scrolledUnderElevation: 0,
       backgroundColor: Colors.transparent,
-      foregroundColor: dark,
+      foregroundColor: foreground,
       centerTitle: false,
       titleTextStyle: GoogleFonts.merriweather(
         fontSize: 20,
         fontWeight: FontWeight.w600,
-        color: dark,
+        color: foreground,
       ),
     );
   }
 
-  static CardThemeData _buildCardTheme() {
+  static CardThemeData _buildCardTheme(Color cardColor) {
     return CardThemeData(
       elevation: 0,
-      color: Colors.white,
+      color: cardColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(radiusMd),
       ),
@@ -224,30 +283,36 @@ class AppTheme {
     );
   }
 
-  static NavigationBarThemeData _buildNavigationBarTheme() {
+  static NavigationBarThemeData _buildNavigationBarTheme({
+    required Color bgColor,
+    required Color labelColor,
+  }) {
     return NavigationBarThemeData(
-      backgroundColor: Colors.white,
+      backgroundColor: bgColor,
       elevation: 8,
       indicatorColor: primary.withValues(alpha: 0.15),
       labelTextStyle: WidgetStateProperty.all(
         GoogleFonts.inter(
           fontSize: 12,
           fontWeight: FontWeight.w500,
-          color: dark,
+          color: labelColor,
         ),
       ),
     );
   }
 
-  static ChipThemeData _buildChipTheme() {
+  static ChipThemeData _buildChipTheme({
+    required Color bgColor,
+    required Color labelColor,
+  }) {
     return ChipThemeData(
-      backgroundColor: cream,
+      backgroundColor: bgColor,
       selectedColor: primary.withValues(alpha: 0.2),
       padding: const EdgeInsets.symmetric(horizontal: spacingSm, vertical: spacingXs),
       labelStyle: GoogleFonts.inter(
         fontSize: 13,
         fontWeight: FontWeight.w500,
-        color: dark,
+        color: labelColor,
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(radiusRound),

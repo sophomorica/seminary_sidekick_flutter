@@ -6,6 +6,7 @@ import '../../models/enums.dart';
 import '../../models/scripture.dart';
 import '../../providers/matching_game_provider.dart';
 import '../../providers/progress_provider.dart';
+import '../../services/audio_service.dart';
 import '../../theme/app_theme.dart';
 import 'game_results_screen.dart';
 
@@ -116,6 +117,17 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
         ),
         title: Text(widget.difficulty.label),
         actions: [
+          // Mute toggle
+          IconButton(
+            icon: Icon(
+              ref.watch(audioProvider).isMuted
+                  ? Icons.volume_off
+                  : Icons.volume_up,
+              size: 20,
+            ),
+            onPressed: () => ref.read(audioProvider.notifier).toggleMute(),
+            tooltip: ref.watch(audioProvider).isMuted ? 'Unmute' : 'Mute',
+          ),
           // Timer display
           Padding(
             padding: const EdgeInsets.only(right: 16),
@@ -265,6 +277,7 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
 
   void _onCorrectMatch() {
     HapticFeedback.mediumImpact();
+    ref.read(audioProvider.notifier).play(SoundEffect.correct);
     _pulseController.forward().then((_) => _pulseController.reverse());
 
     // Mark matched items for animation
@@ -282,6 +295,7 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
 
   void _onIncorrectMatch() {
     HapticFeedback.heavyImpact();
+    ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
     _shakeController.forward().then((_) {
       _shakeController.reset();
       ref.read(matchingGameProvider.notifier).clearFeedback();
@@ -291,6 +305,7 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
   void _onGameComplete(MatchingGameState finalState) {
     _elapsedTimer?.cancel();
     HapticFeedback.heavyImpact();
+    ref.read(audioProvider.notifier).play(SoundEffect.complete);
 
     // Record an attempt for each scripture in the session
     final progressNotifier = ref.read(progressProvider.notifier);

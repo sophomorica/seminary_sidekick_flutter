@@ -96,8 +96,8 @@
 
 ### TASK-005: Sound Effects & Audio Feedback
 
-- **status**: `open`
-- **claimed_by**: —
+- **status**: `in_progress`
+- **claimed_by**: claude/cowork
 - **priority**: P1
 - **estimated_effort**: Medium
 - **files_to_touch**: NEW `lib/services/audio_service.dart`, game screens, `assets/audio/`
@@ -149,11 +149,11 @@
 
 ### TASK-008: Speech-to-Text for Master Typing
 
-- **status**: `open`
-- **claimed_by**: —
+- **status**: `in_progress`
+- **claimed_by**: claude/cowork
 - **priority**: P2
 - **estimated_effort**: Medium
-- **files_to_touch**: `lib/screens/games/word_builder_screen.dart`, pubspec.yaml (new dep)
+- **files_to_touch**: `lib/screens/games/word_builder_screen.dart`, pubspec.yaml (new dep), NEW `lib/services/speech_service.dart`
 - **description**: The mic button in Master typing mode shows "coming soon". Wire up a speech recognition package.
 - **acceptance_criteria**:
   - [ ] Mic button starts listening
@@ -216,10 +216,20 @@
 
 ### TASK-012: Dark Mode
 
-- **status**: `open`
+- **status**: `done`
+- **claimed_by**: claude/cowork
 - **priority**: P3
 - **estimated_effort**: Medium
+- **completed**: 2026-03-30
+- **files_to_touch**: `lib/theme/app_theme.dart`, NEW `lib/providers/theme_provider.dart`, `lib/app.dart`, `lib/main.dart`, `lib/screens/home_screen.dart`
 - **description**: Add dark theme variant to `app_theme.dart` with a toggle.
+- **acceptance_criteria**:
+  - [x] Dark theme defined in app_theme.dart with appropriate dark surface colors
+  - [x] ThemeNotifier persists light/dark/system preference via Hive
+  - [x] MaterialApp.router wired with theme, darkTheme, and themeMode
+  - [x] Toggle button in home screen app bar cycles system → light → dark
+  - [x] All component themes (text, cards, nav bar, chips, app bar) adapt to dark mode
+- **notes**: Added 4 dark surface colors to AppTheme. Refactored private theme builders to accept color parameters so both light and dark themes share the same structure. Created ThemeNotifier (StateNotifier<ThemeMode>) backed by a `settings` Hive box. Converted SeminarySidekickApp from StatefulWidget to ConsumerStatefulWidget to watch themeProvider. Home screen app bar shows a context-aware icon (sun/moon/auto) that cycles through the 3 modes. Removed hardcoded light-mode system UI overlay style so Flutter handles status bar brightness automatically per theme.
 
 ### TASK-013: Onboarding Flow
 

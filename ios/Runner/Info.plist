@@ -49,6 +49,10 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Seminary Sidekick uses speech recognition to let you recite scriptures by voice in Master typing mode.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Seminary Sidekick needs microphone access for speech-to-text scripture recitation.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

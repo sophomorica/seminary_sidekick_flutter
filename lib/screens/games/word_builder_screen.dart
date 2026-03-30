@@ -7,6 +7,8 @@ import '../../models/enums.dart';
 import '../../models/scripture.dart';
 import '../../providers/progress_provider.dart';
 import '../../providers/word_builder_provider.dart';
+import '../../services/audio_service.dart';
+import '../../services/speech_service.dart';
 import '../../theme/app_theme.dart';
 import 'game_results_screen.dart';
 
@@ -43,6 +45,11 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
   // Typing mode
   final _typingController = TextEditingController();
   final _typingFocusNode = FocusNode();
+
+  // Speech-to-text
+  final _speechService = SpeechService.instance;
+  bool _isSpeechListening = false;
+  String _lastRecognizedText = '';
 
   // Chunk colors for visual distinction
   static const _chunkPalette = [
@@ -106,6 +113,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     _slotPulseController.dispose();
     _typingController.dispose();
     _typingFocusNode.dispose();
+    _speechService.stopListening();
     super.dispose();
   }
 
@@ -120,6 +128,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     ref.listen<WordBuilderState>(wordBuilderProvider, (prev, next) {
       if (next.isComplete && !(prev?.isComplete ?? false)) {
         _timer.cancel();
+        ref.read(audioProvider.notifier).play(SoundEffect.complete);
         Future.delayed(const Duration(milliseconds: 600), () {
           if (mounted) _navigateToResults(next);
         });
@@ -127,6 +136,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       // For typing mode: if a Master reset happened, clear the text controller
       if (next.lastFeedback == 'reset' && prev?.lastFeedback != 'reset') {
         _typingController.clear();
+        _lastRecognizedText = '';
       }
     });
 
@@ -197,6 +207,18 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
           ),
         ],
       ),
+      actions: [
+        IconButton(
+          icon: Icon(
+            ref.watch(audioProvider).isMuted
+                ? Icons.volume_off
+                : Icons.volume_up,
+            size: 20,
+          ),
+          onPressed: () => ref.read(audioProvider.notifier).toggleMute(),
+          tooltip: ref.watch(audioProvider).isMuted ? 'Unmute' : 'Mute',
+        ),
+      ],
     );
   }
 
@@ -465,6 +487,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     final newState = ref.read(wordBuilderProvider);
     if (newState.lastFeedback == 'correct') {
       HapticFeedback.lightImpact();
+      ref.read(audioProvider.notifier).play(SoundEffect.correct);
       setState(() => _pulsingSlot = newState.nextChunkIndex - 1);
       _pulseController.forward(from: 0).then((_) {
         if (mounted) setState(() => _pulsingSlot = null);
@@ -482,6 +505,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       }
     } else if (newState.lastFeedback == 'incorrect') {
       HapticFeedback.mediumImpact();
+      ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
       setState(() => _shakingPoolIndex = poolIndex);
       _shakeController.forward(from: 0).then((_) {
         if (mounted) {
@@ -716,17 +740,13 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 suffixIcon: isMaster
                     ? IconButton(
-                        icon: const Icon(Icons.mic, color: AppTheme.accent),
-                        onPressed: () {
-                          // Speech-to-text placeholder
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content:
-                                  Text('Speech-to-text coming soon!'),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        },
+                        icon: Icon(
+                          _isSpeechListening ? Icons.mic_off : Icons.mic,
+                          color: _isSpeechListening
+                              ? AppTheme.error
+                              : AppTheme.accent,
+                        ),
+                        onPressed: _toggleSpeechListening,
                       )
                     : null,
               ),
@@ -736,8 +756,10 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                 // If Master reset, controller is cleared via the listener
                 if (newState.lastFeedback == 'reset') {
                   HapticFeedback.heavyImpact();
+                  ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
                 } else if (newState.lastFeedback == 'incorrect') {
                   HapticFeedback.mediumImpact();
+                  ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
                 }
 
                 if (newState.isScriptureComplete) {
@@ -760,6 +782,101 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
           ),
         ],
       ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // SPEECH-TO-TEXT
+  // ═══════════════════════════════════════════════════════════════
+
+  Future<void> _toggleSpeechListening() async {
+    if (_isSpeechListening) {
+      await _speechService.stopListening();
+      setState(() => _isSpeechListening = false);
+      return;
+    }
+
+    // Start listening
+    setState(() {
+      _isSpeechListening = true;
+      _lastRecognizedText = '';
+    });
+
+    await _speechService.startListening(
+      onResult: _onSpeechResult,
+      onError: (errorMessage) {
+        if (!mounted) return;
+        setState(() => _isSpeechListening = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      },
+    );
+
+    // If initialization failed (service set _isListening back to false)
+    if (!_speechService.isListening && mounted) {
+      setState(() => _isSpeechListening = false);
+    }
+  }
+
+  /// Called whenever the speech recognizer has new text.
+  /// Feeds the new characters one-by-one into [onType] to match the
+  /// existing typing mode logic.
+  void _onSpeechResult(String recognizedText) {
+    if (!mounted) return;
+
+    // Find the new characters since last callback
+    final newChars = recognizedText.length > _lastRecognizedText.length
+        ? recognizedText.substring(_lastRecognizedText.length)
+        : '';
+    _lastRecognizedText = recognizedText;
+
+    if (newChars.isEmpty) return;
+
+    // Feed each character through onType, building up the typed text
+    final notifier = ref.read(wordBuilderProvider.notifier);
+    final currentState = ref.read(wordBuilderProvider);
+
+    String simulatedText = currentState.typedText;
+    for (final char in newChars.split('')) {
+      simulatedText += char;
+      notifier.onType(simulatedText);
+
+      // Check if a Master reset happened (typedText got cleared)
+      final stateAfter = ref.read(wordBuilderProvider);
+      if (stateAfter.typedText.isEmpty && simulatedText.isNotEmpty) {
+        // Reset happened — sync our simulated text
+        simulatedText = '';
+        _typingController.clear();
+      }
+
+      if (stateAfter.isScriptureComplete) {
+        // Stop listening when scripture is complete
+        _speechService.stopListening();
+        setState(() => _isSpeechListening = false);
+
+        HapticFeedback.heavyImpact();
+        _typingFocusNode.unfocus();
+        if (!stateAfter.isComplete) {
+          Future.delayed(const Duration(milliseconds: 1000), () {
+            if (mounted) {
+              _typingController.clear();
+              _lastRecognizedText = '';
+              ref.read(wordBuilderProvider.notifier).nextScripture();
+            }
+          });
+        }
+        return;
+      }
+    }
+
+    // Keep the text controller in sync
+    _typingController.text = ref.read(wordBuilderProvider).typedText;
+    _typingController.selection = TextSelection.collapsed(
+      offset: _typingController.text.length,
     );
   }
 

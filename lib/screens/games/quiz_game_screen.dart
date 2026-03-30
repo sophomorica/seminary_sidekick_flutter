@@ -6,6 +6,7 @@ import '../../models/enums.dart';
 import '../../models/scripture.dart';
 import '../../providers/progress_provider.dart';
 import '../../providers/quiz_game_provider.dart';
+import '../../services/audio_service.dart';
 import '../../theme/app_theme.dart';
 import 'game_results_screen.dart';
 
@@ -77,6 +78,10 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
             correct: next.isCorrect,
             difficultyCompleted: widget.difficulty,
           );
+          // Play audio feedback
+          ref.read(audioProvider.notifier).play(
+            next.isCorrect ? SoundEffect.correct : SoundEffect.incorrect,
+          );
         }
       }
       if (next.isComplete && !(prev?.isComplete ?? false)) {
@@ -95,6 +100,16 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
         ),
         title: Text(widget.difficulty.label),
         actions: [
+          IconButton(
+            icon: Icon(
+              ref.watch(audioProvider).isMuted
+                  ? Icons.volume_off
+                  : Icons.volume_up,
+              size: 20,
+            ),
+            onPressed: () => ref.read(audioProvider.notifier).toggleMute(),
+            tooltip: ref.watch(audioProvider).isMuted ? 'Unmute' : 'Mute',
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: Center(

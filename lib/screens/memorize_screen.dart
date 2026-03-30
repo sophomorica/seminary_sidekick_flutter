@@ -69,7 +69,6 @@ class _MemorizeScreenState extends State<MemorizeScreen>
     with SingleTickerProviderStateMixin {
   late List<MemorizeWord> _words;
   late List<int> _hideOrder; // Randomized order to hide words
-  int _hideStep = 0; // How many words have been hidden
   MemorizeMode _mode = MemorizeMode.firstLetter;
   final _random = Random();
 
