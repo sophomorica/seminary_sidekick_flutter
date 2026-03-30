@@ -78,7 +78,7 @@ class ProgressScreen extends ConsumerWidget {
                 child: Text(
                   'No activity yet. Start practicing to see your progress!',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.grey.shade600,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                 ),
               ),
@@ -149,7 +149,7 @@ class ProgressScreen extends ConsumerWidget {
                   child: LinearProgressIndicator(
                     value: masteryPercent / 100,
                     minHeight: 6,
-                    backgroundColor: Colors.grey.shade300,
+                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                     valueColor: AlwaysStoppedAnimation<Color>(
                       _getColorForProgress(masteryPercent),
                     ),
@@ -166,7 +166,7 @@ class ProgressScreen extends ConsumerWidget {
   Color _getColorForProgress(double percentage) {
     if (percentage >= 85) return AppTheme.secondary;
     if (percentage >= 60) return AppTheme.primary;
-    return Colors.orange;
+    return AppTheme.accent;
   }
 }
 
@@ -188,7 +188,7 @@ class _StatsGrid extends StatelessWidget {
           label: 'Attempted',
           value: stats.totalAttempted.toString(),
           icon: Icons.note_outlined,
-          color: Colors.blue,
+          color: AppTheme.primary,
         ),
         _StatTile(
           label: 'Memorized',

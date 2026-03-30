@@ -204,10 +204,11 @@ class _MemorizeScreenState extends State<MemorizeScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: AppTheme.offWhite,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppTheme.surface,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
@@ -233,7 +234,7 @@ class _MemorizeScreenState extends State<MemorizeScreen>
                       mode == _mode
                           ? Icons.radio_button_checked
                           : Icons.radio_button_off,
-                      color: mode == _mode ? AppTheme.primary : Colors.grey,
+                      color: mode == _mode ? AppTheme.primary : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                       size: 20,
                     ),
                     const SizedBox(width: 12),
@@ -245,7 +246,7 @@ class _MemorizeScreenState extends State<MemorizeScreen>
                                 const TextStyle(fontWeight: FontWeight.w600)),
                         Text(mode.description,
                             style: TextStyle(
-                                fontSize: 12, color: Colors.grey.shade600)),
+                                fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
                       ],
                     ),
                   ],
@@ -277,14 +278,14 @@ class _MemorizeScreenState extends State<MemorizeScreen>
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-      color: AppTheme.surface,
+      color: Theme.of(context).colorScheme.surface,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
             widget.scripture.reference,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: AppTheme.primary,
+                  color: Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.bold,
                 ),
           ),
@@ -292,7 +293,7 @@ class _MemorizeScreenState extends State<MemorizeScreen>
           Text(
             widget.scripture.name,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey.shade600,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   fontStyle: FontStyle.italic,
                 ),
           ),
@@ -318,7 +319,7 @@ class _MemorizeScreenState extends State<MemorizeScreen>
               _buildStatChip(
                 Icons.visibility_off,
                 '$_hiddenCount',
-                AppTheme.dark.withValues(alpha: 0.5),
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
               ),
               const SizedBox(width: 12),
               // Mode indicator
@@ -326,15 +327,15 @@ class _MemorizeScreenState extends State<MemorizeScreen>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.1),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   _mode.label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.primary,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ),
@@ -372,7 +373,7 @@ class _MemorizeScreenState extends State<MemorizeScreen>
         borderRadius: BorderRadius.circular(4),
         child: LinearProgressIndicator(
           value: _memorizeProgress,
-          backgroundColor: Colors.grey.shade200,
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           valueColor: AlwaysStoppedAnimation<Color>(
             _memorizeProgress < 0.5
                 ? AppTheme.secondary
@@ -393,11 +394,11 @@ class _MemorizeScreenState extends State<MemorizeScreen>
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -463,9 +464,9 @@ class _MemorizeScreenState extends State<MemorizeScreen>
       case WordVisibility.visible:
         return Colors.transparent;
       case WordVisibility.firstLetter:
-        return AppTheme.accent.withValues(alpha: 0.06);
+        return Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.08);
       case WordVisibility.hidden:
-        return AppTheme.dark.withValues(alpha: 0.04);
+        return Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06);
     }
   }
 
@@ -474,20 +475,20 @@ class _MemorizeScreenState extends State<MemorizeScreen>
       case WordVisibility.visible:
         return Colors.transparent;
       case WordVisibility.firstLetter:
-        return AppTheme.accent.withValues(alpha: 0.2);
+        return AppTheme.accent.withValues(alpha: 0.3);
       case WordVisibility.hidden:
-        return Colors.grey.shade200;
+        return Theme.of(context).colorScheme.surfaceContainerHighest;
     }
   }
 
   Color _wordTextColor(MemorizeWord mw) {
     switch (mw.visibility) {
       case WordVisibility.visible:
-        return AppTheme.dark;
+        return Theme.of(context).colorScheme.onSurface;
       case WordVisibility.firstLetter:
-        return AppTheme.accent;
+        return Theme.of(context).colorScheme.tertiary;
       case WordVisibility.hidden:
-        return Colors.grey.shade400;
+        return Theme.of(context).colorScheme.onSurfaceVariant;
     }
   }
 
@@ -524,9 +525,9 @@ class _MemorizeScreenState extends State<MemorizeScreen>
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         border: Border(
-          top: BorderSide(color: Colors.grey.shade200),
+          top: BorderSide(color: Theme.of(context).colorScheme.surfaceContainerHighest),
         ),
       ),
       child: SafeArea(
@@ -549,7 +550,7 @@ class _MemorizeScreenState extends State<MemorizeScreen>
                     : 'Hide Next Word'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary,
-                  disabledBackgroundColor: Colors.grey.shade300,
+                  disabledBackgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
               ),

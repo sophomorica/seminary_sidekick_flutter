@@ -111,7 +111,7 @@ class HomeScreen extends ConsumerWidget {
                     label: 'Streak',
                     value: stats.currentStreak.toString(),
                     icon: Icons.local_fire_department,
-                    color: Colors.orange,
+                    color: AppTheme.accent,
                   ),
                 ],
               ),

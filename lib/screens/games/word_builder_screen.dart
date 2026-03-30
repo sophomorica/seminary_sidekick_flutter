@@ -141,7 +141,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     });
 
     return Scaffold(
-      backgroundColor: AppTheme.offWhite,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: _buildAppBar(state),
       body: state.currentScripture == null
           ? const Center(child: CircularProgressIndicator())
@@ -160,7 +160,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     final seconds = _elapsed.inSeconds.remainder(60).toString().padLeft(2, '0');
 
     return AppBar(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       leading: IconButton(
         icon: const Icon(Icons.close),
         onPressed: () async {

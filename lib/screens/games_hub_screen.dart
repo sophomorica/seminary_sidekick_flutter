@@ -26,7 +26,7 @@ class GamesHubScreen extends ConsumerWidget {
             Text(
               'Choose a game to practice',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey.shade600,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
             ),
             const SizedBox(height: 24),
@@ -101,7 +101,7 @@ class _GameCardState extends State<_GameCard> {
                           widget.gameType.description,
                           style:
                               Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Colors.grey.shade600,
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                   ),
                         ),
                       ],
@@ -179,7 +179,7 @@ class _GameCardState extends State<_GameCard> {
                 Text(
                   _selectedDifficulty.descriptionForGame(widget.gameType),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey.shade500,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                         fontStyle: FontStyle.italic,
                       ),
                 ),
@@ -229,10 +229,10 @@ class _GameCardState extends State<_GameCard> {
         },
         selectedColor: accentColor.withValues(alpha: 0.2),
         side: BorderSide(
-          color: isSelected ? accentColor : Colors.grey.shade300,
+          color: isSelected ? accentColor : Theme.of(context).colorScheme.surfaceContainerHighest,
         ),
         labelStyle: TextStyle(
-          color: isSelected ? accentColor : Colors.grey.shade700,
+          color: isSelected ? accentColor : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
           fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           fontSize: 12,
         ),

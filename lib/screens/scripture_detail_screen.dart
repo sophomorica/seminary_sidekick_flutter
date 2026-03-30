@@ -268,7 +268,7 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                               Theme.of(context).textTheme.bodyMedium?.copyWith(
                                     color: note != null
                                         ? null
-                                        : Colors.grey.shade500,
+                                        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                                     height: 1.5,
                                   ),
                         ),
@@ -414,7 +414,7 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                       },
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: BorderSide(color: Colors.grey.shade300),
+                        side: BorderSide(color: Theme.of(context).colorScheme.surfaceContainerHighest),
                       ),
                       child: Text(
                         difficulty.label,

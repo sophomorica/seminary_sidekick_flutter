@@ -109,7 +109,7 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
     });
 
     return Scaffold(
-      backgroundColor: AppTheme.offWhite,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.close),
@@ -135,7 +135,7 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.timer_outlined, size: 18, color: Colors.grey.shade600),
+                  Icon(Icons.timer_outlined, size: 18, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                   const SizedBox(width: 4),
                   Text(
                     _formatDuration(_elapsed),
@@ -216,7 +216,7 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
           child: Text(
             title,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: Colors.grey.shade500,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                   letterSpacing: 1,
                 ),
             textAlign: TextAlign.center,
@@ -389,10 +389,10 @@ class _ProgressHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -430,7 +430,7 @@ class _ProgressHeader extends StatelessWidget {
             child: LinearProgressIndicator(
               value: total > 0 ? matched / total : 0,
               minHeight: 6,
-              backgroundColor: Colors.grey.shade200,
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.success),
             ),
           ),
@@ -562,15 +562,15 @@ class _MatchTile extends StatelessWidget {
     } else if (isHovering) {
       bgColor = AppTheme.accent.withValues(alpha: 0.15);
       borderColor = AppTheme.accent;
-      textColor = AppTheme.dark;
+      textColor = Theme.of(context).colorScheme.onSurface;
     } else if (isSelected) {
       bgColor = AppTheme.primary.withValues(alpha: 0.12);
       borderColor = AppTheme.primary;
-      textColor = AppTheme.primaryDark;
+      textColor = Theme.of(context).colorScheme.primary;
     } else {
-      bgColor = Colors.white;
-      borderColor = Colors.grey.shade300;
-      textColor = AppTheme.dark;
+      bgColor = Theme.of(context).colorScheme.surface;
+      borderColor = Theme.of(context).colorScheme.outlineVariant;
+      textColor = Theme.of(context).colorScheme.onSurface;
     }
 
     return AnimatedContainer(
