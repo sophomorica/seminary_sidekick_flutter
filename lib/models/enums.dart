@@ -48,6 +48,13 @@ enum MasteryLevel {
     minAccuracy: 0.95,
     color: 0xFF64B5F6,
     icon: Icons.workspace_premium,
+  ),
+  eternal(
+    label: 'Eternal',
+    description: 'Sustained mastery — engraven upon your heart',
+    minAccuracy: 0.95,
+    color: 0xFFFFD700,
+    icon: Icons.auto_awesome,
   );
 
   const MasteryLevel({

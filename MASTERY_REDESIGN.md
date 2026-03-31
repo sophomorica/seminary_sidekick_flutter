@@ -75,6 +75,21 @@ Mastery is maintained, not just earned. But we're gentle about it.
 
 **Floor rule**: A scripture never drops below **Familiar** due to time decay alone. If you once proved you can type it, you still know it at some level. Only active negative performance (accuracy dropping) can push you below Familiar.
 
+**Exception**: Eternal scriptures never decay. Once earned, the badge is permanent.
+
+---
+
+## 6. Eternal (gold) — NEW
+
+The ultimate tier. Earned by sustaining Mastered status for **6 continuous months** (183 days). Once earned, this badge is **permanent** — no decay, no review needed, ever.
+
+This represents a scripture that has truly been "engraven upon your heart." The user practiced it consistently for half a year, proving it's in long-term memory.
+
+- **Requirements**: Maintain all Mastered-level requirements for 6 months.
+- **Decay**: None. Permanent. The clock resets if mastery drops before the 6 months are up.
+- **Badge**: Gold with sparkle icon. No progress bar (there's nothing beyond this).
+- **Data**: A `masteredSince` timestamp per scripture is persisted in a Hive box (`mastery_dates`). When the scripture first reaches Mastered, the date is recorded. If it drops, the date is cleared. When 6 months pass without dropping, Eternal is conferred permanently.
+
 ---
 
 ## Sub-Progress Within Each Level

@@ -5,8 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../models/enums.dart';
 import '../models/scripture.dart';
 import '../providers/scripture_provider.dart';
+import '../providers/scripture_mastery_provider.dart';
 import '../providers/notes_provider.dart';
-import '../providers/progress_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/mastery_badge.dart';
 import 'memorize_screen.dart';
@@ -183,15 +183,8 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Mastery progress section
-            Text(
-              'Your Progress',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            ..._buildMasteryCards(context, ref, widget.scriptureId),
+            // Holistic mastery progress section
+            _HolisticMasterySection(scriptureId: widget.scriptureId),
             const SizedBox(height: 24),
 
             // Notes section
@@ -293,52 +286,6 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
         ),
       ),
     );
-  }
-
-  List<Widget> _buildMasteryCards(
-    BuildContext context,
-    WidgetRef ref,
-    String scriptureId,
-  ) {
-    return GameType.values.map((gameType) {
-      final mastery = ref.watch(
-        masteryLevelProvider((scriptureId, gameType)),
-      );
-
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 8.0),
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        gameType.displayName,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        mastery.label,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Color(mastery.color),
-                              fontWeight: FontWeight.w500,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-                MasteryBadge.compact(masteryLevel: mastery),
-              ],
-            ),
-          ),
-        ),
-      );
-    }).toList();
   }
 
   List<Widget> _buildPracticeButtons(
@@ -462,6 +409,294 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
 
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => screen),
+    );
+  }
+}
+
+/// Displays the holistic mastery level, sub-progress bar, and a checklist
+/// of requirements for the next level.
+class _HolisticMasterySection extends ConsumerWidget {
+  final String scriptureId;
+
+  const _HolisticMasterySection({required this.scriptureId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mastery = ref.watch(scriptureMasteryProvider(scriptureId));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Your Progress',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+        const SizedBox(height: 12),
+
+        // Main mastery card
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Level badge + description
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          MasteryBadge.withProgress(
+                            masteryLevel: mastery.level,
+                            subProgress: mastery.subProgress,
+                            needsReview: mastery.needsReview,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            mastery.level.description,
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.6),
+                                    ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Stats column
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${mastery.overallAccuracy.toStringAsFixed(0)}%',
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Color(mastery.level.color),
+                              ),
+                        ),
+                        Text(
+                          'accuracy',
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.5),
+                                  ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${mastery.totalAttemptsAllGames} attempts',
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.5),
+                                  ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+
+                // Needs review banner
+                if (mastery.needsReview) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.warning.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppTheme.warning.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.schedule, size: 16, color: AppTheme.warning),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Last practiced ${mastery.daysSinceLastPractice} days ago — review to maintain mastery',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(color: AppTheme.warning),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+
+        // Requirements checklist for next level
+        if (mastery.nextLevelRequirements.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    mastery.level == MasteryLevel.mastered &&
+                            mastery.needsReview
+                        ? 'Maintain Mastery'
+                        : 'Next Level Requirements',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 12),
+                  ...mastery.nextLevelRequirements.map((req) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Row(
+                        children: [
+                          Icon(
+                            req.isMet
+                                ? Icons.check_circle
+                                : Icons.circle_outlined,
+                            size: 20,
+                            color: req.isMet
+                                ? AppTheme.success
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.3),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              req.description,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    color: req.isMet
+                                        ? Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.5)
+                                        : null,
+                                    decoration: req.isMet
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                  ),
+                            ),
+                          ),
+                          if (!req.isMet && req.progress > 0)
+                            Text(
+                              '${(req.progress * 100).toInt()}%',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
+                                    color: AppTheme.accent,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ),
+        ],
+
+        // Per-game difficulty progress (compact)
+        if (mastery.gameTypesAttempted > 0) ...[
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Game Progress',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 12),
+                  ...GameType.values.map((gameType) {
+                    final difficulty =
+                        mastery.highestDifficultyPerGame[gameType];
+                    final hasPlayed = difficulty != null;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Row(
+                        children: [
+                          Icon(
+                            gameType.icon,
+                            size: 18,
+                            color: hasPlayed
+                                ? AppTheme.primary
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.3),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              gameType.displayName,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    color: hasPlayed
+                                        ? null
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.4),
+                                  ),
+                            ),
+                          ),
+                          Text(
+                            hasPlayed ? difficulty.label : 'Not started',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelMedium
+                                ?.copyWith(
+                                  color: hasPlayed
+                                      ? AppTheme.secondary
+                                      : Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.3),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

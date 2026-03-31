@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../models/enums.dart';
 import '../providers/scripture_provider.dart';
-import '../providers/progress_provider.dart';
+import '../providers/scripture_mastery_provider.dart';
 import '../providers/theme_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/scripture_card.dart';
@@ -15,28 +15,35 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final allScriptures = ref.watch(scripturesProvider);
-    final stats = ref.watch(userStatsProvider);
+    final stats = ref.watch(holisticStatsProvider);
 
-    // Get scriptures that need review
+    // Get scriptures that need review (using holistic mastery)
     final needsReviewScriptures = allScriptures.where((scripture) {
-      // Check if any game type needs review
-      for (final gameType in GameType.values) {
-        final progress = ref.watch(
-          progressByScriptureProvider(
-            (scripture.id, gameType),
-          ),
-        );
-        if (progress?.needsReview ?? false) {
-          return true;
-        }
-      }
-      return false;
+      final mastery = ref.watch(scriptureMasteryProvider(scripture.id));
+      return mastery.needsReview;
     }).toList();
 
-    // Fallback to random scriptures if none need review
-    final continueLearningScriptures = needsReviewScriptures.isEmpty
-        ? (allScriptures..shuffle()).take(3).toList()
-        : needsReviewScriptures.take(3).toList();
+    // Also find scriptures closest to leveling up (high sub-progress)
+    final almostThereScriptures = allScriptures
+        .where((s) {
+          final m = ref.watch(scriptureMasteryProvider(s.id));
+          return m.level != MasteryLevel.mastered &&
+              m.level != MasteryLevel.eternal &&
+              m.subProgress >= 0.6;
+        })
+        .toList()
+      ..sort((a, b) {
+        final ma = ref.watch(scriptureMasteryProvider(a.id));
+        final mb = ref.watch(scriptureMasteryProvider(b.id));
+        return mb.subProgress.compareTo(ma.subProgress);
+      });
+
+    // Prioritize: needs review > almost there > random
+    final continueLearningScriptures = needsReviewScriptures.isNotEmpty
+        ? needsReviewScriptures.take(3).toList()
+        : almostThereScriptures.isNotEmpty
+            ? almostThereScriptures.take(3).toList()
+            : (allScriptures..shuffle()).take(3).toList();
 
     final themeMode = ref.watch(themeProvider);
 
@@ -95,7 +102,14 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   _StatCard(
                     label: 'Mastered',
-                    value: stats.totalMastered.toString(),
+                    value: stats.mastered.toString(),
+                    icon: Icons.workspace_premium,
+                    color: Color(MasteryLevel.mastered.color),
+                  ),
+                  const SizedBox(width: 12),
+                  _StatCard(
+                    label: 'Memorized',
+                    value: stats.memorized.toString(),
                     icon: Icons.check_circle,
                     color: AppTheme.secondary,
                   ),
@@ -103,15 +117,8 @@ class HomeScreen extends ConsumerWidget {
                   _StatCard(
                     label: 'Need Review',
                     value: stats.needsReview.toString(),
-                    icon: Icons.refresh,
-                    color: AppTheme.primary,
-                  ),
-                  const SizedBox(width: 12),
-                  _StatCard(
-                    label: 'Streak',
-                    value: stats.currentStreak.toString(),
-                    icon: Icons.local_fire_department,
-                    color: AppTheme.accent,
+                    icon: Icons.schedule,
+                    color: AppTheme.warning,
                   ),
                 ],
               ),

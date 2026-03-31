@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../models/enums.dart';
 import '../providers/scripture_provider.dart';
-import '../providers/progress_provider.dart';
+import '../providers/scripture_mastery_provider.dart';
 import '../widgets/mastery_badge.dart';
 
 class ScriptureListScreen extends ConsumerWidget {
@@ -53,18 +53,8 @@ class ScriptureListScreen extends ConsumerWidget {
               itemCount: scriptures.length,
               itemBuilder: (context, index) {
                 final scripture = scriptures[index];
-
-                // Get highest mastery level across all game types
-                MasteryLevel highestMastery = MasteryLevel.newScripture;
-                for (final gameType in GameType.values) {
-                  final mastery = ref.watch(
-                    masteryLevelProvider((scripture.id, gameType)),
-                  );
-                  if (_getMasteryRank(mastery) >
-                      _getMasteryRank(highestMastery)) {
-                    highestMastery = mastery;
-                  }
-                }
+                final mastery =
+                    ref.watch(scriptureMasteryProvider(scripture.id));
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8.0),
@@ -111,7 +101,8 @@ class ScriptureListScreen extends ConsumerWidget {
                             ),
                             const SizedBox(width: 12),
                             MasteryBadge.compact(
-                              masteryLevel: highestMastery,
+                              masteryLevel: mastery.level,
+                              needsReview: mastery.needsReview,
                             ),
                           ],
                         ),
@@ -122,20 +113,5 @@ class ScriptureListScreen extends ConsumerWidget {
               },
             ),
     );
-  }
-
-  int _getMasteryRank(MasteryLevel level) {
-    switch (level) {
-      case MasteryLevel.newScripture:
-        return 0;
-      case MasteryLevel.learning:
-        return 1;
-      case MasteryLevel.familiar:
-        return 2;
-      case MasteryLevel.memorized:
-        return 3;
-      case MasteryLevel.mastered:
-        return 4;
-    }
   }
 }

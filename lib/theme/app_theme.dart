@@ -46,6 +46,7 @@ class AppTheme {
   static const Color masteryFamiliar = Color(0xFFFFD54F);
   static const Color masteryMemorized = Color(0xFF81C784);
   static const Color masteryMastered = Color(0xFF64B5F6);
+  static const Color masteryEternal = Color(0xFFFFD700);  // Gold — permanent
 
   // ─── Book Colors (for visual distinction) ───────────────────────
   static const Color oldTestamentColor = Color(0xFF8D6E63);  // Brown
@@ -339,6 +340,7 @@ class AppTheme {
       2 => masteryFamiliar,
       3 => masteryMemorized,
       4 => masteryMastered,
+      5 => masteryEternal,
       _ => masteryNew,
     };
   }

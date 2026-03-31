@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'app.dart';
+import 'providers/mastery_dates_provider.dart';
 import 'providers/notes_provider.dart';
 import 'providers/progress_provider.dart';
 import 'providers/theme_provider.dart';
@@ -33,6 +34,7 @@ void main() async {
   // Load persisted data before app starts
   await container.read(progressProvider.notifier).init();
   await container.read(notesProvider.notifier).init();
+  await container.read(masteryDatesProvider.notifier).init();
   await container.read(themeProvider.notifier).init();
   await container.read(audioProvider.notifier).init();
 

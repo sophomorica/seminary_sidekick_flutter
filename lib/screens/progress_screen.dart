@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/enums.dart';
 import '../models/scripture.dart';
 import '../providers/scripture_provider.dart';
-import '../providers/progress_provider.dart';
+import '../providers/scripture_mastery_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/progress_ring.dart';
 
@@ -13,7 +13,7 @@ class ProgressScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final stats = ref.watch(userStatsProvider);
+    final stats = ref.watch(holisticStatsProvider);
     final allScriptures = ref.watch(scripturesProvider);
 
     return Scaffold(
@@ -32,18 +32,32 @@ class ProgressScreen extends ConsumerWidget {
               child: Column(
                 children: [
                   ProgressRing(
-                    value: stats.overallAccuracy / 100,
+                    value: stats.totalScriptures > 0
+                        ? stats.mastered / stats.totalScriptures
+                        : 0.0,
                     size: 200,
-                    color: AppTheme.primary,
-                    label: '${stats.overallAccuracy.toStringAsFixed(0)}%',
+                    color: Color(MasteryLevel.mastered.color),
+                    label: '${stats.mastered}/${stats.totalScriptures}',
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Overall Mastery',
+                    'Scriptures Mastered',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
                   ),
+                  if (stats.overallAccuracy > 0) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      '${stats.overallAccuracy.toStringAsFixed(0)}% overall accuracy',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.6),
+                          ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -78,7 +92,10 @@ class ProgressScreen extends ConsumerWidget {
                 child: Text(
                   'No activity yet. Start practicing to see your progress!',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.6),
                       ),
                 ),
               ),
@@ -96,26 +113,32 @@ class ProgressScreen extends ConsumerWidget {
     List<Scripture> allScriptures,
   ) {
     return ScriptureBook.values.map((book) {
-      final bookScriptures = allScriptures.where((s) => s.book == book).toList();
+      final bookScriptures =
+          allScriptures.where((s) => s.book == book).toList();
 
-      // Calculate book mastery percentage
-      double totalAccuracy = 0;
-      int count = 0;
+      // Count mastered scriptures in this book using holistic mastery
+      int masteredCount = 0;
+      int memorizedCount = 0;
+      int familiarCount = 0;
 
       for (final scripture in bookScriptures) {
-        for (final gameType in GameType.values) {
-          final progress = ref.watch(
-            progressByScriptureProvider((scripture.id, gameType)),
-          );
-          if (progress != null && progress.totalAttempts > 0) {
-            totalAccuracy += progress.accuracy;
-            count++;
-          }
+        final mastery = ref.watch(scriptureMasteryProvider(scripture.id));
+        switch (mastery.level) {
+          case MasteryLevel.eternal:
+          case MasteryLevel.mastered:
+            masteredCount++;
+          case MasteryLevel.memorized:
+            memorizedCount++;
+          case MasteryLevel.familiar:
+            familiarCount++;
+          default:
+            break;
         }
       }
 
-      final masteryPercent =
-          count > 0 ? totalAccuracy / count : 0.0;
+      final total = bookScriptures.length;
+      final progressPercent =
+          total > 0 ? (masteredCount / total) * 100 : 0.0;
 
       return Padding(
         padding: const EdgeInsets.only(bottom: 12.0),
@@ -130,16 +153,18 @@ class ProgressScreen extends ConsumerWidget {
                   children: [
                     Text(
                       book.displayName,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                      style:
+                          Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
                     ),
                     Text(
-                      '${masteryPercent.toStringAsFixed(0)}%',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.primary,
-                          ),
+                      '$masteredCount / $total mastered',
+                      style:
+                          Theme.of(context).textTheme.bodySmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.primary,
+                              ),
                     ),
                   ],
                 ),
@@ -147,14 +172,27 @@ class ProgressScreen extends ConsumerWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
-                    value: masteryPercent / 100,
+                    value: progressPercent / 100,
                     minHeight: 6,
-                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    backgroundColor:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      _getColorForProgress(masteryPercent),
+                      _getColorForProgress(progressPercent),
                     ),
                   ),
                 ),
+                if (memorizedCount > 0 || familiarCount > 0) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    '${memorizedCount > 0 ? '$memorizedCount memorized' : ''}${memorizedCount > 0 && familiarCount > 0 ? ', ' : ''}${familiarCount > 0 ? '$familiarCount familiar' : ''}',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.5),
+                        ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -171,7 +209,7 @@ class ProgressScreen extends ConsumerWidget {
 }
 
 class _StatsGrid extends StatelessWidget {
-  final UserStats stats;
+  final HolisticStats stats;
 
   const _StatsGrid({required this.stats});
 
@@ -186,27 +224,31 @@ class _StatsGrid extends StatelessWidget {
       children: [
         _StatTile(
           label: 'Attempted',
-          value: stats.totalAttempted.toString(),
+          value: stats.attempted.toString(),
           icon: Icons.note_outlined,
           color: AppTheme.primary,
         ),
         _StatTile(
           label: 'Memorized',
-          value: stats.totalMemorized.toString(),
+          value: stats.memorized.toString(),
           icon: Icons.check_circle_outline,
           color: AppTheme.secondary,
         ),
         _StatTile(
           label: 'Mastered',
-          value: stats.totalMastered.toString(),
-          icon: Icons.star_outline,
-          color: AppTheme.gold,
+          value: '${stats.mastered + stats.eternal}',
+          icon: Icons.workspace_premium,
+          color: Color(MasteryLevel.mastered.color),
         ),
         _StatTile(
-          label: 'Need Review',
-          value: stats.needsReview.toString(),
-          icon: Icons.refresh,
-          color: AppTheme.primary,
+          label: stats.eternal > 0 ? 'Eternal' : 'Need Review',
+          value: stats.eternal > 0
+              ? stats.eternal.toString()
+              : stats.needsReview.toString(),
+          icon: stats.eternal > 0 ? Icons.auto_awesome : Icons.schedule,
+          color: stats.eternal > 0
+              ? Color(MasteryLevel.eternal.color)
+              : AppTheme.warning,
         ),
       ],
     );
