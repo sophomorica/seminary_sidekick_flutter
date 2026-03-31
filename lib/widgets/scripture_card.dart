@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/scripture.dart';
-import '../models/enums.dart';
-import '../providers/progress_provider.dart';
+import '../providers/scripture_mastery_provider.dart';
 import '../theme/app_theme.dart';
 import 'mastery_badge.dart';
 
@@ -21,16 +20,7 @@ class ScriptureCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Get highest mastery level across all game types
-    MasteryLevel highestMastery = MasteryLevel.newScripture;
-    for (final gameType in GameType.values) {
-      final mastery = ref.watch(
-        masteryLevelProvider((scripture.id, gameType)),
-      );
-      if (_getMasteryRank(mastery) > _getMasteryRank(highestMastery)) {
-        highestMastery = mastery;
-      }
-    }
+    final mastery = ref.watch(scriptureMasteryProvider(scripture.id));
 
     return GestureDetector(
       onTap: onTap,
@@ -71,7 +61,10 @@ class ScriptureCard extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  MasteryBadge.compact(masteryLevel: highestMastery),
+                  MasteryBadge.compact(
+                    masteryLevel: mastery.level,
+                    needsReview: mastery.needsReview,
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -80,7 +73,10 @@ class ScriptureCard extends ConsumerWidget {
               Text(
                 scripture.keyPhrase,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.6),
                       height: 1.4,
                     ),
                 maxLines: 2,
@@ -98,20 +94,5 @@ class ScriptureCard extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  int _getMasteryRank(MasteryLevel level) {
-    switch (level) {
-      case MasteryLevel.newScripture:
-        return 0;
-      case MasteryLevel.learning:
-        return 1;
-      case MasteryLevel.familiar:
-        return 2;
-      case MasteryLevel.memorized:
-        return 3;
-      case MasteryLevel.mastered:
-        return 4;
-    }
   }
 }

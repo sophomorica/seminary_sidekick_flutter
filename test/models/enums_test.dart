@@ -31,8 +31,8 @@ void main() {
   });
 
   group('MasteryLevel', () {
-    test('has exactly 5 values', () {
-      expect(MasteryLevel.values.length, equals(5));
+    test('has exactly 6 values', () {
+      expect(MasteryLevel.values.length, equals(6));
     });
 
     test('ordering by index matches progression', () {
