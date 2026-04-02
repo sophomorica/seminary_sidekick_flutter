@@ -594,6 +594,148 @@ void main() {
   });
 
   // -------------------------------------------------------
+  // consecutivePerfectMaster tracking
+  // -------------------------------------------------------
+  group('consecutivePerfectMaster', () {
+    test('defaults to 0 on first attempt', () {
+      notifier.recordAttempt(
+        scriptureId: 'test-1',
+        gameType: GameType.wordOrder,
+        correct: true,
+        difficultyCompleted: DifficultyLevel.beginner,
+      );
+
+      final progress = notifier.getProgress('test-1', GameType.wordOrder);
+      expect(progress!.consecutivePerfectMaster, 0);
+    });
+
+    test('increments on correct WB Master attempt', () {
+      notifier.recordAttempt(
+        scriptureId: 'test-1',
+        gameType: GameType.wordOrder,
+        correct: true,
+        difficultyCompleted: DifficultyLevel.master,
+      );
+
+      final progress = notifier.getProgress('test-1', GameType.wordOrder);
+      expect(progress!.consecutivePerfectMaster, 1);
+    });
+
+    test('increments consecutively on multiple correct WB Master attempts', () {
+      for (var i = 0; i < 3; i++) {
+        notifier.recordAttempt(
+          scriptureId: 'test-1',
+          gameType: GameType.wordOrder,
+          correct: true,
+          difficultyCompleted: DifficultyLevel.master,
+        );
+      }
+
+      final progress = notifier.getProgress('test-1', GameType.wordOrder);
+      expect(progress!.consecutivePerfectMaster, 3);
+    });
+
+    test('resets to 0 on incorrect WB Master attempt', () {
+      // Build up to 2
+      notifier.recordAttempt(
+        scriptureId: 'test-1',
+        gameType: GameType.wordOrder,
+        correct: true,
+        difficultyCompleted: DifficultyLevel.master,
+      );
+      notifier.recordAttempt(
+        scriptureId: 'test-1',
+        gameType: GameType.wordOrder,
+        correct: true,
+        difficultyCompleted: DifficultyLevel.master,
+      );
+      expect(
+        notifier.getProgress('test-1', GameType.wordOrder)!
+            .consecutivePerfectMaster,
+        2,
+      );
+
+      // Fail at Master → reset
+      notifier.recordAttempt(
+        scriptureId: 'test-1',
+        gameType: GameType.wordOrder,
+        correct: false,
+        difficultyCompleted: DifficultyLevel.master,
+      );
+
+      final progress = notifier.getProgress('test-1', GameType.wordOrder);
+      expect(progress!.consecutivePerfectMaster, 0);
+    });
+
+    test('unchanged on non-Master WB attempts', () {
+      // First get a Master success
+      notifier.recordAttempt(
+        scriptureId: 'test-1',
+        gameType: GameType.wordOrder,
+        correct: true,
+        difficultyCompleted: DifficultyLevel.master,
+      );
+      expect(
+        notifier.getProgress('test-1', GameType.wordOrder)!
+            .consecutivePerfectMaster,
+        1,
+      );
+
+      // Advanced attempt should not change the counter
+      notifier.recordAttempt(
+        scriptureId: 'test-1',
+        gameType: GameType.wordOrder,
+        correct: true,
+        difficultyCompleted: DifficultyLevel.advanced,
+      );
+
+      final progress = notifier.getProgress('test-1', GameType.wordOrder);
+      expect(progress!.consecutivePerfectMaster, 1);
+    });
+
+    test('unchanged on non-WB game types at Master difficulty', () {
+      notifier.recordAttempt(
+        scriptureId: 'test-1',
+        gameType: GameType.matching,
+        correct: true,
+        difficultyCompleted: DifficultyLevel.master,
+      );
+
+      final progress = notifier.getProgress('test-1', GameType.matching);
+      expect(progress!.consecutivePerfectMaster, 0);
+    });
+
+    test('can rebuild after reset', () {
+      // Build to 2, reset, build to 3
+      for (var i = 0; i < 2; i++) {
+        notifier.recordAttempt(
+          scriptureId: 'test-1',
+          gameType: GameType.wordOrder,
+          correct: true,
+          difficultyCompleted: DifficultyLevel.master,
+        );
+      }
+      notifier.recordAttempt(
+        scriptureId: 'test-1',
+        gameType: GameType.wordOrder,
+        correct: false,
+        difficultyCompleted: DifficultyLevel.master,
+      );
+      for (var i = 0; i < 3; i++) {
+        notifier.recordAttempt(
+          scriptureId: 'test-1',
+          gameType: GameType.wordOrder,
+          correct: true,
+          difficultyCompleted: DifficultyLevel.master,
+        );
+      }
+
+      final progress = notifier.getProgress('test-1', GameType.wordOrder);
+      expect(progress!.consecutivePerfectMaster, 3);
+    });
+  });
+
+  // -------------------------------------------------------
   // Storage key format
   // -------------------------------------------------------
   group('storage key format', () {

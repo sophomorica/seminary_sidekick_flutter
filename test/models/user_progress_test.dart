@@ -98,6 +98,7 @@ void main() {
         accuracy: 80.0,
         masteryLevel: MasteryLevel.memorized,
         needsReview: false,
+        consecutivePerfectMaster: 2,
       );
 
       final json = original.toJson();
@@ -115,6 +116,8 @@ void main() {
       expect(restored.accuracy, equals(original.accuracy));
       expect(restored.masteryLevel, equals(original.masteryLevel));
       expect(restored.needsReview, equals(original.needsReview));
+      expect(restored.consecutivePerfectMaster,
+          equals(original.consecutivePerfectMaster));
     });
 
     test('toJson produces expected keys', () {
@@ -156,6 +159,37 @@ void main() {
       final progress = UserProgress.fromJson(json);
       expect(progress.bestTime, isNull);
       expect(progress.lastPracticed, isNull);
+    });
+
+    test('fromJson defaults consecutivePerfectMaster to 0 when missing (backward compat)', () {
+      final json = {
+        'scriptureId': 'test-1',
+        'gameType': 'matching',
+        'highestDifficultyCompleted': 'beginner',
+        'totalAttempts': 5,
+        'correctAttempts': 3,
+        'currentStreak': 1,
+        'bestStreak': 2,
+        'bestTime': null,
+        'lastPracticed': null,
+        'accuracy': 60.0,
+        'masteryLevel': 'learning',
+        'needsReview': true,
+        // NOTE: no 'consecutivePerfectMaster' key — simulates old Hive data
+      };
+
+      final progress = UserProgress.fromJson(json);
+      expect(progress.consecutivePerfectMaster, equals(0));
+    });
+
+    test('toJson includes consecutivePerfectMaster', () {
+      const progress = UserProgress(
+        scriptureId: 'test-1',
+        gameType: GameType.wordOrder,
+        consecutivePerfectMaster: 3,
+      );
+      final json = progress.toJson();
+      expect(json, containsPair('consecutivePerfectMaster', 3));
     });
 
     test('fromJson handles integer accuracy as num', () {
