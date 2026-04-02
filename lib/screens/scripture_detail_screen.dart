@@ -523,7 +523,8 @@ class _HolisticMasterySection extends ConsumerWidget {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.schedule, size: 16, color: AppTheme.warning),
+                        const Icon(Icons.schedule,
+                            size: 16, color: AppTheme.warning),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
