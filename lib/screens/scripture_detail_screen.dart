@@ -413,8 +413,8 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
   }
 }
 
-/// Displays the holistic mastery level, sub-progress bar, and a checklist
-/// of requirements for the next level.
+/// Displays the mastery level with a clear linear path driven by Word Builder
+/// progression, plus a checklist of requirements for the next level.
 class _HolisticMasterySection extends ConsumerWidget {
   final String scriptureId;
 
@@ -428,7 +428,7 @@ class _HolisticMasterySection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Your Progress',
+          'Mastery Path',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -544,6 +544,74 @@ class _HolisticMasterySection extends ConsumerWidget {
           ),
         ),
 
+        // Linear mastery path visualization
+        const SizedBox(height: 12),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Word Builder Journey',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Master this scripture through Word Builder progression',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.5),
+                      ),
+                ),
+                const SizedBox(height: 16),
+                _MasteryPathStep(
+                  level: MasteryLevel.learning,
+                  label: 'Beginner',
+                  description: 'Tap 3-word chunks',
+                  currentLevel: mastery.level,
+                ),
+                _MasteryPathStep(
+                  level: MasteryLevel.familiar,
+                  label: 'Intermediate',
+                  description: 'Tap 2-word chunks + distractors',
+                  currentLevel: mastery.level,
+                ),
+                _MasteryPathStep(
+                  level: MasteryLevel.memorized,
+                  label: 'Advanced',
+                  description: 'Typed with first-letter hints',
+                  currentLevel: mastery.level,
+                ),
+                _MasteryPathStep(
+                  level: MasteryLevel.mastered,
+                  label: 'Master',
+                  description:
+                      '3 perfect runs (${mastery.consecutivePerfectMaster}/3)',
+                  currentLevel: mastery.level,
+                  isLast: mastery.level != MasteryLevel.mastered &&
+                      mastery.level != MasteryLevel.eternal,
+                ),
+                if (mastery.level == MasteryLevel.mastered ||
+                    mastery.level == MasteryLevel.eternal)
+                  _MasteryPathStep(
+                    level: MasteryLevel.eternal,
+                    label: 'Eternal',
+                    description: mastery.daysMastered != null
+                        ? '${mastery.daysMastered}/183 days sustained'
+                        : '6 months sustained mastery',
+                    currentLevel: mastery.level,
+                    isLast: true,
+                  ),
+              ],
+            ),
+          ),
+        ),
+
         // Requirements checklist for next level
         if (mastery.nextLevelRequirements.isNotEmpty) ...[
           const SizedBox(height: 12),
@@ -557,7 +625,7 @@ class _HolisticMasterySection extends ConsumerWidget {
                     mastery.level == MasteryLevel.mastered &&
                             mastery.needsReview
                         ? 'Maintain Mastery'
-                        : 'Next Level Requirements',
+                        : 'Next Step',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -621,7 +689,7 @@ class _HolisticMasterySection extends ConsumerWidget {
           ),
         ],
 
-        // Per-game difficulty progress (compact)
+        // Per-game difficulty progress (supplementary)
         if (mastery.gameTypesAttempted > 0) ...[
           const SizedBox(height: 12),
           Card(
@@ -631,9 +699,19 @@ class _HolisticMasterySection extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Game Progress',
+                    'Practice Tools',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Scripture Match and Quiz help build recognition',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.5),
                         ),
                   ),
                   const SizedBox(height: 12),
@@ -641,6 +719,8 @@ class _HolisticMasterySection extends ConsumerWidget {
                     final difficulty =
                         mastery.highestDifficultyPerGame[gameType];
                     final hasPlayed = difficulty != null;
+                    // Highlight Word Builder as the mastery driver
+                    final isWordBuilder = gameType == GameType.wordOrder;
 
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8.0),
@@ -650,7 +730,9 @@ class _HolisticMasterySection extends ConsumerWidget {
                             gameType.icon,
                             size: 18,
                             color: hasPlayed
-                                ? AppTheme.primary
+                                ? (isWordBuilder
+                                    ? AppTheme.primary
+                                    : AppTheme.secondary)
                                 : Theme.of(context)
                                     .colorScheme
                                     .onSurface
@@ -664,6 +746,9 @@ class _HolisticMasterySection extends ConsumerWidget {
                                   .textTheme
                                   .bodyMedium
                                   ?.copyWith(
+                                    fontWeight: isWordBuilder
+                                        ? FontWeight.w600
+                                        : null,
                                     color: hasPlayed
                                         ? null
                                         : Theme.of(context)
@@ -680,7 +765,9 @@ class _HolisticMasterySection extends ConsumerWidget {
                                 .labelMedium
                                 ?.copyWith(
                                   color: hasPlayed
-                                      ? AppTheme.secondary
+                                      ? (isWordBuilder
+                                          ? AppTheme.primary
+                                          : AppTheme.secondary)
                                       : Theme.of(context)
                                           .colorScheme
                                           .onSurface
@@ -697,6 +784,104 @@ class _HolisticMasterySection extends ConsumerWidget {
             ),
           ),
         ],
+      ],
+    );
+  }
+}
+
+/// A single step on the linear mastery path visualization.
+class _MasteryPathStep extends StatelessWidget {
+  final MasteryLevel level;
+  final String label;
+  final String description;
+  final MasteryLevel currentLevel;
+  final bool isLast;
+
+  const _MasteryPathStep({
+    required this.level,
+    required this.label,
+    required this.description,
+    required this.currentLevel,
+    this.isLast = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isCompleted = currentLevel.index >= level.index;
+    final isCurrent = currentLevel.index == level.index - 1;
+    final color = Color(level.color);
+    final dimColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Vertical timeline
+        SizedBox(
+          width: 32,
+          child: Column(
+            children: [
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: isCompleted ? color : Colors.transparent,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isCompleted
+                        ? color
+                        : (isCurrent ? color : dimColor),
+                    width: isCurrent ? 2.5 : 1.5,
+                  ),
+                ),
+                child: isCompleted
+                    ? const Icon(Icons.check, size: 12, color: Colors.white)
+                    : null,
+              ),
+              if (!isLast)
+                Container(
+                  width: 2,
+                  height: 28,
+                  color: isCompleted ? color : dimColor,
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        // Label + description
+        Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight:
+                            (isCompleted || isCurrent) ? FontWeight.w600 : null,
+                        color: isCompleted
+                            ? color
+                            : (isCurrent
+                                ? Theme.of(context).colorScheme.onSurface
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.4)),
+                      ),
+                ),
+                Text(
+                  description,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: isCompleted || isCurrent ? 0.6 : 0.3),
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }

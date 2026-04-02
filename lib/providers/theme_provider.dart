@@ -24,15 +24,14 @@ class ThemeNotifier extends StateNotifier<ThemeMode> {
     state = _fromString(stored);
   }
 
-  /// Cycle through: system → light → dark → system
-  void toggle() {
-    switch (state) {
-      case ThemeMode.system:
-        state = ThemeMode.light;
-      case ThemeMode.light:
-        state = ThemeMode.dark;
-      case ThemeMode.dark:
-        state = ThemeMode.system;
+  /// Toggle between light and dark mode.
+  /// If currently on system, switches to the opposite of the current brightness.
+  void toggle(Brightness currentBrightness) {
+    if (state == ThemeMode.dark ||
+        (state == ThemeMode.system && currentBrightness == Brightness.dark)) {
+      state = ThemeMode.light;
+    } else {
+      state = ThemeMode.dark;
     }
     _persist();
   }

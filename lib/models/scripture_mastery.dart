@@ -19,7 +19,19 @@ class MasteryRequirement {
   });
 }
 
-/// Holistic mastery for a single scripture, computed across all game types.
+/// Holistic mastery for a single scripture, driven by Word Builder progression.
+///
+/// The mastery path is linear and tied to Word Builder difficulty tiers:
+///   New → Learning → Familiar → Memorized → Mastered → Eternal
+///
+/// - **New**: Haven't started Word Builder
+/// - **Learning**: Completed Word Builder Beginner (tap 3-word chunks)
+/// - **Familiar**: Completed Word Builder Intermediate (tap 2-word chunks + distractors)
+/// - **Memorized**: Completed Word Builder Advanced (typed with first-letter hints)
+/// - **Mastered**: 3 consecutive perfect completions at Word Builder Master (blind typing)
+/// - **Eternal**: Maintained Mastered for 6 continuous months (permanent, no decay)
+///
+/// Scripture Match and Quiz are helpful recognition tools but do NOT gate mastery.
 ///
 /// This is never stored — it's derived from the per-game [UserProgress]
 /// records each time the provider recomputes.
@@ -47,7 +59,7 @@ class ScriptureMastery {
   final int totalAttemptsAllGames;
 
   /// The requirements for the NEXT level (for the UI checklist).
-  /// Empty if already at Eternal, or at Mastered with no pending requirements.
+  /// Empty if already at Eternal.
   final List<MasteryRequirement> nextLevelRequirements;
 
   /// Number of game types that have at least one attempt.
@@ -58,6 +70,9 @@ class ScriptureMastery {
 
   /// When the scripture first reached Mastered level (for Eternal tracking).
   final DateTime? masteredSince;
+
+  /// Consecutive perfect completions at Word Builder Master difficulty.
+  final int consecutivePerfectMaster;
 
   const ScriptureMastery({
     required this.scriptureId,
@@ -72,6 +87,7 @@ class ScriptureMastery {
     required this.gameTypesAttempted,
     required this.gameTypesWithCorrect,
     this.masteredSince,
+    this.consecutivePerfectMaster = 0,
   });
 
   /// Days since last practice, or null if never practiced.
@@ -87,6 +103,13 @@ class ScriptureMastery {
   }
 
   /// Compute holistic mastery from per-game progress records.
+  ///
+  /// The mastery level is driven entirely by Word Builder progression:
+  ///   - Learning: completed WB Beginner
+  ///   - Familiar: completed WB Intermediate
+  ///   - Memorized: completed WB Advanced
+  ///   - Mastered: 3 consecutive perfect completions at WB Master
+  ///   - Eternal: 6 months sustained at Mastered (permanent)
   ///
   /// [progressByGame] maps GameType → UserProgress? for a single scripture.
   /// [isEternal] is true if the mastery_dates provider has confirmed permanent
@@ -132,6 +155,12 @@ class ScriptureMastery {
     final overallAccuracy =
         totalAttempts > 0 ? (totalCorrect / totalAttempts) * 100 : 0.0;
 
+    // Extract Word Builder progress (the primary mastery driver)
+    final wbProgress = progressByGame[GameType.wordOrder];
+    final wbDifficultyRank =
+        _difficultyRank(highestDifficulty[GameType.wordOrder]);
+    final perfectMasterCount = wbProgress?.consecutivePerfectMaster ?? 0;
+
     // Days since last practice
     final daysSince = lastPracticed != null
         ? DateTime.now().difference(lastPracticed).inDays
@@ -152,42 +181,35 @@ class ScriptureMastery {
         gameTypesAttempted: gameTypesAttempted,
         gameTypesWithCorrect: gameTypesWithCorrect,
         masteredSince: masteredSinceDate,
+        consecutivePerfectMaster: perfectMasterCount,
       );
     }
 
-    // Determine the raw mastery level (before decay)
+    // Determine raw mastery level from Word Builder progression
     final rawLevel = _computeRawLevel(
-      gameTypesAttempted: gameTypesAttempted,
-      gameTypesWithCorrect: gameTypesWithCorrect,
-      overallAccuracy: overallAccuracy,
-      totalAttempts: totalAttempts,
-      highestDifficulty: highestDifficulty,
-      daysSince: daysSince,
+      wbDifficultyRank: wbDifficultyRank,
+      perfectMasterCount: perfectMasterCount,
     );
 
     // Apply gentle decay
     final decayedLevel = _applyDecay(rawLevel, daysSince);
 
-    // Needs review: practiced before but >14 days ago (Mastered+ only needs this)
+    // Needs review: practiced before but >14 days ago
     final needsReview =
         lastPracticed != null && daysSince != null && daysSince > 14;
 
-    // Compute sub-progress toward the next level
+    // Compute sub-progress and requirements toward the next level
     final nextLevel = _nextLevel(decayedLevel);
     final requirements = nextLevel != null
         ? _requirementsFor(
             nextLevel,
-            gameTypesAttempted: gameTypesAttempted,
-            gameTypesWithCorrect: gameTypesWithCorrect,
-            overallAccuracy: overallAccuracy,
-            totalAttempts: totalAttempts,
-            highestDifficulty: highestDifficulty,
-            daysSince: daysSince,
+            wbDifficultyRank: wbDifficultyRank,
+            perfectMasterCount: perfectMasterCount,
             masteredSinceDate: masteredSinceDate,
           )
         : <MasteryRequirement>[];
 
-    // If we're at mastered and need review, show "maintain mastery" requirements
+    // If we're at mastered and need review, show maintenance requirements
     final displayRequirements =
         (decayedLevel == MasteryLevel.mastered && needsReview)
             ? _maintenanceRequirements(daysSince)
@@ -210,123 +232,54 @@ class ScriptureMastery {
       gameTypesAttempted: gameTypesAttempted,
       gameTypesWithCorrect: gameTypesWithCorrect,
       masteredSince: masteredSinceDate,
+      consecutivePerfectMaster: perfectMasterCount,
     );
   }
 
   // ---------------------------------------------------------------------------
-  // Level computation
+  // Level computation — Word Builder-centric linear path
   // ---------------------------------------------------------------------------
 
+  /// Determine mastery level purely from Word Builder progression.
+  ///
+  /// - Mastered: completed WB Master + 3 consecutive perfect runs at Master
+  /// - Memorized: completed WB Advanced (rank >= 2)
+  /// - Familiar: completed WB Intermediate (rank >= 1)
+  /// - Learning: completed WB Beginner (rank >= 0, i.e. has any WB progress)
+  /// - New: no Word Builder progress at all
   static MasteryLevel _computeRawLevel({
-    required int gameTypesAttempted,
-    required int gameTypesWithCorrect,
-    required double overallAccuracy,
-    required int totalAttempts,
-    required Map<GameType, DifficultyLevel> highestDifficulty,
-    required int? daysSince,
+    required int wbDifficultyRank,
+    required int perfectMasterCount,
   }) {
-    // Check Mastered (top-down) — Eternal is handled before this is called
-    if (_meetsMastered(
-      gameTypesWithCorrect: gameTypesWithCorrect,
-      overallAccuracy: overallAccuracy,
-      totalAttempts: totalAttempts,
-      highestDifficulty: highestDifficulty,
-      daysSince: daysSince,
-    )) {
+    // Mastered: reached WB Master difficulty AND 3 consecutive perfect runs
+    if (wbDifficultyRank >= 3 && perfectMasterCount >= 3) {
       return MasteryLevel.mastered;
     }
 
-    if (_meetsMemorized(
-      overallAccuracy: overallAccuracy,
-      totalAttempts: totalAttempts,
-      highestDifficulty: highestDifficulty,
-      daysSince: daysSince,
-    )) {
+    // Memorized: completed WB Advanced
+    if (wbDifficultyRank >= 2) {
       return MasteryLevel.memorized;
     }
 
-    if (_meetsFamiliar(
-      gameTypesAttempted: gameTypesAttempted,
-      overallAccuracy: overallAccuracy,
-      totalAttempts: totalAttempts,
-      highestDifficulty: highestDifficulty,
-    )) {
+    // Familiar: completed WB Intermediate
+    if (wbDifficultyRank >= 1) {
       return MasteryLevel.familiar;
     }
 
-    if (gameTypesAttempted >= 1 && gameTypesWithCorrect >= 1) {
+    // Learning: completed WB Beginner (any WB attempt that reached beginner)
+    if (wbDifficultyRank >= 0) {
       return MasteryLevel.learning;
     }
 
     return MasteryLevel.newScripture;
   }
 
-  static bool _meetsMastered({
-    required int gameTypesWithCorrect,
-    required double overallAccuracy,
-    required int totalAttempts,
-    required Map<GameType, DifficultyLevel> highestDifficulty,
-    required int? daysSince,
-  }) {
-    final wordBuilderMaster =
-        _difficultyRank(highestDifficulty[GameType.wordOrder]) >= 3;
-    final matchingAdvanced =
-        _difficultyRank(highestDifficulty[GameType.matching]) >= 2;
-    final quizOk = !highestDifficulty.containsKey(GameType.quiz) ||
-        _difficultyRank(highestDifficulty[GameType.quiz]) >= 1;
-    final accuracyOk = overallAccuracy >= 90;
-    final volumeOk = totalAttempts >= 25;
-    final recentOk = daysSince != null && daysSince <= 14;
-
-    return wordBuilderMaster &&
-        matchingAdvanced &&
-        quizOk &&
-        accuracyOk &&
-        volumeOk &&
-        recentOk;
-  }
-
-  static bool _meetsMemorized({
-    required double overallAccuracy,
-    required int totalAttempts,
-    required Map<GameType, DifficultyLevel> highestDifficulty,
-    required int? daysSince,
-  }) {
-    final wordBuilderAdvanced =
-        _difficultyRank(highestDifficulty[GameType.wordOrder]) >= 2;
-    final matchingIntermediate =
-        _difficultyRank(highestDifficulty[GameType.matching]) >= 1;
-    final accuracyOk = overallAccuracy >= 80;
-    final volumeOk = totalAttempts >= 15;
-    final recentOk = daysSince != null && daysSince <= 21;
-
-    return wordBuilderAdvanced &&
-        matchingIntermediate &&
-        accuracyOk &&
-        volumeOk &&
-        recentOk;
-  }
-
-  static bool _meetsFamiliar({
-    required int gameTypesAttempted,
-    required double overallAccuracy,
-    required int totalAttempts,
-    required Map<GameType, DifficultyLevel> highestDifficulty,
-  }) {
-    final matchingBeginner =
-        _difficultyRank(highestDifficulty[GameType.matching]) >= 0 &&
-            highestDifficulty.containsKey(GameType.matching);
-    final varietyOk = gameTypesAttempted >= 2;
-    final accuracyOk = overallAccuracy >= 60;
-    final volumeOk = totalAttempts >= 5;
-
-    return matchingBeginner && varietyOk && accuracyOk && volumeOk;
-  }
-
   // ---------------------------------------------------------------------------
   // Decay
   // ---------------------------------------------------------------------------
 
+  /// Gentle decay: after 30 days without practice, drop one tier.
+  /// Floor at Familiar — time alone never drops below Familiar.
   static MasteryLevel _applyDecay(MasteryLevel rawLevel, int? daysSince) {
     if (daysSince == null) return rawLevel;
     // Eternal never decays (handled before this is called, but guard anyway)
@@ -347,117 +300,57 @@ class ScriptureMastery {
 
   static List<MasteryRequirement> _requirementsFor(
     MasteryLevel targetLevel, {
-    required int gameTypesAttempted,
-    required int gameTypesWithCorrect,
-    required double overallAccuracy,
-    required int totalAttempts,
-    required Map<GameType, DifficultyLevel> highestDifficulty,
-    required int? daysSince,
+    required int wbDifficultyRank,
+    required int perfectMasterCount,
     DateTime? masteredSinceDate,
   }) {
     switch (targetLevel) {
       case MasteryLevel.learning:
         return [
           MasteryRequirement(
-            description: 'Try any game mode',
-            isMet: gameTypesAttempted >= 1,
-            progress: gameTypesAttempted >= 1 ? 1.0 : 0.0,
-          ),
-          MasteryRequirement(
-            description: 'Get at least 1 correct answer',
-            isMet: gameTypesWithCorrect >= 1,
-            progress: gameTypesWithCorrect >= 1 ? 1.0 : 0.0,
+            description: 'Complete Word Builder on Beginner',
+            isMet: wbDifficultyRank >= 0,
+            progress: wbDifficultyRank >= 0 ? 1.0 : 0.0,
           ),
         ];
 
       case MasteryLevel.familiar:
         return [
           MasteryRequirement(
-            description: 'Complete Scripture Match',
-            isMet: highestDifficulty.containsKey(GameType.matching),
-            progress: highestDifficulty.containsKey(GameType.matching)
+            description: 'Complete Word Builder on Intermediate',
+            isMet: wbDifficultyRank >= 1,
+            progress: wbDifficultyRank >= 1
                 ? 1.0
-                : 0.0,
-          ),
-          MasteryRequirement(
-            description: 'Try at least 2 game modes',
-            isMet: gameTypesAttempted >= 2,
-            progress: (gameTypesAttempted / 2).clamp(0.0, 1.0),
-          ),
-          MasteryRequirement(
-            description: '60%+ overall accuracy',
-            isMet: overallAccuracy >= 60,
-            progress: (overallAccuracy / 60).clamp(0.0, 1.0),
-          ),
-          MasteryRequirement(
-            description: '5+ total attempts',
-            isMet: totalAttempts >= 5,
-            progress: (totalAttempts / 5).clamp(0.0, 1.0),
+                : (wbDifficultyRank >= 0 ? 0.5 : 0.0),
           ),
         ];
 
       case MasteryLevel.memorized:
         return [
           MasteryRequirement(
-            description: 'Word Builder at Advanced difficulty',
-            isMet: _difficultyRank(highestDifficulty[GameType.wordOrder]) >= 2,
-            progress:
-                (_difficultyRank(highestDifficulty[GameType.wordOrder]) / 2)
-                    .clamp(0.0, 1.0),
-          ),
-          MasteryRequirement(
-            description: 'Scripture Match at Intermediate+',
-            isMet: _difficultyRank(highestDifficulty[GameType.matching]) >= 1,
-            progress:
-                highestDifficulty.containsKey(GameType.matching) ? 1.0 : 0.0,
-          ),
-          MasteryRequirement(
-            description: '80%+ overall accuracy',
-            isMet: overallAccuracy >= 80,
-            progress: (overallAccuracy / 80).clamp(0.0, 1.0),
-          ),
-          MasteryRequirement(
-            description: '15+ total attempts',
-            isMet: totalAttempts >= 15,
-            progress: (totalAttempts / 15).clamp(0.0, 1.0),
-          ),
-          MasteryRequirement(
-            description: 'Practiced in the last 21 days',
-            isMet: daysSince != null && daysSince <= 21,
-            progress: daysSince != null && daysSince <= 21 ? 1.0 : 0.0,
+            description: 'Complete Word Builder on Advanced',
+            isMet: wbDifficultyRank >= 2,
+            progress: wbDifficultyRank >= 2
+                ? 1.0
+                : (wbDifficultyRank + 1).clamp(0, 2) / 2,
           ),
         ];
 
       case MasteryLevel.mastered:
+        final reachedMaster = wbDifficultyRank >= 3;
         return [
           MasteryRequirement(
-            description: 'Word Builder at Master difficulty',
-            isMet: _difficultyRank(highestDifficulty[GameType.wordOrder]) >= 3,
-            progress:
-                (_difficultyRank(highestDifficulty[GameType.wordOrder]) / 3)
-                    .clamp(0.0, 1.0),
+            description: 'Reach Word Builder Master difficulty',
+            isMet: reachedMaster,
+            progress: reachedMaster
+                ? 1.0
+                : (wbDifficultyRank + 1).clamp(0, 3) / 3,
           ),
           MasteryRequirement(
-            description: 'Scripture Match at Advanced+',
-            isMet: _difficultyRank(highestDifficulty[GameType.matching]) >= 2,
-            progress:
-                (_difficultyRank(highestDifficulty[GameType.matching]) / 2)
-                    .clamp(0.0, 1.0),
-          ),
-          MasteryRequirement(
-            description: '90%+ overall accuracy',
-            isMet: overallAccuracy >= 90,
-            progress: (overallAccuracy / 90).clamp(0.0, 1.0),
-          ),
-          MasteryRequirement(
-            description: '25+ total attempts',
-            isMet: totalAttempts >= 25,
-            progress: (totalAttempts / 25).clamp(0.0, 1.0),
-          ),
-          MasteryRequirement(
-            description: 'Practiced in the last 14 days',
-            isMet: daysSince != null && daysSince <= 14,
-            progress: daysSince != null && daysSince <= 14 ? 1.0 : 0.0,
+            description:
+                '3 consecutive perfect runs at Master ($perfectMasterCount/3)',
+            isMet: perfectMasterCount >= 3,
+            progress: (perfectMasterCount / 3).clamp(0.0, 1.0),
           ),
         ];
 
@@ -468,7 +361,7 @@ class ScriptureMastery {
             : 0;
         return [
           MasteryRequirement(
-            description: 'Maintain Mastered for 6 months',
+            description: 'Maintain Mastered for 6 months ($daysMastered/183 days)',
             isMet: daysMastered >= 183,
             progress: (daysMastered / 183).clamp(0.0, 1.0),
           ),
