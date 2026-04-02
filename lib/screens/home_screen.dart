@@ -24,14 +24,12 @@ class HomeScreen extends ConsumerWidget {
     }).toList();
 
     // Also find scriptures closest to leveling up (high sub-progress)
-    final almostThereScriptures = allScriptures
-        .where((s) {
-          final m = ref.watch(scriptureMasteryProvider(s.id));
-          return m.level != MasteryLevel.mastered &&
-              m.level != MasteryLevel.eternal &&
-              m.subProgress >= 0.6;
-        })
-        .toList()
+    final almostThereScriptures = allScriptures.where((s) {
+      final m = ref.watch(scriptureMasteryProvider(s.id));
+      return m.level != MasteryLevel.mastered &&
+          m.level != MasteryLevel.eternal &&
+          m.subProgress >= 0.6;
+    }).toList()
       ..sort((a, b) {
         final ma = ref.watch(scriptureMasteryProvider(a.id));
         final mb = ref.watch(scriptureMasteryProvider(b.id));
@@ -45,8 +43,6 @@ class HomeScreen extends ConsumerWidget {
             ? almostThereScriptures.take(3).toList()
             : (allScriptures..shuffle()).take(3).toList();
 
-    final themeMode = ref.watch(themeProvider);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Seminary Sidekick'),
@@ -54,19 +50,17 @@ class HomeScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: Icon(
-              switch (themeMode) {
-                ThemeMode.light => Icons.light_mode,
-                ThemeMode.dark => Icons.dark_mode,
-                ThemeMode.system => Icons.brightness_auto,
-              },
+              Theme.of(context).brightness == Brightness.dark
+                  ? Icons.light_mode
+                  : Icons.dark_mode,
             ),
-            tooltip: switch (themeMode) {
-              ThemeMode.light => 'Light mode (tap for dark)',
-              ThemeMode.dark => 'Dark mode (tap for system)',
-              ThemeMode.system => 'System mode (tap for light)',
-            },
+            tooltip: Theme.of(context).brightness == Brightness.dark
+                ? 'Switch to light mode'
+                : 'Switch to dark mode',
             onPressed: () {
-              ref.read(themeProvider.notifier).toggle();
+              ref.read(themeProvider.notifier).toggle(
+                    Theme.of(context).brightness,
+                  );
             },
           ),
         ],
@@ -143,7 +137,7 @@ class HomeScreen extends ConsumerWidget {
                 physics: const NeverScrollableScrollPhysics(),
                 mainAxisSpacing: 12,
                 crossAxisSpacing: 12,
-                childAspectRatio: 1.1,
+                childAspectRatio: 1.0,
                 children: ScriptureBook.values.map((book) {
                   final bookScriptures = ref.watch(
                     scripturesByBookProvider(book),
