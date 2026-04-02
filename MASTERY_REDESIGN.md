@@ -1,65 +1,45 @@
 # Mastery System Redesign
 
-> **Status**: Proposal
-> **Date**: 2026-03-30
-> **Problem**: "Mastered" currently means ≥95% accuracy on a single game type. You can earn it by spamming beginner-level matching rounds without ever proving you can actually recall the words.
+> **Status**: In Progress (implementation ~80% complete)
+> **Date**: 2026-04-02 (revised from 2026-03-30)
+> **Problem**: "Mastered" previously meant >= 95% accuracy on a single game type. You could earn it by spamming beginner-level matching rounds without ever proving you can recall the words.
 
 ---
 
 ## The Core Change
 
-**Mastery becomes holistic.** Instead of tracking mastery per game type, a scripture's mastery level is computed across ALL game types, difficulty tiers, and recency. The per-game `UserProgress` records stay (they're useful data), but the mastery badge on a scripture reflects a composite judgment.
+**Mastery is driven by Word Builder progression.** The mastery path is a clear, linear journey through Word Builder difficulty tiers. Scripture Match and Quiz are helpful recognition/comprehension tools but do NOT gate mastery — only Word Builder does.
+
+The per-game `UserProgress` records stay (they're useful data), but the mastery badge on a scripture reflects your Word Builder progression.
 
 ---
 
-## What Each Level Means
+## The Linear Mastery Path
+
+Each level maps directly to a Word Builder difficulty tier:
 
 ### 1. New (gray)
-You haven't touched this scripture yet.
-
-- **Requirement**: Zero attempts on any game type.
-- **Sub-progress**: None.
+You haven't started Word Builder for this scripture yet.
 
 ### 2. Learning (orange)
-You've started engaging with this scripture.
-
-- **Requirements**:
-  - At least 1 game type attempted
-  - At least 1 correct attempt anywhere
-- **Sub-progress toward Familiar**: Percentage of Familiar requirements met (see below).
+You've completed Word Builder at **Beginner** difficulty (tap 3-word chunks into order).
 
 ### 3. Familiar (yellow)
-You can recognize this scripture — you know the reference, the key phrase, and the general shape of the passage.
-
-- **Requirements**:
-  - **Matching Game**: Completed at Beginner difficulty or higher
-  - **At least 2 game types** attempted with ≥1 correct each
-  - **Overall accuracy** ≥ 60% (aggregated across all game types for this scripture)
-  - **At least 5 total attempts** across all games
-- **Sub-progress toward Memorized**: Percentage of Memorized requirements met.
+You've completed Word Builder at **Intermediate** difficulty (tap 2-word chunks with distractor words mixed in).
 
 ### 4. Memorized (green)
-You can recall the passage with minimal prompts. You've proven you can *produce* the words, not just recognize them.
-
-- **Requirements**:
-  - **Word Builder**: Completed at Advanced difficulty (typing mode — first letters as hints)
-  - **Matching Game**: Completed at Intermediate difficulty or higher
-  - **Overall accuracy** ≥ 80%
-  - **At least 15 total attempts** across all games
-  - **Practiced within the last 21 days** (any game type counts)
-- **Sub-progress toward Mastered**: Percentage of Mastered requirements met.
+You've completed Word Builder at **Advanced** difficulty (typed with first-letter hints — real recall starts here).
 
 ### 5. Mastered (blue)
-Full recall at the highest difficulty. You can type this scripture blind. This badge means something.
+You've achieved **3 consecutive perfect completions** at Word Builder **Master** difficulty (blind typing, no hints, timed). This badge means something — you proved you can type the entire scripture from memory, perfectly, three times in a row.
 
-- **Requirements**:
-  - **Word Builder**: Completed at **Master** difficulty (blind typing, any error resets everything)
-  - **Matching Game**: Completed at Advanced difficulty or higher
-  - **Quiz** (when available): Completed at Intermediate difficulty or higher
-  - **Overall accuracy** ≥ 90%
-  - **At least 25 total attempts** across all games
-  - **Practiced within the last 14 days**
-- **Note**: Quiz requirement is waived until the Quiz game is fully implemented. Once it ships, existing "Mastered" scriptures get a grace period to complete it.
+- The `consecutivePerfectMaster` counter tracks this. Any failure at Master difficulty resets it to 0.
+- Completions are timed (best time is recorded).
+
+### 6. Eternal (gold)
+You've sustained Mastered status for **6 continuous months** (183 days). Once earned, this badge is **permanent** — no decay, no review needed, ever.
+
+This represents a scripture that has truly been "engraven upon your heart."
 
 ---
 
@@ -69,120 +49,83 @@ Mastery is maintained, not just earned. But we're gentle about it.
 
 | Time since last practice | What happens |
 |---|---|
-| 0–14 days | Full mastery. Badge is bright and proud. |
-| 14–30 days | **"Needs Review"** flag appears. Badge gets a subtle dimming (reduced opacity or a small clock icon overlay). Level does NOT drop. |
-| 30+ days | Level drops by one tier (Mastered → Memorized, Memorized → Familiar). The data isn't lost — you just need to re-prove it with a quick session. |
+| 0-14 days | Full mastery. Badge is bright and proud. |
+| 14-30 days | **"Needs Review"** flag appears. Badge gets subtle dimming (reduced opacity + clock icon overlay). Level does NOT drop. |
+| 30+ days | Level drops by one tier (Mastered -> Memorized, Memorized -> Familiar). The data isn't lost — you just need to re-prove it with a quick session. |
 
-**Floor rule**: A scripture never drops below **Familiar** due to time decay alone. If you once proved you can type it, you still know it at some level. Only active negative performance (accuracy dropping) can push you below Familiar.
+**Floor rule**: A scripture never drops below **Familiar** due to time decay alone. If you once proved you can type it at Advanced, you still know it at some level.
 
 **Exception**: Eternal scriptures never decay. Once earned, the badge is permanent.
 
 ---
 
-## 6. Eternal (gold) — NEW
-
-The ultimate tier. Earned by sustaining Mastered status for **6 continuous months** (183 days). Once earned, this badge is **permanent** — no decay, no review needed, ever.
-
-This represents a scripture that has truly been "engraven upon your heart." The user practiced it consistently for half a year, proving it's in long-term memory.
-
-- **Requirements**: Maintain all Mastered-level requirements for 6 months.
-- **Decay**: None. Permanent. The clock resets if mastery drops before the 6 months are up.
-- **Badge**: Gold with sparkle icon. No progress bar (there's nothing beyond this).
-- **Data**: A `masteredSince` timestamp per scripture is persisted in a Hive box (`mastery_dates`). When the scripture first reaches Mastered, the date is recorded. If it drops, the date is cleared. When 6 months pass without dropping, Eternal is conferred permanently.
-
----
-
 ## Sub-Progress Within Each Level
 
-Each level shows a progress bar indicating how close you are to the next one. This is calculated as:
+Each level shows a progress bar indicating how close you are to the next one. Since the path is linear through Word Builder, progress is straightforward:
 
-```
-progress = (requirements met for next level) / (total requirements for next level)
-```
+- **New -> Learning**: Complete WB Beginner (binary)
+- **Learning -> Familiar**: Complete WB Intermediate (binary)
+- **Familiar -> Memorized**: Complete WB Advanced (binary)
+- **Memorized -> Mastered**: Two requirements — reach WB Master difficulty + get 3 consecutive perfect runs (progressive: 0/3, 1/3, 2/3, 3/3)
+- **Mastered -> Eternal**: Days sustained at Mastered (progressive: days/183)
 
-Each requirement is weighted equally. For example, if "Memorized" has 5 requirements and you've met 3, you're at 60% within the "Familiar" level.
-
-Requirements are binary (met/not met) except for accuracy and attempt count, which are proportional:
-- Accuracy: `min(1.0, currentAccuracy / requiredAccuracy)`
-- Attempt count: `min(1.0, currentAttempts / requiredAttempts)`
-
-This means you always see the bar moving forward with every session, even if you haven't cleared a full checkpoint yet.
+The progress bar always moves forward with each session, giving clear feedback.
 
 ---
 
-## Data Model Changes
+## Data Model
 
-### Keep: `UserProgress` (per scripture × game type)
-No changes. This still tracks accuracy, streaks, best time, highest difficulty per game. It's the raw data.
+### `UserProgress` (per scripture x game type)
+Added `consecutivePerfectMaster` field (int, default 0). Tracks consecutive perfect completions at Master difficulty for the Word Builder game type. Resets to 0 on any failure at Master. Backward compatible — existing Hive data defaults to 0.
 
-### Add: `ScriptureMastery` (per scripture — computed, not stored)
-This is derived from the `UserProgress` records for a given scripture across all game types.
+### `ScriptureMastery` (per scripture — computed, not stored)
+Derived from the `UserProgress` records. Now includes `consecutivePerfectMaster` for display in the UI path visualization.
 
-```dart
-class ScriptureMastery {
-  final String scriptureId;
-  final MasteryLevel level;            // The holistic mastery level
-  final double subProgress;            // 0.0–1.0 progress toward next level
-  final bool needsReview;              // True if any decay flag is active
-  final DateTime? lastPracticedAny;    // Most recent practice across all games
-  final Map<GameType, DifficultyLevel> highestDifficultyPerGame;
-  final double overallAccuracy;        // Weighted across all game types
-  final int totalAttemptsAllGames;
-  final List<MasteryRequirement> nextLevelRequirements; // For UI: show what's left
-}
-```
+Key fields: `level`, `subProgress`, `needsReview`, `lastPracticedAny`, `highestDifficultyPerGame`, `overallAccuracy`, `totalAttemptsAllGames`, `nextLevelRequirements`, `consecutivePerfectMaster`, `masteredSince`.
 
-### Add: `MasteryRequirement` (for UI display)
-```dart
-class MasteryRequirement {
-  final String description;    // e.g., "Complete Word Builder at Advanced"
-  final bool isMet;
-  final double progress;       // 0.0–1.0 for partial requirements
-}
-```
-
-### New Provider: `scriptureMasteryProvider`
-A `Provider.family<ScriptureMastery, String>` that watches all `UserProgress` entries for a given scripture ID and computes the holistic mastery.
+### `MasteryDatesNotifier` (Hive-backed)
+Tracks `masteredSince` timestamps and permanent Eternal status. When a scripture first reaches Mastered, the date is recorded. If it drops, the date is cleared (clock resets). When 6 months pass, Eternal is conferred permanently via a sentinel date.
 
 ---
 
-## What Changes in the UI
+## What Changed in the UI
 
 ### Scripture Detail Screen
-Currently shows 3 separate mastery badges (one per game type). **Replace with**:
-- One large holistic mastery badge with level name + sub-progress bar
-- Below it: a "Requirements" card showing what's been met and what's next (checkboxes)
-- Below that: per-game-type cards still exist but show difficulty progress, not mastery level
+- **"Mastery Path" section** replaces the old "Your Progress" section
+- Shows a **linear timeline visualization** of the Word Builder journey (Beginner -> Intermediate -> Advanced -> Master -> Eternal) with checkmarks for completed steps
+- **"Next Step" card** shows exactly what you need to do next (clear, actionable)
+- **"Practice Tools" card** shows per-game progress but reframes Match/Quiz as supplementary recognition tools
+- Word Builder is visually emphasized as the mastery driver
 
-### Scripture List Screen
-Mastery badge already shows per-scripture. Just wire it to the new holistic provider instead of a single game type.
+### Scripture List / Card
+Uses holistic `scriptureMasteryProvider` for the badge.
 
 ### Progress Screen
-Update stats to use holistic mastery counts (total mastered = scriptures at Mastered level holistically).
+Uses `holisticStatsProvider` for aggregate counts. Shows Eternal count when > 0.
 
 ### Home Screen
-"Continue Learning" section can prioritize scriptures that are close to leveling up (high sub-progress) or need review (decay flag).
+"Continue Learning" prioritizes scriptures needing review or close to leveling up.
 
 ---
 
-## Why This Works
+## Why Word Builder Is The Path
 
-The key insight is that the games test *different cognitive skills*:
+The key insight: Word Builder is the only game that actually tests *production* — can you produce the words from memory? The other games test recognition and comprehension, which are valuable but different cognitive skills.
 
-- **Matching** tests **recognition** — can you connect a reference to its key phrase?
-- **Word Builder** tests **recall** — can you produce the actual words from memory?
-- **Quiz** tests **comprehension** — can you identify what a passage is about from context?
+The Word Builder difficulty tiers map perfectly to increasing levels of recall:
+- **Beginner**: Ordering chunked phrases (guided assembly)
+- **Intermediate**: Ordering with distractors (selective recognition)
+- **Advanced**: Typing with first-letter hints (prompted recall)
+- **Master**: Blind typing (full recall)
 
-True memorization requires all three. Someone who can match references but can't type the words hasn't memorized anything. Someone who can type the words but doesn't know the reference hasn't fully learned the scripture. The new system ensures you've proven all dimensions before earning the badge.
-
-The difficulty progression within Word Builder is especially important: beginner/intermediate use tapping (recognition), but advanced/master require typing (production). Requiring Master-level Word Builder for the Mastered badge means you literally typed the entire scripture from memory with zero errors. That's real mastery.
+Scripture Match and Quiz are still valuable — they help you learn references, key phrases, and context. But they don't prove you've memorized the actual words. Only Word Builder does that.
 
 ---
 
 ## Migration
 
-Existing progress data is preserved. When the new system ships:
+Existing progress data is preserved. When the new system runs:
 1. All per-game `UserProgress` records stay exactly as they are
 2. Holistic mastery is recomputed from existing data on first load
-3. Some users may see their mastery level drop (e.g., from "Mastered" on matching to "Familiar" holistically). This is expected and correct — they now have clear goals to work toward.
-4. A one-time toast/modal explains the change: "We've upgraded the mastery system! Your progress is safe — mastery now reflects your skill across all practice modes."
+3. Some users may see their mastery level change based on their Word Builder progress. This is expected — they now have a clear path to work toward.
+4. The `consecutivePerfectMaster` field defaults to 0 for existing records (backward compatible).

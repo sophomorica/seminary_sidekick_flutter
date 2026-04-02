@@ -18,6 +18,11 @@ class UserProgress {
   final MasteryLevel masteryLevel;
   final bool needsReview;
 
+  /// Consecutive perfect completions at Master difficulty.
+  /// Only meaningful for wordOrder (Word Builder) game type.
+  /// Resets to 0 on any failure at Master difficulty.
+  final int consecutivePerfectMaster;
+
   const UserProgress({
     required this.scriptureId,
     required this.gameType,
@@ -31,6 +36,7 @@ class UserProgress {
     this.accuracy = 0.0,
     this.masteryLevel = MasteryLevel.newScripture,
     this.needsReview = true,
+    this.consecutivePerfectMaster = 0,
   });
 
   /// Storage key for Hive.
@@ -51,6 +57,7 @@ class UserProgress {
       'accuracy': accuracy,
       'masteryLevel': masteryLevel.name,
       'needsReview': needsReview,
+      'consecutivePerfectMaster': consecutivePerfectMaster,
     };
   }
 
@@ -72,6 +79,8 @@ class UserProgress {
       accuracy: (json['accuracy'] as num).toDouble(),
       masteryLevel: MasteryLevel.values.byName(json['masteryLevel'] as String),
       needsReview: json['needsReview'] as bool,
+      consecutivePerfectMaster:
+          (json['consecutivePerfectMaster'] as int?) ?? 0,
     );
   }
 }
