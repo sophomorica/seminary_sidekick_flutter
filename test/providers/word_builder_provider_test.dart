@@ -223,7 +223,8 @@ void main() {
 
   group('Word Builder — Typing Mode', () {
     test('startGame advanced — mode is typing, targetText is fullText', () {
-      notifier.startGame(difficulty: DifficultyLevel.advanced);
+      notifier.startGame(
+          difficulty: DifficultyLevel.advanced, scriptures: [testScriptures[0]]);
 
       expect(notifier.state.mode, WordBuilderMode.typing);
       expect(notifier.state.difficulty, DifficultyLevel.advanced);
@@ -233,7 +234,8 @@ void main() {
     });
 
     test('startGame master — mode is typing', () {
-      notifier.startGame(difficulty: DifficultyLevel.master);
+      notifier.startGame(
+          difficulty: DifficultyLevel.master, scriptures: [testScriptures[0]]);
 
       expect(notifier.state.mode, WordBuilderMode.typing);
       expect(notifier.state.difficulty, DifficultyLevel.master);
@@ -242,7 +244,9 @@ void main() {
     test(
         'onType — correct character — typedChars grows, char marked isCorrect: true',
         () {
-      notifier.startGame(difficulty: DifficultyLevel.advanced);
+      // Use a scripture without punctuation at the start to keep assertions simple
+      notifier.startGame(
+          difficulty: DifficultyLevel.advanced, scriptures: [testScriptures[0]]);
 
       final firstChar = notifier.state.targetText[0];
       notifier.onType(firstChar);
@@ -257,7 +261,8 @@ void main() {
     test(
         'onType — wrong character (advanced) — char marked isCorrect: false, hasActiveError true',
         () {
-      notifier.startGame(difficulty: DifficultyLevel.advanced);
+      notifier.startGame(
+          difficulty: DifficultyLevel.advanced, scriptures: [testScriptures[0]]);
 
       final correctChar = notifier.state.targetText[0];
       notifier.onType(correctChar); // Type correct first
@@ -272,7 +277,8 @@ void main() {
     test(
         'onType — blocked when error active (advanced) — new chars ignored until error deleted',
         () {
-      notifier.startGame(difficulty: DifficultyLevel.advanced);
+      notifier.startGame(
+          difficulty: DifficultyLevel.advanced, scriptures: [testScriptures[0]]);
 
       final correctChar = notifier.state.targetText[0];
       notifier.onType(correctChar); // Correct
@@ -288,7 +294,8 @@ void main() {
     test(
         'onType — backspace (advanced) — last char removed, hasActiveError recalculated',
         () {
-      notifier.startGame(difficulty: DifficultyLevel.advanced);
+      notifier.startGame(
+          difficulty: DifficultyLevel.advanced, scriptures: [testScriptures[0]]);
 
       final correctChar = notifier.state.targetText[0];
       notifier.onType(correctChar); // Correct
@@ -307,7 +314,8 @@ void main() {
     test(
         'onType — wrong character (master) — full reset: typedText empty, resetCount increments',
         () {
-      notifier.startGame(difficulty: DifficultyLevel.master);
+      notifier.startGame(
+          difficulty: DifficultyLevel.master, scriptures: [testScriptures[0]]);
 
       final correctChar = notifier.state.targetText[0];
       notifier.onType(correctChar); // Correct first
@@ -324,7 +332,8 @@ void main() {
     });
 
     test('onType — backspace (master) — ignored (returns early)', () {
-      notifier.startGame(difficulty: DifficultyLevel.master);
+      notifier.startGame(
+          difficulty: DifficultyLevel.master, scriptures: [testScriptures[0]]);
 
       final char = notifier.state.targetText[0];
       notifier.onType(char);
@@ -357,9 +366,24 @@ void main() {
 
     test('Typing completion — isScriptureComplete true when all chars typed',
         () {
-      notifier.startGame(difficulty: DifficultyLevel.advanced);
+      // Use a short scripture without punctuation for clean incremental typing
+      final scripture = Scripture(
+        id: 'completion-test',
+        book: ScriptureBook.bookOfMormon,
+        volume: 'Test',
+        reference: 'Test 1:1',
+        name: 'Completion Test',
+        keyPhrase: 'Test',
+        fullText: 'Be still',
+      );
+      notifier.startGame(
+          difficulty: DifficultyLevel.advanced, scriptures: [scripture]);
 
-      notifier.onType(notifier.state.targetText);
+      // Type each character incrementally (how onType actually works)
+      final target = notifier.state.targetText;
+      for (int i = 0; i < target.length; i++) {
+        notifier.onType(target.substring(0, i + 1));
+      }
 
       expect(notifier.state.isScriptureComplete, isTrue);
       expect(notifier.state.lastFeedback, 'correct');
@@ -368,7 +392,8 @@ void main() {
     test(
         'correctUnitsAcrossAll tracking — increments across multiple scriptures',
         () {
-      final scriptures = [testScriptures[0], testScriptures[1]];
+      // Use scriptures without punctuation for predictable counts
+      final scriptures = [testScriptures[0], testScriptures[2]];
       notifier.startGame(
           difficulty: DifficultyLevel.advanced, scriptures: scriptures);
 
@@ -388,7 +413,9 @@ void main() {
     test(
         'Master reset undoes correctUnitsAcrossAll — count decremented by correctPlacements on reset',
         () {
-      notifier.startGame(difficulty: DifficultyLevel.master);
+      // Use a scripture without punctuation for predictable counts
+      notifier.startGame(
+          difficulty: DifficultyLevel.master, scriptures: [testScriptures[0]]);
 
       // Type some correct chars incrementally
       final chars = notifier.state.targetText.substring(0, 3).split('');
@@ -407,7 +434,8 @@ void main() {
     });
 
     test('Star rating — 0 errors=3, 1-3 errors=2, 4+ errors=1', () {
-      notifier.startGame(difficulty: DifficultyLevel.advanced);
+      notifier.startGame(
+          difficulty: DifficultyLevel.advanced, scriptures: [testScriptures[0]]);
 
       // 0 errors
       expect(notifier.state.starRating, 3);
@@ -433,6 +461,245 @@ void main() {
       notifier.onType('x');
       expect(notifier.state.incorrectAttempts, 4);
       expect(notifier.state.starRating, 1);
+    });
+  });
+
+  group('Word Builder — Punctuation Auto-Fill', () {
+    test('Punctuation is auto-filled when next expected char is punctuation',
+        () {
+      // "In the beginning was the Word, and the Word was with God, ..."
+      notifier.startGame(
+          difficulty: DifficultyLevel.advanced,
+          scriptures: [shortPunctuatedScripture]);
+
+      final target = notifier.state.targetText;
+      // Target: "In the beginning was the Word, and ..."
+      // Find the comma after "Word" — type up to 'd' in "Word"
+      final commaIndex = target.indexOf(',');
+      expect(commaIndex, greaterThan(0), reason: 'Test scripture must have a comma');
+
+      // Type each char up to the character before the comma
+      String typed = '';
+      for (int i = 0; i < commaIndex; i++) {
+        typed += target[i];
+        notifier.onType(typed);
+      }
+
+      // At this point, typedChars should have commaIndex chars (no comma yet)
+      expect(notifier.state.typedChars.length, commaIndex);
+
+      // Now type the next real character after the comma (space then 'a' in "and")
+      // The comma should be auto-filled
+      final charAfterComma = target[commaIndex + 1]; // should be ' '
+      typed += charAfterComma;
+      notifier.onType(typed);
+
+      // typedChars should now include: the comma (auto-filled) + the space
+      expect(notifier.state.typedChars.length, commaIndex + 2);
+      // The comma should be auto-filled and marked correct
+      expect(notifier.state.typedChars[commaIndex].char, ',');
+      expect(notifier.state.typedChars[commaIndex].isCorrect, isTrue);
+    });
+
+    test(
+        'Speech-to-text simulation — typing without punctuation completes scripture',
+        () {
+      // Use a short scripture: "In the beginning was the Word, and the Word was with God, and the Word was God."
+      notifier.startGame(
+          difficulty: DifficultyLevel.advanced,
+          scriptures: [shortPunctuatedScripture]);
+
+      final target = notifier.state.targetText;
+
+      // Simulate speech-to-text: type only non-punctuation characters
+      String typed = '';
+      for (int i = 0; i < target.length; i++) {
+        final ch = target[i];
+        // Skip punctuation chars (they'll be auto-filled)
+        if (RegExp(r'''[,;:!?\-\—\–\.\'\"\'\'\"\"\(\)\[\]]''').hasMatch(ch)) {
+          continue;
+        }
+        typed += ch;
+        notifier.onType(typed);
+
+        // If scripture is complete, stop
+        if (notifier.state.isScriptureComplete) break;
+      }
+
+      expect(notifier.state.isScriptureComplete, isTrue);
+      // All chars in typedChars should be correct (including auto-filled punctuation)
+      expect(
+        notifier.state.typedChars.every((tc) => tc.isCorrect),
+        isTrue,
+        reason: 'All chars including auto-filled punctuation should be correct',
+      );
+      expect(notifier.state.typedChars.length, target.length);
+    });
+
+    test('Trailing punctuation is auto-filled after last real character', () {
+      // "...was God." — the period at the end should auto-fill
+      notifier.startGame(
+          difficulty: DifficultyLevel.advanced,
+          scriptures: [shortPunctuatedScripture]);
+
+      final target = notifier.state.targetText;
+      expect(target.endsWith('.'), isTrue, reason: 'Scripture should end with period');
+
+      // Type everything except punctuation
+      String typed = '';
+      for (int i = 0; i < target.length; i++) {
+        final ch = target[i];
+        if (RegExp(r'''[,;:!?\-\—\–\.\'\"\'\'\"\"\(\)\[\]]''').hasMatch(ch)) {
+          continue;
+        }
+        typed += ch;
+        notifier.onType(typed);
+        if (notifier.state.isScriptureComplete) break;
+      }
+
+      // The trailing period should have been auto-filled
+      expect(notifier.state.isScriptureComplete, isTrue);
+      expect(notifier.state.typedChars.last.char, '.');
+      expect(notifier.state.typedChars.last.isCorrect, isTrue);
+    });
+
+    test('Punctuation auto-fill counts toward correctPlacements and progress',
+        () {
+      notifier.startGame(
+          difficulty: DifficultyLevel.advanced,
+          scriptures: [shortPunctuatedScripture]);
+
+      final target = notifier.state.targetText;
+      final commaIndex = target.indexOf(',');
+
+      // Type up to the character before the comma
+      String typed = '';
+      for (int i = 0; i < commaIndex; i++) {
+        typed += target[i];
+        notifier.onType(typed);
+      }
+      final placementsBefore = notifier.state.correctPlacements;
+
+      // Type the char after comma — comma auto-fills (+1) and space matches (+1)
+      typed += target[commaIndex + 1];
+      notifier.onType(typed);
+
+      // Should have gained 2: the auto-filled comma + the typed space
+      expect(notifier.state.correctPlacements, placementsBefore + 2);
+    });
+
+    test('Backspace removes auto-filled punctuation in advanced mode', () {
+      notifier.startGame(
+          difficulty: DifficultyLevel.advanced,
+          scriptures: [shortPunctuatedScripture]);
+
+      final target = notifier.state.targetText;
+      final commaIndex = target.indexOf(',');
+
+      // Type up to and past the comma (auto-filled)
+      String typed = '';
+      for (int i = 0; i < commaIndex; i++) {
+        typed += target[i];
+        notifier.onType(typed);
+      }
+      // Type the space after comma — comma auto-fills
+      typed += target[commaIndex + 1];
+      notifier.onType(typed);
+      final charsAfterCommaFill = notifier.state.typedChars.length;
+
+      // Now backspace — should remove the space AND the auto-filled comma
+      typed = typed.substring(0, typed.length - 1);
+      notifier.onType(typed);
+
+      expect(notifier.state.typedChars.length, charsAfterCommaFill - 2,
+          reason: 'Backspace should remove typed char + auto-filled punctuation');
+    });
+
+    test('Master reset works correctly with punctuation in scripture', () {
+      notifier.startGame(
+          difficulty: DifficultyLevel.master,
+          scriptures: [shortPunctuatedScripture]);
+
+      final target = notifier.state.targetText;
+      final commaIndex = target.indexOf(',');
+
+      // Type up to the comma, then past it
+      String typed = '';
+      for (int i = 0; i < commaIndex; i++) {
+        typed += target[i];
+        notifier.onType(typed);
+      }
+      // Type the char after comma to trigger auto-fill of comma
+      typed += target[commaIndex + 1];
+      notifier.onType(typed);
+      expect(notifier.state.typedChars.length, greaterThan(commaIndex));
+
+      // Now type a wrong character to trigger master reset
+      typed += 'x';
+      notifier.onType(typed);
+
+      expect(notifier.state.typedText, isEmpty);
+      expect(notifier.state.typedChars, isEmpty);
+      expect(notifier.state.resetCount, 1);
+      expect(notifier.state.correctPlacements, 0);
+    });
+
+    test('Progress calculation uses typedChars length (includes auto-filled)',
+        () {
+      notifier.startGame(
+          difficulty: DifficultyLevel.advanced,
+          scriptures: [shortPunctuatedScripture]);
+
+      final target = notifier.state.targetText;
+      final commaIndex = target.indexOf(',');
+
+      // Type up to comma
+      String typed = '';
+      for (int i = 0; i < commaIndex; i++) {
+        typed += target[i];
+        notifier.onType(typed);
+      }
+      // Type char after comma — comma auto-fills
+      typed += target[commaIndex + 1];
+      notifier.onType(typed);
+
+      // Progress should account for auto-filled punctuation
+      final expectedProgress =
+          notifier.state.typedChars.length / target.length;
+      expect(notifier.state.typingProgress, closeTo(expectedProgress, 0.001));
+      // typedChars should be 1 more than typedText due to auto-filled comma
+      expect(notifier.state.typedChars.length,
+          greaterThan(notifier.state.typedText.length));
+    });
+
+    test('Multiple consecutive punctuation chars are all auto-filled', () {
+      // Scripture with em-dash: "faith—faith"
+      notifier.startGame(
+          difficulty: DifficultyLevel.advanced,
+          scriptures: [punctuatedScripture]);
+
+      final target = notifier.state.targetText;
+      // Find the em-dash
+      final dashIndex = target.indexOf('—');
+      expect(dashIndex, greaterThan(0),
+          reason: 'Punctuated scripture should contain em-dash');
+
+      // Type up to the dash
+      String typed = '';
+      for (int i = 0; i < dashIndex; i++) {
+        typed += target[i];
+        notifier.onType(typed);
+      }
+      final charsBefore = notifier.state.typedChars.length;
+
+      // Type the character after the dash — dash should auto-fill
+      typed += target[dashIndex + 1]; // 'f' in "faith"
+      notifier.onType(typed);
+
+      // Should have auto-filled the dash + typed the 'f'
+      expect(notifier.state.typedChars.length, charsBefore + 2);
+      expect(notifier.state.typedChars[dashIndex].char, '—');
+      expect(notifier.state.typedChars[dashIndex].isCorrect, isTrue);
     });
   });
 }

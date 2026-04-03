@@ -58,3 +58,26 @@ final testScriptures = [
 ];
 
 /// Quick reference: test-1 has 20 words, test-2 has 24, test-3 has 14, test-4 has 18, test-5 has 28
+
+/// Scripture with punctuation for testing auto-fill behavior in typing mode.
+final punctuatedScripture = Scripture(
+  id: 'test-punct',
+  book: ScriptureBook.bookOfMormon,
+  volume: 'Alma',
+  reference: 'Alma 32:21',
+  name: 'Faith Test',
+  keyPhrase: 'Faith is not to have a perfect knowledge',
+  fullText:
+      'And now, as I said concerning faith—faith is not to have a perfect knowledge of things; therefore if ye have faith ye hope for things which are not seen, which are true.',
+);
+
+/// Short scripture with punctuation for simpler tests.
+final shortPunctuatedScripture = Scripture(
+  id: 'test-short-punct',
+  book: ScriptureBook.newTestament,
+  volume: 'John',
+  reference: 'John 1:1',
+  name: 'In the Beginning',
+  keyPhrase: 'In the beginning was the Word',
+  fullText: 'In the beginning was the Word, and the Word was with God, and the Word was God.',
+);
