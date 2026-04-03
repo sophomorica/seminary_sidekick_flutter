@@ -7,7 +7,7 @@ void main() {
   // -------------------------------------------------------
   // Helper: build a progressByGame map for ScriptureMastery.compute()
   // -------------------------------------------------------
-  Map<GameType, UserProgress?> _makeProgress({
+  Map<GameType, UserProgress?> makeProgress({
     DifficultyLevel? wbDifficulty,
     int wbAttempts = 0,
     int wbCorrect = 0,
@@ -31,9 +31,7 @@ void main() {
               totalAttempts: wbAttempts,
               correctAttempts: wbCorrect,
               lastPracticed: lp,
-              accuracy: wbAttempts > 0
-                  ? (wbCorrect / wbAttempts) * 100
-                  : 0.0,
+              accuracy: wbAttempts > 0 ? (wbCorrect / wbAttempts) * 100 : 0.0,
               consecutivePerfectMaster: consecutivePerfectMaster,
             )
           : null,
@@ -60,9 +58,8 @@ void main() {
               totalAttempts: quizAttempts,
               correctAttempts: quizCorrect,
               lastPracticed: lp,
-              accuracy: quizAttempts > 0
-                  ? (quizCorrect / quizAttempts) * 100
-                  : 0.0,
+              accuracy:
+                  quizAttempts > 0 ? (quizCorrect / quizAttempts) * 100 : 0.0,
             )
           : null,
     };
@@ -75,7 +72,7 @@ void main() {
     test('no progress → New', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(),
+        progressByGame: makeProgress(),
       );
       expect(mastery.level, MasteryLevel.newScripture);
     });
@@ -83,7 +80,7 @@ void main() {
     test('WB Beginner completed → Learning', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.beginner,
           wbAttempts: 5,
           wbCorrect: 4,
@@ -95,7 +92,7 @@ void main() {
     test('WB Intermediate completed → Familiar', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.intermediate,
           wbAttempts: 10,
           wbCorrect: 8,
@@ -107,7 +104,7 @@ void main() {
     test('WB Advanced completed → Memorized', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.advanced,
           wbAttempts: 15,
           wbCorrect: 12,
@@ -116,10 +113,11 @@ void main() {
       expect(mastery.level, MasteryLevel.memorized);
     });
 
-    test('WB Master completed but < 3 consecutive perfect → still Memorized', () {
+    test('WB Master completed but < 3 consecutive perfect → still Memorized',
+        () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.master,
           wbAttempts: 20,
           wbCorrect: 18,
@@ -132,7 +130,7 @@ void main() {
     test('WB Master + 3 consecutive perfect → Mastered', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.master,
           wbAttempts: 20,
           wbCorrect: 20,
@@ -142,10 +140,12 @@ void main() {
       expect(mastery.level, MasteryLevel.mastered);
     });
 
-    test('WB Master + 5 consecutive perfect → still Mastered (3 is the threshold)', () {
+    test(
+        'WB Master + 5 consecutive perfect → still Mastered (3 is the threshold)',
+        () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.master,
           wbAttempts: 20,
           wbCorrect: 20,
@@ -158,7 +158,7 @@ void main() {
     test('Matching/Quiz progress alone does NOT advance mastery', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           matchDifficulty: DifficultyLevel.master,
           matchAttempts: 50,
           matchCorrect: 50,
@@ -179,17 +179,15 @@ void main() {
     test('isEternal flag → Eternal level, no decay, no review', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.master,
           wbAttempts: 20,
           wbCorrect: 20,
           consecutivePerfectMaster: 3,
-          lastPracticed:
-              DateTime.now().subtract(const Duration(days: 365)),
+          lastPracticed: DateTime.now().subtract(const Duration(days: 365)),
         ),
         isEternal: true,
-        masteredSinceDate:
-            DateTime.now().subtract(const Duration(days: 200)),
+        masteredSinceDate: DateTime.now().subtract(const Duration(days: 200)),
       );
       expect(mastery.level, MasteryLevel.eternal);
       expect(mastery.needsReview, false);
@@ -197,11 +195,12 @@ void main() {
       expect(mastery.nextLevelRequirements, isEmpty);
     });
 
-    test('Mastered + masteredSince shows Eternal requirements with progress', () {
+    test('Mastered + masteredSince shows Eternal requirements with progress',
+        () {
       final masteredDate = DateTime.now().subtract(const Duration(days: 90));
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.master,
           wbAttempts: 20,
           wbCorrect: 20,
@@ -226,13 +225,12 @@ void main() {
     test('no decay within 30 days', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.master,
           wbAttempts: 20,
           wbCorrect: 20,
           consecutivePerfectMaster: 3,
-          lastPracticed:
-              DateTime.now().subtract(const Duration(days: 20)),
+          lastPracticed: DateTime.now().subtract(const Duration(days: 20)),
         ),
       );
       expect(mastery.level, MasteryLevel.mastered);
@@ -241,13 +239,12 @@ void main() {
     test('Mastered decays to Memorized after 30+ days', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.master,
           wbAttempts: 20,
           wbCorrect: 20,
           consecutivePerfectMaster: 3,
-          lastPracticed:
-              DateTime.now().subtract(const Duration(days: 35)),
+          lastPracticed: DateTime.now().subtract(const Duration(days: 35)),
         ),
       );
       expect(mastery.level, MasteryLevel.memorized);
@@ -256,12 +253,11 @@ void main() {
     test('Memorized decays to Familiar after 30+ days', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.advanced,
           wbAttempts: 15,
           wbCorrect: 12,
-          lastPracticed:
-              DateTime.now().subtract(const Duration(days: 35)),
+          lastPracticed: DateTime.now().subtract(const Duration(days: 35)),
         ),
       );
       expect(mastery.level, MasteryLevel.familiar);
@@ -270,12 +266,11 @@ void main() {
     test('Familiar does NOT decay below Familiar (floor rule)', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.intermediate,
           wbAttempts: 10,
           wbCorrect: 8,
-          lastPracticed:
-              DateTime.now().subtract(const Duration(days: 100)),
+          lastPracticed: DateTime.now().subtract(const Duration(days: 100)),
         ),
       );
       expect(mastery.level, MasteryLevel.familiar);
@@ -284,12 +279,11 @@ void main() {
     test('Learning does NOT decay (below Familiar floor)', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.beginner,
           wbAttempts: 5,
           wbCorrect: 4,
-          lastPracticed:
-              DateTime.now().subtract(const Duration(days: 100)),
+          lastPracticed: DateTime.now().subtract(const Duration(days: 100)),
         ),
       );
       expect(mastery.level, MasteryLevel.learning);
@@ -298,13 +292,12 @@ void main() {
     test('Eternal never decays even after very long inactivity', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.master,
           wbAttempts: 20,
           wbCorrect: 20,
           consecutivePerfectMaster: 3,
-          lastPracticed:
-              DateTime.now().subtract(const Duration(days: 500)),
+          lastPracticed: DateTime.now().subtract(const Duration(days: 500)),
         ),
         isEternal: true,
       );
@@ -319,13 +312,12 @@ void main() {
     test('not set when practiced recently (< 14 days)', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.master,
           wbAttempts: 20,
           wbCorrect: 20,
           consecutivePerfectMaster: 3,
-          lastPracticed:
-              DateTime.now().subtract(const Duration(days: 5)),
+          lastPracticed: DateTime.now().subtract(const Duration(days: 5)),
         ),
       );
       expect(mastery.needsReview, false);
@@ -334,13 +326,12 @@ void main() {
     test('set when > 14 days since last practice', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.master,
           wbAttempts: 20,
           wbCorrect: 20,
           consecutivePerfectMaster: 3,
-          lastPracticed:
-              DateTime.now().subtract(const Duration(days: 20)),
+          lastPracticed: DateTime.now().subtract(const Duration(days: 20)),
         ),
       );
       expect(mastery.needsReview, true);
@@ -349,13 +340,12 @@ void main() {
     test('never set for Eternal', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.master,
           wbAttempts: 20,
           wbCorrect: 20,
           consecutivePerfectMaster: 3,
-          lastPracticed:
-              DateTime.now().subtract(const Duration(days: 200)),
+          lastPracticed: DateTime.now().subtract(const Duration(days: 200)),
         ),
         isEternal: true,
       );
@@ -365,7 +355,7 @@ void main() {
     test('not set when never practiced (no lastPracticed)', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(),
+        progressByGame: makeProgress(),
       );
       expect(mastery.needsReview, false);
     });
@@ -378,7 +368,7 @@ void main() {
     test('New → Learning: 0 progress when no WB attempts', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(),
+        progressByGame: makeProgress(),
       );
       expect(mastery.subProgress, 0.0);
     });
@@ -386,7 +376,7 @@ void main() {
     test('Memorized → Mastered: partial progress (1/3 perfect runs)', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.master,
           wbAttempts: 20,
           wbCorrect: 18,
@@ -403,7 +393,7 @@ void main() {
     test('Mastered: 1.0 sub-progress (at top before Eternal)', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.master,
           wbAttempts: 20,
           wbCorrect: 20,
@@ -424,7 +414,7 @@ void main() {
     test('New → shows Learning requirements', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(),
+        progressByGame: makeProgress(),
       );
       expect(mastery.nextLevelRequirements, isNotEmpty);
       expect(
@@ -436,7 +426,7 @@ void main() {
     test('Learning → shows Familiar requirements', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.beginner,
           wbAttempts: 5,
           wbCorrect: 4,
@@ -452,7 +442,7 @@ void main() {
     test('Familiar → shows Memorized requirements', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.intermediate,
           wbAttempts: 10,
           wbCorrect: 8,
@@ -468,7 +458,7 @@ void main() {
     test('Memorized → shows Mastered requirements with perfect run count', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.advanced,
           wbAttempts: 15,
           wbCorrect: 12,
@@ -477,11 +467,13 @@ void main() {
       expect(mastery.level, MasteryLevel.memorized);
       expect(mastery.nextLevelRequirements.length, 2);
       expect(
-        mastery.nextLevelRequirements.any((r) => r.description.contains('Master')),
+        mastery.nextLevelRequirements
+            .any((r) => r.description.contains('Master')),
         true,
       );
       expect(
-        mastery.nextLevelRequirements.any((r) => r.description.contains('3 consecutive')),
+        mastery.nextLevelRequirements
+            .any((r) => r.description.contains('3 consecutive')),
         true,
       );
     });
@@ -489,7 +481,7 @@ void main() {
     test('Eternal has empty requirements', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.master,
           wbAttempts: 20,
           wbCorrect: 20,
@@ -508,7 +500,7 @@ void main() {
     test('overall accuracy aggregates across game types', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.beginner,
           wbAttempts: 10,
           wbCorrect: 8,
@@ -523,7 +515,7 @@ void main() {
     test('total attempts sums across game types', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.beginner,
           wbAttempts: 5,
           wbCorrect: 3,
@@ -540,7 +532,7 @@ void main() {
     test('consecutivePerfectMaster is passed through', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.master,
           wbAttempts: 10,
           wbCorrect: 10,
@@ -570,10 +562,11 @@ void main() {
       expect(mastery.gameTypesAttempted, 0);
     });
 
-    test('WB Master reached but 0 consecutive perfect → Memorized not Mastered', () {
+    test('WB Master reached but 0 consecutive perfect → Memorized not Mastered',
+        () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.master,
           wbAttempts: 20,
           wbCorrect: 15,
@@ -589,23 +582,21 @@ void main() {
     test('daysSinceLastPractice getter works', () {
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.beginner,
           wbAttempts: 5,
           wbCorrect: 4,
-          lastPracticed:
-              DateTime.now().subtract(const Duration(days: 10)),
+          lastPracticed: DateTime.now().subtract(const Duration(days: 10)),
         ),
       );
       expect(mastery.daysSinceLastPractice, closeTo(10, 1));
     });
 
     test('daysMastered getter works', () {
-      final masteredDate =
-          DateTime.now().subtract(const Duration(days: 45));
+      final masteredDate = DateTime.now().subtract(const Duration(days: 45));
       final mastery = ScriptureMastery.compute(
         scriptureId: 'test-1',
-        progressByGame: _makeProgress(
+        progressByGame: makeProgress(
           wbDifficulty: DifficultyLevel.master,
           wbAttempts: 20,
           wbCorrect: 20,
