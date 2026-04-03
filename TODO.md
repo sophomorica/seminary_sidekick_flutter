@@ -258,7 +258,7 @@
 
 ## P0 — Testing
 
-> See `TESTING.md` for the full testing architecture guide with patterns, examples, and conventions.
+> See the Testing section in `CLAUDE.md` for patterns, examples, and conventions.
 
 ### TASK-020: Test Infrastructure Setup
 
