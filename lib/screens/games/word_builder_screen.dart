@@ -761,8 +761,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                 ),
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                suffixIcon: isMaster
-                    ? IconButton(
+                suffixIcon: IconButton(
                         icon: Icon(
                           _isSpeechListening ? Icons.mic_off : Icons.mic,
                           color: _isSpeechListening
@@ -770,8 +769,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                               : AppTheme.accent,
                         ),
                         onPressed: _toggleSpeechListening,
-                      )
-                    : null,
+                      ),
               ),
               onChanged: (value) {
                 ref.read(wordBuilderProvider.notifier).onType(value);
