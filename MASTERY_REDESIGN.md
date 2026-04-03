@@ -1,6 +1,8 @@
 # Mastery System Redesign
 
-> **Status**: In Progress (implementation ~80% complete)
+> **DEPRECATED**: This spec has been consolidated into `CLAUDE.md` (Mastery System section) and the new tasks in `TODO.md` (TASK-030 through TASK-032). Read those instead. This file is kept for historical reference only.
+>
+> **Status**: Implemented. Now superseded by UX restructure (April 2026).
 > **Date**: 2026-04-02 (revised from 2026-03-30)
 > **Problem**: "Mastered" previously meant >= 95% accuracy on a single game type. You could earn it by spamming beginner-level matching rounds without ever proving you can recall the words.
 

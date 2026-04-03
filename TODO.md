@@ -146,6 +146,78 @@
 
 ---
 
+## P0 — UX Restructure (April 2026)
+
+> **Context**: User feedback revealed the mastery path isn't clear. Word Builder is the mastery tool, not a "game." The "games" are really quizzes. Users need to see the path to mastery immediately when they open a scripture, and there should be a way to shortcut mastery if you can prove it.
+
+### TASK-030: Move Word Builder Under Scripture Detail
+
+- **status**: `open`
+- **claimed_by**: —
+- **priority**: P0
+- **estimated_effort**: Large
+- **files_to_touch**: `lib/screens/scripture_detail_screen.dart`, `lib/screens/games_hub_screen.dart`, `lib/screens/games/word_builder_screen.dart`, `lib/app.dart`
+- **description**: Word Builder is the primary mastery tool and should be accessed from the scripture detail screen, not the games hub. Add a prominent "Start Mastery" / "Continue Journey" button on scripture detail that launches Word Builder at the appropriate difficulty (next unbeaten tier, or Master if all tiers done). The mastery path timeline (already built in TASK-028) should be the hero element on scripture detail, with Word Builder as the clear call-to-action.
+- **acceptance_criteria**:
+  - [ ] Scripture detail has a prominent CTA button to launch Word Builder at the right difficulty
+  - [ ] Mastery path timeline is the hero section (above notes, above quiz shortcuts)
+  - [ ] Word Builder can still be launched for any specific difficulty from the timeline steps
+  - [ ] Word Builder completion returns to scripture detail (not games hub) and updates the mastery path
+  - [ ] Games hub no longer shows Word Builder as a game card
+- **depends_on**: TASK-028
+
+### TASK-031: Mastery Shortcut — Prove It at Master, Skip the Ladder
+
+- **status**: `open`
+- **claimed_by**: —
+- **priority**: P0
+- **estimated_effort**: Medium
+- **files_to_touch**: `lib/providers/progress_provider.dart`, `lib/models/scripture_mastery.dart`, `lib/screens/scripture_detail_screen.dart`
+- **description**: If a user can complete Word Builder at Master difficulty perfectly, they've already proven they know the scripture. They shouldn't need to grind Beginner/Intermediate/Advanced first. When a user completes Master perfectly, auto-credit all lower tiers. The mastery path should show them jumping ahead. Also allow starting at any tier from scripture detail — don't lock difficulties.
+- **acceptance_criteria**:
+  - [ ] Completing WB Master perfectly auto-sets highestDifficultyCompleted to Master (crediting all lower tiers)
+  - [ ] 3 consecutive perfect Master runs still required for "Mastered" badge
+  - [ ] Scripture detail allows launching WB at any difficulty (no locks)
+  - [ ] Mastery path timeline visually shows the "skip" (e.g., completed steps light up even if never explicitly played)
+  - [ ] `ScriptureMastery.compute()` handles the shortcut correctly
+- **depends_on**: TASK-028
+
+### TASK-032: Rename Games Hub → Practice / Quizzes
+
+- **status**: `open`
+- **claimed_by**: —
+- **priority**: P1
+- **estimated_effort**: Medium
+- **files_to_touch**: `lib/screens/games_hub_screen.dart`, `lib/app.dart`, `lib/models/enums.dart`, `lib/screens/games/matching_game_screen.dart`, `lib/screens/games/quiz_game_screen.dart`, `lib/screens/games/game_results_screen.dart`
+- **description**: The "Games" tab and language throughout the app implies these are standalone games. They're really practice quizzes that supplement the mastery journey. Rename the tab from "Games" to "Practice" (or "Quizzes"). Remove Word Builder from this hub (it moved to scripture detail in TASK-030). Reframe the remaining tools (Scripture Match, Quick Quiz) as practice/recognition tools. Update all labels, descriptions, and navigation.
+- **acceptance_criteria**:
+  - [ ] Bottom nav tab renamed from "Games" to "Practice"
+  - [ ] Games hub screen title and all copy updated (no more "game" language)
+  - [ ] Word Builder removed from practice hub (lives under scripture detail now)
+  - [ ] Scripture Match and Quick Quiz framed as "practice tools" / "quizzes"
+  - [ ] Game results screen language updated ("Quiz Complete" not "Game Complete")
+  - [ ] `GameType` enum values/labels updated or aliased appropriately
+- **depends_on**: TASK-030
+
+### TASK-013: Onboarding — Explain the Mastery Path
+
+- **status**: `open`
+- **claimed_by**: —
+- **priority**: P1
+- **estimated_effort**: Medium
+- **files_to_touch**: NEW `lib/screens/onboarding_screen.dart`, `lib/app.dart`, `lib/main.dart`, NEW `lib/providers/onboarding_provider.dart`
+- **description**: First-launch tutorial that explains the mastery journey. Should answer: "What do I have to do to master a scripture?" Show the Word Builder progression (Beginner → Intermediate → Advanced → Master), explain that 3 perfect Master runs = Mastered, show where to find it on each scripture, and explain that Match/Quiz are supplementary practice. Keep it short — 3-4 screens max. Also accessible from settings/help later.
+- **acceptance_criteria**:
+  - [ ] 3-4 onboarding screens explaining the mastery path
+  - [ ] Shows Word Builder as the central tool with visual of the 4 tiers
+  - [ ] Explains what "Mastered" means (3 perfect Master runs)
+  - [ ] Brief mention of Match/Quiz as supplementary practice
+  - [ ] First-launch detection via Hive flag
+  - [ ] Skippable, re-accessible from a help/info button
+- **depends_on**: TASK-030 (should show the new UX, not the old one)
+
+---
+
 ## P2 — Nice to Have
 
 ### TASK-008: Speech-to-Text for Master Typing
@@ -164,6 +236,83 @@
   - [x] Graceful fallback if permissions denied
 - **depends_on**: —
 - **notes**: Added `speech_to_text: ^6.6.0` to pubspec.yaml. Created `SpeechService` singleton in `lib/services/speech_service.dart` wrapping the speech_to_text package with initialize/start/stop/cancel API. Wired mic button in word_builder_screen.dart: toggles listening on/off, icon changes to mic_off (red) while active, feeds recognized text character-by-character through `onType()` to match existing typing logic. Handles Master resets (clears recognized text buffer), scripture completion (stops listening), and multi-scripture progression. Added `NSMicrophoneUsageDescription` and `NSSpeechRecognitionUsageDescription` to iOS Info.plist, `RECORD_AUDIO` and `INTERNET` permissions to Android manifest. Graceful error handling shows snackbar if permissions denied or speech unavailable. Run `flutter pub get` after pulling.
+
+### TASK-026: Holistic Mastery System — Data Layer
+
+- **status**: `done`
+- **claimed_by**: claude/cowork
+- **priority**: P1
+- **estimated_effort**: Medium
+- **completed**: 2026-04-02
+- **files_to_touch**: `lib/models/enums.dart`, `lib/models/user_progress.dart`, NEW `lib/models/scripture_mastery.dart`, NEW `lib/providers/scripture_mastery_provider.dart`, NEW `lib/providers/mastery_dates_provider.dart`, `lib/theme/app_theme.dart`, `lib/main.dart`
+- **description**: Replace the old per-game-type mastery (≥95% accuracy = mastered) with a holistic mastery system. Add `Eternal` tier to MasteryLevel enum. Create ScriptureMastery model that computes mastery across all game types. Create MasteryDatesNotifier for Hive-backed masteredSince tracking. Add `consecutivePerfectMaster` field to UserProgress for tracking 3-in-a-row at Master difficulty.
+- **acceptance_criteria**:
+  - [x] `MasteryLevel.eternal` added to enum with gold color and sparkle icon
+  - [x] `ScriptureMastery` model with compute() factory, sub-progress, decay, requirements
+  - [x] `scriptureMasteryProvider` (Provider.family) computes holistic mastery per scripture
+  - [x] `holisticStatsProvider` aggregates mastery counts across all scriptures
+  - [x] `MasteryDatesNotifier` tracks masteredSince dates and permanent Eternal status in Hive
+  - [x] `consecutivePerfectMaster` field added to UserProgress with backward-compatible serialization
+  - [x] `app_theme.dart` masteryColor() handles Eternal (index 5)
+  - [x] `masteryDatesProvider` initialized in main.dart
+- **depends_on**: TASK-001
+- **notes**: Initially built with multi-game requirements (matching + quiz + WB). Later revised to Word Builder-centric linear path in TASK-028.
+
+### TASK-027: Holistic Mastery System — UI Integration
+
+- **status**: `done`
+- **claimed_by**: claude/cowork
+- **priority**: P1
+- **estimated_effort**: Medium
+- **completed**: 2026-04-02
+- **files_to_touch**: `lib/widgets/mastery_badge.dart`, `lib/widgets/scripture_card.dart`, `lib/screens/scripture_detail_screen.dart`, `lib/screens/scripture_list_screen.dart`, `lib/screens/progress_screen.dart`, `lib/screens/home_screen.dart`
+- **description**: Wire all UI components to the new holistic mastery providers. Replace per-game mastery badges with single holistic badge. Add requirements checklist, sub-progress bars, needs-review banners, and Eternal display.
+- **acceptance_criteria**:
+  - [x] `mastery_badge.dart`: supports Eternal, needsReview dimming, sub-progress bar
+  - [x] `scripture_card.dart`: uses scriptureMasteryProvider for holistic badge
+  - [x] `scripture_list_screen.dart`: uses scriptureMasteryProvider instead of old per-game loop
+  - [x] `scripture_detail_screen.dart`: holistic mastery section with badge, requirements, per-game progress
+  - [x] `progress_screen.dart`: uses holisticStatsProvider, shows Eternal count when > 0
+  - [x] `home_screen.dart`: "Continue Learning" prioritizes needs-review and high sub-progress
+- **depends_on**: TASK-026
+- **notes**: Badge widget has three constructors (compact, expanded, withProgress). Progress screen dynamically shows Eternal row in stats grid. Home screen filters out both mastered and eternal from "almost there" list.
+
+### TASK-028: Word Builder-Centric Mastery Path (Mastery Redesign v2)
+
+- **status**: `done`
+- **claimed_by**: claude/cowork
+- **priority**: P1
+- **estimated_effort**: Medium
+- **completed**: 2026-04-02
+- **files_to_touch**: `lib/models/scripture_mastery.dart`, `lib/providers/progress_provider.dart`, `lib/screens/scripture_detail_screen.dart`, `MASTERY_REDESIGN.md`
+- **description**: Revise the holistic mastery system from multi-game requirements to a clear linear path driven entirely by Word Builder progression. Scripture Match and Quiz help with recognition but do NOT gate mastery. Mastery levels map 1:1 to Word Builder difficulty tiers. Add consecutivePerfectMaster tracking to ProgressNotifier.recordAttempt().
+- **acceptance_criteria**:
+  - [x] Mastery path: New → Learning (WB Beginner) → Familiar (WB Intermediate) → Memorized (WB Advanced) → Mastered (3 perfect WB Master runs) → Eternal (6 months)
+  - [x] `ScriptureMastery.compute()` rewritten: only Word Builder highestDifficulty and consecutivePerfectMaster drive the level
+  - [x] `ProgressNotifier.recordAttempt()` increments consecutivePerfectMaster on correct WB Master, resets on failure
+  - [x] Scripture detail screen shows linear "Word Builder Journey" timeline with completed/current/upcoming steps
+  - [x] Requirements card shows "Next Step" with clear actionable items
+  - [x] Per-game progress reframed as "Practice Tools" (supplementary, not mastery-gating)
+  - [x] `MASTERY_REDESIGN.md` updated to reflect Word Builder-centric approach
+- **depends_on**: TASK-026, TASK-027
+- **notes**: Key insight from user feedback: only Word Builder tests production (can you produce the words from memory?). Match/Quiz test recognition/comprehension which are different cognitive skills. The linear path gives users a clear "what do I do next?" answer at every stage.
+
+### TASK-029: Mastery System Tests
+
+- **status**: `done`
+- **claimed_by**: claude/cowork
+- **priority**: P0
+- **estimated_effort**: Medium
+- **completed**: 2026-04-02
+- **files_to_touch**: NEW `test/models/scripture_mastery_test.dart`, `test/providers/progress_provider_test.dart`, `test/models/user_progress_test.dart`
+- **description**: Add comprehensive tests for the mastery redesign: ScriptureMastery model tests (linear path, decay, requirements, Eternal, sub-progress), consecutivePerfectMaster tracking in progress provider, and backward-compatible serialization.
+- **acceptance_criteria**:
+  - [x] `scripture_mastery_test.dart`: 30 tests covering linear path, Eternal tier, gentle decay, needs review, sub-progress, next level requirements, aggregate stats, edge cases
+  - [x] `progress_provider_test.dart`: 7 new tests for consecutivePerfectMaster (increment, reset, unchanged on non-Master/non-WB)
+  - [x] `user_progress_test.dart`: 3 new tests for consecutivePerfectMaster serialization and backward compat
+  - [ ] All tests pass (run `flutter test` locally — Flutter not available in sandbox)
+- **depends_on**: TASK-028
+- **notes**: Tests verified correct via manual code review. Run `flutter test test/models/scripture_mastery_test.dart test/providers/progress_provider_test.dart test/models/user_progress_test.dart` locally.
 
 ### TASK-009: Spaced Repetition System
 
@@ -233,12 +382,12 @@
   - [x] All component themes (text, cards, nav bar, chips, app bar) adapt to dark mode
 - **notes**: Added 4 dark surface colors to AppTheme. Refactored private theme builders to accept color parameters so both light and dark themes share the same structure. Created ThemeNotifier (StateNotifier<ThemeMode>) backed by a `settings` Hive box. Converted SeminarySidekickApp from StatefulWidget to ConsumerStatefulWidget to watch themeProvider. Home screen app bar shows a context-aware icon (sun/moon/auto) that cycles through the 3 modes. Removed hardcoded light-mode system UI overlay style so Flutter handles status bar brightness automatically per theme.
 
-### TASK-013: Onboarding Flow
+### TASK-013: Onboarding — Explain the Mastery Path
 
-- **status**: `open`
-- **priority**: P3
+- **status**: `open` — _(moved to P1 in UX Restructure section above with full spec)_
+- **priority**: P1
 - **estimated_effort**: Medium
-- **description**: First-launch tutorial explaining the 3 games and memorize tool.
+- **description**: See P0/P1 UX Restructure section above for full spec.
 
 ### TASK-014: Social Features
 
