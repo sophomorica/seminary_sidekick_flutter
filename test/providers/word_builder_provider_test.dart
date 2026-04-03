@@ -478,24 +478,22 @@ void main() {
       final commaIndex = target.indexOf(',');
       expect(commaIndex, greaterThan(0), reason: 'Test scripture must have a comma');
 
-      // Type each char up to the character before the comma
+      // Type each char up to two before the comma (before 'd')
       String typed = '';
-      for (int i = 0; i < commaIndex; i++) {
+      for (int i = 0; i < commaIndex - 1; i++) {
         typed += target[i];
         notifier.onType(typed);
       }
 
-      // At this point, typedChars should have commaIndex chars (no comma yet)
-      expect(notifier.state.typedChars.length, commaIndex);
+      // Before typing 'd', comma is not yet auto-filled
+      expect(notifier.state.typedChars.length, commaIndex - 1);
 
-      // Now type the next real character after the comma (space then 'a' in "and")
-      // The comma should be auto-filled
-      final charAfterComma = target[commaIndex + 1]; // should be ' '
-      typed += charAfterComma;
+      // Type 'd' — the trailing comma should be auto-filled immediately
+      typed += target[commaIndex - 1];
       notifier.onType(typed);
 
-      // typedChars should now include: the comma (auto-filled) + the space
-      expect(notifier.state.typedChars.length, commaIndex + 2);
+      // typedChars should include: all typed chars + auto-filled comma
+      expect(notifier.state.typedChars.length, commaIndex + 1);
       // The comma should be auto-filled and marked correct
       expect(notifier.state.typedChars[commaIndex].char, ',');
       expect(notifier.state.typedChars[commaIndex].isCorrect, isTrue);
@@ -572,19 +570,19 @@ void main() {
       final target = notifier.state.targetText;
       final commaIndex = target.indexOf(',');
 
-      // Type up to the character before the comma
+      // Type up to two chars before the comma (before 'd')
       String typed = '';
-      for (int i = 0; i < commaIndex; i++) {
+      for (int i = 0; i < commaIndex - 1; i++) {
         typed += target[i];
         notifier.onType(typed);
       }
       final placementsBefore = notifier.state.correctPlacements;
 
-      // Type the char after comma — comma auto-fills (+1) and space matches (+1)
-      typed += target[commaIndex + 1];
+      // Type 'd' — comma auto-fills as trailing punctuation (+1 for 'd', +1 for comma)
+      typed += target[commaIndex - 1];
       notifier.onType(typed);
 
-      // Should have gained 2: the auto-filled comma + the typed space
+      // Should have gained 2: typed 'd' + auto-filled comma
       expect(notifier.state.correctPlacements, placementsBefore + 2);
     });
 
@@ -684,19 +682,21 @@ void main() {
       expect(dashIndex, greaterThan(0),
           reason: 'Punctuated scripture should contain em-dash');
 
-      // Type up to the dash
+      // Type up to two before the dash, skipping punctuation (auto-filled by provider)
+      final punctRegex = RegExp(r'''[,;:!?\-\—\–\.\'\"\'\'\"\"\.\(\)\[\]]''');
       String typed = '';
-      for (int i = 0; i < dashIndex; i++) {
+      for (int i = 0; i <= dashIndex - 2; i++) {
+        if (punctRegex.hasMatch(target[i])) continue;
         typed += target[i];
         notifier.onType(typed);
       }
       final charsBefore = notifier.state.typedChars.length;
 
-      // Type the character after the dash — dash should auto-fill
-      typed += target[dashIndex + 1]; // 'f' in "faith"
+      // Type 'h' (last char before em-dash) — dash should auto-fill as trailing
+      typed += target[dashIndex - 1]; // 'h' in "faith"
       notifier.onType(typed);
 
-      // Should have auto-filled the dash + typed the 'f'
+      // Should have typed 'h' + auto-filled em-dash
       expect(notifier.state.typedChars.length, charsBefore + 2);
       expect(notifier.state.typedChars[dashIndex].char, '—');
       expect(notifier.state.typedChars[dashIndex].isCorrect, isTrue);
