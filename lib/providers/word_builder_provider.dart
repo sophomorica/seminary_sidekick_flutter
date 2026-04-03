@@ -127,9 +127,9 @@ class WordBuilderState {
   double get chunkProgress =>
       targetChunks.isEmpty ? 0.0 : chunksPlaced / targetChunks.length;
 
-  // Typing mode progress
+  // Typing mode progress (use typedChars which includes auto-filled punctuation)
   double get typingProgress =>
-      targetText.isEmpty ? 0.0 : typedText.length / targetText.length;
+      targetText.isEmpty ? 0.0 : typedChars.length / targetText.length;
 
   double get scriptureProgress =>
       mode == WordBuilderMode.chunkTap ? chunkProgress : typingProgress;
@@ -204,6 +204,10 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
         ));
 
   final _random = Random();
+
+  /// Punctuation characters that are auto-filled during typing mode
+  /// so speech-to-text input (which omits punctuation) works seamlessly.
+  static final _punctuation = RegExp(r'''[,;:!?\-\—\–\.\'\"\'\'\"\"\(\)\[\]]''');
 
   // ── Chunk colors for visual distinction ──
   static const _chunkColors = [0, 1, 2, 3, 4, 5, 6, 7];
@@ -412,7 +416,23 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
     );
   }
 
+  /// Auto-fill any punctuation at the current position in the target text.
+  /// Returns the number of punctuation characters auto-filled.
+  int _autoFillPunctuation(List<TypedChar> chars, String currentTyped) {
+    int filled = 0;
+    int pos = chars.length;
+    while (pos < state.targetText.length &&
+        _punctuation.hasMatch(state.targetText[pos])) {
+      chars.add(TypedChar(char: state.targetText[pos], isCorrect: true));
+      filled++;
+      pos++;
+    }
+    return filled;
+  }
+
   /// User types a character. Called on every keystroke.
+  /// Punctuation in the target text is auto-filled so that speech-to-text
+  /// (which typically omits punctuation) works seamlessly.
   void onType(String newText) {
     if (state.isScriptureComplete || state.mode != WordBuilderMode.typing) {
       return;
@@ -424,7 +444,13 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
       if (state.difficulty == DifficultyLevel.advanced) {
         final newChars = List<TypedChar>.from(state.typedChars);
         if (newChars.isNotEmpty) {
+          // Remove the last user-typed char, plus any auto-filled punctuation
+          // that preceded it (walk back over consecutive punctuation).
           newChars.removeLast();
+          while (newChars.isNotEmpty &&
+              _punctuation.hasMatch(newChars.last.char)) {
+            newChars.removeLast();
+          }
         }
         final stillHasError = newChars.any((c) => !c.isCorrect);
         state = state.copyWith(
@@ -435,7 +461,6 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
         );
       }
       // Master: backspace doesn't help — you can't fix errors
-      // (the full reset happens on the wrong char, not on backspace)
       return;
     }
 
@@ -447,8 +472,12 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
       }
 
       final newChar = newText[newText.length - 1];
-      final expectedIndex = newText.length - 1;
 
+      // Auto-fill any punctuation at the current position first
+      final newChars = List<TypedChar>.from(state.typedChars);
+      final punctFilled = _autoFillPunctuation(newChars, state.typedText);
+
+      final expectedIndex = newChars.length;
       if (expectedIndex >= state.targetText.length) return;
 
       final expectedChar = state.targetText[expectedIndex];
@@ -456,15 +485,19 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
       final isCorrect = newChar.toLowerCase() == expectedChar.toLowerCase();
 
       if (isCorrect) {
-        final newChars = List<TypedChar>.from(state.typedChars)
-          ..add(TypedChar(char: newChar, isCorrect: true));
-        final newCorrectAcross = state.correctUnitsAcrossAll + 1;
-        final done = newText.length >= state.targetText.length;
+        newChars.add(TypedChar(char: newChar, isCorrect: true));
+
+        // Also auto-fill any trailing punctuation (e.g. end of verse with period)
+        final trailingFilled = _autoFillPunctuation(newChars, '');
+
+        final totalFilled = 1 + punctFilled + trailingFilled;
+        final newCorrectAcross = state.correctUnitsAcrossAll + totalFilled;
+        final done = newChars.length >= state.targetText.length;
 
         state = state.copyWith(
           typedText: newText,
           typedChars: newChars,
-          correctPlacements: state.correctPlacements + 1,
+          correctPlacements: state.correctPlacements + totalFilled,
           correctUnitsAcrossAll: newCorrectAcross,
           lastFeedback: done ? 'correct' : null,
           isScriptureComplete: done,
@@ -479,7 +512,6 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
             typedChars: [],
             incorrectAttempts: state.incorrectAttempts + 1,
             resetCount: state.resetCount + 1,
-            // Undo any correct chars we counted for this scripture
             correctUnitsAcrossAll:
                 state.correctUnitsAcrossAll - state.correctPlacements,
             correctPlacements: 0,
@@ -488,8 +520,7 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
           );
         } else {
           // Advanced: show red, user must backspace to fix
-          final newChars = List<TypedChar>.from(state.typedChars)
-            ..add(TypedChar(char: newChar, isCorrect: false));
+          newChars.add(TypedChar(char: newChar, isCorrect: false));
 
           state = state.copyWith(
             typedText: newText,
