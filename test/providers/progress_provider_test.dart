@@ -1,21 +1,28 @@
 import 'dart:io';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:seminary_sidekick/providers/progress_provider.dart';
+import 'package:seminary_sidekick/providers/spaced_repetition_provider.dart';
 import 'package:seminary_sidekick/models/enums.dart';
 
 void main() {
   late ProgressNotifier notifier;
+  late ProviderContainer container;
   late Directory tempDir;
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('hive_test_');
     Hive.init(tempDir.path);
-    notifier = ProgressNotifier();
+    container = ProviderContainer();
+    // Initialize spaced repetition first (progress provider depends on it)
+    await container.read(spacedRepetitionProvider.notifier).init();
+    notifier = container.read(progressProvider.notifier);
     await notifier.init();
   });
 
   tearDown(() async {
+    container.dispose();
     await Hive.close();
     if (tempDir.existsSync()) {
       tempDir.deleteSync(recursive: true);
@@ -770,6 +777,95 @@ void main() {
       expect(notifier.state.containsKey('test-1_matching'), true);
       expect(notifier.state.containsKey('test-1_wordOrder'), true);
       expect(notifier.state.containsKey('test-1_quiz'), true);
+    });
+  });
+
+  // -------------------------------------------------------
+  // Mastery shortcut — explicitlyCompletedDifficulties (TASK-031)
+  // -------------------------------------------------------
+  group('explicitlyCompletedDifficulties tracking', () {
+    test('correct completion adds difficulty to explicit set', () {
+      notifier.recordAttempt(
+        scriptureId: 'test-1',
+        gameType: GameType.wordOrder,
+        correct: true,
+        difficultyCompleted: DifficultyLevel.master,
+      );
+
+      final progress = notifier.getProgress('test-1', GameType.wordOrder);
+      expect(
+        progress!.explicitlyCompletedDifficulties,
+        contains(DifficultyLevel.master),
+      );
+    });
+
+    test('incorrect attempt does NOT add difficulty to explicit set', () {
+      notifier.recordAttempt(
+        scriptureId: 'test-1',
+        gameType: GameType.wordOrder,
+        correct: false,
+        difficultyCompleted: DifficultyLevel.master,
+      );
+
+      final progress = notifier.getProgress('test-1', GameType.wordOrder);
+      expect(progress!.explicitlyCompletedDifficulties, isEmpty);
+    });
+
+    test('jumping to Master only adds Master, not lower tiers', () {
+      notifier.recordAttempt(
+        scriptureId: 'test-1',
+        gameType: GameType.wordOrder,
+        correct: true,
+        difficultyCompleted: DifficultyLevel.master,
+      );
+
+      final progress = notifier.getProgress('test-1', GameType.wordOrder);
+      expect(progress!.explicitlyCompletedDifficulties, {DifficultyLevel.master});
+      expect(progress.highestDifficultyCompleted, DifficultyLevel.master);
+      // Lower tiers are NOT in the explicit set — they're auto-credited
+      expect(
+        progress.explicitlyCompletedDifficulties
+            .contains(DifficultyLevel.beginner),
+        false,
+      );
+    });
+
+    test('completing ladder adds each tier to explicit set', () {
+      for (final difficulty in DifficultyLevel.values) {
+        notifier.recordAttempt(
+          scriptureId: 'test-1',
+          gameType: GameType.wordOrder,
+          correct: true,
+          difficultyCompleted: difficulty,
+        );
+      }
+
+      final progress = notifier.getProgress('test-1', GameType.wordOrder);
+      expect(
+        progress!.explicitlyCompletedDifficulties,
+        DifficultyLevel.values.toSet(),
+      );
+    });
+
+    test('explicit set persists across multiple attempts', () {
+      notifier.recordAttempt(
+        scriptureId: 'test-1',
+        gameType: GameType.wordOrder,
+        correct: true,
+        difficultyCompleted: DifficultyLevel.beginner,
+      );
+      notifier.recordAttempt(
+        scriptureId: 'test-1',
+        gameType: GameType.wordOrder,
+        correct: true,
+        difficultyCompleted: DifficultyLevel.master,
+      );
+
+      final progress = notifier.getProgress('test-1', GameType.wordOrder);
+      expect(
+        progress!.explicitlyCompletedDifficulties,
+        {DifficultyLevel.beginner, DifficultyLevel.master},
+      );
     });
   });
 }

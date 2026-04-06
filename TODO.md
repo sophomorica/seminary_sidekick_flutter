@@ -170,53 +170,60 @@
 
 ### TASK-031: Mastery Shortcut — Prove It at Master, Skip the Ladder
 
-- **status**: `open`
-- **claimed_by**: —
+- **status**: `done`
+- **claimed_by**: claude/cowork
+- **started**: 2026-04-06T00:00:00Z
+- **completed**: 2026-04-06T00:30:00Z
 - **priority**: P0
 - **estimated_effort**: Medium
-- **files_to_touch**: `lib/providers/progress_provider.dart`, `lib/models/scripture_mastery.dart`, `lib/screens/scripture_detail_screen.dart`
+- **files_to_touch**: `lib/providers/progress_provider.dart`, `lib/models/scripture_mastery.dart`, `lib/screens/scripture_detail_screen.dart`, `lib/models/user_progress.dart`
 - **description**: If a user can complete Word Builder at Master difficulty perfectly, they've already proven they know the scripture. They shouldn't need to grind Beginner/Intermediate/Advanced first. When a user completes Master perfectly, auto-credit all lower tiers. The mastery path should show them jumping ahead. Also allow starting at any tier from scripture detail — don't lock difficulties.
 - **acceptance_criteria**:
-  - [ ] Completing WB Master perfectly auto-sets highestDifficultyCompleted to Master (crediting all lower tiers)
-  - [ ] 3 consecutive perfect Master runs still required for "Mastered" badge
-  - [ ] Scripture detail allows launching WB at any difficulty (no locks)
-  - [ ] Mastery path timeline visually shows the "skip" (e.g., completed steps light up even if never explicitly played)
-  - [ ] `ScriptureMastery.compute()` handles the shortcut correctly
+  - [x] Completing WB Master perfectly auto-sets highestDifficultyCompleted to Master (crediting all lower tiers)
+  - [x] 3 consecutive perfect Master runs still required for "Mastered" badge
+  - [x] Scripture detail allows launching WB at any difficulty (no locks)
+  - [x] Mastery path timeline visually shows the "skip" (e.g., completed steps light up even if never explicitly played)
+  - [x] `ScriptureMastery.compute()` handles the shortcut correctly
 - **depends_on**: TASK-028
+- **notes**: Added `explicitlyCompletedDifficulties` field to `UserProgress` to track which difficulties were actually played vs auto-credited. `ScriptureMastery` exposes `wasDifficultySkipped()` helper. Timeline shows lightning bolt icon + "Skipped" chip for auto-credited tiers. All difficulty levels were already unlocked (no locks to remove). Added 14 new tests across 3 test files.
 
 ### TASK-032: Rename Games Hub → Practice / Quizzes
 
-- **status**: `open`
-- **claimed_by**: —
+- **status**: `done`
+- **claimed_by**: claude/cowork
 - **priority**: P1
 - **estimated_effort**: Medium
-- **files_to_touch**: `lib/screens/games_hub_screen.dart`, `lib/app.dart`, `lib/models/enums.dart`, `lib/screens/games/matching_game_screen.dart`, `lib/screens/games/quiz_game_screen.dart`, `lib/screens/games/game_results_screen.dart`
+- **completed**: 2026-04-06
+- **files_to_touch**: `lib/screens/games_hub_screen.dart` → `lib/screens/practice_hub_screen.dart`, `lib/app.dart`, `lib/models/enums.dart`, `lib/screens/games/game_results_screen.dart`, `lib/screens/scripture_detail_screen.dart`
 - **description**: The "Games" tab and language throughout the app implies these are standalone games. They're really practice quizzes that supplement the mastery journey. Rename the tab from "Games" to "Practice" (or "Quizzes"). Remove Word Builder from this hub (it moved to scripture detail in TASK-030). Reframe the remaining tools (Scripture Match, Quick Quiz) as practice/recognition tools. Update all labels, descriptions, and navigation.
 - **acceptance_criteria**:
-  - [ ] Bottom nav tab renamed from "Games" to "Practice"
-  - [ ] Games hub screen title and all copy updated (no more "game" language)
-  - [ ] Word Builder removed from practice hub (lives under scripture detail now)
-  - [ ] Scripture Match and Quick Quiz framed as "practice tools" / "quizzes"
-  - [ ] Game results screen language updated ("Quiz Complete" not "Game Complete")
-  - [ ] `GameType` enum values/labels updated or aliased appropriately
+  - [x] Bottom nav tab renamed from "Games" to "Practice"
+  - [x] Games hub screen title and all copy updated (no more "game" language)
+  - [x] Word Builder removed from practice hub (lives under scripture detail now)
+  - [x] Scripture Match and Quick Quiz framed as "practice tools" / "quizzes"
+  - [x] Game results screen language updated ("Try Again" / "Back to Practice" not "Play Again" / "Back to Games")
+  - [x] `GameType` enum values/labels updated or aliased appropriately
 - **depends_on**: TASK-030
+- **notes**: Renamed `games_hub_screen.dart` → `practice_hub_screen.dart`, class `GamesHubScreen` → `PracticeHubScreen`. Internal widgets renamed `_GameCard` → `_QuizCard`, `_launchGame` → `_launchQuiz`. Route changed from `/games` to `/practice`. Nav bar icon changed from `sports_esports` to `quiz`. Updated all user-facing copy: hub subtitle, button labels, results screen buttons. GameType enum descriptions updated to practice/quiz framing. Scripture detail "Play X" → "Practice X".
 
 ### TASK-013: Onboarding — Explain the Mastery Path
 
-- **status**: `open`
-- **claimed_by**: —
+- **status**: `done`
+- **claimed_by**: claude/cowork
 - **priority**: P1
 - **estimated_effort**: Medium
-- **files_to_touch**: NEW `lib/screens/onboarding_screen.dart`, `lib/app.dart`, `lib/main.dart`, NEW `lib/providers/onboarding_provider.dart`
+- **completed**: 2026-04-06
+- **files_to_touch**: NEW `lib/screens/onboarding_screen.dart`, `lib/app.dart`, `lib/main.dart`, NEW `lib/providers/onboarding_provider.dart`, `lib/screens/home_screen.dart`
 - **description**: First-launch tutorial that explains the mastery journey. Should answer: "What do I have to do to master a scripture?" Show the Word Builder progression (Beginner → Intermediate → Advanced → Master), explain that 3 perfect Master runs = Mastered, show where to find it on each scripture, and explain that Match/Quiz are supplementary practice. Keep it short — 3-4 screens max. Also accessible from settings/help later.
 - **acceptance_criteria**:
-  - [ ] 3-4 onboarding screens explaining the mastery path
-  - [ ] Shows Word Builder as the central tool with visual of the 4 tiers
-  - [ ] Explains what "Mastered" means (3 perfect Master runs)
-  - [ ] Brief mention of Match/Quiz as supplementary practice
-  - [ ] First-launch detection via Hive flag
-  - [ ] Skippable, re-accessible from a help/info button
+  - [x] 3-4 onboarding screens explaining the mastery path
+  - [x] Shows Word Builder as the central tool with visual of the 4 tiers
+  - [x] Explains what "Mastered" means (3 perfect Master runs)
+  - [x] Brief mention of Match/Quiz as supplementary practice
+  - [x] First-launch detection via Hive flag
+  - [x] Skippable, re-accessible from a help/info button
 - **depends_on**: TASK-030 (should show the new UX, not the old one)
+- **notes**: 4-page PageView onboarding: (1) Welcome — app purpose, (2) Word Builder — 4 tiers with mastery level badges, (3) Prove You Know It — 3 perfect Master runs + Eternal tier, (4) Practice quizzes — Scripture Match & Quick Quiz. Hive-backed `onboarding` box with `onboarding_completed` flag. GoRouter redirect sends to `/onboarding` on first launch. Help button (?) added to home screen app bar for re-access (launches as `isRevisit: true` with Navigator.push so it pops back).
 
 ---
 
@@ -318,33 +325,37 @@
 
 ### TASK-009: Spaced Repetition System
 
-- **status**: `open`
-- **claimed_by**: —
+- **status**: `done`
+- **claimed_by**: claude/cowork
 - **priority**: P2
 - **estimated_effort**: Large
-- **files_to_touch**: NEW `lib/services/spaced_repetition.dart`, `lib/providers/progress_provider.dart`, `lib/screens/home_screen.dart`
+- **completed**: 2026-04-06
+- **files_to_touch**: NEW `lib/services/spaced_repetition.dart`, NEW `lib/providers/spaced_repetition_provider.dart`, `lib/providers/progress_provider.dart`, `lib/screens/home_screen.dart`, `lib/widgets/scripture_card.dart`, `lib/main.dart`
 - **description**: Smart scheduling that surfaces scriptures at optimal review intervals based on mastery decay. Powers the "Continue Learning" section on home.
 - **acceptance_criteria**:
-  - [ ] SM-2 or similar algorithm implemented
-  - [ ] Each scripture has a `nextReviewDate` computed from attempts
-  - [ ] Home screen "Continue Learning" prioritizes overdue reviews
-  - [ ] Visual indicator for scriptures due for review
+  - [x] SM-2 or similar algorithm implemented
+  - [x] Each scripture has a `nextReviewDate` computed from attempts
+  - [x] Home screen "Continue Learning" prioritizes overdue reviews
+  - [x] Visual indicator for scriptures due for review
 - **depends_on**: TASK-001 (needs persistence)
+- **notes**: Full SM-2 spaced repetition system. SpacedRepetitionData model with ease factor, interval, repetitions, nextReviewDate persisted in dedicated Hive box. Quality scoring adapts to game type and difficulty. ProgressNotifier.recordAttempt() auto-updates SR schedule. Home screen uses smartReviewQueueProvider blending SR-overdue, mastery-decay, and close-to-leveling-up scriptures. ScriptureCard shows review-due badge. Due count in Continue Learning header.
 
 ### TASK-010: Recent Activity Feed
 
-- **status**: `open`
-- **claimed_by**: —
+- **status**: `done`
+- **claimed_by**: claude/cowork
 - **priority**: P2
 - **estimated_effort**: Medium
-- **files_to_touch**: `lib/screens/progress_screen.dart`, NEW `lib/models/activity.dart`, `lib/providers/progress_provider.dart`
+- **completed**: 2026-04-06
+- **files_to_touch**: `lib/screens/progress_screen.dart`, NEW `lib/models/activity.dart`, NEW `lib/providers/activity_provider.dart`, `lib/screens/games/matching_game_screen.dart`, `lib/screens/games/word_builder_screen.dart`, `lib/screens/games/quiz_game_screen.dart`, `lib/main.dart`
 - **description**: Progress screen shows "No activity yet". Build a timeline of game completions, mastery level-ups, streak milestones.
 - **acceptance_criteria**:
-  - [ ] Activity model with timestamp, type, metadata
-  - [ ] Activities persisted via Hive
-  - [ ] Progress screen shows scrollable activity list
-  - [ ] Activities generated on game completion and mastery changes
+  - [x] Activity model with timestamp, type, metadata
+  - [x] Activities persisted via Hive
+  - [x] Progress screen shows scrollable activity list
+  - [x] Activities generated on game completion and mastery changes
 - **depends_on**: TASK-001
+- **notes**: Created Activity model (5 activity types: gameCompleted, masteryLevelUp, streakMilestone, firstAttempt, perfectRun) with JSON serialization. ActivityNotifier backed by Hive box with max 200 entries. Activity logging integrated into all 3 game completion handlers (matching, word builder, quiz). Word Builder tracks mastery level-ups and streak milestones (at 5/10/25/50/100). Progress screen shows scrollable feed with color-coded icons, relative timestamps, and scripture references. Empty state preserved when no activities exist.
 
 ### TASK-011: Game-Specific Difficulty Descriptions
 
@@ -386,9 +397,10 @@
 
 ### TASK-013: Onboarding — Explain the Mastery Path
 
-- **status**: `open` — _(moved to P1 in UX Restructure section above with full spec)_
+- **status**: `done` — _(see P1 UX Restructure section above for full spec and notes)_
 - **priority**: P1
 - **estimated_effort**: Medium
+- **completed**: 2026-04-06
 - **description**: See P0/P1 UX Restructure section above for full spec.
 
 ### TASK-014: Social Features

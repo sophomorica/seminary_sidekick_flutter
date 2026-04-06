@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../models/user_progress.dart';
 import '../models/enums.dart';
+import 'spaced_repetition_provider.dart';
 
 /// User statistics model for overall progress
 class UserStats {
@@ -27,8 +28,9 @@ class UserStats {
 class ProgressNotifier extends StateNotifier<Map<String, UserProgress>> {
   static const _boxName = 'user_progress';
   late final Box<Map> _box;
+  final Ref _ref;
 
-  ProgressNotifier() : super({});
+  ProgressNotifier(this._ref) : super({});
 
   /// Open the Hive box and load persisted progress into state.
   Future<void> init() async {
@@ -124,6 +126,15 @@ class ProgressNotifier extends StateNotifier<Map<String, UserProgress>> {
       }
     }
 
+    // Track which difficulties were explicitly completed (actually played).
+    // This lets the UI distinguish auto-credited "skipped" tiers from ones
+    // the user actually practiced.
+    final newExplicitDifficulties =
+        Set<DifficultyLevel>.from(current.explicitlyCompletedDifficulties);
+    if (difficultyCompleted != null && correct) {
+      newExplicitDifficulties.add(difficultyCompleted);
+    }
+
     final updated = UserProgress(
       scriptureId: scriptureId,
       gameType: gameType,
@@ -138,10 +149,21 @@ class ProgressNotifier extends StateNotifier<Map<String, UserProgress>> {
       masteryLevel: newMasteryLevel,
       needsReview: needsReview,
       consecutivePerfectMaster: newConsecutivePerfectMaster,
+      explicitlyCompletedDifficulties: newExplicitDifficulties,
     );
 
     state = {...state, key: updated};
     _persist(key, updated);
+
+    // Update spaced repetition schedule for this scripture
+    _ref.read(spacedRepetitionProvider.notifier).recordReview(
+          scriptureId: scriptureId,
+          correct: correct,
+          accuracy: accuracy,
+          gameType: gameType,
+          difficulty: difficultyCompleted,
+          timeSeconds: time,
+        );
   }
 
   /// Get progress for a scripture/game combination
@@ -231,7 +253,7 @@ class ProgressNotifier extends StateNotifier<Map<String, UserProgress>> {
 /// State notifier provider for progress management
 final progressProvider =
     StateNotifierProvider<ProgressNotifier, Map<String, UserProgress>>(
-  (ref) => ProgressNotifier(),
+  (ref) => ProgressNotifier(ref),
 );
 
 /// Family provider to get progress for a specific scripture/game

@@ -6,19 +6,19 @@ import '../theme/app_theme.dart';
 import 'games/matching_game_screen.dart';
 import 'games/quiz_game_screen.dart';
 
-class GamesHubScreen extends ConsumerWidget {
-  const GamesHubScreen({super.key});
+class PracticeHubScreen extends ConsumerWidget {
+  const PracticeHubScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Only show supplementary practice quizzes — Word Builder lives under scripture detail
-    final practiceGameTypes = GameType.values
+    final practiceQuizTypes = GameType.values
         .where((gt) => gt != GameType.wordOrder)
         .toList();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Games'),
+        title: const Text('Practice'),
         elevation: 0,
         backgroundColor: Theme.of(context).colorScheme.surface,
       ),
@@ -28,7 +28,7 @@ class GamesHubScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Choose a game to practice',
+              'Sharpen your recognition with practice quizzes',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context)
                         .colorScheme
@@ -37,8 +37,8 @@ class GamesHubScreen extends ConsumerWidget {
                   ),
             ),
             const SizedBox(height: 24),
-            ...practiceGameTypes.map((gameType) {
-              return _GameCard(gameType: gameType);
+            ...practiceQuizTypes.map((gameType) {
+              return _QuizCard(gameType: gameType);
             }),
             const SizedBox(height: 24),
           ],
@@ -48,22 +48,22 @@ class GamesHubScreen extends ConsumerWidget {
   }
 }
 
-class _GameCard extends StatefulWidget {
+class _QuizCard extends StatefulWidget {
   final GameType gameType;
 
-  const _GameCard({required this.gameType});
+  const _QuizCard({required this.gameType});
 
   @override
-  State<_GameCard> createState() => _GameCardState();
+  State<_QuizCard> createState() => _QuizCardState();
 }
 
-class _GameCardState extends State<_GameCard> {
+class _QuizCardState extends State<_QuizCard> {
   DifficultyLevel _selectedDifficulty = DifficultyLevel.beginner;
   ScriptureBook? _selectedBook; // null = all books
 
   @override
   Widget build(BuildContext context) {
-    final color = _getColorForGame(widget.gameType);
+    final color = _getColorForQuiz(widget.gameType);
     const isAvailable = true;
 
     return Padding(
@@ -75,7 +75,7 @@ class _GameCardState extends State<_GameCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Game header
+              // Quiz header
               Row(
                 children: [
                   Container(
@@ -205,7 +205,7 @@ class _GameCardState extends State<_GameCard> {
                 ),
                 const SizedBox(height: 16),
 
-                // Play button
+                // Start button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -213,13 +213,13 @@ class _GameCardState extends State<_GameCard> {
                       backgroundColor: color,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
-                    onPressed: () => _launchGame(context),
+                    onPressed: () => _launchQuiz(context),
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.play_arrow, size: 24),
                         SizedBox(width: 8),
-                        Text('Play', style: TextStyle(fontSize: 16)),
+                        Text('Start', style: TextStyle(fontSize: 16)),
                       ],
                     ),
                   ),
@@ -264,7 +264,7 @@ class _GameCardState extends State<_GameCard> {
     );
   }
 
-  void _launchGame(BuildContext context) {
+  void _launchQuiz(BuildContext context) {
     if (widget.gameType == GameType.matching) {
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -286,7 +286,7 @@ class _GameCardState extends State<_GameCard> {
     }
   }
 
-  Color _getColorForGame(GameType gameType) {
+  Color _getColorForQuiz(GameType gameType) {
     switch (gameType) {
       case GameType.matching:
         return AppTheme.primary;

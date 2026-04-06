@@ -74,6 +74,10 @@ class ScriptureMastery {
   /// Consecutive perfect completions at Word Builder Master difficulty.
   final int consecutivePerfectMaster;
 
+  /// Difficulty levels the user explicitly completed in Word Builder.
+  /// Used to detect "skipped" tiers that were auto-credited.
+  final Set<DifficultyLevel> explicitlyCompletedWbDifficulties;
+
   const ScriptureMastery({
     required this.scriptureId,
     required this.level,
@@ -88,7 +92,20 @@ class ScriptureMastery {
     required this.gameTypesWithCorrect,
     this.masteredSince,
     this.consecutivePerfectMaster = 0,
+    this.explicitlyCompletedWbDifficulties = const {},
   });
+
+  /// Whether a given Word Builder difficulty was auto-credited (skipped)
+  /// rather than explicitly completed by the user.
+  /// Returns true if the difficulty is credited (highestDifficultyCompleted >= it)
+  /// but the user never actually completed it.
+  bool wasDifficultySkipped(DifficultyLevel difficulty) {
+    final wbHighest = highestDifficultyPerGame[GameType.wordOrder];
+    if (wbHighest == null) return false;
+    final isCredited = difficulty.index <= wbHighest.index;
+    final wasExplicit = explicitlyCompletedWbDifficulties.contains(difficulty);
+    return isCredited && !wasExplicit;
+  }
 
   /// Days since last practice, or null if never practiced.
   int? get daysSinceLastPractice {
@@ -160,6 +177,8 @@ class ScriptureMastery {
     final wbDifficultyRank =
         _difficultyRank(highestDifficulty[GameType.wordOrder]);
     final perfectMasterCount = wbProgress?.consecutivePerfectMaster ?? 0;
+    final explicitWbDifficulties =
+        wbProgress?.explicitlyCompletedDifficulties ?? const {};
 
     // Days since last practice
     final daysSince = lastPracticed != null
@@ -182,6 +201,7 @@ class ScriptureMastery {
         gameTypesWithCorrect: gameTypesWithCorrect,
         masteredSince: masteredSinceDate,
         consecutivePerfectMaster: perfectMasterCount,
+        explicitlyCompletedWbDifficulties: explicitWbDifficulties,
       );
     }
 
@@ -233,6 +253,7 @@ class ScriptureMastery {
       gameTypesWithCorrect: gameTypesWithCorrect,
       masteredSince: masteredSinceDate,
       consecutivePerfectMaster: perfectMasterCount,
+      explicitlyCompletedWbDifficulties: explicitWbDifficulties,
     );
   }
 

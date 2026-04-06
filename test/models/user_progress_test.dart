@@ -211,5 +211,55 @@ void main() {
       final progress = UserProgress.fromJson(json);
       expect(progress.accuracy, equals(100.0));
     });
+
+    test('round-trip serialization preserves explicitlyCompletedDifficulties', () {
+      const original = UserProgress(
+        scriptureId: 'test-1',
+        gameType: GameType.wordOrder,
+        explicitlyCompletedDifficulties: {
+          DifficultyLevel.beginner,
+          DifficultyLevel.master,
+        },
+      );
+
+      final json = original.toJson();
+      final restored = UserProgress.fromJson(json);
+
+      expect(
+        restored.explicitlyCompletedDifficulties,
+        equals({DifficultyLevel.beginner, DifficultyLevel.master}),
+      );
+    });
+
+    test('fromJson defaults explicitlyCompletedDifficulties to empty when missing (backward compat)', () {
+      final json = {
+        'scriptureId': 'test-1',
+        'gameType': 'matching',
+        'highestDifficultyCompleted': 'beginner',
+        'totalAttempts': 5,
+        'correctAttempts': 3,
+        'currentStreak': 1,
+        'bestStreak': 2,
+        'bestTime': null,
+        'lastPracticed': null,
+        'accuracy': 60.0,
+        'masteryLevel': 'learning',
+        'needsReview': true,
+        // NOTE: no 'explicitlyCompletedDifficulties' key — simulates old data
+      };
+
+      final progress = UserProgress.fromJson(json);
+      expect(progress.explicitlyCompletedDifficulties, isEmpty);
+    });
+
+    test('toJson includes explicitlyCompletedDifficulties', () {
+      const progress = UserProgress(
+        scriptureId: 'test-1',
+        gameType: GameType.wordOrder,
+        explicitlyCompletedDifficulties: {DifficultyLevel.master},
+      );
+      final json = progress.toJson();
+      expect(json['explicitlyCompletedDifficulties'], ['master']);
+    });
   });
 }

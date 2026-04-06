@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'theme/app_theme.dart';
+import 'providers/onboarding_provider.dart';
 import 'providers/theme_provider.dart';
 import 'screens/home_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'screens/scripture_list_screen.dart';
 import 'screens/scripture_detail_screen.dart';
-import 'screens/games_hub_screen.dart';
+import 'screens/practice_hub_screen.dart';
 import 'screens/progress_screen.dart';
 
 class SeminarySidekickApp extends ConsumerStatefulWidget {
@@ -21,12 +23,31 @@ class SeminarySidekickApp extends ConsumerStatefulWidget {
 class _SeminarySidekickAppState extends ConsumerState<SeminarySidekickApp> {
   late final GoRouter _router;
 
+  bool _onboardingShown = false;
+
   @override
   void initState() {
     super.initState();
     _router = GoRouter(
       initialLocation: '/',
+      redirect: (context, state) {
+        final hasCompleted = ref.read(onboardingProvider);
+        final isOnboarding = state.uri.toString() == '/onboarding';
+        if (!hasCompleted && !_onboardingShown && !isOnboarding) {
+          _onboardingShown = true;
+          return '/onboarding';
+        }
+        if (hasCompleted && isOnboarding) {
+          return '/';
+        }
+        return null;
+      },
       routes: [
+        // Onboarding route (first-launch only)
+        GoRoute(
+          path: '/onboarding',
+          builder: (context, state) => const OnboardingScreen(),
+        ),
         // Shell with bottom navigation for main tabs
         StatefulShellRoute.indexedStack(
           builder: (context, state, navigationShell) {
@@ -44,8 +65,8 @@ class _SeminarySidekickAppState extends ConsumerState<SeminarySidekickApp> {
             StatefulShellBranch(
               routes: [
                 GoRoute(
-                  path: '/games',
-                  builder: (context, state) => const GamesHubScreen(),
+                  path: '/practice',
+                  builder: (context, state) => const PracticeHubScreen(),
                 ),
               ],
             ),
@@ -116,9 +137,9 @@ class _AppShell extends StatelessWidget {
             label: 'Scriptures',
           ),
           NavigationDestination(
-            icon: Icon(Icons.sports_esports_outlined),
-            selectedIcon: Icon(Icons.sports_esports),
-            label: 'Games',
+            icon: Icon(Icons.quiz_outlined),
+            selectedIcon: Icon(Icons.quiz),
+            label: 'Practice',
           ),
           NavigationDestination(
             icon: Icon(Icons.insights_outlined),

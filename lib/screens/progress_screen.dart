@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/activity.dart';
 import '../models/enums.dart';
 import '../models/scripture.dart';
+import '../providers/activity_provider.dart';
 import '../providers/scripture_provider.dart';
 import '../providers/scripture_mastery_provider.dart';
 import '../theme/app_theme.dart';
@@ -15,6 +17,7 @@ class ProgressScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final stats = ref.watch(holisticStatsProvider);
     final allScriptures = ref.watch(scripturesProvider);
+    final recentActivities = ref.watch(recentActivitiesProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -86,20 +89,25 @@ class ProgressScreen extends ConsumerWidget {
                   ),
             ),
             const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  'No activity yet. Start practicing to see your progress!',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.6),
-                      ),
+            if (recentActivities.isEmpty)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    'No activity yet. Start practicing to see your progress!',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.6),
+                        ),
+                  ),
                 ),
+              )
+            else
+              ...recentActivities.map(
+                (activity) => _ActivityTile(activity: activity),
               ),
-            ),
             const SizedBox(height: 32),
           ],
         ),
@@ -295,5 +303,114 @@ class _StatTile extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _ActivityTile extends StatelessWidget {
+  final Activity activity;
+
+  const _ActivityTile({required this.activity});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4.0),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+          child: Row(
+            children: [
+              // Activity icon
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: _iconColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                ),
+                child: Icon(_icon, color: _iconColor, size: 18),
+              ),
+              const SizedBox(width: 12),
+              // Activity details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      activity.description,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w500,
+                          ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      activity.scriptureReference,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.5),
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              // Timestamp
+              Text(
+                _formatTimestamp(activity.timestamp),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.4),
+                      fontSize: 11,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  IconData get _icon {
+    switch (activity.type) {
+      case ActivityType.gameCompleted:
+        return Icons.check_circle_outline;
+      case ActivityType.masteryLevelUp:
+        return Icons.trending_up;
+      case ActivityType.streakMilestone:
+        return Icons.local_fire_department;
+      case ActivityType.firstAttempt:
+        return Icons.flag_outlined;
+      case ActivityType.perfectRun:
+        return Icons.star;
+    }
+  }
+
+  Color get _iconColor {
+    switch (activity.type) {
+      case ActivityType.gameCompleted:
+        return AppTheme.secondary;
+      case ActivityType.masteryLevelUp:
+        return AppTheme.accent;
+      case ActivityType.streakMilestone:
+        return AppTheme.warning;
+      case ActivityType.firstAttempt:
+        return AppTheme.primary;
+      case ActivityType.perfectRun:
+        return AppTheme.gold;
+    }
+  }
+
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final diff = now.difference(timestamp);
+
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${timestamp.month}/${timestamp.day}';
   }
 }

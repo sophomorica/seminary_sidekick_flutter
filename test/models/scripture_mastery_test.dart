@@ -12,6 +12,7 @@ void main() {
     int wbAttempts = 0,
     int wbCorrect = 0,
     int consecutivePerfectMaster = 0,
+    Set<DifficultyLevel>? wbExplicitDifficulties,
     DifficultyLevel? matchDifficulty,
     int matchAttempts = 0,
     int matchCorrect = 0,
@@ -33,6 +34,7 @@ void main() {
               lastPracticed: lp,
               accuracy: wbAttempts > 0 ? (wbCorrect / wbAttempts) * 100 : 0.0,
               consecutivePerfectMaster: consecutivePerfectMaster,
+              explicitlyCompletedDifficulties: wbExplicitDifficulties ?? const {},
             )
           : null,
       GameType.matching: matchAttempts > 0
@@ -605,6 +607,135 @@ void main() {
         masteredSinceDate: masteredDate,
       );
       expect(mastery.daysMastered, closeTo(45, 1));
+    });
+  });
+
+  // -------------------------------------------------------
+  // Mastery shortcut — skip tiers by proving Master (TASK-031)
+  // -------------------------------------------------------
+  group('Mastery shortcut — skip tiers', () {
+    test('jumping straight to Master with 3 perfect runs → Mastered', () {
+      // User has never done Beginner/Intermediate/Advanced but completed
+      // Master 3 times perfectly
+      final mastery = ScriptureMastery.compute(
+        scriptureId: 'test-1',
+        progressByGame: makeProgress(
+          wbDifficulty: DifficultyLevel.master,
+          wbAttempts: 3,
+          wbCorrect: 3,
+          consecutivePerfectMaster: 3,
+          wbExplicitDifficulties: {DifficultyLevel.master},
+        ),
+      );
+      expect(mastery.level, MasteryLevel.mastered);
+    });
+
+    test('jumping to Master with 1 perfect run → Memorized (still needs 3)',
+        () {
+      final mastery = ScriptureMastery.compute(
+        scriptureId: 'test-1',
+        progressByGame: makeProgress(
+          wbDifficulty: DifficultyLevel.master,
+          wbAttempts: 1,
+          wbCorrect: 1,
+          consecutivePerfectMaster: 1,
+          wbExplicitDifficulties: {DifficultyLevel.master},
+        ),
+      );
+      // Reached Master rank (>=3) but <3 perfect runs → falls to Memorized
+      expect(mastery.level, MasteryLevel.memorized);
+    });
+
+    test('wasDifficultySkipped detects auto-credited tiers', () {
+      // User only played Master, so Beginner/Intermediate/Advanced are skipped
+      final mastery = ScriptureMastery.compute(
+        scriptureId: 'test-1',
+        progressByGame: makeProgress(
+          wbDifficulty: DifficultyLevel.master,
+          wbAttempts: 3,
+          wbCorrect: 3,
+          consecutivePerfectMaster: 3,
+          wbExplicitDifficulties: {DifficultyLevel.master},
+        ),
+      );
+      expect(mastery.wasDifficultySkipped(DifficultyLevel.beginner), true);
+      expect(mastery.wasDifficultySkipped(DifficultyLevel.intermediate), true);
+      expect(mastery.wasDifficultySkipped(DifficultyLevel.advanced), true);
+      expect(mastery.wasDifficultySkipped(DifficultyLevel.master), false);
+    });
+
+    test('wasDifficultySkipped returns false for explicitly completed tiers',
+        () {
+      // User did the whole ladder: Beginner → Intermediate → Advanced → Master
+      final mastery = ScriptureMastery.compute(
+        scriptureId: 'test-1',
+        progressByGame: makeProgress(
+          wbDifficulty: DifficultyLevel.master,
+          wbAttempts: 20,
+          wbCorrect: 20,
+          consecutivePerfectMaster: 3,
+          wbExplicitDifficulties: {
+            DifficultyLevel.beginner,
+            DifficultyLevel.intermediate,
+            DifficultyLevel.advanced,
+            DifficultyLevel.master,
+          },
+        ),
+      );
+      expect(mastery.wasDifficultySkipped(DifficultyLevel.beginner), false);
+      expect(mastery.wasDifficultySkipped(DifficultyLevel.intermediate), false);
+      expect(mastery.wasDifficultySkipped(DifficultyLevel.advanced), false);
+      expect(mastery.wasDifficultySkipped(DifficultyLevel.master), false);
+    });
+
+    test('wasDifficultySkipped returns false for uncredited tiers', () {
+      // User only completed Beginner — Intermediate/Advanced/Master are not
+      // credited, so they can't be "skipped" either.
+      final mastery = ScriptureMastery.compute(
+        scriptureId: 'test-1',
+        progressByGame: makeProgress(
+          wbDifficulty: DifficultyLevel.beginner,
+          wbAttempts: 5,
+          wbCorrect: 4,
+          wbExplicitDifficulties: {DifficultyLevel.beginner},
+        ),
+      );
+      expect(mastery.wasDifficultySkipped(DifficultyLevel.beginner), false);
+      expect(mastery.wasDifficultySkipped(DifficultyLevel.intermediate), false);
+      expect(mastery.wasDifficultySkipped(DifficultyLevel.advanced), false);
+      expect(mastery.wasDifficultySkipped(DifficultyLevel.master), false);
+    });
+
+    test('partial shortcut: user skips to Advanced, Beginner/Intermediate auto-credited',
+        () {
+      final mastery = ScriptureMastery.compute(
+        scriptureId: 'test-1',
+        progressByGame: makeProgress(
+          wbDifficulty: DifficultyLevel.advanced,
+          wbAttempts: 5,
+          wbCorrect: 4,
+          wbExplicitDifficulties: {DifficultyLevel.advanced},
+        ),
+      );
+      expect(mastery.level, MasteryLevel.memorized);
+      expect(mastery.wasDifficultySkipped(DifficultyLevel.beginner), true);
+      expect(mastery.wasDifficultySkipped(DifficultyLevel.intermediate), true);
+      expect(mastery.wasDifficultySkipped(DifficultyLevel.advanced), false);
+    });
+
+    test('explicitlyCompletedWbDifficulties is passed through to ScriptureMastery',
+        () {
+      final mastery = ScriptureMastery.compute(
+        scriptureId: 'test-1',
+        progressByGame: makeProgress(
+          wbDifficulty: DifficultyLevel.master,
+          wbAttempts: 3,
+          wbCorrect: 3,
+          consecutivePerfectMaster: 3,
+          wbExplicitDifficulties: {DifficultyLevel.master},
+        ),
+      );
+      expect(mastery.explicitlyCompletedWbDifficulties, {DifficultyLevel.master});
     });
   });
 }

@@ -72,13 +72,13 @@ enum MasteryLevel {
   final IconData icon;
 }
 
-/// The three game types (expandable later).
+/// Practice types: Word Builder is the mastery tool; matching and quiz are supplementary practice quizzes.
 enum GameType {
-  matching('Scripture Match', 'Match passages to their references',
+  matching('Scripture Match', 'Practice matching passages to their references',
       Icons.swap_horiz),
   wordOrder(
-      'Word Builder', 'Arrange scrambled words in order', Icons.sort_by_alpha),
-  quiz('Quick Quiz', 'Test your knowledge of key phrases', Icons.quiz);
+      'Word Builder', 'Reproduce scripture text from memory', Icons.sort_by_alpha),
+  quiz('Quick Quiz', 'Test your recall of key phrases and references', Icons.quiz);
 
   const GameType(this.displayName, this.description, this.icon);
   final String displayName;

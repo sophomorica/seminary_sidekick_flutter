@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/scripture.dart';
 import '../providers/scripture_mastery_provider.dart';
+import '../providers/spaced_repetition_provider.dart';
 import '../theme/app_theme.dart';
 import 'mastery_badge.dart';
 
@@ -21,6 +22,8 @@ class ScriptureCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final mastery = ref.watch(scriptureMasteryProvider(scripture.id));
+    final isDue = ref.watch(isScriptureDueProvider(scripture.id));
+    final srData = ref.watch(spacedRepetitionDataProvider(scripture.id));
 
     return GestureDetector(
       onTap: onTap,
@@ -84,10 +87,50 @@ class ScriptureCard extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
 
-              // Word count indicator
-              Text(
-                '${scripture.wordCount} words',
-                style: Theme.of(context).textTheme.labelSmall,
+              // Word count and review due indicator
+              Row(
+                children: [
+                  Text(
+                    '${scripture.wordCount} words',
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                  if (isDue && srData != null) ...[
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.warning.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.refresh,
+                            size: 12,
+                            color: AppTheme.warning,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            srData.daysOverdue > 0
+                                ? '${srData.daysOverdue}d overdue'
+                                : 'Review today',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(
+                                  color: AppTheme.warning,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),

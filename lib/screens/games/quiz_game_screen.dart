@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/enums.dart';
 import '../../models/scripture.dart';
+import '../../providers/activity_provider.dart';
 import '../../providers/progress_provider.dart';
 import '../../providers/quiz_game_provider.dart';
 import '../../services/audio_service.dart';
@@ -307,6 +308,29 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
     _elapsedTimer?.cancel();
     HapticFeedback.heavyImpact();
     ref.read(audioProvider.notifier).play(SoundEffect.complete);
+
+    // Log activity for the quiz completion
+    final activityNotifier = ref.read(activityProvider.notifier);
+    if (finalState.questions.isNotEmpty) {
+      final firstScripture = finalState.questions.first.scripture;
+      activityNotifier.logGameCompleted(
+        scriptureId: firstScripture.id,
+        scriptureReference: firstScripture.reference,
+        gameType: GameType.quiz,
+        difficulty: widget.difficulty,
+        score: finalState.correctAnswers,
+      );
+
+      // Log perfect run if all correct
+      if (finalState.incorrectAnswers == 0) {
+        activityNotifier.logPerfectRun(
+          scriptureId: firstScripture.id,
+          scriptureReference: firstScripture.reference,
+          gameType: GameType.quiz,
+          difficulty: widget.difficulty,
+        );
+      }
+    }
 
     Future.delayed(const Duration(milliseconds: 400), () {
       if (!mounted) return;

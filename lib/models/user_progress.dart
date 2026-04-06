@@ -23,6 +23,11 @@ class UserProgress {
   /// Resets to 0 on any failure at Master difficulty.
   final int consecutivePerfectMaster;
 
+  /// Difficulty levels the user has explicitly completed (actually played).
+  /// Used to detect "shortcut" skips — tiers that are auto-credited because
+  /// the user proved mastery at a higher difficulty without playing lower ones.
+  final Set<DifficultyLevel> explicitlyCompletedDifficulties;
+
   const UserProgress({
     required this.scriptureId,
     required this.gameType,
@@ -37,6 +42,7 @@ class UserProgress {
     this.masteryLevel = MasteryLevel.newScripture,
     this.needsReview = true,
     this.consecutivePerfectMaster = 0,
+    this.explicitlyCompletedDifficulties = const {},
   });
 
   /// Storage key for Hive.
@@ -58,6 +64,8 @@ class UserProgress {
       'masteryLevel': masteryLevel.name,
       'needsReview': needsReview,
       'consecutivePerfectMaster': consecutivePerfectMaster,
+      'explicitlyCompletedDifficulties':
+          explicitlyCompletedDifficulties.map((d) => d.name).toList(),
     };
   }
 
@@ -81,6 +89,11 @@ class UserProgress {
       needsReview: json['needsReview'] as bool,
       consecutivePerfectMaster:
           (json['consecutivePerfectMaster'] as int?) ?? 0,
+      explicitlyCompletedDifficulties:
+          (json['explicitlyCompletedDifficulties'] as List<dynamic>?)
+                  ?.map((name) => DifficultyLevel.values.byName(name as String))
+                  .toSet() ??
+              const {},
     );
   }
 }

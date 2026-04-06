@@ -323,7 +323,7 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
               children: [
                 Icon(gameType.icon),
                 const SizedBox(width: 8),
-                Text('Play ${gameType.displayName}'),
+                Text('Practice ${gameType.displayName}'),
               ],
             ),
           ),
@@ -684,6 +684,7 @@ class _HolisticMasterySection extends ConsumerWidget {
                   label: 'Beginner',
                   description: 'Tap 3-word chunks',
                   currentLevel: mastery.level,
+                  wasSkipped: mastery.wasDifficultySkipped(DifficultyLevel.beginner),
                   onTap: () => _launchWordBuilder(
                       context, DifficultyLevel.beginner),
                 ),
@@ -692,6 +693,7 @@ class _HolisticMasterySection extends ConsumerWidget {
                   label: 'Intermediate',
                   description: 'Tap 2-word chunks + distractors',
                   currentLevel: mastery.level,
+                  wasSkipped: mastery.wasDifficultySkipped(DifficultyLevel.intermediate),
                   onTap: () => _launchWordBuilder(
                       context, DifficultyLevel.intermediate),
                 ),
@@ -700,6 +702,7 @@ class _HolisticMasterySection extends ConsumerWidget {
                   label: 'Advanced',
                   description: 'Typed with first-letter hints',
                   currentLevel: mastery.level,
+                  wasSkipped: mastery.wasDifficultySkipped(DifficultyLevel.advanced),
                   onTap: () => _launchWordBuilder(
                       context, DifficultyLevel.advanced),
                 ),
@@ -908,6 +911,7 @@ class _MasteryPathStep extends StatelessWidget {
   final String description;
   final MasteryLevel currentLevel;
   final bool isLast;
+  final bool wasSkipped;
   final VoidCallback? onTap;
 
   const _MasteryPathStep({
@@ -916,6 +920,7 @@ class _MasteryPathStep extends StatelessWidget {
     required this.description,
     required this.currentLevel,
     this.isLast = false,
+    this.wasSkipped = false,
     this.onTap,
   });
 
@@ -951,7 +956,11 @@ class _MasteryPathStep extends StatelessWidget {
                     ),
                   ),
                   child: isCompleted
-                      ? const Icon(Icons.check, size: 12, color: Colors.white)
+                      ? Icon(
+                          wasSkipped ? Icons.bolt : Icons.check,
+                          size: 12,
+                          color: Colors.white,
+                        )
                       : null,
                 ),
                 if (!isLast)
@@ -1005,14 +1014,44 @@ class _MasteryPathStep extends StatelessWidget {
                         ),
                     ],
                   ),
-                  Text(
-                    description,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: isCompleted || isCurrent ? 0.6 : 0.3),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          description,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: isCompleted || isCurrent ? 0.6 : 0.3),
+                              ),
                         ),
+                      ),
+                      if (wasSkipped && isCompleted)
+                        Container(
+                          margin: const EdgeInsets.only(left: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.bolt, size: 10, color: color),
+                              const SizedBox(width: 2),
+                              Text(
+                                'Skipped',
+                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                      fontSize: 9,
+                                      color: color,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
                   ),
                 ],
               ),

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/enums.dart';
 import '../../models/scripture.dart';
+import '../../providers/activity_provider.dart';
 import '../../providers/progress_provider.dart';
 import '../../providers/word_builder_provider.dart';
 import '../../services/audio_service.dart';
@@ -969,14 +970,71 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
 
     // Record an attempt for each scripture in the session
     final progressNotifier = ref.read(progressProvider.notifier);
+    final activityNotifier = ref.read(activityProvider.notifier);
     final timeInSeconds = (state.completionTime ?? _elapsed).inSeconds;
     for (final scripture in state.scriptureQueue) {
+      // Capture previous mastery level before recording
+      final prevProgress = progressNotifier.getProgress(scripture.id, GameType.wordOrder);
+      final prevMastery = prevProgress?.masteryLevel ?? MasteryLevel.newScripture;
+      final isFirstAttempt = prevProgress == null;
+
       progressNotifier.recordAttempt(
         scriptureId: scripture.id,
         gameType: GameType.wordOrder,
         correct: true, // All scriptures are completed at this point
         time: timeInSeconds,
         difficultyCompleted: widget.difficulty,
+      );
+
+      // Log game completion activity
+      activityNotifier.logGameCompleted(
+        scriptureId: scripture.id,
+        scriptureReference: scripture.reference,
+        gameType: GameType.wordOrder,
+        difficulty: widget.difficulty,
+        timeSeconds: timeInSeconds,
+      );
+
+      // Log first attempt
+      if (isFirstAttempt) {
+        activityNotifier.logFirstAttempt(
+          scriptureId: scripture.id,
+          scriptureReference: scripture.reference,
+          gameType: GameType.wordOrder,
+        );
+      }
+
+      // Check for mastery level-up
+      final newProgress = progressNotifier.getProgress(scripture.id, GameType.wordOrder);
+      final newMastery = newProgress?.masteryLevel ?? MasteryLevel.newScripture;
+      if (newMastery.index > prevMastery.index) {
+        activityNotifier.logMasteryLevelUp(
+          scriptureId: scripture.id,
+          scriptureReference: scripture.reference,
+          previousLevel: prevMastery,
+          newLevel: newMastery,
+        );
+      }
+
+      // Check for streak milestones
+      final newStreak = newProgress?.currentStreak ?? 0;
+      if ([5, 10, 25, 50, 100].contains(newStreak)) {
+        activityNotifier.logStreakMilestone(
+          scriptureId: scripture.id,
+          scriptureReference: scripture.reference,
+          streakCount: newStreak,
+          gameType: GameType.wordOrder,
+        );
+      }
+    }
+
+    // Log perfect run if no incorrect attempts
+    if (state.incorrectAttempts == 0 && state.scriptureQueue.isNotEmpty) {
+      activityNotifier.logPerfectRun(
+        scriptureId: state.scriptureQueue.first.id,
+        scriptureReference: state.scriptureQueue.first.reference,
+        gameType: GameType.wordOrder,
+        difficulty: widget.difficulty,
       );
     }
 

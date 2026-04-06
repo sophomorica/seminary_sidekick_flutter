@@ -188,7 +188,7 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
                           _StatRow(
                             icon: Icons.check_circle_outline,
                             iconColor: AppTheme.success,
-                            label: 'Correct Matches',
+                            label: 'Correct',
                             value: '${widget.correctMatches}/${widget.totalPairs}',
                           ),
                           const Divider(height: 20),
@@ -233,11 +233,11 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    // Pop back to games hub and let user start a new game
+                    // Pop back to practice hub and let user start again
                     Navigator.of(context).pop();
                   },
                   icon: const Icon(Icons.replay),
-                  label: const Text('Play Again'),
+                  label: const Text('Try Again'),
                 ),
               ),
               const SizedBox(height: 12),
@@ -245,11 +245,11 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    // Navigate back to games hub
+                    // Navigate back to practice hub
                     Navigator.of(context).pop();
                   },
                   icon: const Icon(Icons.home_outlined),
-                  label: const Text('Back to Games'),
+                  label: const Text('Back to Practice'),
                 ),
               ),
             ],

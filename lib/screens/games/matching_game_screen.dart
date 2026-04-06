@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/enums.dart';
 import '../../models/scripture.dart';
+import '../../providers/activity_provider.dart';
 import '../../providers/matching_game_provider.dart';
 import '../../providers/progress_provider.dart';
 import '../../services/audio_service.dart';
@@ -309,6 +310,7 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
 
     // Record an attempt for each scripture in the session
     final progressNotifier = ref.read(progressProvider.notifier);
+    final activityNotifier = ref.read(activityProvider.notifier);
     final timeInSeconds = (finalState.completionTime ?? _elapsed).inSeconds;
     for (final pair in finalState.pairs) {
       progressNotifier.recordAttempt(
@@ -317,6 +319,24 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
         correct: true, // All pairs are matched at completion
         time: timeInSeconds,
         difficultyCompleted: widget.difficulty,
+      );
+      // Log activity for each scripture completed
+      activityNotifier.logGameCompleted(
+        scriptureId: pair.scripture.id,
+        scriptureReference: pair.scripture.reference,
+        gameType: GameType.matching,
+        difficulty: widget.difficulty,
+        timeSeconds: timeInSeconds,
+      );
+    }
+
+    // Log perfect run if no incorrect attempts
+    if (finalState.incorrectAttempts == 0 && finalState.pairs.isNotEmpty) {
+      activityNotifier.logPerfectRun(
+        scriptureId: finalState.pairs.first.scripture.id,
+        scriptureReference: finalState.pairs.first.scripture.reference,
+        gameType: GameType.matching,
+        difficulty: widget.difficulty,
       );
     }
 

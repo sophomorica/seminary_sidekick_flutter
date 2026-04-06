@@ -4,9 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'app.dart';
+import 'providers/activity_provider.dart';
 import 'providers/mastery_dates_provider.dart';
 import 'providers/notes_provider.dart';
+import 'providers/onboarding_provider.dart';
 import 'providers/progress_provider.dart';
+import 'providers/spaced_repetition_provider.dart';
 import 'providers/theme_provider.dart';
 import 'services/audio_service.dart';
 
@@ -35,6 +38,9 @@ void main() async {
   await container.read(progressProvider.notifier).init();
   await container.read(notesProvider.notifier).init();
   await container.read(masteryDatesProvider.notifier).init();
+  await container.read(spacedRepetitionProvider.notifier).init();
+  await container.read(activityProvider.notifier).init();
+  await container.read(onboardingProvider.notifier).init();
   await container.read(themeProvider.notifier).init();
   await container.read(audioProvider.notifier).init();
 

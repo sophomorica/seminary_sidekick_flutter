@@ -5,9 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../models/enums.dart';
 import '../providers/scripture_provider.dart';
 import '../providers/scripture_mastery_provider.dart';
+import '../providers/spaced_repetition_provider.dart';
 import '../providers/theme_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/scripture_card.dart';
+import 'onboarding_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -17,37 +19,32 @@ class HomeScreen extends ConsumerWidget {
     final allScriptures = ref.watch(scripturesProvider);
     final stats = ref.watch(holisticStatsProvider);
 
-    // Get scriptures that need review (using holistic mastery)
-    final needsReviewScriptures = allScriptures.where((scripture) {
-      final mastery = ref.watch(scriptureMasteryProvider(scripture.id));
-      return mastery.needsReview;
-    }).toList();
+    // Smart review queue powered by spaced repetition (SR overdue first,
+    // then mastery-decay needsReview, then almost-leveling-up scriptures)
+    final smartQueue = ref.watch(smartReviewQueueProvider);
+    final dueCount = ref.watch(dueCountProvider);
 
-    // Also find scriptures closest to leveling up (high sub-progress)
-    final almostThereScriptures = allScriptures.where((s) {
-      final m = ref.watch(scriptureMasteryProvider(s.id));
-      return m.level != MasteryLevel.mastered &&
-          m.level != MasteryLevel.eternal &&
-          m.subProgress >= 0.6;
-    }).toList()
-      ..sort((a, b) {
-        final ma = ref.watch(scriptureMasteryProvider(a.id));
-        final mb = ref.watch(scriptureMasteryProvider(b.id));
-        return mb.subProgress.compareTo(ma.subProgress);
-      });
-
-    // Prioritize: needs review > almost there > random
-    final continueLearningScriptures = needsReviewScriptures.isNotEmpty
-        ? needsReviewScriptures.take(3).toList()
-        : almostThereScriptures.isNotEmpty
-            ? almostThereScriptures.take(3).toList()
-            : (allScriptures..shuffle()).take(3).toList();
+    // Fall back to random scriptures if queue is empty (brand new user)
+    final continueLearningScriptures = smartQueue.isNotEmpty
+        ? smartQueue.take(5).toList()
+        : (List.of(allScriptures)..shuffle()).take(3).toList();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Seminary Sidekick'),
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            tooltip: 'How mastery works',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const OnboardingScreen(isRevisit: true),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: Icon(
               Theme.of(context).brightness == Brightness.dark
@@ -156,12 +153,60 @@ class HomeScreen extends ConsumerWidget {
 
             const SizedBox(height: 32),
 
-            // Continue Learning section
+            // Continue Learning section (powered by spaced repetition)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'Continue Learning',
-                style: Theme.of(context).textTheme.headlineSmall,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Continue Learning',
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
+                        if (dueCount > 0) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            '$dueCount scripture${dueCount == 1 ? '' : 's'} due for review',
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppTheme.warning,
+                                    ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (dueCount > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.warning.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.schedule,
+                              size: 14, color: AppTheme.warning),
+                          const SizedBox(width: 4),
+                          Text(
+                            '$dueCount',
+                            style:
+                                Theme.of(context).textTheme.labelSmall?.copyWith(
+                                      color: AppTheme.warning,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
               ),
             ),
             const SizedBox(height: 12),
