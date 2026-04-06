@@ -7,17 +7,32 @@
 
 ## What This App Is
 
-A gamified scripture memorization tool for the ~100 Doctrinal Mastery scriptures of The Church of Jesus Christ of Latter-day Saints (Old Testament, New Testament, Book of Mormon, Doctrine & Covenants).
+A focused scripture mastery tool for the 100 Doctrinal Mastery scriptures of The Church of Jesus Christ of Latter-day Saints.
 
-The core loop: **Study → Build → Prove → Master**. Each scripture has its own mastery journey. Users study the text, then use **Word Builder** (the primary mastery tool) to progressively prove they can reproduce it from memory. Supplementary quizzes (Scripture Match, Quick Quiz) help with recognition and comprehension but don't gate mastery.
+The core loop is **Study → Build → Prove → Master**. Users study the text, then use **Word Builder** (the primary mastery tool) to progressively prove they can reproduce it from memory. Supplementary practice tools (Scripture Match, Quick Quiz) help with recognition and comprehension but do not gate mastery.
 
-**Key UX principle**: The path to mastery must be obvious. When a user opens a scripture, they should immediately see where they are, what to do next, and what "mastered" means. Word Builder lives under the scripture itself — it's not a separate "game," it's THE mastery tool.
+**Key UX principle**: The path to mastery must be obvious. When a user opens a scripture, they should immediately see where they are on the mastery path, what to do next, and what “mastered” means. Word Builder lives directly under each scripture as the central mastery tool.
 
-**Design philosophy**: Fun first (animations, haptics, satisfying feedback loops). Progressive difficulty (gentle on-ramp to brutal endgame). Visual warmth (warm rust/sage green/calm blue palette with Merriweather + Inter typography).
+**Design philosophy**: Fun first with warm, satisfying feedback (animations, haptics, confetti, progressive difficulty). The experience is reverent and purposeful while remaining engaging for seminary students.
 
-**Status**: Free-tier MVP complete. Now building the premium tier — AI study companion, scripture journal, seminary curriculum sync, goals/reminders, study groups, and deep study tools. See TODO.md for the full premium task board.
+**Status**: Free-tier MVP is complete. The app is now moving into the **Premium tier**, which unlocks the **Seminary Sidekick** — an AI companion powered by Grok.  
+Premium features focus on deeper understanding and application through AI-generated journal prompts, reflection questions, smart goals, timeline insights, and subtle engagement enhancements that make diligent study feel natural and rewarding.
 
-**Business model**: Freemium. Free tier = full mastery loop (Word Builder, quizzes, spaced repetition, progress tracking). Premium tier = AI companion, journal, curriculum sync, goals, social, deep study tools.
+**Business model**: Freemium.  
+- **Free tier** = Full mastery loop (Word Builder, Practice tools, spaced repetition, progress tracking, activity feed).  
+- **Premium tier** = Seminary Sidekick AI (JSON snapshot → structured response), journal with dynamic prompts, curriculum awareness, gentle reminders, and light engagement layers.
+
+---
+
+## Tech Stack
+
+(unchanged — keep as is)
+
+---
+
+## Project Structure
+
+**Important update**: New files will be added under Premium:
 
 ---
 
@@ -33,6 +48,7 @@ The core loop: **Study → Build → Prove → Master**. Each scripture has its 
 | **flutter_animate** | Animations |
 | **confetti** | Celebration effects |
 | **audioplayers** | Sound effects |
+| **purchases_flutter** (RevenueCat) | In-app subscriptions (freemium) |
 
 ---
 
@@ -47,6 +63,9 @@ lib/
 │   ├── scripture.dart           # Scripture model with pre-split words
 │   ├── user_progress.dart       # UserProgress with toJson/fromJson
 │   └── scripture_mastery.dart   # Holistic mastery (computed, not stored)
+│   ├── sidekick_snapshot.dart      # New: JSON sent to Grok
+│   ├── sidekick_response.dart      # New: Structured response from Grok
+│   └── journal_entry.dart          # New
 ├── data/
 │   └── scriptures_data.dart     # 100 Doctrinal Mastery scriptures (allScriptures)
 ├── providers/
@@ -58,6 +77,10 @@ lib/
 │   ├── word_builder_provider.dart
 │   ├── quiz_game_provider.dart
 │   └── notes_provider.dart      # Per-scripture notes (Hive-backed)
+│   ├── sidekick_provider.dart      # New: Main AI orchestration
+│   ├── subscription_provider.dart  # Freemium state (Hive-backed, RevenueCat-ready)
+│   ├── goals_provider.dart         # New
+│   └── journal_provider.dart       # New or extended
 ├── screens/
 │   ├── home_screen.dart
 │   ├── scripture_list_screen.dart
@@ -65,6 +88,10 @@ lib/
 │   ├── memorize_screen.dart
 │   ├── games_hub_screen.dart
 │   ├── progress_screen.dart
+│   ├── upgrade_screen.dart         # Full-screen premium upgrade experience
+│   ├── journal_screen.dart         # New
+│   ├── sidekick_chat_screen.dart   # New
+│   └── premium/                    # New folder for premium screens
 │   └── games/
 │       ├── matching_game_screen.dart
 │       ├── word_builder_screen.dart
@@ -72,11 +99,13 @@ lib/
 │       └── game_results_screen.dart
 ├── services/
 │   ├── audio_service.dart       # AudioNotifier with pooled players
-│   └── speech_service.dart      # Speech-to-text wrapper
+│   ├──speech_service.dart      # Speech-to-text wrapper
+│   └── sidekick_service.dart       # New: Grok API calls
 ├── widgets/
 │   ├── scripture_card.dart
 │   ├── mastery_badge.dart
-│   └── progress_ring.dart
+│   ├── progress_ring.dart
+│   └── premium_teaser.dart     # PremiumTeaser, PremiumInlineLink, PremiumGate
 └── theme/
     └── app_theme.dart           # Full design system: colors, typography, spacing
 ```
@@ -88,12 +117,16 @@ lib/
 ### Scripture (immutable)
 
 Fields: `id` (String, '1'..'100'), `book` (ScriptureBook enum), `volume`, `reference`, `name` (topic), `keyPhrase`, `fullText`, `words` (pre-split, auto-computed), `wordCount` (auto-computed).
+**New models for Premium**:
+- `SidekickSnapshot`: Contains current mastery state, seminary curriculum week, goals, recent activity, etc.
+- `SidekickResponse`: Structured JSON from Grok that triggers app actions (daily prompt, quick win, goal suggestion, etc.).
 
 ### UserProgress (per scripture × game type)
 
 Fields: `scriptureId`, `gameType`, `highestDifficultyCompleted`, `totalAttempts`, `correctAttempts`, `currentStreak`, `bestStreak`, `bestTime`, `lastPracticed`, `accuracy`, `masteryLevel`, `needsReview`, `consecutivePerfectMaster`.
 
 Storage key format: `{scriptureId}_{gameType.name}`
+
 
 ### Enums
 
@@ -170,6 +203,9 @@ AppTheme.dark             // Text
 AppTheme.surface          // Card backgrounds
 AppTheme.offWhite         // Scaffold background
 AppTheme.bookColor('oldTestament')  // Book-specific
+AppTheme.premiumGold      // Premium badges, upgrade CTAs (#D4A843)
+AppTheme.premiumGoldLight // Premium background tint (#F5E6B8)
+AppTheme.premiumGradientStart / premiumGradientEnd  // Premium icon gradients
 
 // Typography — always use Theme.of(context).textTheme.*
 displayMedium   // Big headings (Merriweather)
@@ -223,6 +259,7 @@ Word Builder follows this same pattern but is launched from scripture detail, no
 | Game screens | `Navigator.of(context).push()` | Transient overlays |
 | Game results | `Navigator.of(context).pushReplacement()` | Replace game with results |
 | Memorize tool | `Navigator.of(context).push()` | From scripture detail |
+| Upgrade screen | GoRouter `context.go('/upgrade')` or `Navigator.push()` | From teasers/prompts |
 
 ### Feedback on Every Action
 
@@ -247,6 +284,13 @@ ref.watch(holisticStatsProvider)                        // Aggregate mastery sta
 ref.watch(masteryLevelProvider(('42', GameType.matching)))  // Per-game mastery (legacy, still used by game screens)
 ref.watch(userStatsProvider)                            // Overall stats
 ref.read(progressProvider.notifier).recordAttempt(...)  // Record attempt
+
+// Subscription (freemium)
+ref.watch(subscriptionProvider)                        // Full subscription state
+ref.watch(isPremiumProvider)                           // bool — is user premium?
+ref.watch(canShowUpgradePromptProvider)                // bool — rate-limited prompt check
+ref.read(subscriptionProvider.notifier).purchasePlan(plan)  // Trigger purchase
+ref.read(subscriptionProvider.notifier).dismissUpgradePrompt()  // Record dismissal
 ```
 
 ---
@@ -419,26 +463,29 @@ flutter run              # Run app
 | `TODO.md` | Task board (claim/complete tasks here) |
 | `app_theme.dart` | Single source of truth for colors and spacing |
 | `scriptures_data.dart` | All 100 scripture entries |
+| `subscription_provider.dart` | Freemium state, RevenueCat integration, prompt rate-limiting |
+| `upgrade_screen.dart` | Full-screen premium upgrade experience (plan selection, purchase) |
+| `premium_teaser.dart` | Reusable upgrade prompt widgets (PremiumTeaser, PremiumInlineLink, PremiumGate) |
 
 ## Current Task Status
 
-See `TODO.md` for full details.
-
 **Free-tier MVP** (completed 2026-04-06):
-- All core tasks done: Word Builder mastery, quizzes, progress tracking, spaced repetition, activity feed, onboarding, dark mode, speech-to-text, audio/confetti feedback
-- UX restructure complete: Word Builder under scripture detail, Games → Practice, mastery shortcut, holistic mastery system
+- All core tasks done: Word Builder mastery, Practice tab, spaced repetition, activity feed, onboarding, dark mode, speech-to-text, audio/confetti feedback.
+- UX restructure complete: Word Builder is the hero on scripture detail, mastery path is clear, shortcut logic implemented.
 
-**Active direction** (2026-04-06 — Premium Tier):
-- **P0**: TASK-100 (backend, auth, paywall infrastructure)
-- **P0**: TASK-101/102/103 (AI study companion — backend, daily prompt, chat)
-- **P1**: TASK-104/105 (scripture journal + AI prompts)
-- **P1**: TASK-106 (seminary curriculum sync)
-- **P1**: TASK-107/108 (goals, smart reminders)
-- **P2**: TASK-109/110 (deep study tools — cross-refs, historical context)
-- **P2**: TASK-111/112 (study groups, accountability partners)
+**Freemium infrastructure** (completed 2026-04-06):
+- TASK-033 done: SubscriptionProvider (Hive-backed), RevenueCat wired, UpgradeScreen, PremiumTeaser widgets, rate-limited prompts.
 
+**Active direction** (Premium Tier – Seminary Sidekick):
+- **P0**: TASK-034 (Seminary Sidekick AI core – Grok integration with JSON snapshot/response)
+- **P1**: TASK-035 (AI-powered journal & dynamic reflection prompts)
+- **P1**: TASK-036 (AI-driven goals, timeline & gentle reminders)
+- **P1**: TASK-037 (“Ask Your Sidekick” chat)
+- **P1**: TASK-039 (Premium teaser & upgrade experience)
+- **P2**: TASK-038 (Premium polish)
+- **P2**: TASK-040 (Subtle engagement enhancements)
 
+---
 ## Available Skills
-
 - `/grill-me` — Use this when you need deep, relentless questioning on game mechanics, mastery logic, UX flows, or architecture decisions.
 - `/request-refactor-plan` — Before any major refactor (especially providers or game screens).

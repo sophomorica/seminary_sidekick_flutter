@@ -11,6 +11,7 @@ import 'screens/scripture_list_screen.dart';
 import 'screens/scripture_detail_screen.dart';
 import 'screens/practice_hub_screen.dart';
 import 'screens/progress_screen.dart';
+import 'screens/upgrade_screen.dart';
 
 class SeminarySidekickApp extends ConsumerStatefulWidget {
   const SeminarySidekickApp({super.key});
@@ -92,6 +93,10 @@ class _SeminarySidekickAppState extends ConsumerState<SeminarySidekickApp> {
           builder: (context, state) => ScriptureDetailScreen(
             scriptureId: state.pathParameters['id']!,
           ),
+        ),
+        GoRoute(
+          path: '/upgrade',
+          builder: (context, state) => const UpgradeScreen(),
         ),
       ],
     );

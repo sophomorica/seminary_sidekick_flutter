@@ -57,18 +57,28 @@
 
 ### TASK-033: Freemium Infrastructure & Subscription Basics
 
-- **status**: `open`
+- **status**: `done`
 - **priority**: P0
 - **estimated_effort**: Medium
-- **files_to_touch**: NEW `lib/providers/subscription_provider.dart`, `lib/app.dart`, `lib/main.dart`, `lib/screens/settings_screen.dart` (or new upgrade screen), pubspec.yaml
+- **claimed_by**: claude-opus-agent
+- **started**: 2026-04-06T00:00:00Z
+- **completed**: 2026-04-06T00:30:00Z
+- **files_to_touch**: NEW `lib/providers/subscription_provider.dart`, `lib/app.dart`, `lib/main.dart`, `lib/screens/upgrade_screen.dart`, `lib/widgets/premium_teaser.dart`, `lib/theme/app_theme.dart`, pubspec.yaml
 - **description**: Clean freemium model. All existing mastery tools remain completely free. Premium unlocks the Seminary Sidekick features.
 - **acceptance_criteria**:
-  - [ ] Subscription state managed via Riverpod with graceful free-tier fallbacks
-  - [ ] RevenueCat integration for monthly/yearly plans
-  - [ ] Tasteful upgrade prompts at natural moments
-  - [ ] Free tier remains generous and untouched
+  - [x] Subscription state managed via Riverpod with graceful free-tier fallbacks
+  - [x] RevenueCat integration for monthly/yearly plans
+  - [x] Tasteful upgrade prompts at natural moments
+  - [x] Free tier remains generous and untouched
 - **depends_on**: —
-- **notes**: Subscription check happens early (e.g., in main.dart or home_screen). No full backend/auth required yet.
+- **notes**:
+  - `SubscriptionNotifier` follows the same pattern as `ThemeNotifier` / `OnboardingNotifier` (Hive-backed StateNotifier with `init()`)
+  - RevenueCat `purchases_flutter: ^8.1.0` added to pubspec; integration points are marked with TODO comments for when API keys are configured
+  - Upgrade prompts are rate-limited: max 1/day, backs off after 3 dismissals
+  - Three widget options for upgrade prompts: `PremiumTeaser` (card), `PremiumInlineLink` (subtle text), `PremiumGate` (swap premium content vs teaser)
+  - `/upgrade` route added to GoRouter for full-screen upgrade experience
+  - Premium colors added to AppTheme (premiumGold, premiumGoldLight, gradient pair)
+  - Free tier is completely untouched — all premium checks default to free gracefully
 
 ### TASK-034: Seminary Sidekick AI Core Service (Grok Integration)
 

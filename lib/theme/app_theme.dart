@@ -40,6 +40,12 @@ class AppTheme {
   static const Color warning = Color(0xFFFFA726);
   static const Color gold = Color(0xFFD4A843);
 
+  // ─── Premium / Upgrade Colors ────────────────────────────────────
+  static const Color premiumGold = Color(0xFFD4A843);        // Premium badge
+  static const Color premiumGoldLight = Color(0xFFF5E6B8);   // Premium bg tint
+  static const Color premiumGradientStart = Color(0xFFD4A843);
+  static const Color premiumGradientEnd = Color(0xFFE8C86A);
+
   // ─── Mastery Level Colors ───────────────────────────────────────
   static const Color masteryNew = Color(0xFF9E9E9E);
   static const Color masteryLearning = Color(0xFFFF8A65);
