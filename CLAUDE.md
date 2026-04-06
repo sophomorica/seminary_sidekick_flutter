@@ -15,7 +15,9 @@ The core loop: **Study → Build → Prove → Master**. Each scripture has its 
 
 **Design philosophy**: Fun first (animations, haptics, satisfying feedback loops). Progressive difficulty (gentle on-ramp to brutal endgame). Visual warmth (warm rust/sage green/calm blue palette with Merriweather + Inter typography).
 
-**Status**: MVP ~85% complete. Active development — major UX restructure in progress (moving Word Builder under scripture detail, reframing games as quizzes, adding onboarding).
+**Status**: Free-tier MVP complete. Now building the premium tier — AI study companion, scripture journal, seminary curriculum sync, goals/reminders, study groups, and deep study tools. See TODO.md for the full premium task board.
+
+**Business model**: Freemium. Free tier = full mastery loop (Word Builder, quizzes, spaced repetition, progress tracking). Premium tier = AI companion, journal, curriculum sync, goals, social, deep study tools.
 
 ---
 
@@ -422,16 +424,18 @@ flutter run              # Run app
 
 See `TODO.md` for full details.
 
-**Recently completed** (2026-04-02):
-- TASK-026/027/028: Holistic mastery system — Word Builder-centric linear path
-- TASK-029: Mastery system tests (40 new tests across 3 files)
+**Free-tier MVP** (completed 2026-04-06):
+- All core tasks done: Word Builder mastery, quizzes, progress tracking, spaced repetition, activity feed, onboarding, dark mode, speech-to-text, audio/confetti feedback
+- UX restructure complete: Word Builder under scripture detail, Games → Practice, mastery shortcut, holistic mastery system
 
-**Active direction** (2026-04-02 — major UX restructure):
-- **P0**: TASK-030 (move Word Builder under scripture detail as primary mastery tool)
-- **P0**: TASK-031 (mastery shortcut — skip tiers if you prove Master)
-- **P1**: TASK-032 (rename Games → Practice/Quizzes, remove WB from hub)
-- **P1**: TASK-013 (onboarding tutorial — explain the mastery path)
-- **P2**: TASK-009 (spaced repetition), TASK-010 (activity feed)
+**Active direction** (2026-04-06 — Premium Tier):
+- **P0**: TASK-100 (backend, auth, paywall infrastructure)
+- **P0**: TASK-101/102/103 (AI study companion — backend, daily prompt, chat)
+- **P1**: TASK-104/105 (scripture journal + AI prompts)
+- **P1**: TASK-106 (seminary curriculum sync)
+- **P1**: TASK-107/108 (goals, smart reminders)
+- **P2**: TASK-109/110 (deep study tools — cross-refs, historical context)
+- **P2**: TASK-111/112 (study groups, accountability partners)
 
 
 ## Available Skills
