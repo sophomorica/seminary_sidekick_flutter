@@ -432,3 +432,9 @@ See `TODO.md` for full details.
 - **P1**: TASK-032 (rename Games → Practice/Quizzes, remove WB from hub)
 - **P1**: TASK-013 (onboarding tutorial — explain the mastery path)
 - **P2**: TASK-009 (spaced repetition), TASK-010 (activity feed)
+
+
+## Available Skills
+
+- `/grill-me` — Use this when you need deep, relentless questioning on game mechanics, mastery logic, UX flows, or architecture decisions.
+- `/request-refactor-plan` — Before any major refactor (especially providers or game screens).

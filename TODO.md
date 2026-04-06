@@ -152,19 +152,21 @@
 
 ### TASK-030: Move Word Builder Under Scripture Detail
 
-- **status**: `open`
-- **claimed_by**: —
+- **status**: `done`
+- **claimed_by**: claude/cowork
 - **priority**: P0
 - **estimated_effort**: Large
+- **completed**: 2026-04-02
 - **files_to_touch**: `lib/screens/scripture_detail_screen.dart`, `lib/screens/games_hub_screen.dart`, `lib/screens/games/word_builder_screen.dart`, `lib/app.dart`
 - **description**: Word Builder is the primary mastery tool and should be accessed from the scripture detail screen, not the games hub. Add a prominent "Start Mastery" / "Continue Journey" button on scripture detail that launches Word Builder at the appropriate difficulty (next unbeaten tier, or Master if all tiers done). The mastery path timeline (already built in TASK-028) should be the hero element on scripture detail, with Word Builder as the clear call-to-action.
 - **acceptance_criteria**:
-  - [ ] Scripture detail has a prominent CTA button to launch Word Builder at the right difficulty
-  - [ ] Mastery path timeline is the hero section (above notes, above quiz shortcuts)
-  - [ ] Word Builder can still be launched for any specific difficulty from the timeline steps
-  - [ ] Word Builder completion returns to scripture detail (not games hub) and updates the mastery path
-  - [ ] Games hub no longer shows Word Builder as a game card
+  - [x] Scripture detail has a prominent CTA button to launch Word Builder at the right difficulty
+  - [x] Mastery path timeline is the hero section (above notes, above quiz shortcuts)
+  - [x] Word Builder can still be launched for any specific difficulty from the timeline steps
+  - [x] Word Builder completion returns to scripture detail (not games hub) and updates the mastery path
+  - [x] Games hub no longer shows Word Builder as a game card
 - **depends_on**: TASK-028
+- **notes**: Restructured scripture detail: mastery path is now the hero section immediately after scripture text/key phrase. Added prominent CTA button ("Start Mastery"/"Continue Journey"/"Review Now"/"Practice Master") that auto-selects the next appropriate WB difficulty. Timeline steps are tappable with play icons to launch WB at any specific difficulty. Memorize tool moved below mastery section as an outlined button. Practice buttons filtered to only show Scripture Match and Quick Quiz. Games hub filtered to exclude Word Builder (removed import too). Word Builder completion uses Navigator.pushReplacement to GameResultsScreen, so back navigation returns to scripture detail. Mastery path updates automatically via Riverpod reactivity when WB records attempts.
 
 ### TASK-031: Mastery Shortcut — Prove It at Master, Skip the Ladder
 

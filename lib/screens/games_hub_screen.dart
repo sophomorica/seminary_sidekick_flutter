@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/enums.dart';
 import '../theme/app_theme.dart';
 import 'games/matching_game_screen.dart';
-import 'games/word_builder_screen.dart';
 import 'games/quiz_game_screen.dart';
 
 class GamesHubScreen extends ConsumerWidget {
@@ -12,6 +11,11 @@ class GamesHubScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Only show supplementary practice quizzes — Word Builder lives under scripture detail
+    final practiceGameTypes = GameType.values
+        .where((gt) => gt != GameType.wordOrder)
+        .toList();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Games'),
@@ -33,7 +37,7 @@ class GamesHubScreen extends ConsumerWidget {
                   ),
             ),
             const SizedBox(height: 24),
-            ...GameType.values.map((gameType) {
+            ...practiceGameTypes.map((gameType) {
               return _GameCard(gameType: gameType);
             }),
             const SizedBox(height: 24),
@@ -270,15 +274,6 @@ class _GameCardState extends State<_GameCard> {
           ),
         ),
       );
-    } else if (widget.gameType == GameType.wordOrder) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => WordBuilderScreen(
-            difficulty: _selectedDifficulty,
-            bookFilter: _selectedBook,
-          ),
-        ),
-      );
     } else if (widget.gameType == GameType.quiz) {
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -295,10 +290,10 @@ class _GameCardState extends State<_GameCard> {
     switch (gameType) {
       case GameType.matching:
         return AppTheme.primary;
-      case GameType.wordOrder:
-        return AppTheme.secondary;
       case GameType.quiz:
         return AppTheme.gold;
+      default:
+        return AppTheme.secondary;
     }
   }
 }

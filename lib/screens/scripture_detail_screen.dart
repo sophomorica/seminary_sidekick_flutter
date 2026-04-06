@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../models/enums.dart';
 import '../models/scripture.dart';
+import '../models/scripture_mastery.dart';
 import '../providers/scripture_provider.dart';
 import '../providers/scripture_mastery_provider.dart';
 import '../providers/notes_provider.dart';
@@ -156,12 +157,19 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
-            // Memorize button — prominent CTA
+            // Holistic mastery progress section — HERO element
+            _HolisticMasterySection(
+              scriptureId: widget.scriptureId,
+              scripture: scripture,
+            ),
+            const SizedBox(height: 16),
+
+            // Study tool — Memorize
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton.icon(
+              child: OutlinedButton.icon(
                 onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -169,22 +177,16 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                     ),
                   );
                 },
-                icon: const Icon(Icons.psychology_alt, size: 22),
-                label: const Text('Memorize This Scripture'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.secondary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  textStyle: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                icon: const Icon(Icons.psychology_alt, size: 20),
+                label: const Text('Study with Memorize Tool'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: BorderSide(
+                    color: AppTheme.secondary.withValues(alpha: 0.4),
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 24),
-
-            // Holistic mastery progress section
-            _HolisticMasterySection(scriptureId: widget.scriptureId),
             const SizedBox(height: 24),
 
             // Notes section
@@ -272,11 +274,21 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Practice buttons
+            // Practice quizzes (recognition tools — not mastery-gating)
             Text(
-              'Practice',
+              'Practice Quizzes',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w600,
+                  ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Build recognition and comprehension',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.5),
                   ),
             ),
             const SizedBox(height: 12),
@@ -295,7 +307,10 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
     final scripture = ref.read(scriptureByIdProvider(scriptureId));
     if (scripture == null) return [];
 
-    return GameType.values.map((gameType) {
+    // Only show supplementary quizzes — Word Builder lives in the mastery section
+    return GameType.values
+        .where((gameType) => gameType != GameType.wordOrder)
+        .map((gameType) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 8.0),
         child: SizedBox(
@@ -414,15 +429,69 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
 }
 
 /// Displays the mastery level with a clear linear path driven by Word Builder
-/// progression, plus a checklist of requirements for the next level.
+/// progression, a prominent CTA to launch Word Builder, and a checklist of
+/// requirements for the next level.
 class _HolisticMasterySection extends ConsumerWidget {
   final String scriptureId;
+  final Scripture scripture;
 
-  const _HolisticMasterySection({required this.scriptureId});
+  const _HolisticMasterySection({
+    required this.scriptureId,
+    required this.scripture,
+  });
+
+  /// Determine the next Word Builder difficulty to launch based on current mastery.
+  DifficultyLevel _nextWbDifficulty(ScriptureMastery mastery) {
+    final wbDifficulty =
+        mastery.highestDifficultyPerGame[GameType.wordOrder];
+    if (wbDifficulty == null) return DifficultyLevel.beginner;
+    switch (wbDifficulty) {
+      case DifficultyLevel.beginner:
+        return DifficultyLevel.intermediate;
+      case DifficultyLevel.intermediate:
+        return DifficultyLevel.advanced;
+      case DifficultyLevel.advanced:
+        return DifficultyLevel.master;
+      case DifficultyLevel.master:
+        return DifficultyLevel.master; // Keep practicing Master
+    }
+  }
+
+  /// Get a user-facing label for the CTA button.
+  String _ctaLabel(ScriptureMastery mastery) {
+    if (mastery.level == MasteryLevel.newScripture) {
+      return 'Start Mastery';
+    }
+    if (mastery.level == MasteryLevel.mastered ||
+        mastery.level == MasteryLevel.eternal) {
+      return 'Practice Master';
+    }
+    if (mastery.needsReview) {
+      return 'Review Now';
+    }
+    return 'Continue Journey';
+  }
+
+  /// Get a subtitle describing what the CTA does.
+  String _ctaSubtitle(ScriptureMastery mastery, DifficultyLevel nextDifficulty) {
+    return 'Word Builder — ${nextDifficulty.descriptionForGame(GameType.wordOrder)}';
+  }
+
+  void _launchWordBuilder(BuildContext context, DifficultyLevel difficulty) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => WordBuilderScreen(
+          difficulty: difficulty,
+          scriptures: [scripture],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final mastery = ref.watch(scriptureMasteryProvider(scriptureId));
+    final nextDifficulty = _nextWbDifficulty(mastery);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -435,14 +504,13 @@ class _HolisticMasterySection extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
 
-        // Main mastery card
+        // Main mastery card with badge + stats
         Card(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Level badge + description
                 Row(
                   children: [
                     Expanded(
@@ -468,7 +536,6 @@ class _HolisticMasterySection extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    // Stats column
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
@@ -544,7 +611,50 @@ class _HolisticMasterySection extends ConsumerWidget {
           ),
         ),
 
-        // Linear mastery path visualization
+        // ── Prominent CTA: Launch Word Builder ──
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () => _launchWordBuilder(context, nextDifficulty),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              ),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.sort_by_alpha, size: 22),
+                    const SizedBox(width: 10),
+                    Text(
+                      _ctaLabel(mastery),
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _ctaSubtitle(mastery, nextDifficulty),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.white.withValues(alpha: 0.8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // ── Word Builder Journey timeline (tappable steps) ──
         const SizedBox(height: 12),
         Card(
           child: Padding(
@@ -560,7 +670,7 @@ class _HolisticMasterySection extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Master this scripture through Word Builder progression',
+                  'Tap any step to practice at that difficulty',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context)
                             .colorScheme
@@ -574,18 +684,24 @@ class _HolisticMasterySection extends ConsumerWidget {
                   label: 'Beginner',
                   description: 'Tap 3-word chunks',
                   currentLevel: mastery.level,
+                  onTap: () => _launchWordBuilder(
+                      context, DifficultyLevel.beginner),
                 ),
                 _MasteryPathStep(
                   level: MasteryLevel.familiar,
                   label: 'Intermediate',
                   description: 'Tap 2-word chunks + distractors',
                   currentLevel: mastery.level,
+                  onTap: () => _launchWordBuilder(
+                      context, DifficultyLevel.intermediate),
                 ),
                 _MasteryPathStep(
                   level: MasteryLevel.memorized,
                   label: 'Advanced',
                   description: 'Typed with first-letter hints',
                   currentLevel: mastery.level,
+                  onTap: () => _launchWordBuilder(
+                      context, DifficultyLevel.advanced),
                 ),
                 _MasteryPathStep(
                   level: MasteryLevel.mastered,
@@ -595,6 +711,8 @@ class _HolisticMasterySection extends ConsumerWidget {
                   currentLevel: mastery.level,
                   isLast: mastery.level != MasteryLevel.mastered &&
                       mastery.level != MasteryLevel.eternal,
+                  onTap: () => _launchWordBuilder(
+                      context, DifficultyLevel.master),
                 ),
                 if (mastery.level == MasteryLevel.mastered ||
                     mastery.level == MasteryLevel.eternal)
@@ -689,7 +807,7 @@ class _HolisticMasterySection extends ConsumerWidget {
           ),
         ],
 
-        // Per-game difficulty progress (supplementary)
+        // Per-game difficulty progress (supplementary — only show quiz/matching)
         if (mastery.gameTypesAttempted > 0) ...[
           const SizedBox(height: 12),
           Card(
@@ -715,12 +833,12 @@ class _HolisticMasterySection extends ConsumerWidget {
                         ),
                   ),
                   const SizedBox(height: 12),
-                  ...GameType.values.map((gameType) {
+                  ...GameType.values
+                      .where((gt) => gt != GameType.wordOrder)
+                      .map((gameType) {
                     final difficulty =
                         mastery.highestDifficultyPerGame[gameType];
                     final hasPlayed = difficulty != null;
-                    // Highlight Word Builder as the mastery driver
-                    final isWordBuilder = gameType == GameType.wordOrder;
 
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8.0),
@@ -730,9 +848,7 @@ class _HolisticMasterySection extends ConsumerWidget {
                             gameType.icon,
                             size: 18,
                             color: hasPlayed
-                                ? (isWordBuilder
-                                    ? AppTheme.primary
-                                    : AppTheme.secondary)
+                                ? AppTheme.secondary
                                 : Theme.of(context)
                                     .colorScheme
                                     .onSurface
@@ -746,9 +862,6 @@ class _HolisticMasterySection extends ConsumerWidget {
                                   .textTheme
                                   .bodyMedium
                                   ?.copyWith(
-                                    fontWeight: isWordBuilder
-                                        ? FontWeight.w600
-                                        : null,
                                     color: hasPlayed
                                         ? null
                                         : Theme.of(context)
@@ -765,9 +878,7 @@ class _HolisticMasterySection extends ConsumerWidget {
                                 .labelMedium
                                 ?.copyWith(
                                   color: hasPlayed
-                                      ? (isWordBuilder
-                                          ? AppTheme.primary
-                                          : AppTheme.secondary)
+                                      ? AppTheme.secondary
                                       : Theme.of(context)
                                           .colorScheme
                                           .onSurface
@@ -790,12 +901,14 @@ class _HolisticMasterySection extends ConsumerWidget {
 }
 
 /// A single step on the linear mastery path visualization.
+/// Tappable to launch Word Builder at the corresponding difficulty.
 class _MasteryPathStep extends StatelessWidget {
   final MasteryLevel level;
   final String label;
   final String description;
   final MasteryLevel currentLevel;
   final bool isLast;
+  final VoidCallback? onTap;
 
   const _MasteryPathStep({
     required this.level,
@@ -803,6 +916,7 @@ class _MasteryPathStep extends StatelessWidget {
     required this.description,
     required this.currentLevel,
     this.isLast = false,
+    this.onTap,
   });
 
   @override
@@ -812,77 +926,100 @@ class _MasteryPathStep extends StatelessWidget {
     final color = Color(level.color);
     final dimColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2);
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Vertical timeline
-        SizedBox(
-          width: 32,
-          child: Column(
-            children: [
-              Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: isCompleted ? color : Colors.transparent,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isCompleted
-                        ? color
-                        : (isCurrent ? color : dimColor),
-                    width: isCurrent ? 2.5 : 1.5,
-                  ),
-                ),
-                child: isCompleted
-                    ? const Icon(Icons.check, size: 12, color: Colors.white)
-                    : null,
-              ),
-              if (!isLast)
-                Container(
-                  width: 2,
-                  height: 28,
-                  color: isCompleted ? color : dimColor,
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        // Label + description
-        Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Vertical timeline
+          SizedBox(
+            width: 32,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight:
-                            (isCompleted || isCurrent) ? FontWeight.w600 : null,
-                        color: isCompleted
-                            ? color
-                            : (isCurrent
-                                ? Theme.of(context).colorScheme.onSurface
-                                : Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withValues(alpha: 0.4)),
-                      ),
+                Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: isCompleted ? color : Colors.transparent,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isCompleted
+                          ? color
+                          : (isCurrent ? color : dimColor),
+                      width: isCurrent ? 2.5 : 1.5,
+                    ),
+                  ),
+                  child: isCompleted
+                      ? const Icon(Icons.check, size: 12, color: Colors.white)
+                      : null,
                 ),
-                Text(
-                  description,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: isCompleted || isCurrent ? 0.6 : 0.3),
-                      ),
-                ),
+                if (!isLast)
+                  Container(
+                    width: 2,
+                    height: 28,
+                    color: isCompleted ? color : dimColor,
+                  ),
               ],
             ),
           ),
-        ),
-      ],
+          const SizedBox(width: 8),
+          // Label + description
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          label,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                fontWeight:
+                                    (isCompleted || isCurrent) ? FontWeight.w600 : null,
+                                color: isCompleted
+                                    ? color
+                                    : (isCurrent
+                                        ? Theme.of(context).colorScheme.onSurface
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.4)),
+                              ),
+                        ),
+                      ),
+                      if (onTap != null)
+                        Icon(
+                          Icons.play_circle_outline,
+                          size: 18,
+                          color: isCompleted
+                              ? color.withValues(alpha: 0.6)
+                              : (isCurrent
+                                  ? color
+                                  : Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withValues(alpha: 0.25)),
+                        ),
+                    ],
+                  ),
+                  Text(
+                    description,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: isCompleted || isCurrent ? 0.6 : 0.3),
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
