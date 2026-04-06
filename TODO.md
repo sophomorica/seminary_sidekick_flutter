@@ -48,286 +48,132 @@
 | TASK-014 | Social features (legacy placeholder — see TASK-111/112) | XL |
 | TASK-015 | Localization (i18n) | Large |
 
----
 
 ## Premium Tier — Paid Features (Freemium Model)
 
-> **Free tier** = full mastery loop (Word Builder, quizzes, spaced repetition, progress tracking).
-> **Premium tier** = AI companion, journal, curriculum sync, goals, social, deep study tools.
->
-> The Church defines scripture mastery as three pillars — *find*, *understand*, *apply*. The free tier nails "find" and "memorize." Premium targets "understand" and "apply" through AI-guided reflection, contextual study tools, and curriculum alignment.
->
-> **Architecture**: Everything depends on TASK-100 (backend + auth + paywall). Nothing else ships without it.
+> **Vision**: The free tier delivers the complete Word Builder-centric mastery journey with engaging feedback loops.  
+> The **Premium tier** unlocks the **Seminary Sidekick** — an AI companion powered by Grok that helps students move from memorization to true mastery (find, understand, and apply).  
+> On app open, Premium users send a JSON snapshot of their progress to the Sidekick. The Sidekick responds with structured JSON that triggers personalized prompts, goals, timeline updates, and gentle reminders — making diligent effort feel natural and rewarding.
 
----
-
-### TASK-100: Premium Infrastructure — Backend, Auth, & Paywall
+### TASK-033: Freemium Infrastructure & Subscription Basics
 
 - **status**: `open`
 - **priority**: P0
-- **estimated_effort**: XL
-- **files_to_touch**: NEW `lib/services/auth_service.dart`, NEW `lib/services/api_service.dart`, NEW `lib/providers/auth_provider.dart`, NEW `lib/providers/subscription_provider.dart`, NEW `lib/screens/paywall_screen.dart`, NEW `lib/screens/profile_screen.dart`, `lib/app.dart`, `lib/main.dart`, `pubspec.yaml`
-- **description**: User accounts (Firebase Auth — email + Apple/Google SSO), subscription management (RevenueCat), API service for AI calls, paywall gate, profile screen. Free-tier features stay functional without sign-in. Local Hive data syncs to cloud on account creation.
+- **estimated_effort**: Medium
+- **files_to_touch**: NEW `lib/providers/subscription_provider.dart`, `lib/app.dart`, `lib/main.dart`, `lib/screens/settings_screen.dart` (or new upgrade screen), pubspec.yaml
+- **description**: Clean freemium model. All existing mastery tools remain completely free. Premium unlocks the Seminary Sidekick features.
 - **acceptance_criteria**:
-  - [ ] Auth: sign up / sign in / sign out (email + SSO)
-  - [ ] Subscription state tracked and gated (free vs premium)
-  - [ ] RevenueCat integration for App Store + Google Play
-  - [ ] Paywall screen with feature comparison and purchase flow
-  - [ ] API service layer for authenticated backend requests
-  - [ ] Free-tier fully functional without sign-in
-  - [ ] Local progress syncs to cloud on account creation
-  - [ ] Profile screen: account info, subscription status, sign out
+  - [ ] Subscription state managed via Riverpod with graceful free-tier fallbacks
+  - [ ] RevenueCat integration for monthly/yearly plans
+  - [ ] Tasteful upgrade prompts at natural moments
+  - [ ] Free tier remains generous and untouched
 - **depends_on**: —
-- **notes**: Recommend Firebase for auth/data + Cloud Function (or separate API) for AI agent calls.
+- **notes**: Subscription check happens early (e.g., in main.dart or home_screen). No full backend/auth required yet.
 
----
-
-### AI Study Companion
-
-> Centerpiece of premium. Two modes: daily prompt on home screen + full conversational chat. The AI knows the student's mastery progress, current seminary curriculum, and scriptural context. Warm, Socratic, faith-affirming — a thoughtful seminary teacher, not a lecturer.
-
-### TASK-101: AI Agent — Backend & API Integration
-
-- **status**: `open`
-- **priority**: P0
-- **estimated_effort**: XL
-- **files_to_touch**: NEW `lib/services/ai_service.dart`, NEW `lib/providers/ai_provider.dart`, `lib/models/user_progress.dart`, `pubspec.yaml`, backend
-- **description**: Backend endpoint that accepts student context (mastery progress, current scriptures, seminary curriculum week, recent activity) and returns AI-generated content. System prompt embodies seminary mastery philosophy. Rate limiting + token budget per user/day. Content safety filtering. Graceful offline fallback.
-- **acceptance_criteria**:
-  - [ ] Backend endpoint accepts student context, returns AI responses
-  - [ ] System prompt captures find/understand/apply philosophy
-  - [ ] AI has access to mastery levels, current scriptures, streaks, activity
-  - [ ] AI knows student's place in 4-year seminary curriculum
-  - [ ] Rate limiting and token budget per user per day
-  - [ ] Responses are age-appropriate, faith-affirming, doctrinally sound
-  - [ ] Graceful fallback if AI unavailable (cached prompts, offline mode)
-  - [ ] Content safety filtering on outputs
-- **depends_on**: TASK-100
-
-### TASK-102: Daily Prompt — AI-Generated Home Screen Card
-
-- **status**: `open`
-- **priority**: P0
-- **estimated_effort**: Medium
-- **files_to_touch**: NEW `lib/widgets/daily_prompt_card.dart`, NEW `lib/providers/daily_prompt_provider.dart`, `lib/screens/home_screen.dart`
-- **description**: Personalized daily prompt card on home screen. References current scriptures, seminary lesson, or recent activity. "Reflect" button → journal. "Discuss" button → AI chat. Free users see blurred teaser. Offline fallback with generic prompt.
-- **acceptance_criteria**:
-  - [ ] Daily prompt card on home screen (premium)
-  - [ ] Personalized based on current scriptures and progress
-  - [ ] Refreshes daily (cached locally, fetched from backend)
-  - [ ] "Reflect" → journal entry pre-seeded with prompt
-  - [ ] "Discuss" → AI chat with prompt as conversation starter
-  - [ ] Free users see blurred teaser with upgrade CTA
-  - [ ] Offline fallback with generic scripture-based prompt
-- **depends_on**: TASK-101
-
-### TASK-103: AI Chat — Conversational Study Companion
+### TASK-034: Seminary Sidekick AI Core Service (Grok Integration)
 
 - **status**: `open`
 - **priority**: P0
 - **estimated_effort**: Large
-- **files_to_touch**: NEW `lib/screens/ai_chat_screen.dart`, NEW `lib/providers/ai_chat_provider.dart`, NEW `lib/models/chat_message.dart`, NEW `lib/widgets/chat_bubble.dart`, `lib/app.dart`
-- **description**: Full chat with AI companion. Ask questions, discuss passages, get help applying verses. Conversation history persisted locally. Entry from dedicated tab/FAB + "Ask about this scripture" from scripture detail. AI weaves in mastery challenges and journal prompts. Scripture references as tappable links. Free users get 1-2 messages then paywall.
+- **files_to_touch**: NEW `lib/services/sidekick_service.dart`, NEW `lib/providers/sidekick_provider.dart`, NEW `lib/models/sidekick_snapshot.dart`, NEW `lib/models/sidekick_response.dart`
+- **description**: Core service that connects to Grok (xAI API). On app open (for premium users), it sends a JSON snapshot of user data and receives structured JSON to trigger app behavior.
 - **acceptance_criteria**:
-  - [ ] Chat screen with bubbles, text input, send button
-  - [ ] Conversation history persisted locally
-  - [ ] Full student context (progress, scriptures, curriculum)
-  - [ ] "Ask about this scripture" from scripture detail
-  - [ ] AI suggests mastery challenges and journal prompts in conversation
-  - [ ] Typing indicator, tappable scripture references
-  - [ ] Conversation starters for new chats
-  - [ ] Free users: 1-2 messages then paywall
-- **depends_on**: TASK-101
+  - [ ] On premium app launch: automatically create and send JSON snapshot (mastery progress, current scriptures, goals, seminary curriculum week, recent activity)
+  - [ ] AI responds with structured JSON that the app can parse (daily prompt, suggested goal, timeline insight, reminder, quick-win suggestion, etc.)
+  - [ ] System prompt trains the Sidekick to act as a thoughtful seminary tutor (reverent, Socratic, focused on understand + apply + ACT principles)
+  - [ ] Chat interface can send direct messages to the same Sidekick
+  - [ ] Backend proxy recommended for API key safety and prompt control
+  - [ ] Graceful offline fallback with cached responses
+- **depends_on**: TASK-033
+- **notes**: This is the main paid feature. Use Grok/xAI API. Keep snapshot and response models simple and well-typed.
 
----
-
-### Scripture Journal
-
-> AI-prompted reflective journaling — the "apply" pillar. AI generates prompts, student writes, builds a personal scripture study journal over time.
-
-### TASK-104: Scripture Journal — Core
-
-- **status**: `open`
-- **priority**: P1
-- **estimated_effort**: Large
-- **files_to_touch**: NEW `lib/screens/journal_screen.dart`, NEW `lib/screens/journal_entry_screen.dart`, NEW `lib/models/journal_entry.dart`, NEW `lib/providers/journal_provider.dart`, `lib/app.dart`
-- **description**: Journal with entries tied to scripture(s). Start from daily prompt, AI chat, or scripture detail. Searchable by date/scripture/keyword. Basic rich text. Hive local + cloud sync. Export to PDF/text.
-- **acceptance_criteria**:
-  - [ ] Chronological entry list, create with optional scripture tag(s)
-  - [ ] Basic rich text (bold, italic, bullet lists)
-  - [ ] AI prompt can pre-seed new entry
-  - [ ] Filter/search by scripture, date, keyword
-  - [ ] Edit capability, tappable scripture tags
-  - [ ] Hive local + cloud sync
-  - [ ] Export (PDF or plain text)
-- **depends_on**: TASK-100
-
-### TASK-105: AI Journal Prompts — Context-Aware Reflection Questions
+### TASK-035: AI-Powered Journal & Dynamic Reflection Prompts
 
 - **status**: `open`
 - **priority**: P1
 - **estimated_effort**: Medium
-- **files_to_touch**: `lib/providers/journal_provider.dart`, `lib/screens/journal_entry_screen.dart`, `lib/services/ai_service.dart`
-- **description**: 2-3 AI reflection prompts when creating a new journal entry. Adapt to mastery level (comprehension for beginners, application/teaching for advanced). Reference curriculum when relevant. Tap to use, dismiss to free-write, regenerate button. Cached for offline.
+- **files_to_touch**: NEW `lib/screens/journal_screen.dart`, NEW or extend `journal_provider.dart`, `sidekick_provider.dart`, NEW `lib/models/journal_entry.dart`
+- **description**: Premium journal where the Sidekick generates prompts and can pre-seed entries.
 - **acceptance_criteria**:
-  - [ ] 2-3 AI prompts on new journal entry
-  - [ ] Adapt to mastery level of tagged scripture(s)
-  - [ ] Reference seminary curriculum when relevant
-  - [ ] Tap to use, dismiss, or regenerate
-  - [ ] Cached for offline
-- **depends_on**: TASK-101, TASK-104
+  - [ ] Sidekick suggests 1–3 thoughtful reflection prompts based on the user's snapshot
+  - [ ] Prompts encourage personal application, teaching others, cause-and-effect, etc.
+  - [ ] Easy “Reflect Now” buttons throughout the app
+  - [ ] Rich-text entries with scripture tagging
+- **depends_on**: TASK-034
 
----
-
-### Seminary Curriculum Sync
-
-> Aligns study with the official 4-year seminary curriculum. AI and app know what the student is studying this week in class.
-
-### TASK-106: Seminary Curriculum Data & Schedule Engine
-
-- **status**: `open`
-- **priority**: P1
-- **estimated_effort**: Large
-- **files_to_touch**: NEW `lib/models/curriculum.dart`, NEW `lib/providers/curriculum_provider.dart`, NEW `lib/services/curriculum_service.dart`, NEW `lib/data/curriculum_data.dart`
-- **description**: Model the 4-year cycle (OT, NT, BoM, D&C). Weekly reading schedule + 25 Doctrinal Mastery scriptures per course. Student selects year, app calculates current week/lesson. AI uses curriculum context. "This week in seminary" on home screen.
-- **acceptance_criteria**:
-  - [ ] Data model: curriculum year, week, lesson, associated scriptures
-  - [ ] Student selects seminary year (onboarding or settings)
-  - [ ] Calculate current curriculum week from academic calendar
-  - [ ] Provider: current lesson, this week's scriptures, upcoming schedule
-  - [ ] AI receives curriculum context with every request
-  - [ ] Current-lesson scriptures highlighted in scripture list
-  - [ ] "This week in seminary" home screen section (premium)
-- **depends_on**: TASK-100
-
----
-
-### Goals, Alerts & Smart Reminders
-
-> Consistent study habits through customizable goals and intelligent, non-nagging reminders.
-
-### TASK-107: Goal Setting & Tracking
+### TASK-036: AI-Driven Goals, Timeline & Gentle Reminders
 
 - **status**: `open`
 - **priority**: P1
 - **estimated_effort**: Medium
-- **files_to_touch**: NEW `lib/models/study_goal.dart`, NEW `lib/providers/goals_provider.dart`, NEW `lib/screens/goals_screen.dart`, `lib/screens/home_screen.dart`, `lib/screens/progress_screen.dart`
-- **description**: Personal mastery goals ("Master 5 this month," "Study every day," "Familiar on all NT by semester end"). Home screen progress bars. Confetti on completion. AI references goals in prompts. AI-suggested goals based on pace.
+- **files_to_touch**: NEW `lib/providers/goals_provider.dart`, extend `home_screen.dart` and `progress_screen.dart`
+- **description**: Goals, mastery timeline, and reminders are generated or influenced by the Sidekick based on the user's snapshot.
 - **acceptance_criteria**:
-  - [ ] Create goals: scripture count, streak days, mastery level, book completion
-  - [ ] Optional deadline and progress tracking
-  - [ ] Home screen active goal(s) with progress bar
-  - [ ] Completion → confetti + activity feed
-  - [ ] AI references goals in daily prompts
-  - [ ] Goals screen: active, completed, AI-suggested
-- **depends_on**: TASK-100
+  - [ ] Sidekick can suggest realistic goals and timeline projections
+  - [ ] Visual mastery timeline updated with AI insights
+  - [ ] Gentle, encouraging reminders triggered from Sidekick responses
+- **depends_on**: TASK-034
 
-### TASK-108: Smart Reminders & Push Notifications
+### TASK-037: “Ask Your Sidekick” Chat
 
 - **status**: `open`
 - **priority**: P1
 - **estimated_effort**: Medium
-- **files_to_touch**: NEW `lib/services/notification_service.dart`, NEW `lib/providers/reminder_provider.dart`, `lib/screens/profile_screen.dart`, `pubspec.yaml`, backend
-- **description**: Push notifications that help, not nag. Types: daily study reminder, spaced rep review (batched), streak-at-risk, goal deadline, weekly digest. Per-type toggle in settings. AI-personalized copy.
+- **files_to_touch**: NEW `lib/screens/sidekick_chat_screen.dart`, `sidekick_provider.dart`
+- **description**: Direct chat interface with the Seminary Sidekick.
 - **acceptance_criteria**:
-  - [ ] FCM (or equivalent) integration
-  - [ ] Daily study reminder at user-chosen time
-  - [ ] Spaced rep review reminders (batched)
-  - [ ] Streak-at-risk (evening before break)
-  - [ ] Goal deadline + weekly digest
-  - [ ] Per-type toggle in profile/settings
-  - [ ] AI-personalized notification copy
-- **depends_on**: TASK-100, TASK-009
+  - [ ] Users can ask questions about any scripture or their progress
+  - [ ] Chat sends messages to the same Grok-powered Sidekick (same system prompt)
+  - [ ] Scripture references in responses are tappable
+  - [ ] Entry point from scripture detail (“Ask Your Sidekick about this verse”)
+- **depends_on**: TASK-034
 
----
-
-### Deep Study Tools
-
-> The "understand" layer — cross-references, historical context, topical chains.
-
-### TASK-109: Cross-References & Scripture Chains
-
-- **status**: `open`
-- **priority**: P2
-- **estimated_effort**: Large
-- **files_to_touch**: NEW `lib/data/cross_references.dart`, NEW `lib/widgets/cross_reference_card.dart`, `lib/screens/scripture_detail_screen.dart`, `lib/models/scripture.dart`
-- **description**: Related scriptures by topic on scripture detail. Topical chains (Faith → Alma 32:21, Hebrews 11:1, Ether 12:6, etc.). Tappable navigation. AI references cross-refs in chat. Free users see 1-2, premium sees all.
-- **acceptance_criteria**:
-  - [ ] Cross-reference data for all 100 scriptures
-  - [ ] "Related Scriptures" on scripture detail (premium)
-  - [ ] Topical grouping
-  - [ ] Tappable references → scripture detail or inline text
-  - [ ] AI chat references cross-refs
-  - [ ] Free: 1-2 visible, premium: all
-- **depends_on**: TASK-100
-
-### TASK-110: Historical Context Cards
+### TASK-038: Premium Polish & Optional Enhancements
 
 - **status**: `open`
 - **priority**: P2
 - **estimated_effort**: Medium
-- **files_to_touch**: NEW `lib/data/historical_context.dart`, NEW `lib/widgets/context_card.dart`, `lib/screens/scripture_detail_screen.dart`
-- **description**: Collapsible card per scripture: speaker, audience, setting, narrative, why it matters. Teen-accessible language. AI references context in chat. Free users see teaser (first sentence + blur).
+- **files_to_touch**: Various
+- **description**: Additional small enhancements.
 - **acceptance_criteria**:
-  - [ ] Context data for all 100 scriptures
-  - [ ] Collapsible card on scripture detail
-  - [ ] Teen-accessible language
-  - [ ] AI references context in discussion
-  - [ ] Free: teaser, premium: full
-- **depends_on**: TASK-100
+  - [ ] Voice-to-journal (extend existing speech service)
+  - [ ] Export journal entries
+  - [ ] Optional safe family sharing of selected entries
+- **depends_on**: TASK-035
 
----
-
-### Study Groups & Social
-
-> Accountability and community — study with friends, compete with seminary class, share progress.
-
-### TASK-111: Study Groups & Class Leaderboards
-
-- **status**: `open`
-- **priority**: P2
-- **estimated_effort**: XL
-- **files_to_touch**: NEW `lib/screens/groups_screen.dart`, NEW `lib/screens/group_detail_screen.dart`, NEW `lib/models/study_group.dart`, NEW `lib/providers/groups_provider.dart`, `lib/app.dart`, backend
-- **description**: Create/join study groups (class, family, friends). Leaderboard, group challenges ("Everyone master John 3:16 this week"), group feed. Seminary teacher role (anonymized class stats). Invite via code/link. Privacy controls.
-- **acceptance_criteria**:
-  - [ ] Create/join group via invite code or link
-  - [ ] Leaderboard: ranked by scriptures mastered
-  - [ ] Group challenges: scripture + deadline, member progress
-  - [ ] Group feed: milestones and completions (anonymizable)
-  - [ ] Teacher role: class aggregate stats (not individual journals)
-  - [ ] Leave/remove members, privacy controls
-- **depends_on**: TASK-100
-- **notes**: Ship minimal version first (leaderboard + challenges), iterate from there.
-
-### TASK-112: Accountability Partners
-
-- **status**: `open`
-- **priority**: P2
-- **estimated_effort**: Medium
-- **files_to_touch**: NEW `lib/screens/accountability_screen.dart`, NEW `lib/providers/accountability_provider.dart`, `lib/screens/progress_screen.dart`
-- **description**: Lightweight pairing — two people keeping each other on track. See each other's streaks/milestones, send encouragement, optional weekly auto-summary. Privacy: streaks/milestones only, never journal/chat.
-- **acceptance_criteria**:
-  - [ ] Invite partner via code/link
-  - [ ] Partner dashboard: streaks and milestones
-  - [ ] Encouragement messages (pre-written or short custom)
-  - [ ] Optional weekly auto-summary
-  - [ ] Privacy: no journal or chat access
-- **depends_on**: TASK-100
-
----
-
-### TASK-113: Premium Onboarding & Feature Discovery
+### TASK-039: Premium Teaser & Upgrade Experience
 
 - **status**: `open`
 - **priority**: P1
 - **estimated_effort**: Small
-- **files_to_touch**: `lib/screens/onboarding_screen.dart`, `lib/screens/home_screen.dart`, NEW `lib/widgets/premium_teaser.dart`
-- **description**: Natural "upgrade moments" for free users — blurred daily prompt, locked AI button, teaser cross-references. Inviting, not aggressive (max 1-2 per screen, dismissible). Premium users get 2-3 onboarding screens for new tools.
+- **files_to_touch**: `lib/screens/onboarding_screen.dart`, `lib/screens/home_screen.dart`, `lib/screens/scripture_detail_screen.dart`, NEW `lib/widgets/premium_teaser.dart`
+- **description**: Natural introduction to the Seminary Sidekick.
 - **acceptance_criteria**:
-  - [ ] Free-tier onboarding unchanged
-  - [ ] Premium teaser widgets: blurred cards, lock icons, "Unlock with Premium"
-  - [ ] Teasers on home, scripture detail, progress screens
-  - [ ] Premium onboarding: 2-3 screens (AI, journal, goals)
-  - [ ] CTAs → paywall screen
-  - [ ] Not annoying: max 1-2 per screen, dismissible
-- **depends_on**: TASK-100, TASK-013
+  - [ ] Subtle upgrade moments after mastery wins or when opening journal
+  - [ ] Clear value proposition focused on deeper understanding and application
+  - [ ] Teasers are limited and dismissible
+- **depends_on**: TASK-033, TASK-013
+
+### TASK-040: Subtle Engagement Enhancements
+
+- **status**: `open`
+- **priority**: P2
+- **estimated_effort**: Small-Medium
+- **files_to_touch**: extend `home_screen.dart`, `scripture_detail_screen.dart`, `sidekick_provider.dart`
+- **description**: Light layers on top of existing gamification that make spare-moment usage feel rewarding.
+- **acceptance_criteria**:
+  - [ ] Sidekick suggests quick “next best win” sessions based on the snapshot
+  - [ ] Gentle nudges for nearly-mastered scriptures
+  - [ ] “Time-to-kill” style prompts on home screen
+  - [ ] Everything ties back to reflection and the journal
+- **depends_on**: TASK-034, TASK-035
+- **notes**: Build strictly on top of existing mechanics. No rewrites.
+
+---
+
+## Backlog — Future (not prioritized)
+
+| Task | What | Effort |
+|------|------|--------|
+| TASK-014 | Social features (if desired later) | XL |
+| TASK-015 | Localization (i18n) | Large |
