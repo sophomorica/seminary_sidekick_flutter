@@ -135,9 +135,11 @@
 
 ### TASK-037: “Ask Your Sidekick” Chat
 
-- **status**: `open`
+- **status**: `in_progress`
 - **priority**: P1
 - **estimated_effort**: Medium
+- **claimed_by**: claude-opus-agent
+- **started**: 2026-04-07T00:00:00Z
 - **files_to_touch**: NEW `lib/screens/sidekick_chat_screen.dart`, `sidekick_provider.dart`
 - **description**: Direct chat interface with the Seminary Sidekick.
 - **acceptance_criteria**:
