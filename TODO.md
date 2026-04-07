@@ -108,46 +108,83 @@
 
 ### TASK-035: AI-Powered Journal & Dynamic Reflection Prompts
 
-- **status**: `open`
-- **priority**: P1
-- **estimated_effort**: Medium
-- **files_to_touch**: NEW `lib/screens/journal_screen.dart`, NEW or extend `journal_provider.dart`, `sidekick_provider.dart`, NEW `lib/models/journal_entry.dart`
-- **description**: Premium journal where the Sidekick generates prompts and can pre-seed entries.
-- **acceptance_criteria**:
-  - [ ] Sidekick suggests 1–3 thoughtful reflection prompts based on the user's snapshot
-  - [ ] Prompts encourage personal application, teaching others, cause-and-effect, etc.
-  - [ ] Easy “Reflect Now” buttons throughout the app
-  - [ ] Rich-text entries with scripture tagging
-- **depends_on**: TASK-034
-
-### TASK-036: AI-Driven Goals, Timeline & Gentle Reminders
-
-- **status**: `open`
-- **priority**: P1
-- **estimated_effort**: Medium
-- **files_to_touch**: NEW `lib/providers/goals_provider.dart`, extend `home_screen.dart` and `progress_screen.dart`
-- **description**: Goals, mastery timeline, and reminders are generated or influenced by the Sidekick based on the user's snapshot.
-- **acceptance_criteria**:
-  - [ ] Sidekick can suggest realistic goals and timeline projections
-  - [ ] Visual mastery timeline updated with AI insights
-  - [ ] Gentle, encouraging reminders triggered from Sidekick responses
-- **depends_on**: TASK-034
-
-### TASK-037: “Ask Your Sidekick” Chat
-
-- **status**: `in_progress`
+- **status**: `done`
 - **priority**: P1
 - **estimated_effort**: Medium
 - **claimed_by**: claude-opus-agent
 - **started**: 2026-04-07T00:00:00Z
-- **files_to_touch**: NEW `lib/screens/sidekick_chat_screen.dart`, `sidekick_provider.dart`
+- **completed**: 2026-04-07T01:00:00Z
+- **files_to_touch**: NEW `lib/screens/journal_screen.dart`, NEW `lib/providers/journal_provider.dart`, NEW `lib/models/journal_entry.dart`, `lib/app.dart`, `lib/main.dart`, `lib/screens/home_screen.dart`, `lib/screens/scripture_detail_screen.dart`
+- **description**: Premium journal where the Sidekick generates prompts and can pre-seed entries.
+- **acceptance_criteria**:
+  - [x] Sidekick suggests 1–3 thoughtful reflection prompts based on the user's snapshot
+  - [x] Prompts encourage personal application, teaching others, cause-and-effect, etc.
+  - [x] Easy “Reflect Now” buttons throughout the app
+  - [x] Rich-text entries with scripture tagging
+- **depends_on**: TASK-034
+- **notes**:
+  - JournalEntry model: id, title, content, scriptureIds, scriptureReferences, prompt, createdAt, updatedAt, isFavorite. Factory `create()` for new entries, `fromJson`/`toJson` for Hive.
+  - JournalNotifier: Hive-backed CRUD with `init()`, `createEntry()`, `editEntry()`, `saveEntry()`, `toggleFavorite()`, `deleteEntry()`, `closeEditor()`. Auto-generates titles from content or prompt.
+  - JournalScreen: List view with AI reflection prompt cards + entry cards. Editor view with title/content fields, scripture tag picker (bottom sheet), and AI prompt display. Free users see premium teaser; premium users get full experience.
+  - Reflection prompts: Consumed from `reflectionPromptsProvider` (sidekick_provider), displayed as gold-tinted cards with “Reflect Now” buttons.
+  - “Reflect Now” entry points: Home screen card (first reflection prompt → opens journal editor), scripture detail inline link (“Reflect on this verse in your journal” → opens journal with scripture pre-tagged).
+  - Journal tab added to bottom nav (4th tab, between Practice and Progress).
+  - Convenience providers: journalEntriesProvider, activeJournalEntryProvider, journalEntriesByScriptureProvider, favoriteJournalEntriesProvider, journalEntryCountProvider, currentReflectionPromptsProvider.
+
+### TASK-036: AI-Driven Goals, Timeline & Gentle Reminders
+
+- **status**: `done`
+- **priority**: P1
+- **estimated_effort**: Medium
+- **claimed_by**: claude-opus-agent
+- **started**: 2026-04-07T00:00:00Z
+- **completed**: 2026-04-07T00:30:00Z
+- **files_to_touch**: NEW `lib/providers/goals_provider.dart`, extend `home_screen.dart`, `progress_screen.dart`, `sidekick_provider.dart`, `main.dart`
+- **description**: Goals, mastery timeline, and reminders are generated or influenced by the Sidekick based on the user's snapshot.
+- **acceptance_criteria**:
+  - [x] Sidekick can suggest realistic goals and timeline projections
+  - [x] Visual mastery timeline updated with AI insights
+  - [x] Gentle, encouraging reminders triggered from Sidekick responses
+- **depends_on**: TASK-034
+- **notes**:
+  - `GoalsNotifier` (Hive-backed StateNotifier) manages user goals with full CRUD: add, accept AI suggestion, complete, remove, dismiss reminder
+  - `Goal` model supports both user-created and AI-suggested goals (via `Goal.fromSidekickGoal()`)
+  - AI goal suggestions are rate-limited to 1/day and deduplicated against existing active goals
+  - `masteryProjectionProvider` computes timeline: prefers AI `timelineInsight` from Sidekick response, falls back to local pace-based projection
+  - Home screen (premium): Reminder banner (dismissable), Suggested Goal card (accept/dismiss), Active Goals list (tap circle to complete), Timeline Insight card
+  - Progress screen (premium): Full Goals & Timeline section with mastery timeline projection, active goals with completion, and recent completed goals history
+  - Goals are wired into `SidekickSnapshot.goals` so Grok sees the user's active goals and can suggest relevant next goals
+  - GoalsNotifier initialized in `main.dart` before Sidekick init so goals are available for snapshot building
+  - All widgets gracefully hidden for free-tier users (guarded by `isPremiumProvider`)
+
+### TASK-037: “Ask Your Sidekick” Chat
+
+- **status**: `done`
+- **priority**: P1
+- **estimated_effort**: Medium
+- **claimed_by**: claude-opus-agent
+- **started**: 2026-04-07T00:00:00Z
+- **completed**: 2026-04-07T00:30:00Z
+- **files_to_touch**: NEW `lib/screens/sidekick_chat_screen.dart`, `lib/app.dart`, `lib/screens/scripture_detail_screen.dart`
 - **description**: Direct chat interface with the Seminary Sidekick.
 - **acceptance_criteria**:
-  - [ ] Users can ask questions about any scripture or their progress
-  - [ ] Chat sends messages to the same Grok-powered Sidekick (same system prompt)
-  - [ ] Scripture references in responses are tappable
-  - [ ] Entry point from scripture detail (“Ask Your Sidekick about this verse”)
+  - [x] Users can ask questions about any scripture or their progress
+  - [x] Chat sends messages to the same Grok-powered Sidekick (same system prompt)
+  - [x] Scripture references in responses are tappable
+  - [x] Entry point from scripture detail (“Ask Your Sidekick about this verse”)
 - **depends_on**: TASK-034
+- **notes**:
+  - Full chat screen with message bubbles (user right-aligned warm rust, sidekick left-aligned with gold avatar)
+  - Scripture references in AI responses are detected via regex and rendered as tappable links (accent blue, underlined) that navigate to scripture detail via GoRouter
+  - Empty state with suggestion chips (“Try asking...”) for onboarding
+  - Typing indicator with animated dots while waiting for AI response
+  - Error banner with dismissable error state
+  - Clear conversation option in app bar overflow menu
+  - Auto-sends initial context message when opened from scripture detail with `initialScriptureId`
+  - Auto-scroll on new messages via `ref.listen`
+  - Dark mode support throughout
+  - Route: `/sidekick-chat?scriptureId=X` added to GoRouter
+  - Premium users see functional “Ask your Sidekick about this verse” link on scripture detail; free users see PremiumInlineLink teaser (unchanged)
 
 ### TASK-038: Premium Polish & Optional Enhancements
 

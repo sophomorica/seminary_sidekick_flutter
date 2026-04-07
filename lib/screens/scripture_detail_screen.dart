@@ -7,12 +7,15 @@ import '../models/scripture.dart';
 import '../models/scripture_mastery.dart';
 import '../providers/scripture_provider.dart';
 import '../providers/scripture_mastery_provider.dart';
+import '../providers/journal_provider.dart';
 import '../providers/notes_provider.dart';
 import '../providers/subscription_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/mastery_badge.dart';
 import '../widgets/premium_teaser.dart';
+import 'journal_screen.dart';
 import 'memorize_screen.dart';
+import 'sidekick_chat_screen.dart';
 import 'games/matching_game_screen.dart';
 import 'games/word_builder_screen.dart';
 import 'games/quiz_game_screen.dart';
@@ -274,13 +277,98 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                 ),
               ),
             ),
-            // Subtle premium inline link — "Ask your Sidekick"
-            if (!ref.watch(isPremiumProvider))
+            // "Ask your Sidekick" — real chat for premium, teaser for free
+            if (ref.watch(isPremiumProvider))
+              Padding(
+                padding: const EdgeInsets.only(top: 4.0, bottom: 8.0),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => SidekickChatScreen(
+                          initialScriptureId: widget.scriptureId,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(vertical: AppTheme.spacingXs),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.auto_awesome,
+                            size: 16, color: AppTheme.premiumGold),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Ask your Sidekick about this verse',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.premiumGold,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          size: 10,
+                          color: AppTheme.premiumGold,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            else
               const Padding(
                 padding: EdgeInsets.only(top: 4.0, bottom: 8.0),
                 child: PremiumInlineLink(
                   text: 'Ask your Sidekick about this verse',
                   icon: Icons.auto_awesome,
+                ),
+              ),
+
+            // "Reflect on this verse" — journal entry for premium users
+            if (ref.watch(isPremiumProvider))
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => JournalScreen(
+                          initialScriptureId: widget.scriptureId,
+                          initialScriptureReference: scripture.reference,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: AppTheme.spacingXs),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.edit_note,
+                            size: 16, color: AppTheme.premiumGold),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Reflect on this verse in your journal',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.premiumGold,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          size: 10,
+                          color: AppTheme.premiumGold,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
 
