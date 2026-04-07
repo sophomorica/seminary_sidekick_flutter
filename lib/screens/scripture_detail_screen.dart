@@ -7,7 +7,6 @@ import '../models/scripture.dart';
 import '../models/scripture_mastery.dart';
 import '../providers/scripture_provider.dart';
 import '../providers/scripture_mastery_provider.dart';
-import '../providers/journal_provider.dart';
 import '../providers/notes_provider.dart';
 import '../providers/subscription_provider.dart';
 import '../theme/app_theme.dart';
@@ -16,6 +15,7 @@ import '../widgets/premium_teaser.dart';
 import 'journal_screen.dart';
 import 'memorize_screen.dart';
 import 'sidekick_chat_screen.dart';
+import 'upgrade_screen.dart';
 import 'games/matching_game_screen.dart';
 import 'games/word_builder_screen.dart';
 import 'games/quiz_game_screen.dart';
@@ -93,12 +93,106 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Reference and topic
-            Text(
-              scripture.reference,
-              style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                    color: AppTheme.primary,
+            // Reference + Sidekick button header
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    scripture.reference,
+                    style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                          color: AppTheme.primary,
+                        ),
                   ),
+                ),
+                // "Ask your Sidekick" — prominent in header for premium
+                if (ref.watch(isPremiumProvider))
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => SidekickChatScreen(
+                            initialScriptureId: widget.scriptureId,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            AppTheme.premiumGradientStart,
+                            AppTheme.premiumGradientEnd,
+                          ],
+                        ),
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.radiusRound),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.auto_awesome,
+                              size: 16, color: Colors.white),
+                          SizedBox(width: 6),
+                          Text(
+                            'Ask Sidekick',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                            builder: (_) => const UpgradeScreen()),
+                      );
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.premiumGold.withValues(alpha: 0.12),
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.radiusRound),
+                        border: Border.all(
+                          color: AppTheme.premiumGold.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.auto_awesome,
+                              size: 14,
+                              color: AppTheme.premiumGold),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Ask Sidekick',
+                            style: TextStyle(
+                              color: AppTheme.premiumGold,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 8),
             Text(
@@ -277,56 +371,6 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                 ),
               ),
             ),
-            // "Ask your Sidekick" — real chat for premium, teaser for free
-            if (ref.watch(isPremiumProvider))
-              Padding(
-                padding: const EdgeInsets.only(top: 4.0, bottom: 8.0),
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => SidekickChatScreen(
-                          initialScriptureId: widget.scriptureId,
-                        ),
-                      ),
-                    );
-                  },
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(vertical: AppTheme.spacingXs),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.auto_awesome,
-                            size: 16, color: AppTheme.premiumGold),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Ask your Sidekick about this verse',
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppTheme.premiumGold,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Icon(
-                          Icons.arrow_forward_ios,
-                          size: 10,
-                          color: AppTheme.premiumGold,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              )
-            else
-              const Padding(
-                padding: EdgeInsets.only(top: 4.0, bottom: 8.0),
-                child: PremiumInlineLink(
-                  text: 'Ask your Sidekick about this verse',
-                  icon: Icons.auto_awesome,
-                ),
-              ),
 
             // "Reflect on this verse" — journal entry for premium users
             if (ref.watch(isPremiumProvider))
