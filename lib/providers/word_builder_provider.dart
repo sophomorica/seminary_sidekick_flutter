@@ -209,6 +209,16 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
   /// so speech-to-text input (which omits punctuation) works seamlessly.
   static final _punctuation = RegExp(r'''[,;:!?\-\—\–\.\'\"\'\'\"\"\(\)\[\]]''');
 
+  /// Common number-word to digit mappings for speech-to-text normalization.
+  static const _numberWords = <String, String>{
+    'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4',
+    'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9',
+    'ten': '10', 'eleven': '11', 'twelve': '12', 'thirteen': '13',
+    'fourteen': '14', 'fifteen': '15', 'sixteen': '16', 'seventeen': '17',
+    'eighteen': '18', 'nineteen': '19', 'twenty': '20',
+    'thirty': '30', 'forty': '40', 'fifty': '50',
+  };
+
   // ── Chunk colors for visual distinction ──
   static const _chunkColors = [0, 1, 2, 3, 4, 5, 6, 7];
 
@@ -532,6 +542,181 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
         }
       }
     }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // SPEECH-TO-TEXT INPUT
+  // ═══════════════════════════════════════════════════════════════
+
+  /// Process speech-to-text input word-by-word instead of character-by-character.
+  /// This handles homophones (e.g. STT "four" vs target "for"), capitalization,
+  /// spaces, and punctuation automatically. Returns true if a Master reset occurred.
+  bool onSpeechInput(String newWords) {
+    if (state.isScriptureComplete || state.mode != WordBuilderMode.typing) {
+      return false;
+    }
+
+    // Split the new speech input into words
+    final speechWords = newWords.trim().split(RegExp(r'\s+'));
+    if (speechWords.isEmpty || (speechWords.length == 1 && speechWords[0].isEmpty)) {
+      return false;
+    }
+
+    for (final speechWord in speechWords) {
+      if (state.isScriptureComplete) break;
+
+      // Auto-fill any leading punctuation and spaces at current position
+      final newChars = List<TypedChar>.from(state.typedChars);
+      int pos = newChars.length;
+
+      // Skip spaces at current position
+      while (pos < state.targetText.length && state.targetText[pos] == ' ') {
+        newChars.add(const TypedChar(char: ' ', isCorrect: true));
+        pos++;
+      }
+
+      // Auto-fill punctuation
+      _autoFillPunctuation(newChars, '');
+      pos = newChars.length;
+
+      // Extract the next target word (letters only, up to next space/end)
+      final targetWordStart = pos;
+      var targetWordEnd = pos;
+      while (targetWordEnd < state.targetText.length &&
+          state.targetText[targetWordEnd] != ' ') {
+        targetWordEnd++;
+      }
+      if (targetWordStart >= state.targetText.length) break;
+
+      // Get the target word without punctuation for comparison
+      final targetWordRaw = state.targetText.substring(targetWordStart, targetWordEnd);
+      final targetWordClean = targetWordRaw.replaceAll(_punctuation, '').toLowerCase();
+      final speechWordClean = speechWord.replaceAll(_punctuation, '').toLowerCase();
+
+      // Check if speech word matches target word:
+      // 1. Direct match (case-insensitive, punctuation-stripped)
+      // 2. Number word match (e.g. "four" matches target "for" — NO, but "4" matches "four")
+      bool wordMatches = speechWordClean == targetWordClean;
+
+      // Check if STT gave a number word where target has the same-sounding word or vice versa
+      if (!wordMatches) {
+        // STT said a number word, check if its digit form matches target
+        final digitForm = _numberWords[speechWordClean];
+        if (digitForm != null && digitForm == targetWordClean) {
+          wordMatches = true;
+        }
+        // STT said digits, check if the word form matches target
+        final wordForm = _numberWords.entries
+            .where((e) => e.value == speechWordClean)
+            .map((e) => e.key)
+            .firstOrNull;
+        if (wordForm != null && wordForm == targetWordClean) {
+          wordMatches = true;
+        }
+        // Handle homophones: if target word sounds like speech word
+        // e.g. "for"/"four", "to"/"too"/"two", "their"/"there"/"they're"
+        if (!wordMatches) {
+          wordMatches = _areHomophones(speechWordClean, targetWordClean);
+        }
+      }
+
+      if (wordMatches) {
+        // Feed the actual target characters (preserving original case/punctuation)
+        for (int i = targetWordStart; i < targetWordEnd; i++) {
+          final ch = state.targetText[i];
+          if (_punctuation.hasMatch(ch)) {
+            newChars.add(TypedChar(char: ch, isCorrect: true));
+          } else {
+            newChars.add(TypedChar(char: ch, isCorrect: true));
+          }
+        }
+
+        // Auto-fill trailing punctuation
+        _autoFillPunctuation(newChars, '');
+
+        final totalFilled = newChars.length - state.typedChars.length;
+        final newCorrectAcross = state.correctUnitsAcrossAll + totalFilled;
+        final done = newChars.length >= state.targetText.length;
+
+        state = state.copyWith(
+          typedText: state.targetText.substring(0, newChars.length),
+          typedChars: newChars,
+          correctPlacements: state.correctPlacements + totalFilled,
+          correctUnitsAcrossAll: newCorrectAcross,
+          lastFeedback: done ? 'correct' : null,
+          isScriptureComplete: done,
+          clearFeedback: !done,
+        );
+      } else {
+        // Word doesn't match
+        if (state.difficulty == DifficultyLevel.master) {
+          // Master: full reset
+          state = state.copyWith(
+            typedText: '',
+            typedChars: [],
+            incorrectAttempts: state.incorrectAttempts + 1,
+            resetCount: state.resetCount + 1,
+            correctUnitsAcrossAll:
+                state.correctUnitsAcrossAll - state.correctPlacements,
+            correctPlacements: 0,
+            hasActiveError: false,
+            lastFeedback: 'reset',
+          );
+          return true; // Signal reset so speech can stop
+        } else {
+          // Advanced: mark as incorrect
+          state = state.copyWith(
+            incorrectAttempts: state.incorrectAttempts + 1,
+            hasActiveError: true,
+            lastFeedback: 'incorrect',
+          );
+          return false;
+        }
+      }
+    }
+    return false;
+  }
+
+  /// Check if two words are homophones (sound alike but spelled differently).
+  static bool _areHomophones(String a, String b) {
+    const homophones = <Set<String>>{
+      {'for', 'four', 'fore'},
+      {'to', 'too', 'two'},
+      {'their', 'there', 'theyre'},
+      {'your', 'youre'},
+      {'its', 'its'},
+      {'no', 'know'},
+      {'by', 'buy', 'bye'},
+      {'hear', 'here'},
+      {'know', 'no'},
+      {'right', 'write', 'rite'},
+      {'sea', 'see'},
+      {'son', 'sun'},
+      {'one', 'won'},
+      {'would', 'wood'},
+      {'which', 'witch'},
+      {'peace', 'piece'},
+      {'pray', 'prey'},
+      {'soul', 'sole'},
+      {'whole', 'hole'},
+      {'holy', 'wholly'},
+      {'prophet', 'profit'},
+      {'reign', 'rain', 'rein'},
+      {'altar', 'alter'},
+      {'born', 'borne'},
+      {'council', 'counsel'},
+      {'might', 'mite'},
+      {'night', 'knight'},
+      {'way', 'weigh'},
+      {'week', 'weak'},
+      {'wait', 'weight'},
+      {'eye', 'i'},
+      {'thee', 'the'},
+    };
+    for (final set in homophones) {
+      if (set.contains(a) && set.contains(b)) return true;
+    }
+    return false;
   }
 
   // ═══════════════════════════════════════════════════════════════
