@@ -15,7 +15,8 @@ class MatchPair {
 /// Full state for a matching game session.
 class MatchingGameState {
   final DifficultyLevel difficulty;
-  final ScriptureBook? bookFilter; // null = all books
+  final ScriptureBook? bookFilter; // Legacy single filter (null = all books)
+  final List<ScriptureBook> bookFilters; // Multi-select filters (empty = all books)
   final List<MatchPair> pairs;
   final List<String> shuffledReferences; // Right column order
   final List<String> shuffledPhrases;    // Left column order
@@ -33,6 +34,7 @@ class MatchingGameState {
   const MatchingGameState({
     required this.difficulty,
     this.bookFilter,
+    this.bookFilters = const [],
     this.pairs = const [],
     this.shuffledReferences = const [],
     this.shuffledPhrases = const [],
@@ -63,6 +65,7 @@ class MatchingGameState {
   MatchingGameState copyWith({
     DifficultyLevel? difficulty,
     ScriptureBook? bookFilter,
+    List<ScriptureBook>? bookFilters,
     List<MatchPair>? pairs,
     List<String>? shuffledReferences,
     List<String>? shuffledPhrases,
@@ -84,6 +87,7 @@ class MatchingGameState {
     return MatchingGameState(
       difficulty: difficulty ?? this.difficulty,
       bookFilter: bookFilter ?? this.bookFilter,
+      bookFilters: bookFilters ?? this.bookFilters,
       pairs: pairs ?? this.pairs,
       shuffledReferences: shuffledReferences ?? this.shuffledReferences,
       shuffledPhrases: shuffledPhrases ?? this.shuffledPhrases,
@@ -111,10 +115,14 @@ class MatchingGameNotifier extends StateNotifier<MatchingGameState> {
 
   final _random = Random();
 
-  /// Initialize a new game with given difficulty and optional book filter.
+  /// Initialize a new game with given difficulty and optional book filter(s).
+  ///
+  /// [bookFilters] is the preferred multi-select filter (empty = all books).
+  /// [bookFilter] is the legacy single-select filter kept for backward compat.
   void startGame({
     required DifficultyLevel difficulty,
     ScriptureBook? bookFilter,
+    List<ScriptureBook> bookFilters = const [],
     List<Scripture>? scriptures,
   }) {
     // Use provided scriptures or select from pool
@@ -123,11 +131,22 @@ class MatchingGameNotifier extends StateNotifier<MatchingGameState> {
       selected = List.from(scriptures);
     } else {
       List<Scripture> available = List.from(allScriptures);
-      if (bookFilter != null) {
+
+      // Apply filter: prefer multi-select, fall back to legacy single
+      if (bookFilters.isNotEmpty) {
+        final filterSet = bookFilters.toSet();
+        available = available.where((s) => filterSet.contains(s.book)).toList();
+      } else if (bookFilter != null) {
         available = available.where((s) => s.book == bookFilter).toList();
       }
+
       available.shuffle(_random);
-      final count = min(difficulty.scriptureCount, available.length);
+
+      // Use matching-specific counts (null = all available)
+      final matchCount = difficulty.matchingScriptureCount;
+      final count = matchCount == null
+          ? available.length
+          : min(matchCount, available.length);
       selected = available.take(count).toList();
     }
 
@@ -141,6 +160,7 @@ class MatchingGameNotifier extends StateNotifier<MatchingGameState> {
     state = MatchingGameState(
       difficulty: difficulty,
       bookFilter: bookFilter,
+      bookFilters: bookFilters,
       pairs: pairs,
       shuffledPhrases: phraseIds,
       shuffledReferences: refIds,

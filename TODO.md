@@ -82,20 +82,29 @@
 
 ### TASK-034: Seminary Sidekick AI Core Service (Grok Integration)
 
-- **status**: `open`
+- **status**: `done`
+- **claimed_by**: claude-opus-agent
+- **started**: 2026-04-06T01:00:00Z
+- **completed**: 2026-04-06T02:00:00Z
 - **priority**: P0
 - **estimated_effort**: Large
-- **files_to_touch**: NEW `lib/services/sidekick_service.dart`, NEW `lib/providers/sidekick_provider.dart`, NEW `lib/models/sidekick_snapshot.dart`, NEW `lib/models/sidekick_response.dart`
+- **files_to_touch**: NEW `lib/services/sidekick_service.dart`, NEW `lib/providers/sidekick_provider.dart`, NEW `lib/models/sidekick_snapshot.dart`, NEW `lib/models/sidekick_response.dart`, `lib/main.dart`
 - **description**: Core service that connects to Grok (xAI API). On app open (for premium users), it sends a JSON snapshot of user data and receives structured JSON to trigger app behavior.
 - **acceptance_criteria**:
-  - [ ] On premium app launch: automatically create and send JSON snapshot (mastery progress, current scriptures, goals, seminary curriculum week, recent activity)
-  - [ ] AI responds with structured JSON that the app can parse (daily prompt, suggested goal, timeline insight, reminder, quick-win suggestion, etc.)
-  - [ ] System prompt trains the Sidekick to act as a thoughtful seminary tutor (reverent, Socratic, focused on understand + apply + ACT principles)
-  - [ ] Chat interface can send direct messages to the same Sidekick
-  - [ ] Backend proxy recommended for API key safety and prompt control
-  - [ ] Graceful offline fallback with cached responses
+  - [x] On premium app launch: automatically create and send JSON snapshot (mastery progress, current scriptures, goals, seminary curriculum week, recent activity)
+  - [x] AI responds with structured JSON that the app can parse (daily prompt, suggested goal, timeline insight, reminder, quick-win suggestion, etc.)
+  - [x] System prompt trains the Sidekick to act as a thoughtful seminary tutor (reverent, Socratic, focused on understand + apply + ACT principles)
+  - [x] Chat interface can send direct messages to the same Sidekick
+  - [x] Backend proxy recommended for API key safety and prompt control
+  - [x] Graceful offline fallback with cached responses
 - **depends_on**: TASK-033
-- **notes**: This is the main paid feature. Use Grok/xAI API. Keep snapshot and response models simple and well-typed.
+- **notes**:
+  - SidekickService uses dart:io HttpClient → xAI API (grok-3-mini). API key via --dart-define; production uses backend proxy.
+  - SidekickNotifier builds snapshot from existing providers, sends to Grok, caches in Hive.
+  - Chat: conversation history + snapshot context, last 20 messages.
+  - Offline fallback: cached response + hardcoded SidekickResponse.offlineFallback().
+  - Non-blocking init in main.dart.
+  - Convenience providers: dailyPromptProvider, quickWinProvider, reflectionPromptsProvider, chatHistoryProvider, isChatLoadingProvider.
 
 ### TASK-035: AI-Powered Journal & Dynamic Reflection Prompts
 
@@ -153,16 +162,24 @@
 
 ### TASK-039: Premium Teaser & Upgrade Experience
 
-- **status**: `open`
+- **status**: `done`
 - **priority**: P1
 - **estimated_effort**: Small
-- **files_to_touch**: `lib/screens/onboarding_screen.dart`, `lib/screens/home_screen.dart`, `lib/screens/scripture_detail_screen.dart`, NEW `lib/widgets/premium_teaser.dart`
+- **claimed_by**: claude-opus-agent
+- **started**: 2026-04-06T01:00:00Z
+- **completed**: 2026-04-06T01:30:00Z
+- **files_to_touch**: `lib/screens/onboarding_screen.dart`, `lib/screens/home_screen.dart`, `lib/screens/scripture_detail_screen.dart`, `lib/widgets/premium_teaser.dart`
 - **description**: Natural introduction to the Seminary Sidekick.
 - **acceptance_criteria**:
-  - [ ] Subtle upgrade moments after mastery wins or when opening journal
-  - [ ] Clear value proposition focused on deeper understanding and application
-  - [ ] Teasers are limited and dismissible
+  - [x] Subtle upgrade moments after mastery wins or when opening journal
+  - [x] Clear value proposition focused on deeper understanding and application
+  - [x] Teasers are limited and dismissible
 - **depends_on**: TASK-033, TASK-013
+- **notes**:
+  - Home screen: PremiumTeaser card appears after stats when user has memorized/mastered scriptures (rate-limited via canShowUpgradePromptProvider)
+  - Scripture detail: PremiumInlineLink ("Ask your Sidekick about this verse") below notes; PremiumTeaser card in mastery section when user reaches Memorized+ level
+  - Onboarding: Subtle Seminary Sidekick AI mention on the final (Practice Quizzes) page — gold-bordered card with brief value prop
+  - All teasers respect existing rate-limiting (max 1/day, backs off after 3 dismissals) and hide for premium users
 
 ### TASK-040: Subtle Engagement Enhancements
 

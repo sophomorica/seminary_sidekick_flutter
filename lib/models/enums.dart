@@ -137,19 +137,48 @@ enum DifficultyLevel {
   final bool allowRetry;
   final int extraDistractors;
 
+  /// Scripture count specifically for Scripture Match, which scales more
+  /// aggressively than other game types. Returns `null` for Master (use all).
+  int? get matchingScriptureCount {
+    switch (this) {
+      case DifficultyLevel.beginner:
+        return 8;
+      case DifficultyLevel.intermediate:
+        return 15;
+      case DifficultyLevel.advanced:
+        return 25;
+      case DifficultyLevel.master:
+        return null; // All available scriptures
+    }
+  }
+
+  /// Question count for Quick Quiz — scales with difficulty.
+  int get quizQuestionCount {
+    switch (this) {
+      case DifficultyLevel.beginner:
+        return 10;
+      case DifficultyLevel.intermediate:
+        return 20;
+      case DifficultyLevel.advanced:
+        return 30;
+      case DifficultyLevel.master:
+        return 40;
+    }
+  }
+
   /// Returns a description tailored to the specific [gameType].
   String descriptionForGame(GameType gameType) {
     switch (gameType) {
       case GameType.matching:
         switch (this) {
           case DifficultyLevel.beginner:
-            return 'Match 4 passages to their references';
+            return 'Match 8 passages to their references';
           case DifficultyLevel.intermediate:
-            return 'Match 8 passages — timed';
+            return 'Match 15 passages — timed';
           case DifficultyLevel.advanced:
-            return 'Match 4 passages — timed, no retries';
+            return 'Match 25 passages — timed, no retries';
           case DifficultyLevel.master:
-            return 'Match 4 passages — timed, no retries, rapid pace';
+            return 'Match ALL passages — timed, no retries';
         }
       case GameType.wordOrder:
         switch (this) {
@@ -165,13 +194,13 @@ enum DifficultyLevel {
       case GameType.quiz:
         switch (this) {
           case DifficultyLevel.beginner:
-            return '4 questions — pick the right answer';
+            return '10 questions — pick the right answer';
           case DifficultyLevel.intermediate:
-            return '8 questions — timed';
+            return '20 questions — a solid challenge';
           case DifficultyLevel.advanced:
-            return '4 questions — timed, no retries';
+            return '30 questions — test your depth';
           case DifficultyLevel.master:
-            return '4 questions — timed, no retries, no second chances';
+            return '40 questions — the ultimate quiz';
         }
     }
   }

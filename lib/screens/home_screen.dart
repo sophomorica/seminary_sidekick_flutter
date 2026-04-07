@@ -6,8 +6,10 @@ import '../models/enums.dart';
 import '../providers/scripture_provider.dart';
 import '../providers/scripture_mastery_provider.dart';
 import '../providers/spaced_repetition_provider.dart';
+import '../providers/subscription_provider.dart';
 import '../providers/theme_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/premium_teaser.dart';
 import '../widgets/scripture_card.dart';
 import 'onboarding_screen.dart';
 
@@ -115,7 +117,19 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
+
+            // Premium teaser — shown after user has made progress
+            if (ref.watch(canShowUpgradePromptProvider) &&
+                (stats.mastered + stats.memorized) > 0)
+              const PremiumTeaser(
+                headline: 'Go deeper with your Sidekick',
+                body:
+                    'Get AI-powered insights, reflection prompts, and personalized goals for every scripture you study.',
+                icon: Icons.auto_awesome,
+              ),
+
+            const SizedBox(height: 12),
 
             // Scripture Collections section
             Padding(

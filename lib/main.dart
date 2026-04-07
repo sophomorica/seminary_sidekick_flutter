@@ -10,6 +10,7 @@ import 'providers/notes_provider.dart';
 import 'providers/onboarding_provider.dart';
 import 'providers/progress_provider.dart';
 import 'providers/spaced_repetition_provider.dart';
+import 'providers/sidekick_provider.dart';
 import 'providers/subscription_provider.dart';
 import 'providers/theme_provider.dart';
 import 'services/audio_service.dart';
@@ -45,6 +46,10 @@ void main() async {
   await container.read(themeProvider.notifier).init();
   await container.read(subscriptionProvider.notifier).init();
   await container.read(audioProvider.notifier).init();
+
+  // Initialize Sidekick AI (loads cache; auto-refreshes if premium).
+  // Non-blocking — the app starts immediately, sidekick loads in background.
+  container.read(sidekickProvider.notifier).init();
 
   runApp(
     UncontrolledProviderScope(

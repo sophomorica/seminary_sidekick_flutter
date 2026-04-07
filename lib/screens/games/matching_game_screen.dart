@@ -14,12 +14,14 @@ import 'game_results_screen.dart';
 class MatchingGameScreen extends ConsumerStatefulWidget {
   final DifficultyLevel difficulty;
   final ScriptureBook? bookFilter;
+  final List<ScriptureBook> bookFilters;
   final List<Scripture>? scriptures;
 
   const MatchingGameScreen({
     super.key,
     required this.difficulty,
     this.bookFilter,
+    this.bookFilters = const [],
     this.scriptures,
   });
 
@@ -66,6 +68,7 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
       ref.read(matchingGameProvider.notifier).startGame(
             difficulty: widget.difficulty,
             bookFilter: widget.bookFilter,
+            bookFilters: widget.bookFilters,
             scriptures: widget.scriptures,
           );
       _startTimer();
@@ -500,10 +503,9 @@ class _MatchTile extends StatelessWidget {
       );
     }
 
-    // Draggable tile
-    final draggable = LongPressDraggable<String>(
+    // Draggable tile — immediate drag (no long press required)
+    final draggable = Draggable<String>(
       data: scripture.id,
-      delay: const Duration(milliseconds: 150),
       feedback: Material(
         elevation: 8,
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
@@ -513,6 +515,13 @@ class _MatchTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppTheme.primary.withValues(alpha: 0.95),
             borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primary.withValues(alpha: 0.3),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Text(
             isLeft ? scripture.keyPhrase : scripture.reference,
@@ -529,6 +538,7 @@ class _MatchTile extends StatelessWidget {
         opacity: 0.3,
         child: _buildTileContent(context),
       ),
+      onDragStarted: () => HapticFeedback.selectionClick(),
       child: DragTarget<String>(
         onWillAcceptWithDetails: (details) => !isMatched,
         onAcceptWithDetails: (details) => onDragAccepted(details.data),
@@ -616,6 +626,16 @@ class _MatchTile extends StatelessWidget {
           if (matched) ...[
             const Icon(Icons.check_circle, color: AppTheme.success, size: 18),
             const SizedBox(width: 8),
+          ],
+          if (!matched) ...[
+            Icon(
+              Icons.drag_indicator,
+              size: 16,
+              color: isSelected
+                  ? AppTheme.primary.withValues(alpha: 0.6)
+                  : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.25),
+            ),
+            const SizedBox(width: 6),
           ],
           Expanded(
             child: Text(

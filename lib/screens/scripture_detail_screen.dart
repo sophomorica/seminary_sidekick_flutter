@@ -8,8 +8,10 @@ import '../models/scripture_mastery.dart';
 import '../providers/scripture_provider.dart';
 import '../providers/scripture_mastery_provider.dart';
 import '../providers/notes_provider.dart';
+import '../providers/subscription_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/mastery_badge.dart';
+import '../widgets/premium_teaser.dart';
 import 'memorize_screen.dart';
 import 'games/matching_game_screen.dart';
 import 'games/word_builder_screen.dart';
@@ -272,6 +274,16 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                 ),
               ),
             ),
+            // Subtle premium inline link — "Ask your Sidekick"
+            if (!ref.watch(isPremiumProvider))
+              const Padding(
+                padding: EdgeInsets.only(top: 4.0, bottom: 8.0),
+                child: PremiumInlineLink(
+                  text: 'Ask your Sidekick about this verse',
+                  icon: Icons.auto_awesome,
+                ),
+              ),
+
             const SizedBox(height: 24),
 
             // Practice quizzes (recognition tools — not mastery-gating)
@@ -809,6 +821,17 @@ class _HolisticMasterySection extends ConsumerWidget {
             ),
           ),
         ],
+
+        // Premium teaser — shown after reaching memorized+ level
+        if (!ref.watch(isPremiumProvider) &&
+            ref.watch(canShowUpgradePromptProvider) &&
+            (mastery.level.index >= MasteryLevel.memorized.index))
+          const PremiumTeaser(
+            headline: 'You\'re memorizing it — now understand it',
+            body:
+                'Your Seminary Sidekick helps you find meaning, apply principles, and journal your insights.',
+            icon: Icons.psychology,
+          ),
 
         // Per-game difficulty progress (supplementary — only show quiz/matching)
         if (mastery.gameTypesAttempted > 0) ...[

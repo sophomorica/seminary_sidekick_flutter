@@ -26,18 +26,6 @@ Premium features focus on deeper understanding and application through AI-genera
 
 ## Tech Stack
 
-(unchanged — keep as is)
-
----
-
-## Project Structure
-
-**Important update**: New files will be added under Premium:
-
----
-
-## Tech Stack
-
 | Choice | Why |
 |--------|-----|
 | **Flutter + Dart** | Pixel-level animation control, game-quality performance |
@@ -48,78 +36,80 @@ Premium features focus on deeper understanding and application through AI-genera
 | **flutter_animate** | Animations |
 | **confetti** | Celebration effects |
 | **audioplayers** | Sound effects |
-| **purchases_flutter** (RevenueCat) | In-app subscriptions (freemium) |
+| **purchases_flutter** (RevenueCat) | In-app subscriptions for freemium model |
 
 ---
 
 ## Project Structure
 
-```
+**Important update for Premium**:
+New files and folders will be added. See the full structure below.
 lib/
 ├── main.dart                    # Entry: Hive init, orientation lock, ProviderScope
 ├── app.dart                     # GoRouter config, shell with bottom nav
 ├── models/
-│   ├── enums.dart               # ScriptureBook, MasteryLevel, GameType, DifficultyLevel
-│   ├── scripture.dart           # Scripture model with pre-split words
-│   ├── user_progress.dart       # UserProgress with toJson/fromJson
-│   └── scripture_mastery.dart   # Holistic mastery (computed, not stored)
-│   ├── sidekick_snapshot.dart      # New: JSON sent to Grok
-│   ├── sidekick_response.dart      # New: Structured response from Grok
-│   └── journal_entry.dart          # New
+│   ├── enums.dart
+│   ├── scripture.dart
+│   ├── user_progress.dart
+│   ├── scripture_mastery.dart
+│   ├── sidekick_snapshot.dart      # JSON sent to Grok
+│   ├── sidekick_response.dart      # Structured response from Grok
+│   └── journal_entry.dart
 ├── data/
-│   └── scriptures_data.dart     # 100 Doctrinal Mastery scriptures (allScriptures)
+│   └── scriptures_data.dart
 ├── providers/
-│   ├── scripture_provider.dart  # Read-only: all, byBook, byId, search
-│   ├── progress_provider.dart   # ProgressNotifier (Hive-backed)
-│   ├── scripture_mastery_provider.dart  # Holistic mastery + stats
-│   ├── mastery_dates_provider.dart      # Hive-backed masteredSince dates
+│   ├── scripture_provider.dart
+│   ├── progress_provider.dart
+│   ├── scripture_mastery_provider.dart
+│   ├── mastery_dates_provider.dart
 │   ├── matching_game_provider.dart
 │   ├── word_builder_provider.dart
 │   ├── quiz_game_provider.dart
-│   └── notes_provider.dart      # Per-scripture notes (Hive-backed)
-│   ├── sidekick_provider.dart      # New: Main AI orchestration
-│   ├── subscription_provider.dart  # Freemium state (Hive-backed, RevenueCat-ready)
-│   ├── goals_provider.dart         # New
-│   └── journal_provider.dart       # New or extended
+│   ├── notes_provider.dart
+│   ├── sidekick_provider.dart      # Main AI orchestration
+│   ├── subscription_provider.dart  # Freemium state + RevenueCat
+│   ├── goals_provider.dart
+│   └── journal_provider.dart
 ├── screens/
 │   ├── home_screen.dart
 │   ├── scripture_list_screen.dart
 │   ├── scripture_detail_screen.dart
 │   ├── memorize_screen.dart
-│   ├── games_hub_screen.dart
+│   ├── practice_hub_screen.dart    # Renamed from games_hub
 │   ├── progress_screen.dart
-│   ├── upgrade_screen.dart         # Full-screen premium upgrade experience
-│   ├── journal_screen.dart         # New
-│   ├── sidekick_chat_screen.dart   # New
-│   └── premium/                    # New folder for premium screens
-│   └── games/
-│       ├── matching_game_screen.dart
-│       ├── word_builder_screen.dart
-│       ├── quiz_game_screen.dart
-│       └── game_results_screen.dart
+│   ├── journal_screen.dart
+│   ├── sidekick_chat_screen.dart
+│   ├── upgrade_screen.dart
+│   └── premium/                    # Optional folder for premium-only screens
 ├── services/
-│   ├── audio_service.dart       # AudioNotifier with pooled players
-│   ├──speech_service.dart      # Speech-to-text wrapper
-│   └── sidekick_service.dart       # New: Grok API calls
+│   ├── audio_service.dart
+│   ├── speech_service.dart
+│   └── sidekick_service.dart       # Grok API calls + snapshot logic
 ├── widgets/
 │   ├── scripture_card.dart
 │   ├── mastery_badge.dart
 │   ├── progress_ring.dart
-│   └── premium_teaser.dart     # PremiumTeaser, PremiumInlineLink, PremiumGate
+│   └── premium_teaser.dart
 └── theme/
-    └── app_theme.dart           # Full design system: colors, typography, spacing
-```
+└── app_theme.dart
+
 
 ---
 
 ## Data Model
-
 ### Scripture (immutable)
 
 Fields: `id` (String, '1'..'100'), `book` (ScriptureBook enum), `volume`, `reference`, `name` (topic), `keyPhrase`, `fullText`, `words` (pre-split, auto-computed), `wordCount` (auto-computed).
 **New models for Premium**:
 - `SidekickSnapshot`: Contains current mastery state, seminary curriculum week, goals, recent activity, etc.
 - `SidekickResponse`: Structured JSON from Grok that triggers app actions (daily prompt, quick win, goal suggestion, etc.).
+
+(Keep all existing models unchanged)
+
+**Premium models** (implemented):
+- `SidekickSnapshot`: JSON payload sent to Grok on app launch. Contains `MasteryStats` (per-level counts), `List<ScriptureProgressSummary>` (up to 8 needing attention), recent activity strings, curriculum week, goals, streak, days active. Built by `SidekickNotifier._buildSnapshot()` from existing providers.
+- `SidekickResponse`: Structured JSON from Grok. All fields optional: `dailyPrompt`, `suggestedGoal` (SidekickGoal), `quickWin` (QuickWin with scriptureId + actionType), `timelineInsight`, `reminder`, `reflectionPrompts`, `encouragement`, `connections` (ScriptureConnection). Has `fromJson`/`toJson` and `offlineFallback()` factory.
+- `SidekickMessage`: Chat message with `role` (user/assistant), `content`, `timestamp`. Has `toApiMessage()` for API calls.
 
 ### UserProgress (per scripture × game type)
 
@@ -291,6 +281,17 @@ ref.watch(isPremiumProvider)                           // bool — is user premi
 ref.watch(canShowUpgradePromptProvider)                // bool — rate-limited prompt check
 ref.read(subscriptionProvider.notifier).purchasePlan(plan)  // Trigger purchase
 ref.read(subscriptionProvider.notifier).dismissUpgradePrompt()  // Record dismissal
+
+// Sidekick AI (premium)
+ref.watch(sidekickProvider)                            // Full sidekick state
+ref.watch(sidekickResponseProvider)                    // Latest SidekickResponse
+ref.watch(dailyPromptProvider)                         // String? — daily prompt
+ref.watch(quickWinProvider)                            // QuickWin? — next action
+ref.watch(reflectionPromptsProvider)                   // List<String> — journal prompts
+ref.watch(chatHistoryProvider)                         // List<SidekickMessage>
+ref.watch(isChatLoadingProvider)                       // bool — chat in flight?
+ref.read(sidekickProvider.notifier).refreshSession()   // Re-fetch from Grok
+ref.read(sidekickProvider.notifier).sendMessage(text)  // Chat message
 ```
 
 ---
@@ -466,26 +467,36 @@ flutter run              # Run app
 | `subscription_provider.dart` | Freemium state, RevenueCat integration, prompt rate-limiting |
 | `upgrade_screen.dart` | Full-screen premium upgrade experience (plan selection, purchase) |
 | `premium_teaser.dart` | Reusable upgrade prompt widgets (PremiumTeaser, PremiumInlineLink, PremiumGate) |
+| `sidekick_service.dart` | Grok/xAI API client, system prompts, JSON parsing |
+| `sidekick_provider.dart` | AI orchestration: snapshot building, session refresh, chat, caching |
+| `sidekick_snapshot.dart` | JSON payload model sent to Grok (MasteryStats, ScriptureProgressSummary) |
+| `sidekick_response.dart` | Structured response model from Grok (SidekickGoal, QuickWin, ScriptureConnection, SidekickMessage) |
 
 ## Current Task Status
 
 **Free-tier MVP** (completed 2026-04-06):
-- All core tasks done: Word Builder mastery, Practice tab, spaced repetition, activity feed, onboarding, dark mode, speech-to-text, audio/confetti feedback.
-- UX restructure complete: Word Builder is the hero on scripture detail, mastery path is clear, shortcut logic implemented.
+- All core tasks done.
+- UX restructure complete: Word Builder is the hero on scripture detail.
 
 **Freemium infrastructure** (completed 2026-04-06):
-- TASK-033 done: SubscriptionProvider (Hive-backed), RevenueCat wired, UpgradeScreen, PremiumTeaser widgets, rate-limited prompts.
+- TASK-033 done: SubscriptionProvider, UpgradeScreen, PremiumTeaser widgets, rate-limited prompts.
+
+**Seminary Sidekick AI core** (completed 2026-04-06):
+- TASK-034 done: SidekickService (Grok/xAI), SidekickProvider (orchestration + caching), snapshot/response models, chat support.
+
+**Premium teaser & upgrade experience** (completed 2026-04-06):
+- TASK-039 done: Premium teasers placed in home screen (after stats), scripture detail (inline link + mastery-level teaser), and onboarding (Sidekick mention on final page). All rate-limited and dismissible.
 
 **Active direction** (Premium Tier – Seminary Sidekick):
-- **P0**: TASK-034 (Seminary Sidekick AI core – Grok integration with JSON snapshot/response)
 - **P1**: TASK-035 (AI-powered journal & dynamic reflection prompts)
 - **P1**: TASK-036 (AI-driven goals, timeline & gentle reminders)
 - **P1**: TASK-037 (“Ask Your Sidekick” chat)
-- **P1**: TASK-039 (Premium teaser & upgrade experience)
 - **P2**: TASK-038 (Premium polish)
 - **P2**: TASK-040 (Subtle engagement enhancements)
 
 ---
+
 ## Available Skills
 - `/grill-me` — Use this when you need deep, relentless questioning on game mechanics, mastery logic, UX flows, or architecture decisions.
 - `/request-refactor-plan` — Before any major refactor (especially providers or game screens).
+- `/sidekick-prompt` — Ask for help crafting or refining the Seminary Sidekick system prompt for Grok.

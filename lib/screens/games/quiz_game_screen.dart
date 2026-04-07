@@ -13,13 +13,13 @@ import 'game_results_screen.dart';
 
 class QuizGameScreen extends ConsumerStatefulWidget {
   final DifficultyLevel difficulty;
-  final ScriptureBook? bookFilter;
+  final List<ScriptureBook> bookFilters;
   final List<Scripture>? scriptures;
 
   const QuizGameScreen({
     super.key,
     required this.difficulty,
-    this.bookFilter,
+    this.bookFilters = const [],
     this.scriptures,
   });
 
@@ -37,7 +37,7 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(quizGameProvider.notifier).startGame(
             difficulty: widget.difficulty,
-            bookFilter: widget.bookFilter,
+            bookFilters: widget.bookFilters,
             scriptures: widget.scriptures,
           );
       _startTimer();
