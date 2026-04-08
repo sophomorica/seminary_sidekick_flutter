@@ -328,6 +328,26 @@ class AppTheme {
     );
   }
 
+  // ─── Sidekick Colors (dark-mode-aware) ───────────────────────────
+  /// Primary sidekick accent — gold in light mode, sage green in dark.
+  static Color sidekickColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? secondaryLight
+        : premiumGold;
+  }
+
+  /// Sidekick gradient — gold in light mode, sage green in dark.
+  static List<Color> sidekickGradient(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? [secondary, secondaryLight]
+        : [premiumGradientStart, premiumGradientEnd];
+  }
+
+  /// Muted sidekick tint for backgrounds — adapts to theme.
+  static Color sidekickTint(BuildContext context, [double alpha = 0.12]) {
+    return sidekickColor(context).withValues(alpha: alpha);
+  }
+
   // ─── Helper: Get color for a scripture book ─────────────────────
   static Color bookColor(String bookKey) {
     return switch (bookKey) {

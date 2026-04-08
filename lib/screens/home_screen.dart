@@ -386,13 +386,13 @@ class _ReminderBanner extends ConsumerWidget {
         vertical: AppTheme.spacingSm,
       ),
       child: Card(
-        color: AppTheme.premiumGoldLight.withValues(alpha: 0.5),
+        color: AppTheme.sidekickTint(context, 0.15),
         child: Padding(
           padding: const EdgeInsets.all(12.0),
           child: Row(
             children: [
-              const Icon(Icons.notifications_none,
-                  color: AppTheme.premiumGold, size: 22),
+              Icon(Icons.notifications_none,
+                  color: AppTheme.sidekickColor(context), size: 22),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -432,7 +432,7 @@ class _SuggestedGoalCard extends ConsumerWidget {
       child: Card(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-          side: const BorderSide(color: AppTheme.premiumGold, width: 1),
+          side: BorderSide(color: AppTheme.sidekickColor(context), width: 1),
         ),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -441,13 +441,13 @@ class _SuggestedGoalCard extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.auto_awesome,
-                      color: AppTheme.premiumGold, size: 20),
+                  Icon(Icons.auto_awesome,
+                      color: AppTheme.sidekickColor(context), size: 20),
                   const SizedBox(width: 8),
                   Text(
                     'Your Sidekick suggests',
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: AppTheme.premiumGold,
+                          color: AppTheme.sidekickColor(context),
                         ),
                   ),
                 ],
@@ -564,7 +564,7 @@ class _GoalTile extends ConsumerWidget {
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: goal.isSidekickSuggestion
-                        ? AppTheme.premiumGold
+                        ? AppTheme.sidekickColor(context)
                         : AppTheme.primary,
                     width: 2,
                   ),
@@ -594,10 +594,10 @@ class _GoalTile extends ConsumerWidget {
               ),
             ),
             if (goal.isSidekickSuggestion)
-              const Padding(
-                padding: EdgeInsets.only(left: 4),
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
                 child: Icon(Icons.auto_awesome,
-                    size: 14, color: AppTheme.premiumGold),
+                    size: 14, color: AppTheme.sidekickColor(context)),
               ),
           ],
         ),
@@ -669,7 +669,7 @@ class _ReflectNowCard extends ConsumerWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTheme.radiusMd),
           side: BorderSide(
-            color: AppTheme.premiumGold.withValues(alpha: 0.3),
+            color: AppTheme.sidekickColor(context).withValues(alpha: 0.3),
           ),
         ),
         child: InkWell(
@@ -689,11 +689,11 @@ class _ReflectNowCard extends ConsumerWidget {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: AppTheme.premiumGold.withValues(alpha: 0.12),
+                    color: AppTheme.sidekickTint(context),
                     borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                   ),
-                  child: const Icon(Icons.edit_note,
-                      color: AppTheme.premiumGold, size: 20),
+                  child: Icon(Icons.edit_note,
+                      color: AppTheme.sidekickColor(context), size: 20),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -705,7 +705,7 @@ class _ReflectNowCard extends ConsumerWidget {
                         style:
                             Theme.of(context).textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w600,
-                                  color: AppTheme.premiumGold,
+                                  color: AppTheme.sidekickColor(context),
                                 ),
                       ),
                       const SizedBox(height: 2),
@@ -719,8 +719,8 @@ class _ReflectNowCard extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Icon(Icons.arrow_forward_ios,
-                    size: 14, color: AppTheme.premiumGold),
+                Icon(Icons.arrow_forward_ios,
+                    size: 14, color: AppTheme.sidekickColor(context)),
               ],
             ),
           ),
@@ -784,14 +784,14 @@ class _QuickSessionTile extends ConsumerWidget {
     }
   }
 
-  Color _colorForAction(String actionType) {
+  Color _colorForAction(BuildContext context, String actionType) {
     switch (actionType) {
       case 'wordBuilder':
         return AppTheme.primary;
       case 'review':
         return AppTheme.warning;
       case 'reflect':
-        return AppTheme.premiumGold;
+        return AppTheme.sidekickColor(context);
       case 'quiz':
         return AppTheme.secondary;
       default:
@@ -801,7 +801,7 @@ class _QuickSessionTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final color = _colorForAction(prompt.actionType);
+    final color = _colorForAction(context, prompt.actionType);
     return Card(
       margin: const EdgeInsets.only(bottom: 6),
       child: InkWell(

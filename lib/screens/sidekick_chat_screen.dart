@@ -113,7 +113,7 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.auto_awesome, size: 20, color: AppTheme.premiumGold),
+            Icon(Icons.auto_awesome, size: 20, color: AppTheme.sidekickColor(context)),
             const SizedBox(width: 8),
             Text(
               'Your Sidekick',
@@ -286,11 +286,8 @@ class _ChatBubble extends StatelessWidget {
               height: 32,
               margin: const EdgeInsets.only(top: 4),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [
-                    AppTheme.premiumGradientStart,
-                    AppTheme.premiumGradientEnd,
-                  ],
+                gradient: LinearGradient(
+                  colors: AppTheme.sidekickGradient(context),
                 ),
                 borderRadius: BorderRadius.circular(AppTheme.radiusSm),
               ),
@@ -502,11 +499,8 @@ class _TypingIndicatorState extends State<_TypingIndicator>
             height: 32,
             margin: const EdgeInsets.only(top: 4),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [
-                  AppTheme.premiumGradientStart,
-                  AppTheme.premiumGradientEnd,
-                ],
+              gradient: LinearGradient(
+                colors: AppTheme.sidekickGradient(context),
               ),
               borderRadius: BorderRadius.circular(AppTheme.radiusSm),
             ),
@@ -547,8 +541,8 @@ class _TypingIndicatorState extends State<_TypingIndicator>
                         child: Container(
                           width: 8,
                           height: 8,
-                          decoration: const BoxDecoration(
-                            color: AppTheme.premiumGold,
+                          decoration: BoxDecoration(
+                            color: AppTheme.sidekickColor(context),
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -596,13 +590,10 @@ class _EmptyState extends StatelessWidget {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    AppTheme.premiumGradientStart,
-                    AppTheme.premiumGradientEnd,
-                  ],
+                  colors: AppTheme.sidekickGradient(context),
                 ),
                 borderRadius: BorderRadius.circular(AppTheme.radiusLg),
               ),
@@ -656,13 +647,13 @@ class _EmptyState extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   onPressed: () => onSuggestionTap(suggestion),
-                  avatar: const Icon(
+                  avatar: Icon(
                     Icons.chat_bubble_outline,
                     size: 16,
-                    color: AppTheme.premiumGold,
+                    color: AppTheme.sidekickColor(context),
                   ),
                   side: BorderSide(
-                    color: AppTheme.premiumGold.withValues(alpha: 0.3),
+                    color: AppTheme.sidekickColor(context).withValues(alpha: 0.3),
                   ),
                 );
               }).toList(),
@@ -757,8 +748,8 @@ class _ChatInput extends StatelessWidget {
                 height: 42,
                 decoration: BoxDecoration(
                   color: isLoading
-                      ? AppTheme.premiumGold.withValues(alpha: 0.3)
-                      : AppTheme.premiumGold,
+                      ? AppTheme.sidekickColor(context).withValues(alpha: 0.3)
+                      : AppTheme.sidekickColor(context),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(

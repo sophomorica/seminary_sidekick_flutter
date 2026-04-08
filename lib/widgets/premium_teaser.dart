@@ -63,8 +63,8 @@ class PremiumTeaser extends ConsumerWidget {
               end: Alignment.bottomRight,
               colors: isDark
                   ? [
-                      AppTheme.premiumGold.withValues(alpha: 0.12),
-                      AppTheme.premiumGold.withValues(alpha: 0.06),
+                      AppTheme.sidekickColor(context).withValues(alpha: 0.12),
+                      AppTheme.sidekickColor(context).withValues(alpha: 0.06),
                     ]
                   : [
                       AppTheme.premiumGoldLight.withValues(alpha: 0.5),
@@ -73,7 +73,7 @@ class PremiumTeaser extends ConsumerWidget {
             ),
             borderRadius: BorderRadius.circular(AppTheme.radiusMd),
             border: Border.all(
-              color: AppTheme.premiumGold.withValues(alpha: 0.3),
+              color: AppTheme.sidekickColor(context).withValues(alpha: 0.3),
               width: 1,
             ),
           ),
@@ -84,10 +84,10 @@ class PremiumTeaser extends ConsumerWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: AppTheme.premiumGold.withValues(alpha: 0.15),
+                  color: AppTheme.sidekickTint(context, 0.15),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 ),
-                child: Icon(icon, color: AppTheme.premiumGold, size: 20),
+                child: Icon(icon, color: AppTheme.sidekickColor(context), size: 20),
               ),
 
               const SizedBox(width: AppTheme.spacingMd),
@@ -103,7 +103,7 @@ class PremiumTeaser extends ConsumerWidget {
                       style:
                           Theme.of(context).textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w600,
-                                color: AppTheme.premiumGold,
+                                color: AppTheme.sidekickColor(context),
                               ),
                     ),
                     const SizedBox(height: 2),
@@ -182,21 +182,21 @@ class PremiumInlineLink extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 16, color: AppTheme.premiumGold),
+              Icon(icon, size: 16, color: AppTheme.sidekickColor(context)),
               const SizedBox(width: 6),
             ],
             Text(
               text,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.premiumGold,
+                    color: AppTheme.sidekickColor(context),
                     fontWeight: FontWeight.w500,
                   ),
             ),
             const SizedBox(width: 4),
-            const Icon(
+            Icon(
               Icons.arrow_forward_ios,
               size: 10,
-              color: AppTheme.premiumGold,
+              color: AppTheme.sidekickColor(context),
             ),
           ],
         ),

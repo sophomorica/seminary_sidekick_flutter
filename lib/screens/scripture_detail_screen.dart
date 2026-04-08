@@ -125,11 +125,8 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [
-                            AppTheme.premiumGradientStart,
-                            AppTheme.premiumGradientEnd,
-                          ],
+                        gradient: LinearGradient(
+                          colors: AppTheme.sidekickGradient(context),
                         ),
                         borderRadius:
                             BorderRadius.circular(AppTheme.radiusRound),
@@ -167,24 +164,24 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: AppTheme.premiumGold.withValues(alpha: 0.12),
+                        color: AppTheme.sidekickTint(context),
                         borderRadius:
                             BorderRadius.circular(AppTheme.radiusRound),
                         border: Border.all(
-                          color: AppTheme.premiumGold.withValues(alpha: 0.3),
+                          color: AppTheme.sidekickColor(context).withValues(alpha: 0.3),
                         ),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.auto_awesome,
                               size: 14,
-                              color: AppTheme.premiumGold),
-                          SizedBox(width: 4),
+                              color: AppTheme.sidekickColor(context)),
+                          const SizedBox(width: 4),
                           Text(
                             'Ask Sidekick',
                             style: TextStyle(
-                              color: AppTheme.premiumGold,
+                              color: AppTheme.sidekickColor(context),
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
@@ -400,22 +397,22 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.edit_note,
-                            size: 16, color: AppTheme.premiumGold),
+                        Icon(Icons.edit_note,
+                            size: 16, color: AppTheme.sidekickColor(context)),
                         const SizedBox(width: 6),
                         Text(
                           'Reflect on this verse in your journal',
                           style:
                               Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppTheme.premiumGold,
+                                    color: AppTheme.sidekickColor(context),
                                     fontWeight: FontWeight.w500,
                                   ),
                         ),
                         const SizedBox(width: 4),
-                        const Icon(
+                        Icon(
                           Icons.arrow_forward_ios,
                           size: 10,
-                          color: AppTheme.premiumGold,
+                          color: AppTheme.sidekickColor(context),
                         ),
                       ],
                     ),
@@ -1238,19 +1235,19 @@ class _EncouragementCard extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: Card(
-        color: AppTheme.premiumGold.withValues(alpha: 0.08),
+        color: AppTheme.sidekickTint(context, 0.08),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTheme.radiusMd),
           side: BorderSide(
-            color: AppTheme.premiumGold.withValues(alpha: 0.2),
+            color: AppTheme.sidekickColor(context).withValues(alpha: 0.2),
           ),
         ),
         child: Padding(
           padding: const EdgeInsets.all(14.0),
           child: Row(
             children: [
-              const Icon(Icons.auto_awesome,
-                  color: AppTheme.premiumGold, size: 20),
+              Icon(Icons.auto_awesome,
+                  color: AppTheme.sidekickColor(context), size: 20),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(

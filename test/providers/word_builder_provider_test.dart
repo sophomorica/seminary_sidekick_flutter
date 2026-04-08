@@ -224,7 +224,8 @@ void main() {
   group('Word Builder — Typing Mode', () {
     test('startGame advanced — mode is typing, targetText is fullText', () {
       notifier.startGame(
-          difficulty: DifficultyLevel.advanced, scriptures: [testScriptures[0]]);
+          difficulty: DifficultyLevel.advanced,
+          scriptures: [testScriptures[0]]);
 
       expect(notifier.state.mode, WordBuilderMode.typing);
       expect(notifier.state.difficulty, DifficultyLevel.advanced);
@@ -246,7 +247,8 @@ void main() {
         () {
       // Use a scripture without punctuation at the start to keep assertions simple
       notifier.startGame(
-          difficulty: DifficultyLevel.advanced, scriptures: [testScriptures[0]]);
+          difficulty: DifficultyLevel.advanced,
+          scriptures: [testScriptures[0]]);
 
       final firstChar = notifier.state.targetText[0];
       notifier.onType(firstChar);
@@ -262,7 +264,8 @@ void main() {
         'onType — wrong character (advanced) — char marked isCorrect: false, hasActiveError true',
         () {
       notifier.startGame(
-          difficulty: DifficultyLevel.advanced, scriptures: [testScriptures[0]]);
+          difficulty: DifficultyLevel.advanced,
+          scriptures: [testScriptures[0]]);
 
       final correctChar = notifier.state.targetText[0];
       notifier.onType(correctChar); // Type correct first
@@ -278,7 +281,8 @@ void main() {
         'onType — blocked when error active (advanced) — new chars ignored until error deleted',
         () {
       notifier.startGame(
-          difficulty: DifficultyLevel.advanced, scriptures: [testScriptures[0]]);
+          difficulty: DifficultyLevel.advanced,
+          scriptures: [testScriptures[0]]);
 
       final correctChar = notifier.state.targetText[0];
       notifier.onType(correctChar); // Correct
@@ -295,7 +299,8 @@ void main() {
         'onType — backspace (advanced) — last char removed, hasActiveError recalculated',
         () {
       notifier.startGame(
-          difficulty: DifficultyLevel.advanced, scriptures: [testScriptures[0]]);
+          difficulty: DifficultyLevel.advanced,
+          scriptures: [testScriptures[0]]);
 
       final correctChar = notifier.state.targetText[0];
       notifier.onType(correctChar); // Correct
@@ -435,7 +440,8 @@ void main() {
 
     test('Star rating — 0 errors=3, 1-3 errors=2, 4+ errors=1', () {
       notifier.startGame(
-          difficulty: DifficultyLevel.advanced, scriptures: [testScriptures[0]]);
+          difficulty: DifficultyLevel.advanced,
+          scriptures: [testScriptures[0]]);
 
       // 0 errors
       expect(notifier.state.starRating, 3);
@@ -476,7 +482,8 @@ void main() {
       // Target: "In the beginning was the Word, and ..."
       // Find the comma after "Word" — type up to 'd' in "Word"
       final commaIndex = target.indexOf(',');
-      expect(commaIndex, greaterThan(0), reason: 'Test scripture must have a comma');
+      expect(commaIndex, greaterThan(0),
+          reason: 'Test scripture must have a comma');
 
       // Type each char up to two before the comma (before 'd')
       String typed = '';
@@ -541,7 +548,8 @@ void main() {
           scriptures: [shortPunctuatedScripture]);
 
       final target = notifier.state.targetText;
-      expect(target.endsWith('.'), isTrue, reason: 'Scripture should end with period');
+      expect(target.endsWith('.'), isTrue,
+          reason: 'Scripture should end with period');
 
       // Type everything except punctuation
       String typed = '';
@@ -610,7 +618,8 @@ void main() {
       notifier.onType(typed);
 
       expect(notifier.state.typedChars.length, charsAfterCommaFill - 2,
-          reason: 'Backspace should remove typed char + auto-filled punctuation');
+          reason:
+              'Backspace should remove typed char + auto-filled punctuation');
     });
 
     test('Master reset works correctly with punctuation in scripture', () {
@@ -662,8 +671,7 @@ void main() {
       notifier.onType(typed);
 
       // Progress should account for auto-filled punctuation
-      final expectedProgress =
-          notifier.state.typedChars.length / target.length;
+      final expectedProgress = notifier.state.typedChars.length / target.length;
       expect(notifier.state.typingProgress, closeTo(expectedProgress, 0.001));
       // typedChars should be 1 more than typedText due to auto-filled comma
       expect(notifier.state.typedChars.length,
