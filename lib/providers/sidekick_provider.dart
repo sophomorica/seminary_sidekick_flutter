@@ -3,11 +3,14 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../models/enums.dart';
 import '../models/sidekick_response.dart';
 import '../models/sidekick_snapshot.dart';
 import '../providers/activity_provider.dart';
+import '../providers/goals_provider.dart';
 import '../providers/progress_provider.dart';
 import '../providers/scripture_mastery_provider.dart';
+import '../providers/scripture_provider.dart';
 import '../providers/spaced_repetition_provider.dart';
 import '../providers/subscription_provider.dart';
 import '../services/sidekick_service.dart';
@@ -243,6 +246,9 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
     final weeksSinceStart = now.difference(seminaryStart).inDays ~/ 7;
     final curriculumWeek = (weeksSinceStart % 36) + 1;
 
+    // Include active goal titles so the Sidekick knows what the user is working on
+    final goalTitles = _ref.read(goalTitlesForSnapshotProvider);
+
     return SidekickSnapshot(
       masteryStats: MasteryStats(
         total: stats.totalScriptures,
@@ -258,6 +264,7 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
       needsAttention: needsAttention,
       recentActivity: recentActivity,
       curriculumWeek: curriculumWeek,
+      goals: goalTitles,
       daysActive: _estimateDaysActive(activities.isNotEmpty
           ? activities.last.timestamp
           : now),
@@ -363,3 +370,195 @@ final chatHistoryProvider = Provider<List<SidekickMessage>>((ref) {
 final isChatLoadingProvider = Provider<bool>((ref) {
   return ref.watch(sidekickProvider).isLoadingChat;
 });
+
+// ─── Engagement Enhancements (TASK-040) ──────────────────────────────────────
+
+/// Convenience: the encouragement message from the Sidekick, if available.
+final encouragementProvider = Provider<String?>((ref) {
+  return ref.watch(sidekickResponseProvider)?.encouragement;
+});
+
+/// Convenience: scripture connections from the Sidekick.
+final connectionsProvider = Provider<List<ScriptureConnection>>((ref) {
+  return ref.watch(sidekickResponseProvider)?.connections ?? const [];
+});
+
+/// "Next best win" — the quick win from the Sidekick, enhanced with local data.
+/// Returns a human-readable action string + the scripture ID to navigate to.
+class NextBestWin {
+  final String message;
+  final String? scriptureId;
+  final String? actionType;
+
+  const NextBestWin({
+    required this.message,
+    this.scriptureId,
+    this.actionType,
+  });
+}
+
+/// Provides the "next best win" for the user — either from AI (quick win) or
+/// locally computed from nearly-mastered scriptures.
+final nextBestWinProvider = Provider<NextBestWin?>((ref) {
+  // First, try the AI quick win
+  final quickWin = ref.watch(quickWinProvider);
+  if (quickWin != null && quickWin.suggestion.isNotEmpty) {
+    return NextBestWin(
+      message: quickWin.suggestion,
+      scriptureId: quickWin.scriptureId,
+      actionType: quickWin.actionType,
+    );
+  }
+
+  // Fall back to locally computed "nearly mastered" scriptures
+  final nearlyMastered = ref.watch(nearlyMasteredScripturesProvider);
+  if (nearlyMastered.isNotEmpty) {
+    final best = nearlyMastered.first;
+    return NextBestWin(
+      message: '${best.reference} is almost at the next level — one more session could do it!',
+      scriptureId: best.id,
+      actionType: 'wordBuilder',
+    );
+  }
+
+  return null;
+});
+
+/// Scriptures that are close to leveling up (subProgress >= 0.6 and not yet at target).
+/// Sorted by closest-to-leveling-up first.
+final nearlyMasteredScripturesProvider = Provider<List<NearlyMasteredInfo>>((ref) {
+  final allScriptures = ref.watch(scripturesProvider);
+  final results = <NearlyMasteredInfo>[];
+
+  for (final scripture in allScriptures) {
+    final mastery = ref.watch(scriptureMasteryProvider(scripture.id));
+
+    // Only include scriptures that are in-progress (not new, not eternal)
+    if (mastery.level == MasteryLevel.newScripture ||
+        mastery.level == MasteryLevel.eternal) {
+      continue;
+    }
+
+    // Consider "nearly leveled" if subProgress >= 0.6
+    if (mastery.subProgress >= 0.6) {
+      results.add(NearlyMasteredInfo(
+        id: scripture.id,
+        reference: scripture.reference,
+        level: mastery.level,
+        subProgress: mastery.subProgress,
+        consecutivePerfectMaster: mastery.consecutivePerfectMaster,
+      ));
+    }
+  }
+
+  // Sort by highest subProgress (closest to leveling up)
+  results.sort((a, b) => b.subProgress.compareTo(a.subProgress));
+  return results;
+});
+
+class NearlyMasteredInfo {
+  final String id;
+  final String reference;
+  final MasteryLevel level;
+  final double subProgress;
+  final int consecutivePerfectMaster;
+
+  const NearlyMasteredInfo({
+    required this.id,
+    required this.reference,
+    required this.level,
+    required this.subProgress,
+    required this.consecutivePerfectMaster,
+  });
+}
+
+/// "Got a minute?" quick session prompts for the home screen.
+/// Picks the best short action based on the user's state.
+class QuickSessionPrompt {
+  final String title;
+  final String subtitle;
+  final String? scriptureId;
+  final String actionType; // 'wordBuilder', 'review', 'reflect', 'quiz'
+
+  const QuickSessionPrompt({
+    required this.title,
+    required this.subtitle,
+    this.scriptureId,
+    required this.actionType,
+  });
+}
+
+/// Provides 1-3 quick session prompts for "time to kill" moments.
+final quickSessionPromptsProvider = Provider<List<QuickSessionPrompt>>((ref) {
+  final prompts = <QuickSessionPrompt>[];
+  final isPremium = ref.watch(isPremiumProvider);
+
+  // 1. If there's a quick win from the AI, lead with that
+  final quickWin = ref.watch(quickWinProvider);
+  if (quickWin != null && quickWin.suggestion.isNotEmpty) {
+    prompts.add(QuickSessionPrompt(
+      title: 'Quick Win',
+      subtitle: quickWin.suggestion,
+      scriptureId: quickWin.scriptureId,
+      actionType: quickWin.actionType ?? 'wordBuilder',
+    ));
+  }
+
+  // 2. Nearly mastered nudge
+  final nearlyMastered = ref.watch(nearlyMasteredScripturesProvider);
+  if (nearlyMastered.isNotEmpty && prompts.length < 3) {
+    final top = nearlyMastered.first;
+    final progressPct = (top.subProgress * 100).toInt();
+    prompts.add(QuickSessionPrompt(
+      title: 'Almost There',
+      subtitle: '${top.reference} is $progressPct% to ${_nextLevelName(top.level)}',
+      scriptureId: top.id,
+      actionType: 'wordBuilder',
+    ));
+  }
+
+  // 3. Reflection prompt (premium, ties to journal)
+  if (isPremium && prompts.length < 3) {
+    final reflections = ref.watch(reflectionPromptsProvider);
+    if (reflections.isNotEmpty) {
+      prompts.add(QuickSessionPrompt(
+        title: 'Reflect',
+        subtitle: reflections.first,
+        actionType: 'reflect',
+      ));
+    }
+  }
+
+  // 4. Due review if we still have room
+  final dueCount = ref.watch(dueCountProvider);
+  if (dueCount > 0 && prompts.length < 3) {
+    final dueScriptures = ref.watch(dueScripturesProvider);
+    if (dueScriptures.isNotEmpty) {
+      prompts.add(QuickSessionPrompt(
+        title: 'Review',
+        subtitle: '${dueScriptures.first.reference} is due for review',
+        scriptureId: dueScriptures.first.id,
+        actionType: 'review',
+      ));
+    }
+  }
+
+  return prompts;
+});
+
+String _nextLevelName(MasteryLevel current) {
+  switch (current) {
+    case MasteryLevel.newScripture:
+      return 'Learning';
+    case MasteryLevel.learning:
+      return 'Familiar';
+    case MasteryLevel.familiar:
+      return 'Memorized';
+    case MasteryLevel.memorized:
+      return 'Mastered';
+    case MasteryLevel.mastered:
+      return 'Eternal';
+    case MasteryLevel.eternal:
+      return 'Eternal';
+  }
+}

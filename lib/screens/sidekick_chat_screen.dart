@@ -244,7 +244,7 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
               ref.read(sidekickProvider.notifier).clearChat();
               Navigator.of(ctx).pop();
             },
-            child: Text(
+            child: const Text(
               'Clear',
               style: TextStyle(color: AppTheme.error),
             ),
@@ -524,11 +524,11 @@ class _TypingIndicatorState extends State<_TypingIndicator>
             ),
             decoration: BoxDecoration(
               color: isDark ? AppTheme.darkCard : AppTheme.surface,
-              borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(AppTheme.radiusMd),
-                topRight: const Radius.circular(AppTheme.radiusMd),
-                bottomLeft: const Radius.circular(AppTheme.radiusSm / 2),
-                bottomRight: const Radius.circular(AppTheme.radiusMd),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(AppTheme.radiusMd),
+                topRight: Radius.circular(AppTheme.radiusMd),
+                bottomLeft: Radius.circular(AppTheme.radiusSm / 2),
+                bottomRight: Radius.circular(AppTheme.radiusMd),
               ),
             ),
             child: AnimatedBuilder(
@@ -547,7 +547,7 @@ class _TypingIndicatorState extends State<_TypingIndicator>
                         child: Container(
                           width: 8,
                           height: 8,
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             color: AppTheme.premiumGold,
                             shape: BoxShape.circle,
                           ),

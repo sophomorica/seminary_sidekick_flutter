@@ -8,6 +8,7 @@ import '../models/scripture_mastery.dart';
 import '../providers/scripture_provider.dart';
 import '../providers/scripture_mastery_provider.dart';
 import '../providers/notes_provider.dart';
+import '../providers/sidekick_provider.dart';
 import '../providers/subscription_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/mastery_badge.dart';
@@ -173,13 +174,13 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                           color: AppTheme.premiumGold.withValues(alpha: 0.3),
                         ),
                       ),
-                      child: Row(
+                      child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.auto_awesome,
                               size: 14,
                               color: AppTheme.premiumGold),
-                          const SizedBox(width: 4),
+                          SizedBox(width: 4),
                           Text(
                             'Ask Sidekick',
                             style: TextStyle(
@@ -264,6 +265,12 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
               scripture: scripture,
             ),
             const SizedBox(height: 16),
+
+            // Premium: Encouragement + Scripture Connections (TASK-040)
+            if (ref.watch(isPremiumProvider)) ...[
+              _EncouragementCard(),
+              _ScriptureConnectionsCard(currentScriptureId: widget.scriptureId),
+            ],
 
             // Study tool — Memorize
             SizedBox(
@@ -1213,6 +1220,111 @@ class _MasteryPathStep extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Premium: Encouragement Card (TASK-040) ──────────────────────────────────
+
+class _EncouragementCard extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final encouragement = ref.watch(encouragementProvider);
+    if (encouragement == null || encouragement.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Card(
+        color: AppTheme.premiumGold.withValues(alpha: 0.08),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          side: BorderSide(
+            color: AppTheme.premiumGold.withValues(alpha: 0.2),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14.0),
+          child: Row(
+            children: [
+              const Icon(Icons.auto_awesome,
+                  color: AppTheme.premiumGold, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  encouragement,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontStyle: FontStyle.italic,
+                      ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Premium: Scripture Connections (TASK-040) ───────────────────────────────
+
+class _ScriptureConnectionsCard extends ConsumerWidget {
+  final String currentScriptureId;
+
+  const _ScriptureConnectionsCard({required this.currentScriptureId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final connections = ref.watch(connectionsProvider);
+    if (connections.isEmpty) return const SizedBox.shrink();
+
+    // Show the first connection relevant to this scripture (or just the first one)
+    final scripture = ref.watch(scriptureByIdProvider(currentScriptureId));
+    final relevant = connections.where((c) =>
+        c.fromReference == scripture?.reference ||
+        c.toReference == scripture?.reference);
+    final toShow = relevant.isNotEmpty ? relevant.first : connections.first;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(14.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.link,
+                      color: AppTheme.accent.withValues(alpha: 0.7), size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Scripture Connection',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: AppTheme.accent,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${toShow.fromReference}  →  ${toShow.toReference}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.accent,
+                      fontWeight: FontWeight.w500,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                toShow.insight,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

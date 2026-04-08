@@ -188,16 +188,25 @@
 
 ### TASK-038: Premium Polish & Optional Enhancements
 
-- **status**: `open`
+- **status**: `done`
 - **priority**: P2
 - **estimated_effort**: Medium
-- **files_to_touch**: Various
+- **claimed_by**: claude-opus-agent
+- **started**: 2026-04-07T12:00:00Z
+- **completed**: 2026-04-07T12:30:00Z
+- **files_to_touch**: `lib/screens/journal_screen.dart`, `lib/services/journal_export_service.dart` (NEW), `pubspec.yaml`
 - **description**: Additional small enhancements.
 - **acceptance_criteria**:
-  - [ ] Voice-to-journal (extend existing speech service)
-  - [ ] Export journal entries
-  - [ ] Optional safe family sharing of selected entries
+  - [x] Voice-to-journal (extend existing speech service)
+  - [x] Export journal entries
+  - [x] Optional safe family sharing of selected entries
 - **depends_on**: TASK-035
+- **notes**:
+  - **Voice-to-journal**: Mic FAB on journal editor uses existing `SpeechService`. Inserts dictated text at cursor position. Listening indicator bar with live partial text. Auto-stops after 30s timeout. Properly cleans up on dispose/back.
+  - **Export**: `JournalExportService` singleton formats entries as readable plain text. Single entry share via system share sheet. Bulk export as `.txt` file via `share_plus` + `path_provider`. Export button in editor app bar + "Export all" in list view menu.
+  - **Family sharing**: Safe sharing mode strips AI prompt metadata for privacy. Selection mode (long-press or menu) for multi-entry sharing. Personal note dialog before sharing. Family icon (family_restroom) in selection bar and per-entry context menu.
+  - Per-entry context menu (three-dot) replaces bare delete icon — now has Export, Share with Family, and Delete options.
+  - `share_plus: ^7.2.2` and `path_provider: ^2.1.2` added to pubspec.yaml.
 
 ### TASK-039: Premium Teaser & Upgrade Experience
 
@@ -222,18 +231,27 @@
 
 ### TASK-040: Subtle Engagement Enhancements
 
-- **status**: `open`
+- **status**: `done`
 - **priority**: P2
 - **estimated_effort**: Small-Medium
+- **claimed_by**: claude-opus-agent
+- **started**: 2026-04-07T00:00:00Z
+- **completed**: 2026-04-07T01:00:00Z
 - **files_to_touch**: extend `home_screen.dart`, `scripture_detail_screen.dart`, `sidekick_provider.dart`
 - **description**: Light layers on top of existing gamification that make spare-moment usage feel rewarding.
 - **acceptance_criteria**:
-  - [ ] Sidekick suggests quick “next best win” sessions based on the snapshot
-  - [ ] Gentle nudges for nearly-mastered scriptures
-  - [ ] “Time-to-kill” style prompts on home screen
-  - [ ] Everything ties back to reflection and the journal
+  - [x] Sidekick suggests quick “next best win” sessions based on the snapshot
+  - [x] Gentle nudges for nearly-mastered scriptures
+  - [x] “Time-to-kill” style prompts on home screen
+  - [x] Everything ties back to reflection and the journal
 - **depends_on**: TASK-034, TASK-035
-- **notes**: Build strictly on top of existing mechanics. No rewrites.
+- **notes**:
+  - `nextBestWinProvider`: Checks AI quick win first, falls back to locally computed nearly-mastered scriptures
+  - `nearlyMasteredScripturesProvider`: Finds scriptures with subProgress >= 0.6, sorted closest-to-leveling-up first
+  - `quickSessionPromptsProvider`: Up to 3 prompts combining AI quick win, nearly-mastered nudge, reflection prompt, and due reviews
+  - Home screen: “Got a minute?” section (premium) with quick session tiles + “Almost there” section (all users) with progress rings
+  - Scripture detail: Encouragement card + Scripture Connections card (premium)
+  - All new widgets tap through to scripture detail, Word Builder, or journal — tying back to reflection
 
 ---
 

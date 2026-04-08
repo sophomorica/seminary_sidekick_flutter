@@ -5,6 +5,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import 'app.dart';
 import 'providers/activity_provider.dart';
+import 'providers/goals_provider.dart';
+import 'providers/journal_provider.dart';
 import 'providers/mastery_dates_provider.dart';
 import 'providers/notes_provider.dart';
 import 'providers/onboarding_provider.dart';
@@ -45,7 +47,11 @@ void main() async {
   await container.read(onboardingProvider.notifier).init();
   await container.read(themeProvider.notifier).init();
   await container.read(subscriptionProvider.notifier).init();
+  await container.read(journalProvider.notifier).init();
   await container.read(audioProvider.notifier).init();
+
+  // Initialize Goals (loads persisted goals from Hive).
+  await container.read(goalsProvider.notifier).init();
 
   // Initialize Sidekick AI (loads cache; auto-refreshes if premium).
   // Non-blocking — the app starts immediately, sidekick loads in background.
