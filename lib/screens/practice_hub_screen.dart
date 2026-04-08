@@ -59,7 +59,7 @@ class _QuizCard extends StatefulWidget {
 
 class _QuizCardState extends State<_QuizCard> {
   DifficultyLevel _selectedDifficulty = DifficultyLevel.beginner;
-  ScriptureBook? _selectedBook; // null = all books
+  Set<ScriptureBook> _selectedBooks = {}; // empty = all books
 
   @override
   Widget build(BuildContext context) {
@@ -123,30 +123,15 @@ class _QuizCardState extends State<_QuizCard> {
               if (isAvailable) ...[
                 const SizedBox(height: 16),
 
-                // Book filter
+                // Book filter — multi-select for both matching and quiz
                 Text(
-                  'Filter by Book',
+                  'Select Books',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                 ),
                 const SizedBox(height: 8),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _buildBookChip(context, null, 'All', color),
-                      ...ScriptureBook.values.map((book) {
-                        return _buildBookChip(
-                          context,
-                          book,
-                          book.abbreviation,
-                          color,
-                        );
-                      }),
-                    ],
-                  ),
-                ),
+                _buildMultiSelectBookFilter(context, color),
                 const SizedBox(height: 16),
 
                 // Difficulty selector
@@ -232,34 +217,81 @@ class _QuizCardState extends State<_QuizCard> {
     );
   }
 
-  Widget _buildBookChip(
-    BuildContext context,
-    ScriptureBook? book,
-    String label,
-    Color accentColor,
-  ) {
-    final isSelected = _selectedBook == book;
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: isSelected,
-        onSelected: (_) {
-          setState(() => _selectedBook = book);
-        },
-        selectedColor: accentColor.withValues(alpha: 0.2),
-        side: BorderSide(
-          color: isSelected
-              ? accentColor
-              : Theme.of(context).colorScheme.surfaceContainerHighest,
-        ),
-        labelStyle: TextStyle(
-          color: isSelected
-              ? accentColor
-              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-          fontSize: 12,
-        ),
+  Widget _buildMultiSelectBookFilter(BuildContext context, Color accentColor) {
+    final allSelected = _selectedBooks.isEmpty;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          // "All" chip — selected when no individual books are selected
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: FilterChip(
+              label: const Text('All'),
+              selected: allSelected,
+              onSelected: (_) {
+                setState(() => _selectedBooks = {});
+              },
+              selectedColor: accentColor.withValues(alpha: 0.2),
+              checkmarkColor: accentColor,
+              side: BorderSide(
+                color: allSelected
+                    ? accentColor
+                    : Theme.of(context).colorScheme.surfaceContainerHighest,
+              ),
+              labelStyle: TextStyle(
+                color: allSelected
+                    ? accentColor
+                    : Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.7),
+                fontWeight: allSelected ? FontWeight.w600 : FontWeight.normal,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          ...ScriptureBook.values.map((book) {
+            final isSelected = _selectedBooks.contains(book);
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilterChip(
+                label: Text(book.abbreviation),
+                selected: isSelected,
+                onSelected: (selected) {
+                  setState(() {
+                    if (selected) {
+                      _selectedBooks = {..._selectedBooks, book};
+                      // If all 4 books are now selected, clear to "All"
+                      if (_selectedBooks.length == ScriptureBook.values.length) {
+                        _selectedBooks = {};
+                      }
+                    } else {
+                      _selectedBooks = {..._selectedBooks}..remove(book);
+                    }
+                  });
+                },
+                selectedColor: accentColor.withValues(alpha: 0.2),
+                checkmarkColor: accentColor,
+                side: BorderSide(
+                  color: isSelected
+                      ? accentColor
+                      : Theme.of(context).colorScheme.surfaceContainerHighest,
+                ),
+                labelStyle: TextStyle(
+                  color: isSelected
+                      ? accentColor
+                      : Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.7),
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  fontSize: 12,
+                ),
+              ),
+            );
+          }),
+        ],
       ),
     );
   }
@@ -270,7 +302,7 @@ class _QuizCardState extends State<_QuizCard> {
         MaterialPageRoute(
           builder: (_) => MatchingGameScreen(
             difficulty: _selectedDifficulty,
-            bookFilter: _selectedBook,
+            bookFilters: _selectedBooks.toList(),
           ),
         ),
       );
@@ -279,7 +311,7 @@ class _QuizCardState extends State<_QuizCard> {
         MaterialPageRoute(
           builder: (_) => QuizGameScreen(
             difficulty: _selectedDifficulty,
-            bookFilter: _selectedBook,
+            bookFilters: _selectedBooks.toList(),
           ),
         ),
       );

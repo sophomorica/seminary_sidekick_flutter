@@ -8,9 +8,15 @@ import '../models/scripture_mastery.dart';
 import '../providers/scripture_provider.dart';
 import '../providers/scripture_mastery_provider.dart';
 import '../providers/notes_provider.dart';
+import '../providers/sidekick_provider.dart';
+import '../providers/subscription_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/mastery_badge.dart';
+import '../widgets/premium_teaser.dart';
+import 'journal_screen.dart';
 import 'memorize_screen.dart';
+import 'sidekick_chat_screen.dart';
+import 'upgrade_screen.dart';
 import 'games/matching_game_screen.dart';
 import 'games/word_builder_screen.dart';
 import 'games/quiz_game_screen.dart';
@@ -88,12 +94,106 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Reference and topic
-            Text(
-              scripture.reference,
-              style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                    color: AppTheme.primary,
+            // Reference + Sidekick button header
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    scripture.reference,
+                    style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                          color: AppTheme.primary,
+                        ),
                   ),
+                ),
+                // "Ask your Sidekick" — prominent in header for premium
+                if (ref.watch(isPremiumProvider))
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => SidekickChatScreen(
+                            initialScriptureId: widget.scriptureId,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            AppTheme.premiumGradientStart,
+                            AppTheme.premiumGradientEnd,
+                          ],
+                        ),
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.radiusRound),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.auto_awesome,
+                              size: 16, color: Colors.white),
+                          SizedBox(width: 6),
+                          Text(
+                            'Ask Sidekick',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                            builder: (_) => const UpgradeScreen()),
+                      );
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.premiumGold.withValues(alpha: 0.12),
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.radiusRound),
+                        border: Border.all(
+                          color: AppTheme.premiumGold.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.auto_awesome,
+                              size: 14,
+                              color: AppTheme.premiumGold),
+                          SizedBox(width: 4),
+                          Text(
+                            'Ask Sidekick',
+                            style: TextStyle(
+                              color: AppTheme.premiumGold,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 8),
             Text(
@@ -165,6 +265,12 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
               scripture: scripture,
             ),
             const SizedBox(height: 16),
+
+            // Premium: Encouragement + Scripture Connections (TASK-040)
+            if (ref.watch(isPremiumProvider)) ...[
+              _EncouragementCard(),
+              _ScriptureConnectionsCard(currentScriptureId: widget.scriptureId),
+            ],
 
             // Study tool — Memorize
             SizedBox(
@@ -272,6 +378,51 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                 ),
               ),
             ),
+
+            // "Reflect on this verse" — journal entry for premium users
+            if (ref.watch(isPremiumProvider))
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => JournalScreen(
+                          initialScriptureId: widget.scriptureId,
+                          initialScriptureReference: scripture.reference,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: AppTheme.spacingXs),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.edit_note,
+                            size: 16, color: AppTheme.premiumGold),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Reflect on this verse in your journal',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.premiumGold,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          size: 10,
+                          color: AppTheme.premiumGold,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
             const SizedBox(height: 24),
 
             // Practice quizzes (recognition tools — not mastery-gating)
@@ -810,6 +961,17 @@ class _HolisticMasterySection extends ConsumerWidget {
           ),
         ],
 
+        // Premium teaser — shown after reaching memorized+ level
+        if (!ref.watch(isPremiumProvider) &&
+            ref.watch(canShowUpgradePromptProvider) &&
+            (mastery.level.index >= MasteryLevel.memorized.index))
+          const PremiumTeaser(
+            headline: 'You\'re memorizing it — now understand it',
+            body:
+                'Your Seminary Sidekick helps you find meaning, apply principles, and journal your insights.',
+            icon: Icons.psychology,
+          ),
+
         // Per-game difficulty progress (supplementary — only show quiz/matching)
         if (mastery.gameTypesAttempted > 0) ...[
           const SizedBox(height: 12),
@@ -1058,6 +1220,111 @@ class _MasteryPathStep extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Premium: Encouragement Card (TASK-040) ──────────────────────────────────
+
+class _EncouragementCard extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final encouragement = ref.watch(encouragementProvider);
+    if (encouragement == null || encouragement.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Card(
+        color: AppTheme.premiumGold.withValues(alpha: 0.08),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          side: BorderSide(
+            color: AppTheme.premiumGold.withValues(alpha: 0.2),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14.0),
+          child: Row(
+            children: [
+              const Icon(Icons.auto_awesome,
+                  color: AppTheme.premiumGold, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  encouragement,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontStyle: FontStyle.italic,
+                      ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Premium: Scripture Connections (TASK-040) ───────────────────────────────
+
+class _ScriptureConnectionsCard extends ConsumerWidget {
+  final String currentScriptureId;
+
+  const _ScriptureConnectionsCard({required this.currentScriptureId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final connections = ref.watch(connectionsProvider);
+    if (connections.isEmpty) return const SizedBox.shrink();
+
+    // Show the first connection relevant to this scripture (or just the first one)
+    final scripture = ref.watch(scriptureByIdProvider(currentScriptureId));
+    final relevant = connections.where((c) =>
+        c.fromReference == scripture?.reference ||
+        c.toReference == scripture?.reference);
+    final toShow = relevant.isNotEmpty ? relevant.first : connections.first;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(14.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.link,
+                      color: AppTheme.accent.withValues(alpha: 0.7), size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Scripture Connection',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: AppTheme.accent,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${toShow.fromReference}  →  ${toShow.toReference}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.accent,
+                      fontWeight: FontWeight.w500,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                toShow.insight,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

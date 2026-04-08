@@ -10,7 +10,10 @@ import 'screens/onboarding_screen.dart';
 import 'screens/scripture_list_screen.dart';
 import 'screens/scripture_detail_screen.dart';
 import 'screens/practice_hub_screen.dart';
+import 'screens/journal_screen.dart';
 import 'screens/progress_screen.dart';
+import 'screens/sidekick_chat_screen.dart';
+import 'screens/upgrade_screen.dart';
 
 class SeminarySidekickApp extends ConsumerStatefulWidget {
   const SeminarySidekickApp({super.key});
@@ -73,6 +76,14 @@ class _SeminarySidekickAppState extends ConsumerState<SeminarySidekickApp> {
             StatefulShellBranch(
               routes: [
                 GoRoute(
+                  path: '/journal',
+                  builder: (context, state) => const JournalScreen(),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
                   path: '/progress',
                   builder: (context, state) => const ProgressScreen(),
                 ),
@@ -92,6 +103,17 @@ class _SeminarySidekickAppState extends ConsumerState<SeminarySidekickApp> {
           builder: (context, state) => ScriptureDetailScreen(
             scriptureId: state.pathParameters['id']!,
           ),
+        ),
+        GoRoute(
+          path: '/upgrade',
+          builder: (context, state) => const UpgradeScreen(),
+        ),
+        GoRoute(
+          path: '/sidekick-chat',
+          builder: (context, state) {
+            final scriptureId = state.uri.queryParameters['scriptureId'];
+            return SidekickChatScreen(initialScriptureId: scriptureId);
+          },
         ),
       ],
     );
@@ -140,6 +162,11 @@ class _AppShell extends StatelessWidget {
             icon: Icon(Icons.quiz_outlined),
             selectedIcon: Icon(Icons.quiz),
             label: 'Practice',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.book_outlined),
+            selectedIcon: Icon(Icons.book),
+            label: 'Journal',
           ),
           NavigationDestination(
             icon: Icon(Icons.insights_outlined),

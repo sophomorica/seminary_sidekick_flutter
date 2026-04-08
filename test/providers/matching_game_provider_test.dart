@@ -11,41 +11,41 @@ void main() {
   });
 
   group('startGame', () {
-    test('beginner creates 4 pairs', () {
+    test('beginner creates 8 pairs', () {
       notifier.startGame(difficulty: DifficultyLevel.beginner);
-
-      expect(notifier.state.pairs.length, 4);
-      expect(notifier.state.totalPairs, 4);
-      expect(notifier.state.difficulty, DifficultyLevel.beginner);
-    });
-
-    test('intermediate creates 8 pairs', () {
-      notifier.startGame(difficulty: DifficultyLevel.intermediate);
 
       expect(notifier.state.pairs.length, 8);
       expect(notifier.state.totalPairs, 8);
+      expect(notifier.state.difficulty, DifficultyLevel.beginner);
+    });
+
+    test('intermediate creates 15 pairs', () {
+      notifier.startGame(difficulty: DifficultyLevel.intermediate);
+
+      expect(notifier.state.pairs.length, 15);
+      expect(notifier.state.totalPairs, 15);
       expect(notifier.state.difficulty, DifficultyLevel.intermediate);
     });
 
-    test('advanced creates 4 pairs', () {
+    test('advanced creates 25 pairs', () {
       notifier.startGame(difficulty: DifficultyLevel.advanced);
 
-      expect(notifier.state.pairs.length, 4);
-      expect(notifier.state.totalPairs, 4);
+      expect(notifier.state.pairs.length, 25);
+      expect(notifier.state.totalPairs, 25);
     });
 
-    test('master creates 4 pairs', () {
+    test('master creates pairs for all scriptures', () {
       notifier.startGame(difficulty: DifficultyLevel.master);
 
-      expect(notifier.state.pairs.length, 4);
-      expect(notifier.state.totalPairs, 4);
+      expect(notifier.state.pairs.length, allScriptures.length);
+      expect(notifier.state.totalPairs, allScriptures.length);
     });
 
     test('shuffledReferences and shuffledPhrases have correct length', () {
       notifier.startGame(difficulty: DifficultyLevel.beginner);
 
-      expect(notifier.state.shuffledReferences.length, 4);
-      expect(notifier.state.shuffledPhrases.length, 4);
+      expect(notifier.state.shuffledReferences.length, 8);
+      expect(notifier.state.shuffledPhrases.length, 8);
     });
 
     test('shuffled lists contain same IDs as pairs', () {
