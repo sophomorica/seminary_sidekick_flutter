@@ -134,10 +134,12 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
           if (mounted) _navigateToResults(next);
         });
       }
-      // For typing mode: if a Master reset happened, clear the text controller
+      // For typing mode: if a Master reset happened, clear the text controller.
+      // Do NOT clear _lastRecognizedText here — the speech recognizer sends
+      // cumulative text, so clearing it would cause old words to replay.
+      // Instead, _onSpeechResult stops listening on reset.
       if (next.lastFeedback == 'reset' && prev?.lastFeedback != 'reset') {
         _typingController.clear();
-        _lastRecognizedText = '';
       }
     });
 
@@ -843,61 +845,62 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
   }
 
   /// Called whenever the speech recognizer has new text.
-  /// Feeds the new characters one-by-one into [onType] to match the
-  /// existing typing mode logic.
+  /// Extracts only the newly recognized words and feeds them through the
+  /// word-based speech input handler, which handles homophones, punctuation,
+  /// and capitalization automatically.
   void _onSpeechResult(String recognizedText) {
     if (!mounted) return;
 
-    // Find the new characters since last callback
-    final newChars = recognizedText.length > _lastRecognizedText.length
-        ? recognizedText.substring(_lastRecognizedText.length)
+    // The recognizer sends the full cumulative text each time.
+    // Extract only the new portion since our last callback.
+    final newText = recognizedText.length > _lastRecognizedText.length
+        ? recognizedText.substring(_lastRecognizedText.length).trim()
         : '';
     _lastRecognizedText = recognizedText;
 
-    if (newChars.isEmpty) return;
+    if (newText.isEmpty) return;
 
-    // Feed each character through onType, building up the typed text
     final notifier = ref.read(wordBuilderProvider.notifier);
-    final currentState = ref.read(wordBuilderProvider);
 
-    String simulatedText = currentState.typedText;
-    for (final char in newChars.split('')) {
-      simulatedText += char;
-      notifier.onType(simulatedText);
+    // Use word-based speech processing (handles homophones, case, punctuation)
+    final didReset = notifier.onSpeechInput(newText);
 
-      // Check if a Master reset happened (typedText got cleared)
-      final stateAfter = ref.read(wordBuilderProvider);
-      if (stateAfter.typedText.isEmpty && simulatedText.isNotEmpty) {
-        // Reset happened — sync our simulated text
-        simulatedText = '';
-        _typingController.clear();
-      }
+    if (didReset) {
+      // Master reset happened — stop listening immediately to prevent
+      // stale speech text from replaying and causing cascading resets.
+      _typingController.clear();
+      _speechService.stopListening();
+      setState(() => _isSpeechListening = false);
 
-      if (stateAfter.isScriptureComplete) {
-        // Stop listening when scripture is complete
-        _speechService.stopListening();
-        setState(() => _isSpeechListening = false);
-
-        HapticFeedback.heavyImpact();
-        _typingFocusNode.unfocus();
-        if (!stateAfter.isComplete) {
-          Future.delayed(const Duration(milliseconds: 1000), () {
-            if (mounted) {
-              _typingController.clear();
-              _lastRecognizedText = '';
-              ref.read(wordBuilderProvider.notifier).nextScripture();
-            }
-          });
-        }
-        return;
-      }
+      HapticFeedback.heavyImpact();
+      ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
+      return;
     }
 
-    // Keep the text controller in sync
-    _typingController.text = ref.read(wordBuilderProvider).typedText;
+    final stateAfter = ref.read(wordBuilderProvider);
+
+    // Keep text controller in sync with provider state
+    _typingController.text = stateAfter.typedText;
     _typingController.selection = TextSelection.collapsed(
       offset: _typingController.text.length,
     );
+
+    if (stateAfter.isScriptureComplete) {
+      _speechService.stopListening();
+      setState(() => _isSpeechListening = false);
+
+      HapticFeedback.heavyImpact();
+      _typingFocusNode.unfocus();
+      if (!stateAfter.isComplete) {
+        Future.delayed(const Duration(milliseconds: 1000), () {
+          if (mounted) {
+            _typingController.clear();
+            _lastRecognizedText = '';
+            ref.read(wordBuilderProvider.notifier).nextScripture();
+          }
+        });
+      }
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════
