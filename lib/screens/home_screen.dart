@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../config/app_config.dart';
 import '../models/enums.dart';
 import '../providers/goals_provider.dart';
 import '../providers/scripture_provider.dart';
@@ -11,6 +12,7 @@ import '../providers/subscription_provider.dart';
 import '../providers/theme_provider.dart';
 import '../theme/app_theme.dart';
 import '../providers/sidekick_provider.dart';
+import '../widgets/dev_menu.dart';
 import '../widgets/premium_teaser.dart';
 import '../widgets/scripture_card.dart';
 import 'journal_screen.dart';
@@ -39,6 +41,13 @@ class HomeScreen extends ConsumerWidget {
         title: const Text('Seminary Sidekick'),
         elevation: 0,
         actions: [
+          // Dev Menu — only visible in debug + development mode
+          if (AppConfig.isDevModeActive)
+            IconButton(
+              icon: const Icon(Icons.bug_report),
+              tooltip: 'Dev Menu',
+              onPressed: () => showDevMenu(context),
+            ),
           IconButton(
             icon: const Icon(Icons.help_outline),
             tooltip: 'How mastery works',
