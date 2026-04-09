@@ -157,31 +157,25 @@ class HomeScreen extends ConsumerWidget {
               if (isPremium && sidekickResponse?.quickWin != null)
                 const SizedBox(height: 48.0),
 
-              // ─── Two Large Navigation Cards ────────────────────────────
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildNavigationCard(
-                      context,
-                      title: 'Browse\nScriptures',
-                      description: 'Explore all 100 Doctrinal Mastery passages',
-                      backgroundColor: AppTheme.secondary,
-                      icon: Icons.library_books,
-                      onTap: () => context.go('/library'),
-                    ),
-                  ),
-                  const SizedBox(width: AppTheme.spacingMd),
-                  Expanded(
-                    child: _buildNavigationCard(
-                      context,
-                      title: 'Practice\nGames',
-                      description: 'Test your knowledge with guided quizzes',
-                      backgroundColor: AppTheme.primary,
-                      icon: Icons.gamepad,
-                      onTap: () => context.go('/practice'),
-                    ),
-                  ),
-                ],
+              // ─── Full-Width Navigation Cards (stacked) ────────────────
+              _buildImageNavigationCard(
+                context,
+                title: 'Browse Scriptures',
+                description: 'Explore the sacred library at your own pace.',
+                overlayColor: AppTheme.secondary,
+                icon: Icons.menu_book,
+                imagePath: 'assets/images/browse_scriptures.jpg',
+                onTap: () => context.go('/library'),
+              ),
+              const SizedBox(height: AppTheme.spacingMd),
+              _buildImageNavigationCard(
+                context,
+                title: 'Practice Games',
+                description: 'Strengthen your memory through guided play.',
+                overlayColor: AppTheme.primary,
+                icon: Icons.extension,
+                imagePath: 'assets/images/practice_games.jpg',
+                onTap: () => context.go('/practice'),
               ),
 
               const SizedBox(height: 120.0),
@@ -310,61 +304,81 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  /// Large navigation card (Browse Scriptures / Practice Games) — 200px tall
-  Widget _buildNavigationCard(
+  /// Full-width navigation card with background image and color overlay.
+  Widget _buildImageNavigationCard(
     BuildContext context, {
     required String title,
     required String description,
-    required Color backgroundColor,
+    required Color overlayColor,
     required IconData icon,
+    required String imagePath,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 200,
+        height: 240,
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          color: backgroundColor,
           borderRadius: BorderRadius.circular(AppTheme.radiusXl),
-          boxShadow: AppTheme.editorialShadow,
-        ),
-        padding: const EdgeInsets.all(AppTheme.spacingLg),
-        child: Stack(
-          children: [
-            // Bottom solid color layer
-            Container(
-              color: backgroundColor,
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x33221A17),
+              blurRadius: 16,
+              offset: Offset(0, 6),
             ),
-            // Content overlay
-            Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  icon,
-                  color: Colors.white,
-                  size: 28,
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineMedium
-                          ?.copyWith(color: Colors.white),
-                    ),
-                    const SizedBox(height: AppTheme.spacingSm),
-                    Text(
-                      description,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.white.withValues(alpha: 0.80),
-                          ),
-                    ),
-                  ],
-                ),
-              ],
+          ],
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Background image
+            Image.asset(
+              imagePath,
+              fit: BoxFit.cover,
+            ),
+            // Color overlay (mix-blend-multiply effect)
+            Container(
+              color: overlayColor.withValues(alpha: 0.80),
+            ),
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(AppTheme.spacingLg + 8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    icon,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineMedium
+                            ?.copyWith(
+                              color: Colors.white,
+                              fontFamily: 'Merriweather',
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      const SizedBox(height: AppTheme.spacingSm),
+                      Text(
+                        description,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.white.withValues(alpha: 0.80),
+                              letterSpacing: 0.3,
+                            ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),

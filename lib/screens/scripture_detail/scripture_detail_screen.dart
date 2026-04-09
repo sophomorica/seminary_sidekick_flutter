@@ -111,12 +111,30 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                   // Breadcrumb navigation
                   Row(
                     children: [
-                      Text(
-                        'Library',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      GestureDetector(
+                        onTap: () => context.canPop()
+                            ? context.pop()
+                            : context.go('/library'),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.arrow_back_ios,
+                              size: 14,
                               color: AppTheme.secondary,
-                              fontWeight: FontWeight.w500,
                             ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Library',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: AppTheme.secondary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(width: 8),
                       const Icon(
