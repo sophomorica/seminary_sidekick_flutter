@@ -670,7 +670,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
             spans.add(TextSpan(
               text: ch,
               style: TextStyle(
-                color: AppTheme.accent.withValues(alpha: 0.5),
+                color: AppTheme.accent.withValues(alpha: 0.7),
                 fontWeight: FontWeight.w600,
               ),
             ));

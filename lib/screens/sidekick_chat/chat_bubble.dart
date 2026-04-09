@@ -36,7 +36,9 @@ class ChatBubble extends StatelessWidget {
               height: 36,
               margin: const EdgeInsets.only(top: 4, right: AppTheme.spacingMd),
               decoration: BoxDecoration(
-                color: isDark ? AppTheme.secondaryContainer : AppTheme.secondaryContainer,
+                color: isDark
+                    ? AppTheme.secondaryContainer
+                    : AppTheme.secondaryContainer,
                 borderRadius: BorderRadius.circular(18),
                 boxShadow: [
                   BoxShadow(
@@ -71,10 +73,12 @@ class ChatBubble extends StatelessWidget {
                             ? AppTheme.darkSurfaceContainerLow
                             : AppTheme.surfaceContainerLow),
                     borderRadius: isUser
-                        ? BorderRadius.circular(AppTheme.radiusXl)
-                            .copyWith(bottomRight: const Radius.circular(AppTheme.radiusSm))
-                        : BorderRadius.circular(AppTheme.radiusXl)
-                            .copyWith(bottomLeft: const Radius.circular(AppTheme.radiusSm)),
+                        ? BorderRadius.circular(AppTheme.radiusXl).copyWith(
+                            bottomRight:
+                                const Radius.circular(AppTheme.radiusSm))
+                        : BorderRadius.circular(AppTheme.radiusXl).copyWith(
+                            bottomLeft:
+                                const Radius.circular(AppTheme.radiusSm)),
                     boxShadow: [
                       BoxShadow(
                         color: AppTheme.onSurface.withValues(alpha: 0.06),
@@ -86,10 +90,11 @@ class ChatBubble extends StatelessWidget {
                   child: isUser
                       ? Text(
                           message.content,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.white,
-                                height: 1.6,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Colors.white,
+                                    height: 1.6,
+                                  ),
                         )
                       : RichMessageText(
                           text: message.content,

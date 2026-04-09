@@ -114,9 +114,9 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                       Text(
                         'Library',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.secondary,
-                          fontWeight: FontWeight.w500,
-                        ),
+                              color: AppTheme.secondary,
+                              fontWeight: FontWeight.w500,
+                            ),
                       ),
                       const SizedBox(width: 8),
                       const Icon(
@@ -128,9 +128,9 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                       Text(
                         scripture.book.displayName,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.secondary,
-                          fontWeight: FontWeight.w500,
-                        ),
+                              color: AppTheme.secondary,
+                              fontWeight: FontWeight.w500,
+                            ),
                       ),
                     ],
                   ),
@@ -356,16 +356,14 @@ class _MainContent extends ConsumerWidget {
                   onPressed: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) =>
-                            MemorizeScreen(scripture: scripture),
+                        builder: (_) => MemorizeScreen(scripture: scripture),
                       ),
                     );
                   },
                   icon: const Icon(Icons.visibility_off, size: 16),
                   label: const Text('Hide Words'),
                   style: TextButton.styleFrom(
-                    foregroundColor:
-                        AppTheme.primary.withValues(alpha: 0.6),
+                    foregroundColor: AppTheme.primary.withValues(alpha: 0.6),
                   ),
                 ),
               ),
@@ -427,8 +425,7 @@ class _MainContent extends ConsumerWidget {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) =>
-                        MemorizeScreen(scripture: scripture),
+                    builder: (_) => MemorizeScreen(scripture: scripture),
                   ),
                 );
               },
@@ -452,19 +449,15 @@ class _MainContent extends ConsumerWidget {
           const SizedBox(height: AppTheme.spacingXl),
           Text(
             'Practice Quizzes',
-            style:
-                Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
           ),
           const SizedBox(height: AppTheme.spacingMd),
           Text(
             'Build recognition and comprehension',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.5),
+                  color: AppTheme.onSurfaceVariant,
                 ),
           ),
           const SizedBox(height: AppTheme.spacingMd),
@@ -691,9 +684,9 @@ class _TabButton extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: isActive ? AppTheme.primary : AppTheme.secondary,
-              fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-            ),
+                  color: isActive ? AppTheme.primary : AppTheme.secondary,
+                  fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                ),
           ),
           const SizedBox(height: 8),
           Container(
@@ -742,7 +735,7 @@ class _WordBuilderPreview extends ConsumerWidget {
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: AppTheme.secondary,
                     letterSpacing: 1.0,
-              ),
+                  ),
             ),
           ],
         ),
@@ -791,10 +784,10 @@ class _WordChip extends StatelessWidget {
         child: Text(
           text,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: AppTheme.primary,
-            fontFamily: 'Merriweather',
-            fontSize: 18,
-          ),
+                color: AppTheme.primary,
+                fontFamily: 'Merriweather',
+                fontSize: 18,
+              ),
         ),
       );
     }
@@ -814,9 +807,9 @@ class _WordChip extends StatelessWidget {
       child: Text(
         text,
         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-          fontFamily: 'Merriweather',
-          fontSize: 18,
-        ),
+              fontFamily: 'Merriweather',
+              fontSize: 18,
+            ),
       ),
     );
   }
@@ -847,10 +840,10 @@ class _MasteryInsights extends ConsumerWidget {
           Text(
             'Mastery Insights',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: AppTheme.secondary,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.0,
-            ),
+                  color: AppTheme.secondary,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                ),
           ),
           const SizedBox(height: AppTheme.spacingXl),
           // Retention Rate
@@ -864,18 +857,18 @@ class _MasteryInsights extends ConsumerWidget {
                   Text(
                     'Retention Rate',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.6),
-                    ),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.6),
+                        ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '$retentionPercent%',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                 ],
               ),
@@ -907,19 +900,19 @@ class _MasteryInsights extends ConsumerWidget {
                   Text(
                     'Daily Streak',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.6),
-                    ),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.6),
+                        ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '$streakDays Days',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: AppTheme.tertiary,
-                      fontWeight: FontWeight.bold,
-                    ),
+                          color: AppTheme.tertiary,
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                 ],
               ),
@@ -996,10 +989,10 @@ class _AskSidekickCard extends ConsumerWidget {
                   Text(
                     'Ask Your Sidekick',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppTheme.tertiary,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.0,
-                    ),
+                          color: AppTheme.tertiary,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.0,
+                        ),
                   ),
                 ],
               ),
@@ -1008,19 +1001,16 @@ class _AskSidekickCard extends ConsumerWidget {
               Text(
                 'What does "succor" mean in this context?',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
               const SizedBox(height: AppTheme.spacingMd),
               // Description
               Text(
                 'Your AI companion can explain linguistic roots, cross-reference other scriptures, or help you memorize.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.7),
-                ),
+                      color: AppTheme.onSurfaceVariant,
+                    ),
               ),
               const SizedBox(height: AppTheme.spacingXl),
               // Button

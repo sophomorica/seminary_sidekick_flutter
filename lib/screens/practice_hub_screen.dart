@@ -121,27 +121,33 @@ class _WordBuilderHeroCard extends ConsumerWidget {
                           vertical: 6.0,
                         ),
                         decoration: BoxDecoration(
-                          color: AppTheme.tertiaryContainer.withValues(alpha: 0.3),
+                          color:
+                              AppTheme.tertiaryContainer.withValues(alpha: 0.3),
                           borderRadius: BorderRadius.circular(20.0),
                           border: Border.all(
-                            color: AppTheme.tertiaryFixedDim.withValues(alpha: 0.2),
+                            color: AppTheme.tertiaryFixedDim
+                                .withValues(alpha: 0.2),
                             width: 1.0,
                           ),
                         ),
                         child: Text(
                           'FEATURED MASTERY',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                color: AppTheme.tertiaryFixed,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 2.0,
-                                fontSize: 10.0,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: AppTheme.onPrimary,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 2.0,
+                                    fontSize: 10.0,
+                                  ),
                         ),
                       ),
                       const SizedBox(height: 16.0),
                       Text(
                         'Word Builder',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineMedium
+                            ?.copyWith(
                               fontFamily: 'Merriweather',
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
@@ -153,9 +159,9 @@ class _WordBuilderHeroCard extends ConsumerWidget {
                       Text(
                         'Prove your mastery through progressive word-building exercises. Master all four difficulty levels to achieve scripture mastery.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.primaryFixed.withValues(alpha: 0.8),
+                              color: AppTheme.onPrimary.withValues(alpha: 0.85),
                               height: 1.6,
-                        ),
+                            ),
                       ),
                       const SizedBox(height: 24.0),
                       SizedBox(
@@ -172,17 +178,21 @@ class _WordBuilderHeroCard extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(50.0),
                             ),
                             elevation: 0,
-                            shadowColor: AppTheme.tertiary.withValues(alpha: 0.4),
+                            shadowColor:
+                                AppTheme.tertiary.withValues(alpha: 0.4),
                           ),
                           onPressed: () {
                             _launchWordBuilder(context);
                           },
                           child: Text(
                             'Start Building',
-                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                              color: AppTheme.onTertiary,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelLarge
+                                ?.copyWith(
+                                  color: AppTheme.onTertiary,
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
                         ),
                       ),
@@ -258,7 +268,8 @@ class _PathSelectorState extends State<_PathSelector> {
             label: 'Intermediate',
             isSelected: _selectedDifficulty == DifficultyLevel.intermediate,
             onPressed: () {
-              setState(() => _selectedDifficulty = DifficultyLevel.intermediate);
+              setState(
+                  () => _selectedDifficulty = DifficultyLevel.intermediate);
             },
           ),
           _PathButton(
@@ -314,7 +325,8 @@ class _PathButton extends StatelessWidget {
                         color: isSelected
                             ? AppTheme.primary
                             : AppTheme.onSurfaceVariant,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.w500,
                       ),
                 ),
               ),
@@ -376,19 +388,20 @@ class _MatchingGameCardState extends State<_MatchingGameCard> {
                     children: [
                       Text(
                         'Scripture Match',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontFamily: 'Merriweather',
-                              fontWeight: FontWeight.bold,
-                              fontStyle: FontStyle.italic,
-                              color: AppTheme.onSecondaryContainer,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  fontFamily: 'Merriweather',
+                                  fontWeight: FontWeight.bold,
+                                  fontStyle: FontStyle.italic,
+                                  color: AppTheme.onSecondaryContainer,
+                                ),
                       ),
                       const SizedBox(height: 8.0),
                       Text(
                         'Match key phrases with their scripture references. Tests your recognition and familiarity.',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppTheme.onSecondaryContainer.withValues(alpha: 0.7),
-                        ),
+                              color: AppTheme.onSecondaryContainer,
+                            ),
                       ),
                     ],
                   ),
@@ -443,10 +456,10 @@ class _QuizGameCardState extends State<_QuizGameCard> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFE3F2FD).withValues(alpha: 0.5),
+        color: AppTheme.tertiaryFixed.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
         border: Border.all(
-          color: const Color(0xFFBBDEFB),
+          color: AppTheme.tertiaryFixedDim.withValues(alpha: 0.3),
           width: 1.0,
         ),
       ),
@@ -463,12 +476,12 @@ class _QuizGameCardState extends State<_QuizGameCard> {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFBBDEFB),
+                    color: AppTheme.tertiaryFixedDim.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                   ),
                   child: const Icon(
                     Icons.quiz,
-                    color: Color(0xFF1565C0),
+                    color: AppTheme.tertiary,
                     size: 24,
                   ),
                 ),
@@ -479,19 +492,20 @@ class _QuizGameCardState extends State<_QuizGameCard> {
                     children: [
                       Text(
                         'Quick Quiz',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontFamily: 'Merriweather',
-                              fontWeight: FontWeight.bold,
-                              fontStyle: FontStyle.italic,
-                              color: const Color(0xFF0D47A1),
-                            ),
+                        style:
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  fontFamily: 'Merriweather',
+                                  fontWeight: FontWeight.bold,
+                                  fontStyle: FontStyle.italic,
+                                  color: AppTheme.onTertiaryContainer,
+                                ),
                       ),
                       const SizedBox(height: 8.0),
                       Text(
                         'Answer questions about scripture passages. Tests your comprehension and understanding.',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: const Color(0xFF0D47A1).withValues(alpha: 0.7),
-                        ),
+                              color: AppTheme.onTertiaryContainer,
+                            ),
                       ),
                     ],
                   ),
@@ -505,12 +519,12 @@ class _QuizGameCardState extends State<_QuizGameCard> {
               label: Text(
                 'Take Quiz',
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: const Color(0xFF1565C0),
+                      color: AppTheme.tertiary,
                     ),
               ),
               icon: const Icon(
                 Icons.arrow_forward,
-                color: Color(0xFF1565C0),
+                color: AppTheme.tertiary,
                 size: 18,
               ),
             ),
@@ -550,14 +564,14 @@ class _SacredAchievementSection extends StatelessWidget {
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontFamily: 'Merriweather',
                   fontWeight: FontWeight.bold,
-            ),
+                ),
           ),
           const SizedBox(height: 12.0),
           Text(
             'Complete 3 Practice sessions today to unlock your next Mastery Badge',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppTheme.onSurfaceVariant,
-            ),
+                ),
           ),
           const SizedBox(height: 24.0),
           // Progress bar

@@ -20,26 +20,26 @@ class ProgressScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppTheme.surface,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 48.0),
+            const SizedBox(height: 24.0),
 
             // Header
             _buildHeader(context),
-            const SizedBox(height: 32.0),
+            const SizedBox(height: 16.0),
 
             // Continuity Heatmap
             _buildContinuityHeatmap(context),
-            const SizedBox(height: 32.0),
+            const SizedBox(height: 16.0),
 
             // Mastery Streak + Book Breakdown
             _buildStreakCard(context, stats),
-            const SizedBox(height: 32.0),
+            const SizedBox(height: 16.0),
 
             _buildBookBreakdown(context, ref, allScriptures),
-            const SizedBox(height: 32.0),
+            const SizedBox(height: 16.0),
 
             // Needs Review + Achievements
             if (needsReview.isNotEmpty)
@@ -47,11 +47,11 @@ class ProgressScreen extends ConsumerWidget {
             else
               _buildAchievementMedalsStandalone(context, stats),
 
-            const SizedBox(height: 32.0),
+            const SizedBox(height: 16.0),
 
             // CTA
             _buildDeepFoundationCTA(context),
-            const SizedBox(height: 120),
+            const SizedBox(height: 80),
           ],
         ),
       ),
@@ -80,7 +80,7 @@ class ProgressScreen extends ConsumerWidget {
   Widget _buildContinuityHeatmap(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(32.0),
+      padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
         color: AppTheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(AppTheme.radiusXl),
@@ -102,7 +102,7 @@ class ProgressScreen extends ConsumerWidget {
                   color: AppTheme.onSurfaceVariant,
                 ),
           ),
-          const SizedBox(height: 24.0),
+          const SizedBox(height: 12.0),
 
           // Color legend
           Row(
@@ -118,7 +118,7 @@ class ProgressScreen extends ConsumerWidget {
               const _ColorLegendBox(color: AppTheme.primary),
             ],
           ),
-          const SizedBox(height: 24.0),
+          const SizedBox(height: 12.0),
 
           // Heatmap grid
           _buildHeatmapGrid(),
@@ -128,7 +128,7 @@ class ProgressScreen extends ConsumerWidget {
   }
 
   Widget _buildHeatmapGrid() {
-    const daysToShow = 90;
+    const daysToShow = 60;
     final colors = [
       AppTheme.surfaceContainerHighest,
       AppTheme.primary.withValues(alpha: 0.1),
@@ -138,13 +138,13 @@ class ProgressScreen extends ConsumerWidget {
     ];
 
     return Wrap(
-      spacing: 4.0,
-      runSpacing: 4.0,
+      spacing: 3.0,
+      runSpacing: 3.0,
       children: List.generate(daysToShow, (index) {
         final activityLevel = (index % 5).toInt();
         return SizedBox(
-          width: 16.0,
-          height: 16.0,
+          width: 12.0,
+          height: 12.0,
           child: Container(
             decoration: BoxDecoration(
               color: colors[activityLevel],
@@ -159,7 +159,7 @@ class ProgressScreen extends ConsumerWidget {
   Widget _buildStreakCard(BuildContext context, HolisticStats stats) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(32.0),
+      padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
         color: AppTheme.tertiaryFixed,
         borderRadius: BorderRadius.circular(AppTheme.radiusXl),
@@ -180,10 +180,10 @@ class ProgressScreen extends ConsumerWidget {
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   color: AppTheme.onTertiaryFixed,
                   fontWeight: FontWeight.bold,
-                  fontSize: 32,
+                  fontSize: 24,
                 ),
           ),
-          const SizedBox(height: 16.0),
+          const SizedBox(height: 8.0),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -194,7 +194,7 @@ class ProgressScreen extends ConsumerWidget {
                 style: Theme.of(context).textTheme.displayLarge?.copyWith(
                       color: AppTheme.onTertiaryFixed,
                       fontWeight: FontWeight.bold,
-                      fontSize: 72,
+                      fontSize: 48,
                     ),
               ),
               const SizedBox(width: 16.0),
@@ -207,7 +207,7 @@ class ProgressScreen extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 24.0),
+          const SizedBox(height: 12.0),
 
           // Progress bar
           ClipRRect(
@@ -221,7 +221,7 @@ class ProgressScreen extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 16.0),
+          const SizedBox(height: 8.0),
           Text(
             '12 days until "The Elder" status',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -238,8 +238,11 @@ class ProgressScreen extends ConsumerWidget {
     WidgetRef ref,
     List<Scripture> allScriptures,
   ) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final crossAxisCount = screenWidth > 600 ? 4 : 2;
+
     return GridView.count(
-      crossAxisCount: 4,
+      crossAxisCount: crossAxisCount,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 16.0,
@@ -339,7 +342,7 @@ class ProgressScreen extends ConsumerWidget {
 
   Widget _buildAchievementMedals(BuildContext context, HolisticStats stats) {
     return Container(
-      padding: const EdgeInsets.all(40.0),
+      padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
         color: AppTheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(AppTheme.radiusXl),
@@ -354,7 +357,7 @@ class ProgressScreen extends ConsumerWidget {
                   fontStyle: FontStyle.italic,
                 ),
           ),
-          const SizedBox(height: 48.0),
+          const SizedBox(height: 24.0),
 
           // 2x2 grid with larger gaps
           Column(
@@ -374,7 +377,7 @@ class ProgressScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 48.0),
+              const SizedBox(height: 24.0),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -416,7 +419,7 @@ class ProgressScreen extends ConsumerWidget {
       ),
       padding: const EdgeInsets.all(4.0),
       child: Container(
-        padding: const EdgeInsets.all(48.0),
+        padding: const EdgeInsets.all(24.0),
         decoration: BoxDecoration(
           color: AppTheme.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(28.0),
@@ -431,7 +434,7 @@ class ProgressScreen extends ConsumerWidget {
                     fontSize: 28,
                   ),
             ),
-            const SizedBox(height: 16.0),
+            const SizedBox(height: 8.0),
             Text(
               'Continue your journey with daily prompts, reflection exercises, and personalized insights from your Seminary Sidekick.',
               textAlign: TextAlign.center,
@@ -439,7 +442,7 @@ class ProgressScreen extends ConsumerWidget {
                     color: AppTheme.onSurfaceVariant,
                   ),
             ),
-            const SizedBox(height: 32.0),
+            const SizedBox(height: 16.0),
             ElevatedButton(
               onPressed: () {},
               style: ElevatedButton.styleFrom(
@@ -505,7 +508,7 @@ class _BookBreakdownCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(32.0),
+      padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
         color: AppTheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(AppTheme.radiusXl),
@@ -514,41 +517,44 @@ class _BookBreakdownCard extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Circular progress ring (128px = w-32 h-32)
+          // Circular progress ring (70px = w-12 h-12)
           SizedBox(
-            width: 128,
-            height: 128,
+            width: 70,
+            height: 70,
             child: CustomPaint(
               painter: _ProgressRingPainter(
                 progress: progress,
                 color: bookColor,
-                strokeWidth: 8,
+                strokeWidth: 4,
               ),
               child: Center(
                 child: Text(
                   '$percentage%',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         fontStyle: FontStyle.italic,
                         color: bookColor,
+                        fontSize: 14,
                       ),
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 16.0),
+          const SizedBox(height: 4.0),
           Text(
             bookName,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
+                  fontSize: 11,
                 ),
           ),
-          const SizedBox(height: 4.0),
+          const SizedBox(height: 1.5),
           Text(
             'Scripture Mastery',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: AppTheme.onSurfaceVariant,
+                  fontSize: 9,
                 ),
           ),
         ],

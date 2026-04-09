@@ -178,7 +178,8 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppTheme.radiusMd)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppTheme.radiusMd)),
       ),
       builder: (ctx) {
         return DraggableScrollableSheet(
@@ -414,8 +415,7 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
                             AppTheme.primaryFixed.withValues(alpha: 0.15),
                           ],
                         ),
-                        borderRadius:
-                            BorderRadius.circular(AppTheme.radiusXl),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
                         border: Border.all(
                           color: Theme.of(context)
                               .colorScheme
@@ -464,8 +464,8 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
                                 color: Theme.of(context)
                                     .colorScheme
                                     .surfaceContainerLowest,
-                                borderRadius: BorderRadius.circular(
-                                    AppTheme.radiusMd),
+                                borderRadius:
+                                    BorderRadius.circular(AppTheme.radiusMd),
                               ),
                               padding: const EdgeInsets.all(AppTheme.spacingMd),
                               child: Stack(
@@ -539,8 +539,7 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
                                       size: 12,
                                       color: AppTheme.tertiaryContainer,
                                     ),
-                                    const SizedBox(
-                                        width: AppTheme.spacingSm),
+                                    const SizedBox(width: AppTheme.spacingSm),
                                     Text(
                                       'Portfolio milestone ready',
                                       style: Theme.of(context)
@@ -626,9 +625,8 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
                       Container(
                         padding: const EdgeInsets.all(AppTheme.spacingLg),
                         decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerLow,
+                          color:
+                              Theme.of(context).colorScheme.surfaceContainerLow,
                           borderRadius:
                               BorderRadius.circular(AppTheme.radiusMd),
                         ),
@@ -682,8 +680,7 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
                           color: AppTheme.secondary.withValues(alpha: 0.1),
                           width: 1,
                         ),
-                        borderRadius:
-                            BorderRadius.circular(AppTheme.radiusMd),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -706,8 +703,8 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
                             decoration: BoxDecoration(
                               color: AppTheme.secondaryContainer
                                   .withValues(alpha: 0.4),
-                              borderRadius: BorderRadius.circular(
-                                  AppTheme.radiusRound),
+                              borderRadius:
+                                  BorderRadius.circular(AppTheme.radiusRound),
                             ),
                             child: FractionallySizedBox(
                               widthFactor: 0.75,

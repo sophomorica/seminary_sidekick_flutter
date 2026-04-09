@@ -40,9 +40,9 @@ class HomeScreen extends ConsumerWidget {
               Text(
                 'Friend',
                 style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                  color: AppTheme.primary,
-                  fontStyle: FontStyle.italic,
-                ),
+                      color: AppTheme.primary,
+                      fontStyle: FontStyle.italic,
+                    ),
               ),
               const SizedBox(height: AppTheme.spacingMd),
               Text(
@@ -213,10 +213,7 @@ class HomeScreen extends ConsumerWidget {
         children: [
           Text(
             label.toUpperCase(),
-            style: Theme.of(context)
-                .textTheme
-                .labelSmall
-                ?.copyWith(
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: AppTheme.onSurfaceVariant,
                   letterSpacing: 0.5,
                 ),
@@ -225,9 +222,9 @@ class HomeScreen extends ConsumerWidget {
           Text(
             value,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              color: valueColor,
-              fontStyle: FontStyle.italic,
-            ),
+                  color: valueColor,
+                  fontStyle: FontStyle.italic,
+                ),
           ),
         ],
       ),
@@ -266,9 +263,9 @@ class HomeScreen extends ConsumerWidget {
                 child: Text(
                   "TODAY'S QUICK WIN",
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: const Color(0xFF735C00),
-                    letterSpacing: 0.5,
-                  ),
+                        color: const Color(0xFF735C00),
+                        letterSpacing: 0.5,
+                      ),
                 ),
               ),
             ],
@@ -277,17 +274,17 @@ class HomeScreen extends ConsumerWidget {
           Text(
             quickWin.suggestion,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontStyle: FontStyle.italic,
-              fontFamily: 'Merriweather',
-              color: const Color(0xFF4E3D00),
-            ),
+                  fontStyle: FontStyle.italic,
+                  fontFamily: 'Merriweather',
+                  color: const Color(0xFF4E3D00),
+                ),
           ),
           const SizedBox(height: AppTheme.spacingSm),
           Text(
             'Tap below to continue your practice with this scripture.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppTheme.onSurfaceVariant,
-            ),
+                  color: AppTheme.onSurfaceVariant,
+                ),
           ),
           const SizedBox(height: AppTheme.spacingLg),
           SizedBox(
@@ -303,8 +300,8 @@ class HomeScreen extends ConsumerWidget {
               child: Text(
                 'Practice Now',
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: Colors.white,
-                ),
+                      color: Colors.white,
+                    ),
               ),
             ),
           ),
@@ -362,8 +359,8 @@ class HomeScreen extends ConsumerWidget {
                     Text(
                       description,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.80),
-                      ),
+                            color: Colors.white.withValues(alpha: 0.80),
+                          ),
                     ),
                   ],
                 ),

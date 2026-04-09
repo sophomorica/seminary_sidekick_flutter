@@ -62,11 +62,13 @@ class ChatInput extends StatelessWidget {
                           fontWeight: FontWeight.w500,
                         ),
                     decoration: InputDecoration(
-                      hintText: 'Ask about scripture, history, or your journey...',
-                      hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppTheme.outlineVariant,
-                            fontWeight: FontWeight.w400,
-                          ),
+                      hintText:
+                          'Ask about scripture, history, or your journey...',
+                      hintStyle:
+                          Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: AppTheme.outlineVariant,
+                                fontWeight: FontWeight.w400,
+                              ),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: AppTheme.spacingMd,

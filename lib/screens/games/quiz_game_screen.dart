@@ -498,7 +498,7 @@ class _AnswerOption extends StatelessWidget {
       } else {
         bgColor = Theme.of(context).colorScheme.surface;
         borderColor = Theme.of(context).colorScheme.outlineVariant;
-        textColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4);
+        textColor = Theme.of(context).colorScheme.onSurface;
         trailingIcon = null;
       }
     } else if (isSelected) {

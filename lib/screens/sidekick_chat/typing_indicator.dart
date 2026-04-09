@@ -70,8 +70,8 @@ class _TypingIndicatorState extends State<TypingIndicator>
               color: isDark
                   ? AppTheme.darkSurfaceContainerLow
                   : AppTheme.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(AppTheme.radiusXl)
-                  .copyWith(bottomLeft: const Radius.circular(AppTheme.radiusSm)),
+              borderRadius: BorderRadius.circular(AppTheme.radiusXl).copyWith(
+                  bottomLeft: const Radius.circular(AppTheme.radiusSm)),
               boxShadow: [
                 BoxShadow(
                   color: AppTheme.onSurface.withValues(alpha: 0.06),
