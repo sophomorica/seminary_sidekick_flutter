@@ -129,7 +129,7 @@ class HomeScreen extends ConsumerWidget {
                   sidekickResponse!.quickWin!,
                   onTap: () {
                     if (sidekickResponse.quickWin!.scriptureId != null) {
-                      context.go(
+                      context.push(
                         '/scripture/${sidekickResponse.quickWin!.scriptureId}',
                       );
                     }

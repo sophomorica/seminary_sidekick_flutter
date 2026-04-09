@@ -177,7 +177,7 @@ class _ScriptureLibraryScreenState
             final progress = mastery.subProgress;
 
             return GestureDetector(
-              onTap: () => context.go('/scripture/${scripture.id}'),
+              onTap: () => context.push('/scripture/${scripture.id}'),
               child: Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(20),

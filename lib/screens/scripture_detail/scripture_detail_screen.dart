@@ -73,7 +73,7 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
               const Text('Scripture not found'),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () => context.pop(),
+                onPressed: () => context.canPop() ? context.pop() : context.go('/'),
                 child: const Text('Go Back'),
               ),
             ],
@@ -89,7 +89,7 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
           SliverAppBar(
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
-              onPressed: () => context.pop(),
+              onPressed: () => context.canPop() ? context.pop() : context.go('/'),
             ),
             expandedHeight: 180,
             pinned: true,

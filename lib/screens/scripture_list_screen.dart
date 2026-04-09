@@ -41,7 +41,7 @@ class ScriptureListScreen extends ConsumerWidget {
         title: Text(book.displayName),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+          onPressed: () => context.canPop() ? context.pop() : context.go('/'),
         ),
       ),
       body: scriptures.isEmpty
