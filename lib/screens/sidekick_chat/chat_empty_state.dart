@@ -21,7 +21,6 @@ class ChatEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(AppTheme.spacingLg),
@@ -41,7 +40,8 @@ class ChatEmptyState extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppTheme.radiusLg),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.sidekickColor(context).withValues(alpha: 0.2),
+                    color:
+                        AppTheme.sidekickColor(context).withValues(alpha: 0.2),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),

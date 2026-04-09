@@ -203,7 +203,6 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                       ),
                 ),
               ),
-
             ],
           ),
         ],
@@ -291,9 +290,8 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
         borderRadius: BorderRadius.circular(AppTheme.radiusSm),
         child: LinearProgressIndicator(
           value: state.scriptureProgress,
-          backgroundColor: Theme.of(context)
-              .colorScheme
-              .surfaceContainerHighest,
+          backgroundColor:
+              Theme.of(context).colorScheme.surfaceContainerHighest,
           valueColor: AlwaysStoppedAnimation<Color>(
             _getDifficultyColor(widget.difficulty),
           ),
@@ -738,9 +736,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
         color: Theme.of(context).scaffoldBackgroundColor,
         border: Border(
           top: BorderSide(
-            color: Theme.of(context)
-                .colorScheme
-                .surfaceContainerHigh,
+            color: Theme.of(context).colorScheme.surfaceContainerHigh,
           ),
         ),
       ),
@@ -767,9 +763,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                       .withValues(alpha: 0.35),
                 ),
                 filled: true,
-                fillColor: Theme.of(context)
-                    .colorScheme
-                    .surfaceContainerLow,
+                fillColor: Theme.of(context).colorScheme.surfaceContainerLow,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                   borderSide: BorderSide.none,
@@ -937,9 +931,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
         children: [
           Expanded(
             child: Divider(
-              color: Theme.of(context)
-                  .colorScheme
-                  .surfaceContainerHigh,
+              color: Theme.of(context).colorScheme.surfaceContainerHigh,
             ),
           ),
           Padding(
@@ -952,14 +944,12 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                         .onSurface
                         .withValues(alpha: 0.5),
                     fontStyle: FontStyle.italic,
-              ),
+                  ),
             ),
           ),
           Expanded(
             child: Divider(
-              color: Theme.of(context)
-                  .colorScheme
-                  .surfaceContainerHigh,
+              color: Theme.of(context).colorScheme.surfaceContainerHigh,
             ),
           ),
         ],

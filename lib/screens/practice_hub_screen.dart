@@ -6,7 +6,6 @@ import '../theme/app_theme.dart';
 import 'games/matching_game_screen.dart';
 import 'games/quiz_game_screen.dart';
 
-
 class PracticeHubScreen extends ConsumerWidget {
   const PracticeHubScreen({super.key});
 
@@ -90,7 +89,7 @@ class _WordBuilderHeroCard extends ConsumerWidget {
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     color: AppTheme.onPrimary,
                     fontWeight: FontWeight.bold,
-              ),
+                  ),
             ),
             const SizedBox(height: AppTheme.spacingMd),
             Text(
@@ -98,7 +97,7 @@ class _WordBuilderHeroCard extends ConsumerWidget {
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppTheme.onPrimary,
                     height: 1.6,
-              ),
+                  ),
             ),
             const SizedBox(height: AppTheme.spacingLg),
             SizedBox(
@@ -107,7 +106,8 @@ class _WordBuilderHeroCard extends ConsumerWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.onPrimary,
                   foregroundColor: AppTheme.primary,
-                  padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingMd),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: AppTheme.spacingMd),
                 ),
                 onPressed: () {
                   _launchWordBuilder(context);
@@ -326,7 +326,8 @@ class _PracticeCard extends StatelessWidget {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: iconColor,
-                  padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingMd),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: AppTheme.spacingMd),
                 ),
                 onPressed: onPressed,
                 child: Text(buttonLabel),

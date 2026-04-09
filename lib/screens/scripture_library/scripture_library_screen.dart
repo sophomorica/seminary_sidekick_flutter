@@ -85,7 +85,8 @@ class _ScriptureLibraryScreenState
                         hintStyle: theme.textTheme.bodyMedium?.copyWith(
                           color: AppTheme.outline,
                         ),
-                        prefixIcon: const Icon(Icons.search, color: AppTheme.outline),
+                        prefixIcon:
+                            const Icon(Icons.search, color: AppTheme.outline),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -123,8 +124,9 @@ class _ScriptureLibraryScreenState
       final mastery = ref.watch(scriptureMasteryProvider(s.id));
       return mastery.level.index >= MasteryLevel.mastered.index;
     }).length;
-    final pct =
-        scriptures.isEmpty ? 0 : (masteredCount * 100 / scriptures.length).round();
+    final pct = scriptures.isEmpty
+        ? 0
+        : (masteredCount * 100 / scriptures.length).round();
 
     return SliverToBoxAdapter(
       child: Padding(
@@ -241,7 +243,8 @@ class _ScriptureLibraryScreenState
                       child: LinearProgressIndicator(
                         value: progress / 100,
                         minHeight: 6,
-                        backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                        backgroundColor:
+                            theme.colorScheme.surfaceContainerHighest,
                         valueColor: AlwaysStoppedAnimation(
                           level.index >= MasteryLevel.mastered.index
                               ? AppTheme.tertiary
@@ -263,10 +266,26 @@ class _ScriptureLibraryScreenState
   Widget _masteryChip(BuildContext context, MasteryLevel level) {
     final theme = Theme.of(context);
     final (label, color, icon) = switch (level) {
-      MasteryLevel.newScripture => ('Queued', AppTheme.secondary, Icons.schedule),
-      MasteryLevel.learning => ('Learning', AppTheme.primary, Icons.auto_stories),
-      MasteryLevel.familiar => ('Familiar', AppTheme.primaryContainer, Icons.auto_stories),
-      MasteryLevel.memorized => ('Memorized', AppTheme.secondary, Icons.psychology),
+      MasteryLevel.newScripture => (
+          'Queued',
+          AppTheme.secondary,
+          Icons.schedule
+        ),
+      MasteryLevel.learning => (
+          'Learning',
+          AppTheme.primary,
+          Icons.auto_stories
+        ),
+      MasteryLevel.familiar => (
+          'Familiar',
+          AppTheme.primaryContainer,
+          Icons.auto_stories
+        ),
+      MasteryLevel.memorized => (
+          'Memorized',
+          AppTheme.secondary,
+          Icons.psychology
+        ),
       MasteryLevel.mastered => ('Mastered', AppTheme.tertiary, Icons.stars),
       MasteryLevel.eternal => ('Eternal', AppTheme.tertiary, Icons.stars),
     };

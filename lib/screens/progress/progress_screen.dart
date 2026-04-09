@@ -44,7 +44,8 @@ class ProgressScreen extends ConsumerWidget {
 
             // Needs Review Section
             if (needsReview.isNotEmpty) ...[
-              _buildNeedsReviewSection(context, ref, needsReview.map((s) => s.id).toList()),
+              _buildNeedsReviewSection(
+                  context, ref, needsReview.map((s) => s.id).toList()),
               const SizedBox(height: AppTheme.spacingXl),
             ],
 
@@ -70,8 +71,8 @@ class ProgressScreen extends ConsumerWidget {
         Text(
           'Reflect on your journey through sacred scripture',
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: AppTheme.onSurface.withValues(alpha: 0.7),
-          ),
+                color: AppTheme.onSurface.withValues(alpha: 0.7),
+              ),
         ),
       ],
     );
@@ -150,8 +151,8 @@ class ProgressScreen extends ConsumerWidget {
           Text(
             '42',
             style: Theme.of(context).textTheme.displayLarge?.copyWith(
-              color: AppTheme.primary,
-            ),
+                  color: AppTheme.primary,
+                ),
           ),
           const SizedBox(height: AppTheme.spacingSm),
           Text(
@@ -177,8 +178,8 @@ class ProgressScreen extends ConsumerWidget {
           Text(
             'Keep the momentum going',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.onSurface.withValues(alpha: 0.6),
-            ),
+                  color: AppTheme.onSurface.withValues(alpha: 0.6),
+                ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -250,8 +251,7 @@ class ProgressScreen extends ConsumerWidget {
         ),
         const SizedBox(height: AppTheme.spacingMd),
         ...needsReview.take(5).map((scriptureId) {
-          final scripture =
-              ref.watch(scriptureByIdProvider(scriptureId));
+          final scripture = ref.watch(scriptureByIdProvider(scriptureId));
           if (scripture == null) return const SizedBox.shrink();
           return _NeedsReviewTile(
             scripture: scripture,
@@ -348,9 +348,9 @@ class _BookCard extends StatelessWidget {
                 child: Text(
                   '${(progress * 100).toStringAsFixed(0)}%',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: bookColor,
-                  ),
+                        fontWeight: FontWeight.bold,
+                        color: bookColor,
+                      ),
                 ),
               ),
             ),
@@ -359,16 +359,16 @@ class _BookCard extends StatelessWidget {
           Text(
             bookName,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+                  fontWeight: FontWeight.w600,
+                ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppTheme.spacingSm),
           Text(
             '$masteredCount/$totalCount',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppTheme.onSurface.withValues(alpha: 0.6),
-            ),
+                  color: AppTheme.onSurface.withValues(alpha: 0.6),
+                ),
           ),
         ],
       ),
@@ -407,15 +407,15 @@ class _NeedsReviewTile extends StatelessWidget {
                   Text(
                     scripture.reference,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
                   const SizedBox(height: AppTheme.spacingSm),
                   Text(
                     '$daysSincePractice days since practice',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.warning,
-                    ),
+                          color: AppTheme.warning,
+                        ),
                   ),
                 ],
               ),
@@ -433,8 +433,8 @@ class _NeedsReviewTile extends StatelessWidget {
               child: Text(
                 'Review',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Colors.white,
-                ),
+                      color: Colors.white,
+                    ),
               ),
             ),
           ],
@@ -472,16 +472,18 @@ class _AchievementMedal extends StatelessWidget {
           Icon(
             icon,
             size: 32,
-            color: unlocked ? AppTheme.tertiary : AppTheme.onSurface.withValues(alpha: 0.3),
+            color: unlocked
+                ? AppTheme.tertiary
+                : AppTheme.onSurface.withValues(alpha: 0.3),
           ),
           const SizedBox(height: AppTheme.spacingSm),
           Text(
             label,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: unlocked
-                  ? AppTheme.onSurface
-                  : AppTheme.onSurface.withValues(alpha: 0.4),
-            ),
+                  color: unlocked
+                      ? AppTheme.onSurface
+                      : AppTheme.onSurface.withValues(alpha: 0.4),
+                ),
             textAlign: TextAlign.center,
           ),
         ],

@@ -105,9 +105,7 @@ class _SendButton extends StatelessWidget {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: isLoading
-                ? baseColor.withValues(alpha: 0.4)
-                : baseColor,
+            color: isLoading ? baseColor.withValues(alpha: 0.4) : baseColor,
             borderRadius: BorderRadius.circular(AppTheme.radiusRound),
             boxShadow: !isLoading
                 ? [

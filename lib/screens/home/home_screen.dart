@@ -79,9 +79,8 @@ class HomeScreen extends ConsumerWidget {
                               children: [
                                 Text(
                                   '${stats.mastered}',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .displaySmall,
+                                  style:
+                                      Theme.of(context).textTheme.displaySmall,
                                 ),
                                 Text(
                                   '/100',
