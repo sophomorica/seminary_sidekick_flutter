@@ -111,7 +111,7 @@ class HolisticMasterySection extends ConsumerWidget {
                             mastery.level.description,
                             style:
                                 Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: AppTheme.onSurfaceVariant,
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
                           ),
                         ],
@@ -253,7 +253,7 @@ class HolisticMasterySection extends ConsumerWidget {
                 Text(
                   'Tap any step to practice at that difficulty',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.onSurfaceVariant,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                 ),
                 const SizedBox(height: 16),
@@ -421,7 +421,7 @@ class HolisticMasterySection extends ConsumerWidget {
                   Text(
                     'Scripture Match and Quiz help build recognition',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.onSurfaceVariant,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                   ),
                   const SizedBox(height: 12),

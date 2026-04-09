@@ -12,7 +12,7 @@ class PracticeHubScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -34,7 +34,7 @@ class PracticeHubScreen extends ConsumerWidget {
               Text(
                 'Engage with sacred texts through focused exercises designed to deepen your spiritual retention and understanding.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.onSurfaceVariant,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
               ),
               const SizedBox(height: 32.0),
@@ -251,7 +251,7 @@ class _PathSelectorState extends State<_PathSelector> {
     return Container(
       padding: const EdgeInsets.all(8.0),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerLow,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(50.0),
       ),
       child: Row(
@@ -303,7 +303,7 @@ class _PathButton extends StatelessWidget {
       child: Container(
         decoration: isSelected
             ? BoxDecoration(
-                color: AppTheme.surfaceContainerLowest,
+                color: Theme.of(context).colorScheme.surfaceContainerLowest,
                 borderRadius: BorderRadius.circular(50.0),
                 boxShadow: AppTheme.editorialShadow,
               )
@@ -324,7 +324,7 @@ class _PathButton extends StatelessWidget {
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         color: isSelected
                             ? AppTheme.primary
-                            : AppTheme.onSurfaceVariant,
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
                         fontWeight:
                             isSelected ? FontWeight.bold : FontWeight.w500,
                       ),
@@ -552,7 +552,7 @@ class _SacredAchievementSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerLow,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(AppTheme.radiusLg),
       ),
       padding: const EdgeInsets.all(40.0),
@@ -570,7 +570,7 @@ class _SacredAchievementSection extends StatelessWidget {
           Text(
             'Complete 3 Practice sessions today to unlock your next Mastery Badge',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
           ),
           const SizedBox(height: 24.0),
@@ -578,7 +578,7 @@ class _SacredAchievementSection extends StatelessWidget {
           Container(
             height: 8.0,
             decoration: BoxDecoration(
-              color: AppTheme.surfaceContainerHighest,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(4.0),
             ),
             child: Stack(

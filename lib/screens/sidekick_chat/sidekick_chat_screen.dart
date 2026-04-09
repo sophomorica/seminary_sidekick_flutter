@@ -115,7 +115,7 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
     });
 
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           // Editorial header
@@ -168,7 +168,7 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
   Widget _buildEditorialHeader(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      color: isDark ? AppTheme.darkBackground : AppTheme.surface,
+      color: isDark ? AppTheme.darkBackground : Theme.of(context).colorScheme.surface,
       padding: const EdgeInsets.fromLTRB(
         AppTheme.spacingMd,
         AppTheme.spacingMd,
@@ -195,7 +195,7 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
               style: GoogleFonts.merriweather(
                 fontSize: 32,
                 fontWeight: FontWeight.w700,
-                color: AppTheme.onSurface,
+                color: Theme.of(context).colorScheme.onSurface,
                 height: 1.2,
                 fontStyle: FontStyle.italic,
               ),
@@ -205,7 +205,7 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
             Text(
               'Your Sidekick is here to help you bridge the gap between ancient scripture and modern life.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.onSurfaceVariant,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     height: 1.5,
                   ),
               maxLines: 2,

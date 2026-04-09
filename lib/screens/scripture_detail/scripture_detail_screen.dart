@@ -297,7 +297,7 @@ class _ActionButton extends StatelessWidget {
       width: 48,
       height: 48,
       decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerHigh,
+        color: Theme.of(context).colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(AppTheme.radiusRound),
       ),
       child: IconButton(
@@ -343,7 +343,7 @@ class _MainContent extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.all(AppTheme.spacingXl),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceContainerLow,
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(AppTheme.radiusXl),
           ),
           child: Stack(
@@ -457,7 +457,7 @@ class _MainContent extends ConsumerWidget {
           Text(
             'Build recognition and comprehension',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
           ),
           const SizedBox(height: AppTheme.spacingMd),
@@ -798,7 +798,7 @@ class _WordChip extends StatelessWidget {
         vertical: AppTheme.spacingMd,
       ),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerHigh,
+        color: Theme.of(context).colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
         border: Border.all(
           color: Colors.white.withValues(alpha: 0.5),
@@ -830,7 +830,7 @@ class _MasteryInsights extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(AppTheme.spacingXl),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(AppTheme.radiusXl),
       ),
       child: Column(
@@ -880,7 +880,7 @@ class _MasteryInsights extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(3),
                   child: LinearProgressIndicator(
                     value: retentionPercent / 100,
-                    backgroundColor: AppTheme.surfaceContainerHigh,
+                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
                     valueColor:
                         const AlwaysStoppedAnimation(AppTheme.secondary),
                   ),
@@ -1009,7 +1009,7 @@ class _AskSidekickCard extends ConsumerWidget {
               Text(
                 'Your AI companion can explain linguistic roots, cross-reference other scriptures, or help you memorize.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.onSurfaceVariant,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
               ),
               const SizedBox(height: AppTheme.spacingXl),
@@ -1170,7 +1170,7 @@ class _NotesSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppTheme.spacingLg),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerLow,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(AppTheme.radiusXl),
       ),
       child: Column(

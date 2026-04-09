@@ -47,7 +47,7 @@ class _TypingIndicatorState extends State<TypingIndicator>
               borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
-                  color: AppTheme.onSurfaceVariant.withValues(alpha: 0.08),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.08),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -69,12 +69,12 @@ class _TypingIndicatorState extends State<TypingIndicator>
             decoration: BoxDecoration(
               color: isDark
                   ? AppTheme.darkSurfaceContainerLow
-                  : AppTheme.surfaceContainerLow,
+                  : Theme.of(context).colorScheme.surfaceContainerLow,
               borderRadius: BorderRadius.circular(AppTheme.radiusXl).copyWith(
                   bottomLeft: const Radius.circular(AppTheme.radiusSm)),
               boxShadow: [
                 BoxShadow(
-                  color: AppTheme.onSurface.withValues(alpha: 0.06),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
                   blurRadius: 12,
                   offset: const Offset(0, 2),
                 ),
@@ -96,8 +96,8 @@ class _TypingIndicatorState extends State<TypingIndicator>
                         child: Container(
                           width: 10,
                           height: 10,
-                          decoration: const BoxDecoration(
-                            color: AppTheme.onSurfaceVariant,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                             shape: BoxShape.circle,
                           ),
                         ),

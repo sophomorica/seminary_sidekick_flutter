@@ -18,7 +18,7 @@ class ProgressScreen extends ConsumerWidget {
     final needsReview = ref.watch(smartReviewQueueProvider);
 
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Column(
@@ -70,7 +70,7 @@ class ProgressScreen extends ConsumerWidget {
         Text(
           'A reflection of your consistency and the deepening of your scriptural understanding. Every verse mastered is a step closer to wisdom.',
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: AppTheme.onSurfaceVariant,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
         ),
       ],
@@ -82,7 +82,7 @@ class ProgressScreen extends ConsumerWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerLow,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(AppTheme.radiusXl),
         boxShadow: AppTheme.editorialShadow,
       ),
@@ -99,7 +99,7 @@ class ProgressScreen extends ConsumerWidget {
           Text(
             'Your daily engagement with the sacred word',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppTheme.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
           ),
           const SizedBox(height: 12.0),
@@ -107,7 +107,7 @@ class ProgressScreen extends ConsumerWidget {
           // Color legend
           Row(
             children: [
-              const _ColorLegendBox(color: AppTheme.surfaceContainerHighest),
+              _ColorLegendBox(color: Theme.of(context).colorScheme.surfaceContainerHighest),
               const SizedBox(width: 8.0),
               _ColorLegendBox(color: AppTheme.primary.withValues(alpha: 0.1)),
               const SizedBox(width: 8.0),
@@ -121,16 +121,16 @@ class ProgressScreen extends ConsumerWidget {
           const SizedBox(height: 12.0),
 
           // Heatmap grid
-          _buildHeatmapGrid(),
+          _buildHeatmapGrid(context),
         ],
       ),
     );
   }
 
-  Widget _buildHeatmapGrid() {
+  Widget _buildHeatmapGrid(BuildContext context) {
     const daysToShow = 60;
     final colors = [
-      AppTheme.surfaceContainerHighest,
+      Theme.of(context).colorScheme.surfaceContainerHighest,
       AppTheme.primary.withValues(alpha: 0.1),
       AppTheme.primary.withValues(alpha: 0.3),
       AppTheme.primary.withValues(alpha: 0.6),
@@ -344,7 +344,7 @@ class ProgressScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerHighest,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(AppTheme.radiusXl),
         boxShadow: AppTheme.editorialShadow,
       ),
@@ -421,7 +421,7 @@ class ProgressScreen extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(24.0),
         decoration: BoxDecoration(
-          color: AppTheme.surfaceContainerLowest,
+          color: Theme.of(context).colorScheme.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(28.0),
         ),
         child: Column(
@@ -439,7 +439,7 @@ class ProgressScreen extends ConsumerWidget {
               'Continue your journey with daily prompts, reflection exercises, and personalized insights from your Seminary Sidekick.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: AppTheme.onSurfaceVariant,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
             ),
             const SizedBox(height: 16.0),
@@ -510,7 +510,7 @@ class _BookBreakdownCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerLowest,
+        color: Theme.of(context).colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(AppTheme.radiusXl),
         boxShadow: AppTheme.editorialShadow,
       ),
@@ -526,6 +526,7 @@ class _BookBreakdownCard extends StatelessWidget {
                 progress: progress,
                 color: bookColor,
                 strokeWidth: 4,
+                backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               ),
               child: Center(
                 child: Text(
@@ -553,7 +554,7 @@ class _BookBreakdownCard extends StatelessWidget {
             'Scripture Mastery',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 9,
                 ),
           ),
@@ -576,7 +577,7 @@ class _NeedsReviewTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(24.0),
         decoration: BoxDecoration(
-          color: AppTheme.surfaceContainerLow,
+          color: Theme.of(context).colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(AppTheme.radiusMd),
           boxShadow: AppTheme.editorialShadow,
           border: const Border(
@@ -613,7 +614,7 @@ class _NeedsReviewTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.onSurfaceVariant,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontStyle: FontStyle.italic,
                         ),
                   ),
@@ -665,7 +666,7 @@ class _AchievementMedalWidget extends StatelessWidget {
             shape: BoxShape.circle,
             color: unlocked
                 ? AppTheme.tertiaryContainer
-                : AppTheme.surfaceContainerHigh,
+                : Theme.of(context).colorScheme.surfaceContainerHigh,
             border: unlocked
                 ? Border.all(
                     color: AppTheme.tertiary.withValues(alpha: 0.1),
@@ -683,7 +684,7 @@ class _AchievementMedalWidget extends StatelessWidget {
             size: 48.0,
             color: unlocked
                 ? AppTheme.tertiary
-                : AppTheme.onSurface.withValues(alpha: 0.3),
+                : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
           ),
         ),
         const SizedBox(height: 12.0),
@@ -693,7 +694,7 @@ class _AchievementMedalWidget extends StatelessWidget {
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
                 color: unlocked
                     ? AppTheme.tertiary
-                    : AppTheme.onSurface.withValues(alpha: 0.5),
+                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                 letterSpacing: 1.0,
               ),
         ),
@@ -707,11 +708,13 @@ class _ProgressRingPainter extends CustomPainter {
   final double progress;
   final Color color;
   final double strokeWidth;
+  final Color backgroundColor;
 
   _ProgressRingPainter({
     required this.progress,
     required this.color,
     required this.strokeWidth,
+    required this.backgroundColor,
   });
 
   @override
@@ -724,7 +727,7 @@ class _ProgressRingPainter extends CustomPainter {
       center,
       radius,
       Paint()
-        ..color = AppTheme.surfaceContainerHighest
+        ..color = backgroundColor
         ..style = PaintingStyle.stroke
         ..strokeWidth = strokeWidth
         ..strokeCap = StrokeCap.round,
@@ -749,6 +752,7 @@ class _ProgressRingPainter extends CustomPainter {
   bool shouldRepaint(_ProgressRingPainter oldDelegate) {
     return oldDelegate.progress != progress ||
         oldDelegate.color != color ||
-        oldDelegate.strokeWidth != strokeWidth;
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.backgroundColor != backgroundColor;
   }
 }

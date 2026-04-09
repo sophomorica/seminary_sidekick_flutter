@@ -68,7 +68,7 @@ class ChatEmptyState extends StatelessWidget {
             Text(
               'Your Sidekick is ready to explore scripture with you—ask about doctrines, find connections, or dive deeper into your faith.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.onSurfaceVariant,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     height: 1.6,
                   ),
               textAlign: TextAlign.center,
@@ -79,7 +79,7 @@ class ChatEmptyState extends StatelessWidget {
             Text(
               'Try one of these',
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: AppTheme.onSurfaceVariant.withValues(alpha: 0.6),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                     letterSpacing: 0.5,
                   ),
             ),
@@ -130,7 +130,7 @@ class _SuggestionChip extends StatelessWidget {
           decoration: BoxDecoration(
             color: isDark
                 ? AppTheme.darkSurfaceContainerLow
-                : AppTheme.surfaceContainerLow,
+                : Theme.of(context).colorScheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(AppTheme.radiusRound),
             border: Border.all(
               color: AppTheme.outlineVariant.withValues(alpha: 0.3),

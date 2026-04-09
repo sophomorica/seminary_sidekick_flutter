@@ -28,7 +28,7 @@ class ChatInput extends StatelessWidget {
         bottom: MediaQuery.of(context).padding.bottom + AppTheme.spacingMd,
       ),
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkBackground : AppTheme.surface,
+        color: isDark ? AppTheme.darkBackground : Theme.of(context).colorScheme.surface,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -37,11 +37,11 @@ class ChatInput extends StatelessWidget {
             decoration: BoxDecoration(
               color: isDark
                   ? AppTheme.darkSurfaceContainerLow
-                  : AppTheme.surfaceContainerLow,
+                  : Theme.of(context).colorScheme.surfaceContainerLow,
               borderRadius: BorderRadius.circular(AppTheme.radiusXl),
               boxShadow: [
                 BoxShadow(
-                  color: AppTheme.onSurface.withValues(alpha: 0.08),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),

@@ -6,7 +6,6 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'theme/app_theme.dart';
 import 'providers/onboarding_provider.dart';
-import 'providers/theme_provider.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/scripture_list_screen.dart';
@@ -137,14 +136,12 @@ class _SeminarySidekickAppState extends ConsumerState<SeminarySidekickApp> {
 
   @override
   Widget build(BuildContext context) {
-    final themeMode = ref.watch(themeProvider);
-
     return MaterialApp.router(
       title: 'Seminary Sidekick',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.getLightTheme(),
       darkTheme: AppTheme.getDarkTheme(),
-      themeMode: themeMode,
+      themeMode: ThemeMode.system,
       routerConfig: _router,
     );
   }
@@ -204,7 +201,7 @@ class _AppShell extends ConsumerWidget {
                     const SizedBox(width: 10),
                     // "Sacred Editorial" wordmark
                     Text(
-                      'Sacred Editorial',
+                      'Seminary Sidekick',
                       style: GoogleFonts.merriweather(
                         fontSize: 18,
                         fontWeight: FontWeight.w400,

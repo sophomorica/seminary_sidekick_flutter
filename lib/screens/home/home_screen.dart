@@ -21,7 +21,7 @@ class HomeScreen extends ConsumerWidget {
     ref.watch(dueCountProvider);
 
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.only(
@@ -50,7 +50,7 @@ class HomeScreen extends ConsumerWidget {
                 style: Theme.of(context)
                     .textTheme
                     .bodyLarge
-                    ?.copyWith(color: AppTheme.onSurfaceVariant),
+                    ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
 
               const SizedBox(height: 48.0),
@@ -66,7 +66,7 @@ class HomeScreen extends ConsumerWidget {
                 style: Theme.of(context)
                     .textTheme
                     .bodyLarge
-                    ?.copyWith(color: AppTheme.onSurfaceVariant),
+                    ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: AppTheme.spacingLg),
 
@@ -106,7 +106,7 @@ class HomeScreen extends ConsumerWidget {
                                 .textTheme
                                 .labelSmall
                                 ?.copyWith(
-                                  color: AppTheme.onSurfaceVariant,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   letterSpacing: 0.5,
                                 ),
                           ),
@@ -201,7 +201,7 @@ class HomeScreen extends ConsumerWidget {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerHighest,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
       ),
       padding: const EdgeInsets.symmetric(
@@ -214,7 +214,7 @@ class HomeScreen extends ConsumerWidget {
           Text(
             label.toUpperCase(),
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppTheme.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   letterSpacing: 0.5,
                 ),
           ),
@@ -283,7 +283,7 @@ class HomeScreen extends ConsumerWidget {
           Text(
             'Tap below to continue your practice with this scripture.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
           ),
           const SizedBox(height: AppTheme.spacingLg),

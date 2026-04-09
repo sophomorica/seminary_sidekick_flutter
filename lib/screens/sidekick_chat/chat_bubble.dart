@@ -42,7 +42,7 @@ class ChatBubble extends StatelessWidget {
                 borderRadius: BorderRadius.circular(18),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.onSurfaceVariant.withValues(alpha: 0.08),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.08),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -71,7 +71,7 @@ class ChatBubble extends StatelessWidget {
                         ? AppTheme.primary
                         : (isDark
                             ? AppTheme.darkSurfaceContainerLow
-                            : AppTheme.surfaceContainerLow),
+                            : Theme.of(context).colorScheme.surfaceContainerLow),
                     borderRadius: isUser
                         ? BorderRadius.circular(AppTheme.radiusXl).copyWith(
                             bottomRight:
@@ -81,7 +81,7 @@ class ChatBubble extends StatelessWidget {
                                 const Radius.circular(AppTheme.radiusSm)),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.onSurface.withValues(alpha: 0.06),
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
                         blurRadius: 12,
                         offset: const Offset(0, 2),
                       ),
@@ -164,7 +164,7 @@ class RichMessageText extends StatelessWidget {
     final spans = <InlineSpan>[];
     final textStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
           height: 1.6,
-          color: AppTheme.onSurface,
+          color: Theme.of(context).colorScheme.onSurface,
         );
 
     int lastEnd = 0;
@@ -290,7 +290,7 @@ class _SuggestionChip extends StatelessWidget {
           decoration: BoxDecoration(
             color: isDark
                 ? AppTheme.darkSurfaceContainerLow
-                : AppTheme.surfaceContainerHigh,
+                : Theme.of(context).colorScheme.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(AppTheme.radiusRound),
           ),
           child: Row(
@@ -299,13 +299,13 @@ class _SuggestionChip extends StatelessWidget {
               Icon(
                 icon,
                 size: 16,
-                color: AppTheme.onSurfaceVariant,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 6),
               Text(
                 label,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.onSurfaceVariant,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
                     ),
               ),

@@ -66,7 +66,7 @@ class _ScriptureLibraryScreenState
                   Text(
                     'Explore the foundational texts of our faith.\nOrganized by volume for purposeful study.',
                     style: theme.textTheme.bodyLarge?.copyWith(
-                      color: AppTheme.onSurfaceVariant,
+                      color: theme.colorScheme.onSurfaceVariant,
                       height: 1.6,
                     ),
                   ),
@@ -83,10 +83,10 @@ class _ScriptureLibraryScreenState
                       decoration: InputDecoration(
                         hintText: 'Search verses or keywords...',
                         hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                          color: AppTheme.outline,
+                          color: theme.colorScheme.outline,
                         ),
                         prefixIcon:
-                            const Icon(Icons.search, color: AppTheme.outline),
+                            Icon(Icons.search, color: theme.colorScheme.outline),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -211,7 +211,7 @@ class _ScriptureLibraryScreenState
                       scripture.keyPhrase,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontStyle: FontStyle.italic,
-                        color: AppTheme.onSurface,
+                        color: theme.colorScheme.onSurface,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
