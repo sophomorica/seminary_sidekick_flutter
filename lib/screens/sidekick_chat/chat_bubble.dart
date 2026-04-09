@@ -23,7 +23,7 @@ class ChatBubble extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
+      padding: const EdgeInsets.only(bottom: AppTheme.spacingMd),
       child: Row(
         mainAxisAlignment:
             isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
@@ -32,48 +32,58 @@ class ChatBubble extends StatelessWidget {
           if (!isUser) ...[
             // Sidekick avatar
             Container(
-              width: 32,
-              height: 32,
-              margin: const EdgeInsets.only(top: 4),
+              width: 40,
+              height: 40,
+              margin: const EdgeInsets.only(top: 4, right: AppTheme.spacingSm),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: AppTheme.sidekickGradient(context),
                 ),
-                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.sidekickColor(context).withValues(alpha: 0.15),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: const Icon(
                 Icons.auto_awesome,
-                size: 16,
+                size: 20,
                 color: Colors.white,
               ),
             ),
-            const SizedBox(width: 8),
           ],
           Flexible(
             child: Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: AppTheme.spacingMd,
-                vertical: AppTheme.spacingSm + 4,
+                horizontal: AppTheme.spacingLg,
+                vertical: AppTheme.spacingMd,
               ),
               decoration: BoxDecoration(
                 color: isUser
                     ? AppTheme.primary
-                    : (isDark ? AppTheme.darkCard : AppTheme.surface),
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(AppTheme.radiusMd),
-                  topRight: const Radius.circular(AppTheme.radiusMd),
-                  bottomLeft: Radius.circular(
-                      isUser ? AppTheme.radiusMd : AppTheme.radiusSm / 2),
-                  bottomRight: Radius.circular(
-                      isUser ? AppTheme.radiusSm / 2 : AppTheme.radiusMd),
-                ),
+                    : (isDark
+                        ? AppTheme.darkSurfaceContainerLow
+                        : AppTheme.surfaceContainerLow),
+                borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+                boxShadow: !isUser
+                    ? [
+                        BoxShadow(
+                          color: AppTheme.onSurface.withValues(alpha: 0.06),
+                          blurRadius: 12,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : [],
               ),
               child: isUser
                   ? Text(
                       message.content,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: Colors.white,
-                            height: 1.4,
+                            height: 1.6,
                           ),
                     )
                   : RichMessageText(
@@ -82,7 +92,7 @@ class ChatBubble extends StatelessWidget {
                     ),
             ),
           ),
-          if (isUser) const SizedBox(width: 40),
+          if (isUser) const SizedBox(width: 8),
         ],
       ),
     );
@@ -128,8 +138,10 @@ class RichMessageText extends StatelessWidget {
 
   List<InlineSpan> _buildSpans(BuildContext context) {
     final spans = <InlineSpan>[];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final textStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
-          height: 1.5,
+          height: 1.6,
+          color: isDark ? AppTheme.darkOnSurface : AppTheme.onSurface,
         );
 
     int lastEnd = 0;

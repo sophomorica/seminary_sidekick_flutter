@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../providers/sidekick_provider.dart';
 import '../../providers/scripture_provider.dart';
@@ -11,11 +12,14 @@ import 'chat_empty_state.dart';
 import 'chat_input.dart';
 import 'typing_indicator.dart';
 
-/// "Ask Your Sidekick" — direct chat interface with the Seminary Sidekick AI.
+/// "Walking in the Light" — The Seminary Sidekick chat interface.
 ///
-/// Premium-only screen. Users can ask questions about any scripture, their
-/// progress, or gospel topics. Scripture references in responses are tappable
-/// and navigate to the scripture detail screen.
+/// Premium-only screen. Users can ask questions about scriptures, their
+/// progress, or gospel topics in a conversational format. Scripture references
+/// in responses are tappable and navigate to the scripture detail screen.
+///
+/// This screen works both as a main tab (when accessed from the bottom nav)
+/// and as a full-screen route when navigated with an initialScriptureId.
 class SidekickChatScreen extends ConsumerStatefulWidget {
   /// Optional scripture ID to pre-populate context (e.g., from scripture detail).
   final String? initialScriptureId;
@@ -110,80 +114,14 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
     });
 
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.auto_awesome,
-                size: 20, color: AppTheme.sidekickColor(context)),
-            const SizedBox(width: 8),
-            Text(
-              'Your Sidekick',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-          ],
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        actions: [
-          if (chatHistory.isNotEmpty)
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert),
-              onSelected: (value) {
-                if (value == 'clear') {
-                  _showClearConfirmation();
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'clear',
-                  child: Row(
-                    children: [
-                      Icon(Icons.delete_outline, size: 20),
-                      SizedBox(width: 8),
-                      Text('Clear conversation'),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-        ],
-      ),
+      backgroundColor: AppTheme.surface,
       body: Column(
         children: [
+          // Editorial header
+          _buildEditorialHeader(context),
+
           // Error banner
-          if (error != null)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppTheme.spacingMd,
-                vertical: AppTheme.spacingSm,
-              ),
-              color: AppTheme.error.withValues(alpha: 0.1),
-              child: Row(
-                children: [
-                  const Icon(Icons.warning_amber,
-                      size: 16, color: AppTheme.error),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      error,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.error,
-                          ),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () =>
-                        ref.read(sidekickProvider.notifier).clearError(),
-                    child: const Icon(Icons.close,
-                        size: 16, color: AppTheme.error),
-                  ),
-                ],
-              ),
-            ),
+          if (error != null) _buildErrorBanner(context),
 
           // Chat messages
           Expanded(
@@ -199,7 +137,7 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
                     controller: _scrollController,
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppTheme.spacingMd,
-                      vertical: AppTheme.spacingSm,
+                      vertical: AppTheme.spacingMd,
                     ),
                     itemCount: chatHistory.length + (isLoading ? 1 : 0),
                     itemBuilder: (context, index) {
@@ -220,6 +158,77 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
             focusNode: _inputFocusNode,
             isLoading: isLoading,
             onSend: _sendMessage,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEditorialHeader(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      color: isDark ? AppTheme.darkBackground : AppTheme.surface,
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.spacingMd,
+        AppTheme.spacingMd,
+        AppTheme.spacingMd,
+        AppTheme.spacingLg,
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Title
+            Text(
+              'Walking in the Light',
+              style: GoogleFonts.merriweather(
+                fontSize: 28,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.primary,
+                height: 1.2,
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacingSm),
+            // Subtitle
+            Text(
+              'Explore scripture with your Sidekick. Ask questions, seek understanding, and deepen your faith.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.onSurfaceVariant,
+                    height: 1.5,
+                  ),
+              maxLines: 2,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorBanner(BuildContext context) {
+    final error = ref.watch(sidekickProvider).error;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacingMd,
+        vertical: AppTheme.spacingSm,
+      ),
+      color: AppTheme.errorLight,
+      child: Row(
+        children: [
+          const Icon(Icons.warning_amber, size: 16, color: AppTheme.error),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              error!,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.error,
+                  ),
+            ),
+          ),
+          GestureDetector(
+            onTap: () => ref.read(sidekickProvider.notifier).clearError(),
+            child: const Icon(Icons.close, size: 16, color: AppTheme.error),
           ),
         ],
       ),
@@ -258,5 +267,3 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
     );
   }
 }
-
-// ─── Chat Bubble ───────────────────────────────────────────────────────────

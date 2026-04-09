@@ -7,6 +7,7 @@ import '../../widgets/premium_teaser.dart';
 import 'journal_list_view.dart';
 
 // ─── Empty State ────────────────────────────────────────────────────────────
+/// Sacred Editorial empty state with warm, inviting design.
 
 class EmptyJournalView extends ConsumerWidget {
   const EmptyJournalView({super.key});
@@ -17,7 +18,7 @@ class EmptyJournalView extends ConsumerWidget {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppTheme.spacingXl),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -27,35 +28,38 @@ class EmptyJournalView extends ConsumerWidget {
               color: Theme.of(context)
                   .colorScheme
                   .onSurface
-                  .withValues(alpha: 0.2),
+                  .withValues(alpha: 0.15),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppTheme.spacingLg),
             Text(
-              'Your journal is empty',
-              style: Theme.of(context).textTheme.titleLarge,
+              'Begin Your Reflection',
+              style: Theme.of(context).textTheme.headlineMedium,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppTheme.spacingMd),
             Text(
-              'Capture your thoughts, insights, and reflections as you study.',
+              'Capture your insights and spiritual experiences as you study the scriptures.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context)
                         .colorScheme
                         .onSurface
-                        .withValues(alpha: 0.5),
+                        .withValues(alpha: 0.6),
+                    height: 1.6,
                   ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppTheme.spacingXl),
             if (prompts.isNotEmpty) ...[
               Text(
-                'Start with a prompt from your Sidekick:',
+                'Start with a reflection prompt from your Seminary Sidekick:',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.premiumGold,
+                      color: AppTheme.sidekickColor(context)
+                          .withValues(alpha: 0.8),
+                      fontWeight: FontWeight.w500,
                     ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppTheme.spacingMd),
               ReflectionPromptCard(
                 prompt: prompts.first,
                 onReflect: () {
@@ -80,6 +84,7 @@ class EmptyJournalView extends ConsumerWidget {
 }
 
 // ─── Free User View ─────────────────────────────────────────────────────────
+/// Premium upgrade teaser for non-premium users with Sacred Editorial aesthetic.
 
 class FreeUserJournalView extends StatelessWidget {
   const FreeUserJournalView({super.key});
@@ -88,7 +93,7 @@ class FreeUserJournalView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppTheme.spacingXl),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -96,16 +101,17 @@ class FreeUserJournalView extends StatelessWidget {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppTheme.premiumGold.withValues(alpha: 0.1),
+                color: AppTheme.sidekickColor(context)
+                    .withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.book,
                 size: 40,
-                color: AppTheme.premiumGold,
+                color: AppTheme.sidekickColor(context),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppTheme.spacingXl),
             Text(
               'Seminary Sidekick Journal',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -113,20 +119,19 @@ class FreeUserJournalView extends StatelessWidget {
                   ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTheme.spacingMd),
             Text(
-              'Capture your insights with AI-powered reflection prompts, '
-              'scripture tagging, and personalized journal entries.',
+              'Capture your insights with AI-powered reflection prompts, scripture tagging, and personalized journal entries.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context)
                         .colorScheme
                         .onSurface
-                        .withValues(alpha: 0.6),
-                    height: 1.5,
+                        .withValues(alpha: 0.65),
+                    height: 1.6,
                   ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppTheme.spacingXl),
             const PremiumTeaser(
               headline: 'Unlock your journal',
               body:

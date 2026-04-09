@@ -178,7 +178,7 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppTheme.radiusMd)),
       ),
       builder: (ctx) {
         return DraggableScrollableSheet(
@@ -190,7 +190,7 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
             return Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppTheme.spacingMd),
                   child: Text(
                     'Tag Scriptures',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -240,7 +240,7 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppTheme.spacingMd),
                   child: SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -316,7 +316,7 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
+                  horizontal: AppTheme.spacingMd,
                   vertical: 10,
                 ),
                 color: AppTheme.primary.withValues(alpha: 0.08),
@@ -354,106 +354,203 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
 
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppTheme.spacingLg),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Show the AI prompt that inspired this entry
+                    // Daily Reflection Header (Sacred Editorial)
+                    if (_taggedScriptureReferences.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          bottom: AppTheme.spacingLg,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'How did ${_taggedScriptureReferences.first} apply to your day?',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .displaySmall
+                                  ?.copyWith(
+                                    height: 1.3,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                            ),
+                            const SizedBox(height: AppTheme.spacingMd),
+                          ],
+                        ),
+                      ),
+
+                    // AI Prompt Card (if present)
                     if (widget.entry.hasPrompt) ...[
                       Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(AppTheme.spacingMd),
                         decoration: BoxDecoration(
                           color: AppTheme.premiumGold.withValues(alpha: 0.08),
                           borderRadius:
-                              BorderRadius.circular(AppTheme.radiusSm),
-                          border: Border.all(
-                            color: AppTheme.premiumGold.withValues(alpha: 0.2),
-                          ),
+                              BorderRadius.circular(AppTheme.radiusMd),
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.auto_awesome,
-                              size: 16,
-                              color: AppTheme.premiumGold,
+                              size: 18,
+                              color: AppTheme.premiumGold.withValues(alpha: 0.8),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: AppTheme.spacingMd),
                             Expanded(
                               child: Text(
                                 widget.entry.prompt!,
                                 style: Theme.of(context)
                                     .textTheme
-                                    .bodySmall
+                                    .bodyMedium
                                     ?.copyWith(
                                       fontStyle: FontStyle.italic,
-                                      height: 1.4,
+                                      height: 1.5,
                                     ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppTheme.spacingLg),
                     ],
 
-                    // Tagged scriptures
+                    // Main content editor with Sacred Editorial warmth
+                    Container(
+                      padding: const EdgeInsets.all(AppTheme.spacingLg),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surfaceContainerLow,
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.radiusMd),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Title field (optional, subtle)
+                          if (_titleController.text.isNotEmpty ||
+                              !_hasChanges)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                bottom: AppTheme.spacingMd,
+                              ),
+                              child: TextField(
+                                controller: _titleController,
+                                textCapitalization:
+                                    TextCapitalization.sentences,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                decoration: InputDecoration(
+                                  hintText: 'Reflection title (optional)',
+                                  hintStyle: Theme.of(context)
+                                      .textTheme
+                                      .headlineMedium
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.3),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                              ),
+                            ),
+
+                          // Main content field
+                          TextField(
+                            controller: _contentController,
+                            textCapitalization:
+                                TextCapitalization.sentences,
+                            maxLines: null,
+                            minLines: 16,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyLarge
+                                ?.copyWith(
+                                  height: 1.8,
+                                ),
+                            decoration: InputDecoration(
+                              hintText:
+                                  'Begin typing your thoughts here... Let the Spirit guide.',
+                              hintStyle: Theme.of(context)
+                                  .textTheme
+                                  .bodyLarge
+                                  ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.35),
+                                    height: 1.8,
+                                  ),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: AppTheme.spacingLg),
+
+                    // Tagged scriptures (Contextual Verse)
                     if (_taggedScriptureReferences.isNotEmpty) ...[
+                      Text(
+                        'Scripture Context',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                      const SizedBox(height: AppTheme.spacingMd),
                       Wrap(
-                        spacing: 6,
-                        runSpacing: 4,
-                        children: _taggedScriptureReferences.map((ref) {
-                          return Chip(
-                            label: Text(ref),
-                            labelStyle: const TextStyle(fontSize: 11),
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                            visualDensity: VisualDensity.compact,
-                            backgroundColor:
-                                AppTheme.accent.withValues(alpha: 0.1),
-                            side: BorderSide(
-                              color: AppTheme.accent.withValues(alpha: 0.3),
+                        spacing: AppTheme.spacingSm,
+                        runSpacing: AppTheme.spacingSm,
+                        children:
+                            _taggedScriptureReferences.map((scriptureRef) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppTheme.spacingMd,
+                              vertical: AppTheme.spacingSm,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(
+                                AppTheme.radiusRound,
+                              ),
+                            ),
+                            child: Text(
+                              scriptureRef,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelMedium
+                                  ?.copyWith(
+                                    color: AppTheme.primary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                             ),
                           );
                         }).toList(),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppTheme.spacingLg),
                     ],
 
-                    // Title field
-                    TextField(
-                      controller: _titleController,
-                      textCapitalization: TextCapitalization.sentences,
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                      decoration: const InputDecoration(
-                        hintText: 'Title (optional)',
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
+                    // Save to Portfolio Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _hasChanges ? _save : null,
+                        child: const Text('Save to Portfolio'),
                       ),
                     ),
-                    const Divider(height: 1),
-                    const SizedBox(height: 8),
 
-                    // Content field
-                    TextField(
-                      controller: _contentController,
-                      textCapitalization: TextCapitalization.sentences,
-                      maxLines: null,
-                      minLines: 12,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            height: 1.7,
-                          ),
-                      decoration: InputDecoration(
-                        hintText: widget.entry.hasPrompt
-                            ? 'Write your reflection...'
-                            : 'What\'s on your mind?',
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
+                    const SizedBox(height: AppTheme.spacingMd),
                   ],
                 ),
               ),

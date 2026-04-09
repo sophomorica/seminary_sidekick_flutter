@@ -33,40 +33,52 @@ class _TypingIndicatorState extends State<TypingIndicator>
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
+      padding: const EdgeInsets.only(bottom: AppTheme.spacingMd),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Sidekick avatar
           Container(
-            width: 32,
-            height: 32,
-            margin: const EdgeInsets.only(top: 4),
+            width: 40,
+            height: 40,
+            margin: const EdgeInsets.only(top: 4, right: AppTheme.spacingSm),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: AppTheme.sidekickGradient(context),
               ),
-              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.sidekickColor(context).withValues(alpha: 0.15),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: const Icon(
               Icons.auto_awesome,
-              size: 16,
+              size: 20,
               color: Colors.white,
             ),
           ),
-          const SizedBox(width: 8),
+          // Typing bubble
           Container(
             padding: const EdgeInsets.symmetric(
-              horizontal: AppTheme.spacingMd,
-              vertical: AppTheme.spacingSm + 4,
+              horizontal: AppTheme.spacingLg,
+              vertical: AppTheme.spacingMd,
             ),
             decoration: BoxDecoration(
-              color: isDark ? AppTheme.darkCard : AppTheme.surface,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(AppTheme.radiusMd),
-                topRight: Radius.circular(AppTheme.radiusMd),
-                bottomLeft: Radius.circular(AppTheme.radiusSm / 2),
-                bottomRight: Radius.circular(AppTheme.radiusMd),
-              ),
+              color: isDark
+                  ? AppTheme.darkSurfaceContainerLow
+                  : AppTheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.onSurface.withValues(alpha: 0.06),
+                  blurRadius: 12,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: AnimatedBuilder(
               animation: _controller,
@@ -78,12 +90,12 @@ class _TypingIndicatorState extends State<TypingIndicator>
                     final opacity = (0.3 + 0.7 * (1 - (offset - 0.5).abs() * 2))
                         .clamp(0.3, 1.0);
                     return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 3),
                       child: Opacity(
                         opacity: opacity,
                         child: Container(
-                          width: 8,
-                          height: 8,
+                          width: 10,
+                          height: 10,
                           decoration: BoxDecoration(
                             color: AppTheme.sidekickColor(context),
                             shape: BoxShape.circle,

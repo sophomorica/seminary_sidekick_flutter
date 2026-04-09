@@ -1,6 +1,8 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 
 import 'theme/app_theme.dart';
 import 'providers/onboarding_provider.dart';
@@ -9,6 +11,7 @@ import 'screens/home/home_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/scripture_list_screen.dart';
 import 'screens/scripture_detail/scripture_detail_screen.dart';
+import 'screens/scripture_library/scripture_library_screen.dart';
 import 'screens/practice_hub_screen.dart';
 import 'screens/journal/journal_screen.dart';
 import 'screens/progress/progress_screen.dart';
@@ -52,6 +55,7 @@ class _SeminarySidekickAppState extends ConsumerState<SeminarySidekickApp> {
           builder: (context, state) => const OnboardingScreen(),
         ),
         // Shell with bottom navigation for main tabs
+        // 5 tabs: Home, Library, Practice, Stats, Sidekick
         StatefulShellRoute.indexedStack(
           builder: (context, state, navigationShell) {
             return _AppShell(navigationShell: navigationShell);
@@ -68,6 +72,14 @@ class _SeminarySidekickAppState extends ConsumerState<SeminarySidekickApp> {
             StatefulShellBranch(
               routes: [
                 GoRoute(
+                  path: '/library',
+                  builder: (context, state) => const ScriptureLibraryScreen(),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
                   path: '/practice',
                   builder: (context, state) => const PracticeHubScreen(),
                 ),
@@ -76,16 +88,16 @@ class _SeminarySidekickAppState extends ConsumerState<SeminarySidekickApp> {
             StatefulShellBranch(
               routes: [
                 GoRoute(
-                  path: '/journal',
-                  builder: (context, state) => const JournalScreen(),
+                  path: '/progress',
+                  builder: (context, state) => const ProgressScreen(),
                 ),
               ],
             ),
             StatefulShellBranch(
               routes: [
                 GoRoute(
-                  path: '/progress',
-                  builder: (context, state) => const ProgressScreen(),
+                  path: '/sidekick',
+                  builder: (context, state) => const SidekickChatScreen(),
                 ),
               ],
             ),
@@ -107,6 +119,10 @@ class _SeminarySidekickAppState extends ConsumerState<SeminarySidekickApp> {
         GoRoute(
           path: '/upgrade',
           builder: (context, state) => const UpgradeScreen(),
+        ),
+        GoRoute(
+          path: '/journal',
+          builder: (context, state) => const JournalScreen(),
         ),
         GoRoute(
           path: '/sidekick-chat',
@@ -134,7 +150,7 @@ class _SeminarySidekickAppState extends ConsumerState<SeminarySidekickApp> {
   }
 }
 
-/// Shell widget that wraps tab-based screens with bottom navigation.
+/// Sacred Editorial shell — glassmorphic bottom nav with 5 destinations.
 class _AppShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -142,39 +158,124 @@ class _AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final navBg = isDark
+        ? AppTheme.darkBackground.withValues(alpha: 0.9)
+        : AppTheme.surface.withValues(alpha: 0.8);
+
     return Scaffold(
       body: navigationShell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: (index) {
-          navigationShell.goBranch(
-            index,
-            initialLocation: index == navigationShell.currentIndex,
-          );
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.menu_book_outlined),
-            selectedIcon: Icon(Icons.menu_book),
-            label: 'Scriptures',
+      extendBody: true,
+      bottomNavigationBar: ClipRRect(
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppTheme.radiusXxl),
+        ),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: navBg,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(AppTheme.radiusXxl),
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x0F221A17),
+                  blurRadius: 20,
+                  offset: Offset(0, -4),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 4,
+                ),
+                child: NavigationBar(
+                  selectedIndex: navigationShell.currentIndex,
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  indicatorColor: Colors.transparent,
+                  labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+                  onDestinationSelected: (index) {
+                    navigationShell.goBranch(
+                      index,
+                      initialLocation: index == navigationShell.currentIndex,
+                    );
+                  },
+                  destinations: [
+                    _buildNavDestination(
+                      context,
+                      icon: Icons.home_outlined,
+                      selectedIcon: Icons.home,
+                      label: 'HOME',
+                      isSelected: navigationShell.currentIndex == 0,
+                    ),
+                    _buildNavDestination(
+                      context,
+                      icon: Icons.menu_book_outlined,
+                      selectedIcon: Icons.menu_book,
+                      label: 'LIBRARY',
+                      isSelected: navigationShell.currentIndex == 1,
+                    ),
+                    _buildNavDestination(
+                      context,
+                      icon: Icons.extension_outlined,
+                      selectedIcon: Icons.extension,
+                      label: 'PRACTICE',
+                      isSelected: navigationShell.currentIndex == 2,
+                    ),
+                    _buildNavDestination(
+                      context,
+                      icon: Icons.leaderboard_outlined,
+                      selectedIcon: Icons.leaderboard,
+                      label: 'STATS',
+                      isSelected: navigationShell.currentIndex == 3,
+                    ),
+                    _buildNavDestination(
+                      context,
+                      icon: Icons.smart_toy_outlined,
+                      selectedIcon: Icons.smart_toy,
+                      label: 'SIDEKICK',
+                      isSelected: navigationShell.currentIndex == 4,
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.quiz_outlined),
-            selectedIcon: Icon(Icons.quiz),
-            label: 'Practice',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.book_outlined),
-            selectedIcon: Icon(Icons.book),
-            label: 'Journal',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.insights_outlined),
-            selectedIcon: Icon(Icons.insights),
-            label: 'Progress',
-          ),
-        ],
+        ),
       ),
+    );
+  }
+
+  NavigationDestination _buildNavDestination(
+    BuildContext context, {
+    required IconData icon,
+    required IconData selectedIcon,
+    required String label,
+    required bool isSelected,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final activeColor = isDark ? AppTheme.primaryFixedDim : AppTheme.primary;
+    final inactiveColor = isDark
+        ? AppTheme.darkOnSurface.withValues(alpha: 0.5)
+        : AppTheme.secondary;
+
+    return NavigationDestination(
+      icon: Icon(icon, color: inactiveColor, size: 24),
+      selectedIcon: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: activeColor.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+        ),
+        child: Icon(selectedIcon, color: activeColor, size: 24),
+      ),
+      label: label,
     );
   }
 }

@@ -41,7 +41,6 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
   late AnimationController _slotPulseController;
 
   int? _shakingPoolIndex;
-  int? _pulsingSlot;
 
   // Typing mode
   final _typingController = TextEditingController();
@@ -155,65 +154,74 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // SHARED WIDGETS
+  // APP BAR
   // ═══════════════════════════════════════════════════════════════
 
   PreferredSizeWidget _buildAppBar(WordBuilderState state) {
     final minutes = _elapsed.inMinutes.remainder(60).toString().padLeft(2, '0');
     final seconds = _elapsed.inSeconds.remainder(60).toString().padLeft(2, '0');
+    final difficultyColor = _getDifficultyColor(widget.difficulty);
 
     return AppBar(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.close),
+        icon: const Icon(Icons.arrow_back),
         onPressed: () async {
           final shouldPop = await _onWillPop();
           if (!mounted) return;
           if (shouldPop) Navigator.of(context).pop();
         },
       ),
-      title: Row(
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.sort_by_alpha, size: 20),
-          const SizedBox(width: 8),
-          const Text('Word Builder'),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.timer_outlined,
-                    size: 16,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.6)),
-                const SizedBox(width: 4),
-                Text(
-                  '$minutes:$seconds',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.7),
-                  ),
+          Text(
+            state.currentScripture?.reference ?? '',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
                 ),
-              ],
-            ),
+          ),
+          const SizedBox(height: 2),
+          Row(
+            children: [
+              // Difficulty badge
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.spacingSm,
+                  vertical: 3,
+                ),
+                decoration: BoxDecoration(
+                  color: difficultyColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                ),
+                child: Text(
+                  widget.difficulty.label.toUpperCase(),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: difficultyColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+
+            ],
           ),
         ],
       ),
       actions: [
+        // Timer
+        Padding(
+          padding: const EdgeInsets.only(right: AppTheme.spacingMd),
+          child: Center(
+            child: Text(
+              '$minutes:$seconds',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    fontFamily: 'monospace',
+                  ),
+            ),
+          ),
+        ),
+        // Audio toggle
         IconButton(
           icon: Icon(
             ref.watch(audioProvider).isMuted
@@ -228,70 +236,82 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     );
   }
 
-  Widget _buildProgressHeader(WordBuilderState state) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      color: Theme.of(context).colorScheme.surface,
-      child: Row(
-        children: [
-          // Scripture progress
-          _buildPill(Icons.menu_book, AppTheme.secondary,
-              '${state.currentIndex + 1}/${state.totalScriptures}'),
-          const SizedBox(width: 12),
-          // Difficulty label
-          _buildPill(
-            Icons.speed,
-            AppTheme.accent,
-            widget.difficulty.label,
-          ),
-          const Spacer(),
-          if (state.incorrectAttempts > 0)
-            _buildPill(
-                Icons.close, AppTheme.error, '${state.incorrectAttempts}'),
-          if (state.mode == WordBuilderMode.typing && state.resetCount > 0) ...[
-            const SizedBox(width: 8),
-            _buildPill(
-                Icons.refresh, AppTheme.warning, '${state.resetCount} resets'),
-          ],
-        ],
-      ),
+  Color _getDifficultyColor(DifficultyLevel difficulty) {
+    return switch (difficulty) {
+      DifficultyLevel.beginner => AppTheme.secondary,
+      DifficultyLevel.intermediate => AppTheme.primary,
+      DifficultyLevel.advanced => AppTheme.accent,
+      DifficultyLevel.master => AppTheme.tertiary,
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // CHUNK-TAP MODE (Beginner / Intermediate)
+  // ═══════════════════════════════════════════════════════════════
+
+  Widget _buildChunkTapBody(WordBuilderState state) {
+    return Column(
+      children: [
+        // Mastery progress bar (thin, elegant)
+        _buildMasteryProgressBar(state),
+
+        // Scripture reference and topic
+        _buildScriptureHeader(state),
+
+        // Placed chunks area (scripture canvas)
+        Expanded(
+          flex: 3,
+          child: _buildPlacedChunksArea(state),
+        ),
+
+        // Divider with hint text
+        _buildTapHintDivider(),
+
+        // Chunk pool (word choice grid)
+        Expanded(
+          flex: 2,
+          child: state.isScriptureComplete
+              ? _buildScriptureCompleteOverlay(state)
+              : _buildChunkPool(state),
+        ),
+
+        const SizedBox(height: AppTheme.spacingMd),
+      ],
     );
   }
 
-  Widget _buildPill(IconData icon, Color color, String text) {
+  Widget _buildMasteryProgressBar(WordBuilderState state) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacingLg,
+        vertical: AppTheme.spacingMd,
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 4),
-          Text(text,
-              style: TextStyle(
-                  fontWeight: FontWeight.w600, color: color, fontSize: 13)),
-        ],
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+        child: LinearProgressIndicator(
+          value: state.scriptureProgress,
+          backgroundColor: Theme.of(context)
+              .colorScheme
+              .surfaceContainerHighest,
+          valueColor: AlwaysStoppedAnimation<Color>(
+            _getDifficultyColor(widget.difficulty),
+          ),
+          minHeight: 3,
+        ),
       ),
     );
   }
 
   Widget _buildScriptureHeader(WordBuilderState state) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacingLg,
+        vertical: AppTheme.spacingMd,
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            state.currentScripture?.reference ?? '',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: AppTheme.primary,
-                  fontWeight: FontWeight.bold,
-                ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 4),
           Text(
             state.currentScripture?.name ?? '',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -303,119 +323,100 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: state.scriptureProgress,
-              backgroundColor:
-                  Theme.of(context).colorScheme.surfaceContainerHighest,
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(AppTheme.secondary),
-              minHeight: 4,
-            ),
+          const SizedBox(height: AppTheme.spacingMd),
+          // Progress info
+          Text(
+            '${state.currentIndex + 1} of ${state.totalScriptures}',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.5),
+                ),
           ),
         ],
       ),
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // CHUNK-TAP MODE (Beginner / Intermediate)
-  // ═══════════════════════════════════════════════════════════════
-
-  Widget _buildChunkTapBody(WordBuilderState state) {
-    return Column(
-      children: [
-        _buildProgressHeader(state),
-        _buildScriptureHeader(state),
-
-        // Placed chunks area
-        Expanded(
-          flex: 3,
-          child: _buildPlacedChunksArea(state),
-        ),
-
-        // Divider
-        _buildTapHintDivider(),
-
-        // Chunk pool
-        Expanded(
-          flex: 2,
-          child: state.isScriptureComplete
-              ? _buildScriptureCompleteOverlay(state)
-              : _buildChunkPool(state),
-        ),
-        const SizedBox(height: 16),
-      ],
-    );
-  }
-
   Widget _buildPlacedChunksArea(WordBuilderState state) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 10,
-        alignment: WrapAlignment.center,
-        children: List.generate(state.targetChunks.length, (index) {
-          final placed = state.placedChunks[index];
-          final target = state.targetChunks[index];
-          final isNext =
-              index == state.nextChunkIndex && !state.isScriptureComplete;
-          final isPulsing = _pulsingSlot == index;
-          final chunkColor =
-              _chunkPalette[target.colorIndex % _chunkPalette.length];
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacingLg,
+        vertical: AppTheme.spacingMd,
+      ),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppTheme.spacingLg),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+          boxShadow: AppTheme.editorialShadow,
+        ),
+        child: Wrap(
+          spacing: AppTheme.spacingMd,
+          runSpacing: AppTheme.spacingMd,
+          alignment: WrapAlignment.center,
+          children: List.generate(state.targetChunks.length, (index) {
+            final placed = state.placedChunks[index];
+            final target = state.targetChunks[index];
+            final isNext =
+                index == state.nextChunkIndex && !state.isScriptureComplete;
+            final chunkColor =
+                _chunkPalette[target.colorIndex % _chunkPalette.length];
 
-          return AnimatedBuilder(
-            animation: _slotPulseController,
-            builder: (context, child) {
-              final borderColor = isNext
-                  ? Color.lerp(
-                      chunkColor,
-                      chunkColor.withValues(alpha: 0.3),
-                      _slotPulseController.value,
-                    )!
-                  : Theme.of(context).colorScheme.outlineVariant;
+            return AnimatedBuilder(
+              animation: _slotPulseController,
+              builder: (context, child) {
+                final borderColor = isNext
+                    ? Color.lerp(
+                        chunkColor,
+                        chunkColor.withValues(alpha: 0.3),
+                        _slotPulseController.value,
+                      )!
+                    : Colors.transparent;
 
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: placed != null
-                      ? (isPulsing
-                          ? chunkColor.withValues(alpha: 0.2)
-                          : chunkColor.withValues(alpha: 0.1))
-                      : (isNext
-                          ? chunkColor.withValues(alpha: 0.04)
-                          : Theme.of(context).colorScheme.surface),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: placed != null
-                        ? chunkColor.withValues(alpha: 0.5)
-                        : borderColor,
-                    width: isNext ? 2 : 1,
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.spacingMd,
+                    vertical: AppTheme.spacingSm,
                   ),
-                ),
-                child: Text(
-                  placed?.text ?? _chunkPlaceholder(target),
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight:
-                        placed != null ? FontWeight.w600 : FontWeight.normal,
+                  decoration: BoxDecoration(
                     color: placed != null
-                        ? chunkColor.withValues(alpha: 0.9)
-                        : Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.35),
+                        ? chunkColor.withValues(alpha: 0.15)
+                        : (isNext
+                            ? chunkColor.withValues(alpha: 0.08)
+                            : Theme.of(context).colorScheme.surface),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    border: isNext
+                        ? Border.all(
+                            color: borderColor,
+                            width: 2,
+                          )
+                        : null,
                   ),
-                ),
-              );
-            },
-          );
-        }),
+                  child: Text(
+                    placed?.text ?? _chunkPlaceholder(target),
+                    style: TextStyle(
+                      fontSize: 16,
+                      height: 1.4,
+                      fontFamily: 'Merriweather',
+                      fontWeight:
+                          placed != null ? FontWeight.w700 : FontWeight.w500,
+                      color: placed != null
+                          ? chunkColor.withValues(alpha: 0.95)
+                          : Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.35),
+                    ),
+                  ),
+                );
+              },
+            );
+          }),
+        ),
       ),
     );
   }
@@ -427,22 +428,19 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
 
   Widget _buildChunkPool(WordBuilderState state) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppTheme.spacingLg),
       child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
+        spacing: AppTheme.spacingMd,
+        runSpacing: AppTheme.spacingMd,
         alignment: WrapAlignment.center,
         children: List.generate(state.availablePool.length, (index) {
           final chunk = state.availablePool[index];
           final isShaking = _shakingPoolIndex == index;
+          final chunkColor =
+              _chunkPalette[chunk.colorIndex % _chunkPalette.length];
           final tileColor = chunk.isDistractor
-              ? AppTheme.warning.withValues(alpha: 0.06)
-              : _chunkPalette[chunk.colorIndex % _chunkPalette.length]
-                  .withValues(alpha: 0.08);
-          final borderCol = chunk.isDistractor
-              ? AppTheme.warning.withValues(alpha: 0.3)
-              : _chunkPalette[chunk.colorIndex % _chunkPalette.length]
-                  .withValues(alpha: 0.3);
+              ? AppTheme.error.withValues(alpha: 0.08)
+              : chunkColor.withValues(alpha: 0.08);
 
           return AnimatedBuilder(
             animation: _shakeAnimation,
@@ -456,34 +454,37 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
               color: Colors.transparent,
               child: InkWell(
                 onTap: () => _onChunkTapped(index),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.spacingMd,
+                    vertical: AppTheme.spacingSm,
+                  ),
                   decoration: BoxDecoration(
                     color: tileColor,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: isShaking ? AppTheme.error : borderCol,
-                      width: isShaking ? 2 : 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    boxShadow: isShaking
+                        ? [
+                            BoxShadow(
+                              color: AppTheme.error.withValues(alpha: 0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : AppTheme.editorialShadow,
                   ),
                   child: Text(
                     chunk.text,
                     style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 16,
+                      fontFamily: 'Merriweather',
+                      fontWeight: FontWeight.w600,
                       color: isShaking
                           ? AppTheme.error
-                          : Theme.of(context).colorScheme.onSurface,
+                          : (chunk.isDistractor
+                              ? AppTheme.error.withValues(alpha: 0.6)
+                              : Theme.of(context).colorScheme.onSurface),
                     ),
                   ),
                 ),
@@ -505,10 +506,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     if (newState.lastFeedback == 'correct') {
       HapticFeedback.lightImpact();
       ref.read(audioProvider.notifier).play(SoundEffect.correct);
-      setState(() => _pulsingSlot = newState.nextChunkIndex - 1);
-      _pulseController.forward(from: 0).then((_) {
-        if (mounted) setState(() => _pulsingSlot = null);
-      });
+      _pulseController.forward(from: 0);
 
       if (newState.isScriptureComplete) {
         HapticFeedback.heavyImpact();
@@ -540,10 +538,13 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
   Widget _buildTypingBody(WordBuilderState state) {
     return Column(
       children: [
-        _buildProgressHeader(state),
+        // Mastery progress bar
+        _buildMasteryProgressBar(state),
+
+        // Scripture reference and topic
         _buildScriptureHeader(state),
 
-        // Typed text display (colored per character)
+        // Typed text display (scripture canvas for typing)
         Expanded(
           flex: 4,
           child: _buildTypedTextDisplay(state),
@@ -561,7 +562,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
             child: _buildScriptureCompleteOverlay(state),
           ),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: AppTheme.spacingMd),
       ],
     );
   }
@@ -570,22 +571,22 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     // Show the passage with typed characters colored green/red,
     // and remaining text as gray placeholders.
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppTheme.spacingLg),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppTheme.spacingLg),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
-          border:
-              Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+          color: Theme.of(context).colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+          boxShadow: AppTheme.editorialShadow,
         ),
         child: RichText(
           text: TextSpan(
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
-              height: 1.6,
-              fontFamily: 'monospace',
+              height: 1.8,
+              fontFamily: 'Merriweather',
+              color: Theme.of(context).colorScheme.onSurface,
             ),
             children: _buildTypedSpans(state),
           ),
@@ -621,10 +622,10 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
           text: tc.char,
           style: TextStyle(
             color: tc.isCorrect ? AppTheme.success : AppTheme.error,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
             backgroundColor: tc.isCorrect
-                ? AppTheme.success.withValues(alpha: 0.08)
-                : AppTheme.error.withValues(alpha: 0.12),
+                ? AppTheme.success.withValues(alpha: 0.1)
+                : AppTheme.error.withValues(alpha: 0.15),
             decoration: tc.isCorrect ? null : TextDecoration.underline,
             decorationColor: AppTheme.error,
           ),
@@ -671,7 +672,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
             spans.add(TextSpan(
               text: ch,
               style: TextStyle(
-                color: AppTheme.accent.withValues(alpha: 0.4),
+                color: AppTheme.accent.withValues(alpha: 0.5),
                 fontWeight: FontWeight.w600,
               ),
             ));
@@ -697,20 +698,26 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
   Widget _buildResetBanner() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-      color: AppTheme.error.withValues(alpha: 0.1),
-      child: const Row(
+      padding: const EdgeInsets.symmetric(
+        vertical: AppTheme.spacingMd,
+        horizontal: AppTheme.spacingLg,
+      ),
+      color: AppTheme.error.withValues(alpha: 0.12),
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.refresh, color: AppTheme.error, size: 18),
-          SizedBox(width: 8),
+          Icon(
+            Icons.refresh,
+            color: AppTheme.error,
+            size: 18,
+          ),
+          const SizedBox(width: AppTheme.spacingSm),
           Text(
             'Wrong character! Starting over...',
-            style: TextStyle(
-              color: AppTheme.error,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-            ),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppTheme.error,
+                  fontWeight: FontWeight.w600,
+                ),
           ),
         ],
       ),
@@ -721,11 +728,20 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     final isMaster = widget.difficulty == DifficultyLevel.master;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.spacingLg,
+        AppTheme.spacingMd,
+        AppTheme.spacingLg,
+        AppTheme.spacingMd,
+      ),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: Theme.of(context).scaffoldBackgroundColor,
         border: Border(
-          top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+          top: BorderSide(
+            color: Theme.of(context)
+                .colorScheme
+                .surfaceContainerHigh,
+          ),
         ),
       ),
       child: Row(
@@ -745,30 +761,38 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                         ? 'Type from memory — no peeking!'
                         : 'Type the scripture (first letters shown)...'),
                 hintStyle: TextStyle(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.35)),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.35),
+                ),
+                filled: true,
+                fillColor: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerLow,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                      color: Theme.of(context).colorScheme.outlineVariant),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                  borderSide: BorderSide.none,
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                   borderSide: BorderSide(
-                    color:
-                        state.hasActiveError ? AppTheme.error : AppTheme.accent,
+                    color: state.hasActiveError
+                        ? AppTheme.error
+                        : _getDifficultyColor(widget.difficulty),
                     width: 2,
                   ),
                 ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.spacingMd,
+                  vertical: AppTheme.spacingMd,
+                ),
                 suffixIcon: IconButton(
                   icon: Icon(
                     _isSpeechListening ? Icons.mic_off : Icons.mic,
-                    color:
-                        _isSpeechListening ? AppTheme.error : AppTheme.accent,
+                    color: _isSpeechListening
+                        ? AppTheme.error
+                        : _getDifficultyColor(widget.difficulty),
                   ),
                   onPressed: _toggleSpeechListening,
                 ),
@@ -908,29 +932,36 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
 
   Widget _buildTapHintDivider() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingLg),
       child: Row(
         children: [
           Expanded(
-              child:
-                  Divider(color: Theme.of(context).colorScheme.outlineVariant)),
+            child: Divider(
+              color: Theme.of(context)
+                  .colorScheme
+                  .surfaceContainerHigh,
+            ),
+          ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd),
             child: Text(
-              'Tap the next chunk',
-              style: TextStyle(
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.5),
-                fontSize: 12,
-                fontStyle: FontStyle.italic,
+              'Tap the next word',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.5),
+                    fontStyle: FontStyle.italic,
               ),
             ),
           ),
           Expanded(
-              child:
-                  Divider(color: Theme.of(context).colorScheme.outlineVariant)),
+            child: Divider(
+              color: Theme.of(context)
+                  .colorScheme
+                  .surfaceContainerHigh,
+            ),
+          ),
         ],
       ),
     );
@@ -941,25 +972,29 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.check_circle, color: AppTheme.success, size: 48),
-          const SizedBox(height: 12),
+          Icon(
+            Icons.check_circle,
+            color: AppTheme.success,
+            size: 56,
+          ),
+          const SizedBox(height: AppTheme.spacingMd),
           Text(
             state.isComplete ? 'All Done!' : 'Scripture Complete!',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   color: AppTheme.success,
                   fontWeight: FontWeight.bold,
                 ),
           ),
           if (!state.isComplete) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: AppTheme.spacingSm),
             Text(
               'Loading next scripture...',
-              style: TextStyle(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.5),
-                  fontSize: 13),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.5),
+                  ),
             ),
           ],
         ],

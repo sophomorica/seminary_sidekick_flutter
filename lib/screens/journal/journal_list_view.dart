@@ -122,21 +122,24 @@ class _JournalListViewState extends ConsumerState<JournalListView> {
           : entries.isEmpty && prompts.isEmpty
               ? const EmptyJournalView()
               : SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // AI Reflection Prompts section
-                      if (prompts.isNotEmpty && !_isSelectionMode) ...[
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                          child: Row(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingMd,
+                      vertical: AppTheme.spacingMd,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // AI Reflection Prompts section
+                        if (prompts.isNotEmpty && !_isSelectionMode) ...[
+                          Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.auto_awesome,
                                 size: 18,
-                                color: AppTheme.premiumGold,
+                                color: AppTheme.sidekickColor(context),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: AppTheme.spacingSm),
                               Text(
                                 'Reflection Prompts',
                                 style: Theme.of(context)
@@ -146,37 +149,38 @@ class _JournalListViewState extends ConsumerState<JournalListView> {
                               ),
                             ],
                           ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text(
-                            'From your Seminary Sidekick',
-                            style:
-                                Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface
-                                          .withValues(alpha: 0.5),
-                                    ),
+                          const SizedBox(height: AppTheme.spacingSm),
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: AppTheme.spacingMd,
+                            ),
+                            child: Text(
+                              'From your Seminary Sidekick',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.5),
+                                  ),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        ...prompts.map((prompt) => ReflectionPromptCard(
-                              prompt: prompt,
-                              onReflect: () {
-                                ref
-                                    .read(journalProvider.notifier)
-                                    .createEntry(prompt: prompt);
-                              },
-                            )),
-                        const SizedBox(height: 8),
-                      ],
+                          ...prompts.map((prompt) => ReflectionPromptCard(
+                                prompt: prompt,
+                                onReflect: () {
+                                  ref
+                                      .read(journalProvider.notifier)
+                                      .createEntry(prompt: prompt);
+                                },
+                              )),
+                          const SizedBox(height: AppTheme.spacingLg),
+                        ],
 
-                      // Entries list
-                      if (entries.isNotEmpty) ...[
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                          child: Text(
+                        // Entries list
+                        if (entries.isNotEmpty) ...[
+                          Text(
                             _isSelectionMode
                                 ? 'Tap to select entries'
                                 : 'Your Entries',
@@ -185,42 +189,43 @@ class _JournalListViewState extends ConsumerState<JournalListView> {
                                 .titleLarge
                                 ?.copyWith(fontWeight: FontWeight.w600),
                           ),
-                        ),
-                        ...entries.map((entry) => _JournalEntryCard(
-                              entry: entry,
-                              isSelectionMode: _isSelectionMode,
-                              isSelected: _selectedIds.contains(entry.id),
-                              onTap: () {
-                                if (_isSelectionMode) {
-                                  _toggleSelection(entry.id);
-                                } else {
+                          const SizedBox(height: AppTheme.spacingMd),
+                          ...entries.map((entry) => _JournalEntryCard(
+                                entry: entry,
+                                isSelectionMode: _isSelectionMode,
+                                isSelected: _selectedIds.contains(entry.id),
+                                onTap: () {
+                                  if (_isSelectionMode) {
+                                    _toggleSelection(entry.id);
+                                  } else {
+                                    ref
+                                        .read(journalProvider.notifier)
+                                        .editEntry(entry);
+                                  }
+                                },
+                                onLongPress: () {
+                                  if (!_isSelectionMode) {
+                                    setState(() {
+                                      _isSelectionMode = true;
+                                      _selectedIds.add(entry.id);
+                                    });
+                                  }
+                                },
+                                onToggleFavorite: () {
                                   ref
                                       .read(journalProvider.notifier)
-                                      .editEntry(entry);
-                                }
-                              },
-                              onLongPress: () {
-                                if (!_isSelectionMode) {
-                                  setState(() {
-                                    _isSelectionMode = true;
-                                    _selectedIds.add(entry.id);
-                                  });
-                                }
-                              },
-                              onToggleFavorite: () {
-                                ref
-                                    .read(journalProvider.notifier)
-                                    .toggleFavorite(entry.id);
-                              },
-                              onDelete: () =>
-                                  _confirmDelete(context, ref, entry),
-                              onExport: () => _exportSingle(entry),
-                              onShareFamily: () =>
-                                  _shareEntriesWithFamily([entry]),
-                            )),
-                        const SizedBox(height: 32),
+                                      .toggleFavorite(entry.id);
+                                },
+                                onDelete: () =>
+                                    _confirmDelete(context, ref, entry),
+                                onExport: () => _exportSingle(entry),
+                                onShareFamily: () =>
+                                    _shareEntriesWithFamily([entry]),
+                              )),
+                          const SizedBox(height: AppTheme.spacingXl),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
     );
@@ -332,6 +337,7 @@ class _JournalListViewState extends ConsumerState<JournalListView> {
 }
 
 // ─── Reflection Prompt Card ─────────────────────────────────────────────────
+/// Sacred Editorial prompt card with warm tones and no hard borders.
 
 class ReflectionPromptCard extends StatelessWidget {
   final String prompt;
@@ -345,33 +351,17 @@ class ReflectionPromptCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final sidekickColor = AppTheme.sidekickColor(context);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacingMd,
-        vertical: AppTheme.spacingXs,
+      padding: const EdgeInsets.only(
+        bottom: AppTheme.spacingMd,
       ),
       child: Container(
         padding: const EdgeInsets.all(AppTheme.spacingMd),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDark
-                ? [
-                    AppTheme.premiumGold.withValues(alpha: 0.08),
-                    AppTheme.premiumGold.withValues(alpha: 0.03),
-                  ]
-                : [
-                    AppTheme.premiumGoldLight.withValues(alpha: 0.4),
-                    AppTheme.premiumGoldLight.withValues(alpha: 0.15),
-                  ],
-          ),
+          color: sidekickColor.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-          border: Border.all(
-            color: AppTheme.premiumGold.withValues(alpha: 0.2),
-          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -379,11 +369,11 @@ class ReflectionPromptCard extends StatelessWidget {
             Text(
               prompt,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    height: 1.5,
+                    height: 1.6,
                     fontStyle: FontStyle.italic,
-                  ),
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTheme.spacingMd),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton.icon(
@@ -394,7 +384,7 @@ class ReflectionPromptCard extends StatelessWidget {
                 icon: const Icon(Icons.edit_note, size: 18),
                 label: const Text('Reflect Now'),
                 style: TextButton.styleFrom(
-                  foregroundColor: AppTheme.premiumGold,
+                  foregroundColor: sidekickColor,
                   textStyle: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
@@ -410,6 +400,7 @@ class ReflectionPromptCard extends StatelessWidget {
 }
 
 // ─── Journal Entry Card ─────────────────────────────────────────────────────
+/// Sacred Editorial entry card with no hard borders, tonal depth only.
 
 class _JournalEntryCard extends StatelessWidget {
   final JournalEntry entry;
@@ -439,13 +430,14 @@ class _JournalEntryCard extends StatelessWidget {
     final dateStr = _formatDate(entry.updatedAt);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacingMd,
-        vertical: AppTheme.spacingXs,
+      padding: const EdgeInsets.only(
+        bottom: AppTheme.spacingMd,
       ),
-      child: Card(
-        margin: EdgeInsets.zero,
-        color: isSelected ? AppTheme.accent.withValues(alpha: 0.08) : null,
+      child: Material(
+        color: isSelected
+            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08)
+            : Theme.of(context).colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
         child: InkWell(
           onTap: onTap,
           onLongPress: onLongPress,
@@ -462,17 +454,21 @@ class _JournalEntryCard extends StatelessWidget {
                       Icon(
                         isSelected ? Icons.check_circle : Icons.circle_outlined,
                         size: 22,
-                        color: isSelected ? AppTheme.accent : null,
+                        color: isSelected
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: AppTheme.spacingMd),
                     ],
                     Expanded(
                       child: Text(
                         entry.title.isNotEmpty ? entry.title : 'Untitled',
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -498,7 +494,7 @@ class _JournalEntryCard extends StatelessWidget {
 
                 // Preview
                 if (entry.preview.isNotEmpty) ...[
-                  const SizedBox(height: 6),
+                  const SizedBox(height: AppTheme.spacingSm),
                   Text(
                     entry.preview,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -506,14 +502,14 @@ class _JournalEntryCard extends StatelessWidget {
                               .colorScheme
                               .onSurface
                               .withValues(alpha: 0.6),
-                          height: 1.4,
+                          height: 1.5,
                         ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
 
-                const SizedBox(height: 8),
+                const SizedBox(height: AppTheme.spacingMd),
 
                 // Footer: date, tags, prompt indicator, actions
                 Row(
@@ -528,15 +524,16 @@ class _JournalEntryCard extends StatelessWidget {
                           ),
                     ),
                     if (entry.hasPrompt) ...[
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppTheme.spacingSm),
                       Icon(
                         Icons.auto_awesome,
                         size: 12,
-                        color: AppTheme.premiumGold.withValues(alpha: 0.7),
+                        color: AppTheme.sidekickColor(context)
+                            .withValues(alpha: 0.7),
                       ),
                     ],
                     if (entry.scriptureReferences.isNotEmpty) ...[
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppTheme.spacingSm),
                       Expanded(
                         child: Text(
                           entry.scriptureReferences.join(', '),
@@ -589,7 +586,8 @@ class _JournalEntryCard extends StatelessWidget {
                           const PopupMenuItem(
                             value: 'share_family',
                             child: ListTile(
-                              leading: Icon(Icons.family_restroom, size: 20),
+                              leading: Icon(
+                                  Icons.family_restroom, size: 20),
                               title: Text('Share with family'),
                               dense: true,
                               contentPadding: EdgeInsets.zero,
@@ -598,10 +596,14 @@ class _JournalEntryCard extends StatelessWidget {
                           const PopupMenuItem(
                             value: 'delete',
                             child: ListTile(
-                              leading: Icon(Icons.delete_outline,
-                                  size: 20, color: AppTheme.error),
+                              leading: Icon(
+                                Icons.delete_outline,
+                                size: 20,
+                                color: AppTheme.error,
+                              ),
                               title: Text('Delete',
-                                  style: TextStyle(color: AppTheme.error)),
+                                  style:
+                                      TextStyle(color: AppTheme.error)),
                               dense: true,
                               contentPadding: EdgeInsets.zero,
                             ),

@@ -66,382 +66,293 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
 
     if (scripture == null) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Scripture Not Found'),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.pop(),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('Scripture not found'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => context.pop(),
+                child: const Text('Go Back'),
+              ),
+            ],
           ),
-        ),
-        body: const Center(
-          child: Text('Scripture not found'),
         ),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Scripture Details'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Reference + Sidekick button header
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    scripture.reference,
-                    style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                          color: AppTheme.primary,
-                        ),
+      body: CustomScrollView(
+        slivers: [
+          // Gradient header with back button and reference
+          SliverAppBar(
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => context.pop(),
+            ),
+            expandedHeight: 180,
+            pinned: true,
+            elevation: 0,
+            backgroundColor: AppTheme.surfaceContainerLow,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      AppTheme.surfaceContainerLow,
+                      AppTheme.surface,
+                    ],
                   ),
                 ),
-                // "Ask your Sidekick" — prominent in header for premium
-                if (ref.watch(isPremiumProvider))
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => SidekickChatScreen(
-                            initialScriptureId: widget.scriptureId,
-                          ),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.only(top: 4),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: AppTheme.sidekickGradient(context),
-                        ),
-                        borderRadius:
-                            BorderRadius.circular(AppTheme.radiusRound),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.auto_awesome,
-                              size: 16, color: Colors.white),
-                          SizedBox(width: 6),
-                          Text(
-                            'Ask Sidekick',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    left: AppTheme.spacingLg,
+                    right: AppTheme.spacingLg,
+                    top: AppTheme.spacingXl,
+                    bottom: AppTheme.spacingLg,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        scripture.reference,
+                        style: Theme.of(context)
+                            .textTheme
+                            .displaySmall
+                            ?.copyWith(
+                              color: AppTheme.primary,
+                              fontStyle: FontStyle.italic,
                             ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        scripture.name,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.7),
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Main content
+          SliverToBoxAdapter(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.spacingLg,
+                  vertical: AppTheme.spacingLg,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Scripture text section
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppTheme.spacingXl,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            scripture.fullText,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyLarge
+                                ?.copyWith(
+                                  fontFamily: 'Merriweather',
+                                  fontStyle: FontStyle.italic,
+                                  height: 1.8,
+                                  fontSize: 17,
+                                ),
                           ),
                         ],
                       ),
                     ),
-                  )
-                else
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                            builder: (_) => const UpgradeScreen()),
-                      );
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.only(top: 4),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+
+                    // Word Builder Preview section
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppTheme.spacingLg,
                       ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.sidekickTint(context),
-                        borderRadius:
-                            BorderRadius.circular(AppTheme.radiusRound),
-                        border: Border.all(
-                          color: AppTheme.sidekickColor(context)
-                              .withValues(alpha: 0.3),
+                      child: _WordBuilderPreview(
+                        scriptureId: widget.scriptureId,
+                        scripture: scripture,
+                      ),
+                    ),
+
+                    // Mastery insights
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppTheme.spacingXl,
+                      ),
+                      child: _MasteryInsights(scriptureId: widget.scriptureId),
+                    ),
+
+                    // Premium: Ask Your Sidekick section
+                    if (ref.watch(isPremiumProvider))
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          bottom: AppTheme.spacingLg,
                         ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.auto_awesome,
-                              size: 14, color: AppTheme.sidekickColor(context)),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Ask Sidekick',
-                            style: TextStyle(
-                              color: AppTheme.sidekickColor(context),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              scripture.name,
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 24),
-
-            // Full text
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Full Text',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      scripture.fullText,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            height: 1.6,
-                            fontSize: 16,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Key phrase
-            Card(
-              color: AppTheme.secondary.withValues(alpha: 0.1),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Key Phrase',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.secondary,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      scripture.keyPhrase,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            height: 1.5,
-                            fontStyle: FontStyle.italic,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Holistic mastery progress section — HERO element
-            HolisticMasterySection(
-              scriptureId: widget.scriptureId,
-              scripture: scripture,
-            ),
-            const SizedBox(height: 16),
-
-            // Premium: Encouragement + Scripture Connections (TASK-040)
-            if (ref.watch(isPremiumProvider)) ...[
-              const EncouragementCard(),
-              ScriptureConnectionsCard(currentScriptureId: widget.scriptureId),
-            ],
-
-            // Study tool — Memorize
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => MemorizeScreen(scripture: scripture),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.psychology_alt, size: 20),
-                label: const Text('Study with Memorize Tool'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  side: BorderSide(
-                    color: AppTheme.secondary.withValues(alpha: 0.4),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Notes section
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Notes',
-                          style:
-                              Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                        ),
-                        if (_isEditingNotes)
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              TextButton(
-                                onPressed: () {
-                                  _notesController.text = note ?? '';
-                                  setState(() => _isEditingNotes = false);
-                                  _notesFocusNode.unfocus();
-                                },
-                                child: const Text('Cancel'),
-                              ),
-                              const SizedBox(width: 4),
-                              TextButton(
-                                onPressed: _saveNotes,
-                                child: const Text('Save'),
-                              ),
-                            ],
-                          )
-                        else
-                          IconButton(
-                            icon: const Icon(Icons.edit, size: 20),
-                            onPressed: () {
-                              setState(() => _isEditingNotes = true);
-                              _notesFocusNode.requestFocus();
-                            },
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    if (_isEditingNotes)
-                      TextField(
-                        controller: _notesController,
-                        focusNode: _notesFocusNode,
-                        maxLines: null,
-                        minLines: 3,
-                        textCapitalization: TextCapitalization.sentences,
-                        decoration: const InputDecoration(
-                          hintText: 'Add your notes about this scripture...',
-                          border: OutlineInputBorder(),
+                        child: _AskSidekickCard(
+                          scriptureId: widget.scriptureId,
                         ),
                       )
                     else
-                      GestureDetector(
-                        onTap: () {
-                          setState(() => _isEditingNotes = true);
-                          _notesFocusNode.requestFocus();
-                        },
-                        child: Text(
-                          note ?? 'Tap to add notes...',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: note != null
-                                        ? null
-                                        : Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withValues(alpha: 0.5),
-                                    height: 1.5,
-                                  ),
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          bottom: AppTheme.spacingLg,
+                        ),
+                        child: _SidekickUpgradeCard(),
+                      ),
+
+                    // Holistic mastery progress section
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppTheme.spacingXl,
+                      ),
+                      child: HolisticMasterySection(
+                        scriptureId: widget.scriptureId,
+                        scripture: scripture,
+                      ),
+                    ),
+
+                    // Premium: Encouragement + Scripture Connections
+                    if (ref.watch(isPremiumProvider)) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          bottom: AppTheme.spacingMd,
+                        ),
+                        child: const EncouragementCard(),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          bottom: AppTheme.spacingLg,
+                        ),
+                        child: ScriptureConnectionsCard(
+                          currentScriptureId: widget.scriptureId,
                         ),
                       ),
+                    ],
+
+                    // Key phrase
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppTheme.spacingLg,
+                      ),
+                      child: _KeyPhraseCard(scripture: scripture),
+                    ),
+
+                    // Notes section
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppTheme.spacingLg,
+                      ),
+                      child: _NotesSection(
+                        isEditing: _isEditingNotes,
+                        onEditToggle: (editing) {
+                          setState(() => _isEditingNotes = editing);
+                          if (editing) {
+                            _notesFocusNode.requestFocus();
+                          } else {
+                            _notesFocusNode.unfocus();
+                          }
+                        },
+                        onSave: _saveNotes,
+                        controller: _notesController,
+                        focusNode: _notesFocusNode,
+                        currentNote: note,
+                      ),
+                    ),
+
+                    // Study tool — Memorize
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppTheme.spacingLg,
+                      ),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    MemorizeScreen(scripture: scripture),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.psychology_alt, size: 20),
+                          label: const Text('Study with Memorize Tool'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.secondary,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: AppTheme.spacingMd,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Reflect on this verse — journal for premium
+                    if (ref.watch(isPremiumProvider))
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          bottom: AppTheme.spacingXl,
+                        ),
+                        child: _ReflectLink(
+                          scriptureId: widget.scriptureId,
+                          reference: scripture.reference,
+                        ),
+                      ),
+
+                    // Practice quizzes section
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppTheme.spacingMd,
+                      ),
+                      child: Text(
+                        'Practice Quizzes',
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineSmall
+                            ?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppTheme.spacingMd,
+                      ),
+                      child: Text(
+                        'Build recognition and comprehension',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.5),
+                            ),
+                      ),
+                    ),
+                    ..._buildPracticeButtons(context, widget.scriptureId),
+
+                    const SizedBox(height: 120),
                   ],
                 ),
               ),
             ),
-
-            // "Reflect on this verse" — journal entry for premium users
-            if (ref.watch(isPremiumProvider))
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => JournalScreen(
-                          initialScriptureId: widget.scriptureId,
-                          initialScriptureReference: scripture.reference,
-                        ),
-                      ),
-                    );
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: AppTheme.spacingXs),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.edit_note,
-                            size: 16, color: AppTheme.sidekickColor(context)),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Reflect on this verse in your journal',
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppTheme.sidekickColor(context),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                        ),
-                        const SizedBox(width: 4),
-                        Icon(
-                          Icons.arrow_forward_ios,
-                          size: 10,
-                          color: AppTheme.sidekickColor(context),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-            const SizedBox(height: 24),
-
-            // Practice quizzes (recognition tools — not mastery-gating)
-            Text(
-              'Practice Quizzes',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Build recognition and comprehension',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.5),
-                  ),
-            ),
-            const SizedBox(height: 12),
-            ..._buildPracticeButtons(context, widget.scriptureId),
-            const SizedBox(height: 32),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -453,12 +364,11 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
     final scripture = ref.read(scriptureByIdProvider(scriptureId));
     if (scripture == null) return [];
 
-    // Only show supplementary quizzes — Word Builder lives in the mastery section
     return GameType.values
         .where((gameType) => gameType != GameType.wordOrder)
         .map((gameType) {
       return Padding(
-        padding: const EdgeInsets.only(bottom: 8.0),
+        padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
         child: SizedBox(
           width: double.infinity,
           child: ElevatedButton(
@@ -570,6 +480,445 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
 
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => screen),
+    );
+  }
+}
+
+// Private widget: Word Builder Preview card
+class _WordBuilderPreview extends ConsumerWidget {
+  final String scriptureId;
+  final Scripture scripture;
+
+  const _WordBuilderPreview({
+    required this.scriptureId,
+    required this.scripture,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spacingLg),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Word Builder Progress',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          const SizedBox(height: AppTheme.spacingMd),
+          Text(
+            'Master the text word by word. Start with guided chunks, progress to blind typing.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.6),
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Private widget: Mastery insights
+class _MasteryInsights extends ConsumerWidget {
+  final String scriptureId;
+
+  const _MasteryInsights({required this.scriptureId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(AppTheme.spacingMd),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  'Retention',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.6),
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '85%',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: AppTheme.success,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: AppTheme.spacingMd),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(AppTheme.spacingMd),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  'Current Streak',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.6),
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '7 days',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: AppTheme.secondary,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// Private widget: Ask Your Sidekick card for premium users
+class _AskSidekickCard extends ConsumerWidget {
+  final String scriptureId;
+
+  const _AskSidekickCard({required this.scriptureId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spacingLg),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: AppTheme.sidekickGradient(context),
+        ),
+        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Ask Your Sidekick',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.spacingMd),
+          Text(
+            'Get AI-powered insights about this scripture, journal prompts, and deeper understanding.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.9),
+                ),
+          ),
+          const SizedBox(height: AppTheme.spacingMd),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => SidekickChatScreen(
+                      initialScriptureId: scriptureId,
+                    ),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: AppTheme.primary,
+              ),
+              child: const Text('Start Conversation'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Private widget: Sidekick upgrade card for free users
+class _SidekickUpgradeCard extends StatelessWidget {
+  const _SidekickUpgradeCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spacingLg),
+      decoration: BoxDecoration(
+        color: AppTheme.sidekickTint(context, 0.1),
+        border: Border.all(
+          color: AppTheme.sidekickColor(context).withValues(alpha: 0.2),
+        ),
+        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.auto_awesome,
+                color: AppTheme.sidekickColor(context),
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Seminary Sidekick',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: AppTheme.sidekickColor(context),
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.spacingMd),
+          Text(
+            'Unlock AI insights, smart goals, and journal prompts to deepen your understanding.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+          ),
+          const SizedBox(height: AppTheme.spacingMd),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const UpgradeScreen(),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.sidekickColor(context),
+              ),
+              child: const Text('Upgrade to Premium'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Private widget: Key phrase card
+class _KeyPhraseCard extends StatelessWidget {
+  final Scripture scripture;
+
+  const _KeyPhraseCard({required this.scripture});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spacingLg),
+      decoration: BoxDecoration(
+        color: AppTheme.secondary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Key Phrase',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.secondary,
+                ),
+          ),
+          const SizedBox(height: AppTheme.spacingMd),
+          Text(
+            scripture.keyPhrase,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  fontStyle: FontStyle.italic,
+                  height: 1.6,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Private widget: Notes section
+class _NotesSection extends StatelessWidget {
+  final bool isEditing;
+  final Function(bool) onEditToggle;
+  final VoidCallback onSave;
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final String? currentNote;
+
+  const _NotesSection({
+    required this.isEditing,
+    required this.onEditToggle,
+    required this.onSave,
+    required this.controller,
+    required this.focusNode,
+    required this.currentNote,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spacingLg),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Notes',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              if (isEditing)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        controller.text = currentNote ?? '';
+                        onEditToggle(false);
+                      },
+                      child: const Text('Cancel'),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: onSave,
+                      child: const Text('Save'),
+                    ),
+                  ],
+                )
+              else
+                IconButton(
+                  icon: const Icon(Icons.edit, size: 20),
+                  onPressed: () => onEditToggle(true),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.spacingMd),
+          if (isEditing)
+            TextField(
+              controller: controller,
+              focusNode: focusNode,
+              maxLines: null,
+              minLines: 3,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                hintText: 'Add your notes about this scripture...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                ),
+              ),
+            )
+          else
+            GestureDetector(
+              onTap: () => onEditToggle(true),
+              child: Text(
+                currentNote ?? 'Tap to add notes...',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: currentNote != null
+                          ? null
+                          : Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.5),
+                      height: 1.6,
+                    ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// Private widget: Reflect in journal link
+class _ReflectLink extends StatelessWidget {
+  final String scriptureId;
+  final String reference;
+
+  const _ReflectLink({
+    required this.scriptureId,
+    required this.reference,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => JournalScreen(
+              initialScriptureId: scriptureId,
+              initialScriptureReference: reference,
+            ),
+          ),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingMd),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.edit_note,
+              size: 16,
+              color: AppTheme.sidekickColor(context),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Reflect on this verse in your journal',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.sidekickColor(context),
+                    fontWeight: FontWeight.w500,
+                  ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 10,
+              color: AppTheme.sidekickColor(context),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
