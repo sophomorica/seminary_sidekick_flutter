@@ -21,7 +21,7 @@ class ChatInput extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      padding: EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: AppTheme.spacingMd,
         vertical: AppTheme.spacingMd,
       ).copyWith(

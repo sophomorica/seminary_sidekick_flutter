@@ -238,32 +238,4 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
   void _navigateToScripture(String scriptureId) {
     context.push('/scripture/$scriptureId');
   }
-
-  void _showClearConfirmation() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Clear conversation?'),
-        content: const Text(
-          'This will remove all messages. Your Sidekick will start fresh.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              ref.read(sidekickProvider.notifier).clearChat();
-              Navigator.of(ctx).pop();
-            },
-            child: const Text(
-              'Clear',
-              style: TextStyle(color: AppTheme.error),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

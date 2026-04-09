@@ -158,7 +158,7 @@ class AppTheme {
 
   // ─── Light Theme ────────────────────────────────────────────────
   static ThemeData getLightTheme() {
-    final colorScheme = ColorScheme(
+    const colorScheme = ColorScheme(
       brightness: Brightness.light,
       primary: primary,
       onPrimary: onPrimary,
@@ -210,7 +210,7 @@ class AppTheme {
         bgColor: surfaceContainerLow,
         labelColor: onSurface,
       ),
-      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: surface,
         selectedItemColor: primary,
         unselectedItemColor: onSurfaceVariant,
@@ -226,7 +226,7 @@ class AppTheme {
 
   // ─── Dark Theme — "Deep Parchment" ──────────────────────────────
   static ThemeData getDarkTheme() {
-    final colorScheme = ColorScheme(
+    const colorScheme = ColorScheme(
       brightness: Brightness.dark,
       primary: primaryFixedDim,
       onPrimary: darkBackground,

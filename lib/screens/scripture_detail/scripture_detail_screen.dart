@@ -97,7 +97,7 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
             backgroundColor: AppTheme.surfaceContainerLow,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
@@ -209,8 +209,8 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                         ),
                       )
                     else
-                      Padding(
-                        padding: const EdgeInsets.only(
+                      const Padding(
+                        padding: EdgeInsets.only(
                           bottom: AppTheme.spacingLg,
                         ),
                         child: _SidekickUpgradeCard(),
@@ -229,11 +229,11 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
 
                     // Premium: Encouragement + Scripture Connections
                     if (ref.watch(isPremiumProvider)) ...[
-                      Padding(
-                        padding: const EdgeInsets.only(
+                      const Padding(
+                        padding: EdgeInsets.only(
                           bottom: AppTheme.spacingMd,
                         ),
-                        child: const EncouragementCard(),
+                        child: EncouragementCard(),
                       ),
                       Padding(
                         padding: const EdgeInsets.only(

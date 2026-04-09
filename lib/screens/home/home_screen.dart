@@ -239,7 +239,7 @@ class HomeScreen extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.auto_awesome,
                 color: AppTheme.premiumGold,
                 size: 20,

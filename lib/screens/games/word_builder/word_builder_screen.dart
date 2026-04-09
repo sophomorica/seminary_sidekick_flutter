@@ -706,7 +706,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
+          const Icon(
             Icons.refresh,
             color: AppTheme.error,
             size: 18,
@@ -972,7 +972,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
+          const Icon(
             Icons.check_circle,
             color: AppTheme.success,
             size: 56,
