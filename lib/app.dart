@@ -5,14 +5,14 @@ import 'package:go_router/go_router.dart';
 import 'theme/app_theme.dart';
 import 'providers/onboarding_provider.dart';
 import 'providers/theme_provider.dart';
-import 'screens/home_screen.dart';
-import 'screens/onboarding_screen.dart';
+import 'screens/home/home_screen.dart';
+import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/scripture_list_screen.dart';
-import 'screens/scripture_detail_screen.dart';
+import 'screens/scripture_detail/scripture_detail_screen.dart';
 import 'screens/practice_hub_screen.dart';
-import 'screens/journal_screen.dart';
-import 'screens/progress_screen.dart';
-import 'screens/sidekick_chat_screen.dart';
+import 'screens/journal/journal_screen.dart';
+import 'screens/progress/progress_screen.dart';
+import 'screens/sidekick_chat/sidekick_chat_screen.dart';
 import 'screens/upgrade_screen.dart';
 
 class SeminarySidekickApp extends ConsumerStatefulWidget {

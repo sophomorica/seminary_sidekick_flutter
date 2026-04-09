@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sacred Editorial - Mastery Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&amp;family=Noto+Serif:ital,wght@0,400;0,700;1,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "tertiary-fixed-dim": "#e9c349",
+                        "secondary-fixed": "#beece2",
+                        "primary-container": "#d9805f",
+                        "inverse-surface": "#372e2b",
+                        "on-secondary-fixed-variant": "#234e47",
+                        "on-primary-fixed-variant": "#763218",
+                        "surface": "#fff8f6",
+                        "surface-container-low": "#fff1ec",
+                        "on-error": "#ffffff",
+                        "on-secondary-container": "#426c65",
+                        "on-primary-fixed": "#380d00",
+                        "on-tertiary-container": "#4e3d00",
+                        "on-secondary": "#ffffff",
+                        "on-background": "#221a17",
+                        "error-container": "#ffdad6",
+                        "on-primary-container": "#581c03",
+                        "tertiary-container": "#cca72f",
+                        "surface-bright": "#fff8f6",
+                        "surface-container-highest": "#efdfda",
+                        "tertiary-fixed": "#ffe088",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-fixed": "#241a00",
+                        "on-surface-variant": "#54433d",
+                        "secondary": "#3b665f",
+                        "outline-variant": "#dac1b9",
+                        "surface-variant": "#efdfda",
+                        "surface-container": "#fbebe6",
+                        "surface-container-high": "#f5e5e0",
+                        "on-surface": "#221a17",
+                        "surface-dim": "#e6d7d2",
+                        "primary": "#94492c",
+                        "tertiary": "#735c00",
+                        "primary-fixed": "#ffdbcf",
+                        "background": "#fff8f6",
+                        "on-tertiary-fixed-variant": "#574500",
+                        "outline": "#87736c",
+                        "inverse-on-surface": "#feede8",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed-dim": "#a3cfc6",
+                        "on-secondary-fixed": "#00201c",
+                        "secondary-container": "#beece2",
+                        "inverse-primary": "#ffb59b",
+                        "surface-tint": "#94492c",
+                        "primary-fixed-dim": "#ffb59b",
+                        "error": "#ba1a1a",
+                        "on-error-container": "#93000a",
+                        "surface-container-lowest": "#ffffff"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        "headline": ["Merriweather", "serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .mastery-ring {
+            transition: stroke-dashoffset 0.5s ease;
+        }
+        .editorial-shadow {
+            box-shadow: 0px 4px 20px rgba(34, 26, 23, 0.06);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary-fixed selection:text-on-primary-fixed">
+<nav class="bg-[#fff8f6]/80 dark:bg-[#221a17]/90 backdrop-blur-md font-serif italic text-2xl tracking-tight docked full-width top-0 z-50 sticky no-border tonal-shift bg-surface-container-low shadow-sm dark:shadow-none flex justify-between items-center px-6 py-4 w-full">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary-fixed-dim">
+<img alt="Student Profile" data-alt="close up portrait of a contemplative scholar in a sunlit library room" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC_l5wICywgdtwzPJhqOiQXyT4Jaej0NJC7dlAr-xbVYKXbIq-cS-hIWInsw123gZHcblVzlmAdkkcNMaCv4CNgFnMR77tKH8tc_grirVytHYtMUhGZSjUv3l19_87rertBMWcD8IBMBSjOb0s82P_qofVliO_x5bycbATOG4ZZrbVRJRvgLyNHs7Ohz4hl-CMWYAgZJgcaPU7C8ndW-HUlVbujfi1FCZ29l6tC5yHRl7z5_odiO6NEUzqk7zwg7AqbmJvN9IHl5Xo"/>
+</div>
+<span class="font-serif text-[#94492c] dark:text-[#D9805F] italic">Sacred Editorial</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden md:flex gap-8 text-sm font-semibold tracking-widest uppercase">
+<a class="text-[#3b665f] hover:opacity-80 transition-opacity" href="#">Home</a>
+<a class="text-[#3b665f] hover:opacity-80 transition-opacity" href="#">Library</a>
+<a class="text-[#3b665f] hover:opacity-80 transition-opacity" href="#">Practice</a>
+<a class="text-[#94492c] font-bold" href="#">Stats</a>
+</div>
+<button class="bg-surface-container-highest px-4 py-1.5 rounded-full text-primary font-bold scale-95 active:duration-150 transition-all">7🔥</button>
+</div>
+</nav>
+<main class="max-w-7xl mx-auto px-6 py-12 pb-32">
+<header class="mb-16 max-w-2xl">
+<h1 class="font-headline text-5xl mb-4 text-on-surface leading-tight">Mastery &amp; Progress</h1>
+<p class="text-on-surface-variant text-lg font-light leading-relaxed">
+                A reflection of your consistency and the deepening of your scriptural understanding. Every verse mastered is a step closer to wisdom.
+            </p>
+</header>
+<section class="grid grid-cols-1 md:grid-cols-12 gap-8 mb-16">
+<div class="md:col-span-8 bg-surface-container-low rounded-xl p-8 editorial-shadow">
+<div class="flex justify-between items-end mb-8">
+<div>
+<h2 class="font-headline text-2xl mb-2 italic">Continuity Heatmap</h2>
+<p class="text-sm text-on-surface-variant">Your daily engagement with the sacred word.</p>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-sm bg-surface-container-highest"></span>
+<span class="w-3 h-3 rounded-sm bg-primary/30"></span>
+<span class="w-3 h-3 rounded-sm bg-primary/60"></span>
+<span class="w-3 h-3 rounded-sm bg-primary"></span>
+</div>
+</div>
+<div class="grid grid-cols-7 gap-3 md:grid-cols-14 lg:grid-cols-24">
+<!-- Representing a 6-month view roughly -->
+<div class="aspect-square w-full rounded-sm bg-primary/80"></div>
+<div class="aspect-square w-full rounded-sm bg-primary/40"></div>
+<div class="aspect-square w-full rounded-sm bg-primary"></div>
+<div class="aspect-square w-full rounded-sm bg-surface-container-highest"></div>
+<div class="aspect-square w-full rounded-sm bg-primary/20"></div>
+<div class="aspect-square w-full rounded-sm bg-primary/90"></div>
+<div class="aspect-square w-full rounded-sm bg-primary/60"></div>
+<div class="aspect-square w-full rounded-sm bg-primary"></div>
+<div class="aspect-square w-full rounded-sm bg-primary/10"></div>
+<div class="aspect-square w-full rounded-sm bg-primary/70"></div>
+<div class="aspect-square w-full rounded-sm bg-primary/30"></div>
+<div class="aspect-square w-full rounded-sm bg-primary/50"></div>
+<div class="aspect-square w-full rounded-sm bg-primary/90"></div>
+<div class="aspect-square w-full rounded-sm bg-primary"></div>
+<div class="aspect-square w-full rounded-sm bg-primary/20"></div>
+<div class="aspect-square w-full rounded-sm bg-primary/40"></div>
+<div class="aspect-square w-full rounded-sm bg-surface-container-highest"></div>
+<div class="aspect-square w-full rounded-sm bg-primary/80"></div>
+<div class="aspect-square w-full rounded-sm bg-primary/60"></div>
+<div class="aspect-square w-full rounded-sm bg-primary"></div>
+<div class="aspect-square w-full rounded-sm bg-primary/30"></div>
+<div class="aspect-square w-full rounded-sm bg-primary/50"></div>
+<div class="aspect-square w-full rounded-sm bg-primary/90"></div>
+<div class="aspect-square w-full rounded-sm bg-primary"></div>
+<div class="aspect-square w-full rounded-sm bg-primary/70"></div>
+<div class="aspect-square w-full rounded-sm bg-primary/20"></div>
+<div class="aspect-square w-full rounded-sm bg-surface-container-highest"></div>
+<div class="aspect-square w-full rounded-sm bg-primary/80"></div>
+<div class="aspect-square w-full rounded-sm bg-primary"></div>
+<div class="aspect-square w-full rounded-sm bg-primary/40"></div>
+<!-- and so on -->
+</div>
+</div>
+<div class="md:col-span-4 bg-tertiary-fixed rounded-xl p-8 editorial-shadow relative overflow-hidden flex flex-col justify-between">
+<div class="absolute top-0 right-0 p-4 opacity-10">
+<span class="material-symbols-outlined text-8xl" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+</div>
+<div>
+<h3 class="text-on-tertiary-fixed-variant uppercase tracking-widest text-xs font-bold mb-2">Sacred Mastery</h3>
+<p class="font-headline text-4xl text-on-tertiary-fixed leading-tight">Mastery Streak</p>
+</div>
+<div class="mt-8">
+<span class="text-7xl font-bold text-on-tertiary-fixed">42</span>
+<span class="text-xl text-on-tertiary-fixed-variant ml-2 font-medium">Days of Focus</span>
+</div>
+<div class="mt-6">
+<div class="h-2 w-full bg-on-tertiary-fixed/20 rounded-full overflow-hidden">
+<div class="h-full bg-on-tertiary-fixed w-4/5 rounded-full"></div>
+</div>
+<p class="text-xs mt-3 text-on-tertiary-fixed-variant font-medium">12 days until "The Elder" status</p>
+</div>
+</div>
+</section>
+<section class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-16">
+<div class="bg-surface-container-lowest p-8 rounded-xl editorial-shadow text-center">
+<div class="relative inline-block mb-6">
+<svg class="w-32 h-32 transform -rotate-90">
+<circle class="text-surface-container-highest" cx="64" cy="64" fill="transparent" r="56" stroke="currentColor" stroke-width="8"></circle>
+<circle class="text-primary" cx="64" cy="64" fill="transparent" r="56" stroke="currentColor" stroke-dasharray="351.85" stroke-dashoffset="105.5" stroke-width="8"></circle>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="font-headline text-2xl italic">70%</span>
+</div>
+</div>
+<h4 class="font-bold text-lg mb-1">Old Testament</h4>
+<p class="text-sm text-on-surface-variant">The Covenant</p>
+</div>
+<div class="bg-surface-container-lowest p-8 rounded-xl editorial-shadow text-center">
+<div class="relative inline-block mb-6">
+<svg class="w-32 h-32 transform -rotate-90">
+<circle class="text-surface-container-highest" cx="64" cy="64" fill="transparent" r="56" stroke="currentColor" stroke-width="8"></circle>
+<circle class="text-secondary" cx="64" cy="64" fill="transparent" r="56" stroke="currentColor" stroke-dasharray="351.85" stroke-dashoffset="246" stroke-width="8"></circle>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="font-headline text-2xl italic">30%</span>
+</div>
+</div>
+<h4 class="font-bold text-lg mb-1">New Testament</h4>
+<p class="text-sm text-on-surface-variant">The Grace</p>
+</div>
+<div class="bg-surface-container-lowest p-8 rounded-xl editorial-shadow text-center">
+<div class="relative inline-block mb-6">
+<svg class="w-32 h-32 transform -rotate-90">
+<circle class="text-surface-container-highest" cx="64" cy="64" fill="transparent" r="56" stroke="currentColor" stroke-width="8"></circle>
+<circle class="text-tertiary" cx="64" cy="64" fill="transparent" r="56" stroke="currentColor" stroke-dasharray="351.85" stroke-dashoffset="17.5" stroke-width="8"></circle>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="font-headline text-2xl italic">95%</span>
+</div>
+</div>
+<h4 class="font-bold text-lg mb-1">The Gita</h4>
+<p class="text-sm text-on-surface-variant">The Duty</p>
+</div>
+<div class="bg-surface-container-lowest p-8 rounded-xl editorial-shadow text-center">
+<div class="relative inline-block mb-6">
+<svg class="w-32 h-32 transform -rotate-90">
+<circle class="text-surface-container-highest" cx="64" cy="64" fill="transparent" r="56" stroke="currentColor" stroke-width="8"></circle>
+<circle class="text-primary-container" cx="64" cy="64" fill="transparent" r="56" stroke="currentColor" stroke-dasharray="351.85" stroke-dashoffset="175" stroke-width="8"></circle>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="font-headline text-2xl italic">50%</span>
+</div>
+</div>
+<h4 class="font-bold text-lg mb-1">Meditations</h4>
+<p class="text-sm text-on-surface-variant">The Stoic</p>
+</div>
+</section>
+<section class="grid grid-cols-1 md:grid-cols-12 gap-8 mb-16 items-start">
+<div class="md:col-span-7">
+<div class="flex items-center justify-between mb-8">
+<h2 class="font-headline text-3xl italic">Needs Review</h2>
+<span class="bg-error-container text-on-error-container text-xs px-3 py-1 rounded-full font-bold">12 Flagged</span>
+</div>
+<div class="space-y-4">
+<div class="bg-surface-container-low p-6 rounded-lg flex items-center gap-6 border-l-4 border-error">
+<div class="flex-grow">
+<span class="text-xs font-bold text-error uppercase tracking-widest">Mastery Low (32%)</span>
+<h5 class="font-headline text-xl mt-1 italic">Isaiah 41:10</h5>
+<p class="text-on-surface-variant text-sm line-clamp-1 italic mt-1">"Fear thou not; for I am with thee: be not dismayed..."</p>
+</div>
+<button class="w-10 h-10 rounded-full bg-white flex items-center justify-center editorial-shadow text-primary hover:bg-primary-fixed transition-colors">
+<span class="material-symbols-outlined">refresh</span>
+</button>
+</div>
+<div class="bg-surface-container-low p-6 rounded-lg flex items-center gap-6 border-l-4 border-error">
+<div class="flex-grow">
+<span class="text-xs font-bold text-error uppercase tracking-widest">Mastery Dropping (45%)</span>
+<h5 class="font-headline text-xl mt-1 italic">Romans 8:28</h5>
+<p class="text-on-surface-variant text-sm line-clamp-1 italic mt-1">"And we know that all things work together for good..."</p>
+</div>
+<button class="w-10 h-10 rounded-full bg-white flex items-center justify-center editorial-shadow text-primary hover:bg-primary-fixed transition-colors">
+<span class="material-symbols-outlined">refresh</span>
+</button>
+</div>
+<div class="bg-surface-container-low p-6 rounded-lg flex items-center gap-6 border-l-4 border-error">
+<div class="flex-grow">
+<span class="text-xs font-bold text-error uppercase tracking-widest">Forgotten Flag</span>
+<h5 class="font-headline text-xl mt-1 italic">John 1:1</h5>
+<p class="text-on-surface-variant text-sm line-clamp-1 italic mt-1">"In the beginning was the Word, and the Word was with God..."</p>
+</div>
+<button class="w-10 h-10 rounded-full bg-white flex items-center justify-center editorial-shadow text-primary hover:bg-primary-fixed transition-colors">
+<span class="material-symbols-outlined">refresh</span>
+</button>
+</div>
+</div>
+<button class="mt-8 text-primary font-bold text-sm underline underline-offset-8 decoration-primary/30 hover:decoration-primary transition-all">Review all flags</button>
+</div>
+<div class="md:col-span-5 bg-surface-container-highest p-10 rounded-xl editorial-shadow">
+<h2 class="font-headline text-3xl italic mb-10 text-center">Achievement Medals</h2>
+<div class="grid grid-cols-2 gap-y-12 gap-x-6">
+<div class="text-center group">
+<div class="w-24 h-24 mx-auto mb-4 bg-tertiary-container rounded-full flex items-center justify-center editorial-shadow ring-8 ring-tertiary/10 transition-transform group-hover:scale-105">
+<span class="material-symbols-outlined text-4xl text-on-tertiary-container" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+</div>
+<span class="text-xs font-bold uppercase tracking-widest block text-tertiary mb-1">Volume Gold</span>
+<p class="font-medium text-on-surface text-sm">Genesis Mastery</p>
+</div>
+<div class="text-center group">
+<div class="w-24 h-24 mx-auto mb-4 bg-tertiary-container rounded-full flex items-center justify-center editorial-shadow ring-8 ring-tertiary/10 transition-transform group-hover:scale-105">
+<span class="material-symbols-outlined text-4xl text-on-tertiary-container" style="font-variation-settings: 'FILL' 1;">history_edu</span>
+</div>
+<span class="text-xs font-bold uppercase tracking-widest block text-tertiary mb-1">Scribe Gold</span>
+<p class="font-medium text-on-surface text-sm">100 Verbatim Recites</p>
+</div>
+<div class="text-center group">
+<div class="w-24 h-24 mx-auto mb-4 bg-tertiary-container rounded-full flex items-center justify-center editorial-shadow ring-8 ring-tertiary/10 transition-transform group-hover:scale-105">
+<span class="material-symbols-outlined text-4xl text-on-tertiary-container" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<span class="text-xs font-bold uppercase tracking-widest block text-tertiary mb-1">Mastery Gold</span>
+<p class="font-medium text-on-surface text-sm">90 Day Consistency</p>
+</div>
+<div class="text-center opacity-40">
+<div class="w-24 h-24 mx-auto mb-4 bg-surface-container-high rounded-full flex items-center justify-center border-2 border-dashed border-outline">
+<span class="material-symbols-outlined text-4xl text-outline">lock</span>
+</div>
+<span class="text-xs font-bold uppercase tracking-widest block text-on-surface-variant mb-1">Locked</span>
+<p class="font-medium text-on-surface-variant text-sm">Prophetic Vision</p>
+</div>
+</div>
+</div>
+</section>
+<section class="mb-16">
+<div class="bg-primary rounded-xl p-1 w-full">
+<div class="bg-surface-container-lowest rounded-[calc(1rem-4px)] p-12 text-center relative overflow-hidden">
+<div class="absolute -top-24 -left-24 w-64 h-64 bg-primary/5 rounded-full blur-3xl"></div>
+<div class="absolute -bottom-24 -right-24 w-64 h-64 bg-secondary/5 rounded-full blur-3xl"></div>
+<h2 class="font-headline text-4xl italic mb-6">Deepen Your Foundation</h2>
+<p class="text-on-surface-variant max-w-xl mx-auto mb-10 text-lg leading-relaxed">
+                        Ready to convert your knowledge into wisdom? Start a specialized review session focusing on the scriptures you've most frequently flagged.
+                    </p>
+<button class="bg-gradient-to-br from-primary to-primary-container text-white px-10 py-4 rounded-full font-bold text-lg editorial-shadow hover:opacity-90 transition-all">Start Intensive Review</button>
+</div>
+</div>
+</section>
+</main>
+<footer class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-2 bg-[#fff8f6]/80 dark:bg-[#221a17]/90 backdrop-blur-xl rounded-t-[3rem] z-50 shadow-[0px_-4px_20px_rgba(34,26,23,0.06)] no-border tonal-shift">
+<a class="flex flex-col items-center justify-center text-[#3b665f] dark:text-[#3b665f]/70 p-3 hover:text-[#94492c] transition-colors" href="#">
+<span class="material-symbols-outlined text-2xl" data-icon="home">home</span>
+<span class="font-sans text-[10px] uppercase tracking-widest font-semibold mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#3b665f] dark:text-[#3b665f]/70 p-3 hover:text-[#94492c] transition-colors" href="#">
+<span class="material-symbols-outlined text-2xl" data-icon="menu_book">menu_book</span>
+<span class="font-sans text-[10px] uppercase tracking-widest font-semibold mt-1">Library</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#3b665f] dark:text-[#3b665f]/70 p-3 hover:text-[#94492c] transition-colors" href="#">
+<span class="material-symbols-outlined text-2xl" data-icon="extension">extension</span>
+<span class="font-sans text-[10px] uppercase tracking-widest font-semibold mt-1">Practice</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#94492c]/10 dark:bg-[#D9805F]/20 text-[#94492c] dark:text-[#D9805F] rounded-full p-3" href="#">
+<span class="material-symbols-outlined text-2xl" data-icon="leaderboard">leaderboard</span>
+<span class="font-sans text-[10px] uppercase tracking-widest font-semibold mt-1">Stats</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#3b665f] dark:text-[#3b665f]/70 p-3 hover:text-[#94492c] transition-colors" href="#">
+<span class="material-symbols-outlined text-2xl" data-icon="smart_toy">smart_toy</span>
+<span class="font-sans text-[10px] uppercase tracking-widest font-semibold mt-1">Sidekick</span>
+</a>
+</footer>
+</body></html>

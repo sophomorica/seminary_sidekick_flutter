@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sacred Editorial - Library</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&amp;family=Noto+Serif:ital,wght@0,400;0,700;1,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed-dim": "#e9c349",
+                        "secondary-fixed": "#beece2",
+                        "primary-container": "#d9805f",
+                        "inverse-surface": "#372e2b",
+                        "on-secondary-fixed-variant": "#234e47",
+                        "on-primary-fixed-variant": "#763218",
+                        "surface": "#fff8f6",
+                        "surface-container-low": "#fff1ec",
+                        "on-error": "#ffffff",
+                        "on-secondary-container": "#426c65",
+                        "on-primary-fixed": "#380d00",
+                        "on-tertiary-container": "#4e3d00",
+                        "on-secondary": "#ffffff",
+                        "on-background": "#221a17",
+                        "error-container": "#ffdad6",
+                        "on-primary-container": "#581c03",
+                        "tertiary-container": "#cca72f",
+                        "surface-bright": "#fff8f6",
+                        "surface-container-highest": "#efdfda",
+                        "tertiary-fixed": "#ffe088",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-fixed": "#241a00",
+                        "on-surface-variant": "#54433d",
+                        "secondary": "#3b665f",
+                        "outline-variant": "#dac1b9",
+                        "surface-variant": "#efdfda",
+                        "surface-container": "#fbebe6",
+                        "surface-container-high": "#f5e5e0",
+                        "on-surface": "#221a17",
+                        "surface-dim": "#e6d7d2",
+                        "primary": "#94492c",
+                        "tertiary": "#735c00",
+                        "primary-fixed": "#ffdbcf",
+                        "background": "#fff8f6",
+                        "on-tertiary-fixed-variant": "#574500",
+                        "outline": "#87736c",
+                        "inverse-on-surface": "#feede8",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed-dim": "#a3cfc6",
+                        "on-secondary-fixed": "#00201c",
+                        "secondary-container": "#beece2",
+                        "inverse-primary": "#ffb59b",
+                        "surface-tint": "#94492c",
+                        "primary-fixed-dim": "#ffb59b",
+                        "error": "#ba1a1a",
+                        "on-error-container": "#93000a",
+                        "surface-container-lowest": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Noto Serif"],
+                        "body": ["Inter"],
+                        "label": ["Inter"],
+                        "serif": ["Merriweather", "serif"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .editorial-shadow {
+            box-shadow: 0px 4px 20px rgba(34, 26, 23, 0.06);
+        }
+        body {
+            background-color: #fff8f6;
+            color: #221a17;
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen pb-32 selection:bg-primary-fixed selection:text-on-primary-fixed">
+<header class="bg-[#fff8f6]/80 dark:bg-[#221a17]/90 backdrop-blur-md font-serif italic text-2xl tracking-tight docked full-width top-0 z-50 sticky shadow-sm dark:shadow-none flex justify-between items-center px-6 py-4 w-full">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container-highest border border-outline-variant/15">
+<img alt="Student Profile" data-alt="professional portrait of a young man with a calm expression against a soft studio background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuABcSmEYL0k-DRGjFvx5g5-8YLajOUcE-Mma4X3QIaQYIBxQNkRhfZYt-WyEwoqrSgLP5ljFW41LjisvLwovXlx5cClBMoyD9l8fHspofmN9K8nPuwcVSY4lhETQUVo5jYJkhat9S3wZxpBZnn9ryatdevXJKCSlI3u4jYOxvfoNp0KDQosDyXWmjBb4C9sluCsEMcqTdtTnuyHgQxbnTBgjAJUypKil96VLTor_msPDzA7hdln4gzCk9iCwDbVAaVqVZsHaOmQ9OI"/>
+</div>
+<span class="font-serif text-[#94492c] dark:text-[#D9805F] italic">Sacred Editorial</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="text-lg font-bold text-[#94492c]">7🔥</span>
+<button class="material-symbols-outlined text-[#3b665f] hover:opacity-80 transition-opacity">search</button>
+</div>
+</header>
+<main class="max-w-7xl mx-auto px-6 pt-12">
+<section class="mb-16">
+<h1 class="font-serif text-5xl md:text-7xl font-bold tracking-tight text-on-surface mb-6 leading-tight">Scripture Library</h1>
+<p class="text-on-surface-variant max-w-2xl text-lg leading-relaxed mb-10">
+                Explore the foundational texts of our faith. Organized by volume for your purposeful study and progression.
+            </p>
+<div class="relative max-w-xl">
+<span class="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline">search</span>
+<input class="w-full pl-12 pr-6 py-4 bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all placeholder:text-outline" placeholder="Search verses or keywords..." type="text"/>
+</div>
+</section>
+<section class="space-y-16">
+<div class="space-y-8">
+<div class="flex items-baseline justify-between">
+<h2 class="font-serif text-3xl font-bold text-on-surface border-l-4 border-primary pl-4">Book of Mormon</h2>
+<span class="text-label text-sm font-semibold tracking-widest uppercase text-secondary">48% Mastered</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+<div class="group bg-surface-container-lowest rounded-xl p-8 editorial-shadow hover:translate-y-[-4px] transition-all duration-300 relative overflow-hidden">
+<div class="absolute top-0 right-0 p-4">
+<div class="flex items-center gap-1.5 bg-tertiary/10 text-tertiary px-3 py-1 rounded-full text-xs font-bold tracking-tight">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">stars</span>
+                                Mastered
+                            </div>
+</div>
+<h3 class="font-serif text-2xl font-bold text-primary mb-4 leading-tight">Mosiah 2:17</h3>
+<blockquote class="text-on-surface italic text-lg mb-8 leading-relaxed">
+                            "And behold, I tell you these things that ye may learn wisdom; that ye may learn that when ye are in the service of your fellow beings ye are only in the service of your God."
+                        </blockquote>
+<div class="mt-auto pt-6 space-y-3">
+<div class="flex justify-between text-xs font-semibold text-secondary uppercase tracking-widest">
+<span>Mastery Progress</span>
+<span>100%</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary rounded-full shadow-[0_0_8px_rgba(115,92,0,0.3)] w-full"></div>
+</div>
+</div>
+</div>
+<div class="group bg-surface-container-lowest rounded-xl p-8 editorial-shadow hover:translate-y-[-4px] transition-all duration-300 relative overflow-hidden">
+<div class="absolute top-0 right-0 p-4">
+<div class="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold tracking-tight">
+<span class="material-symbols-outlined text-sm">auto_stories</span>
+                                Learning
+                            </div>
+</div>
+<h3 class="font-serif text-2xl font-bold text-primary mb-4 leading-tight">2 Nephi 2:25</h3>
+<blockquote class="text-on-surface italic text-lg mb-8 leading-relaxed">
+                            "Adam fell that men might be; and men are, that they might have joy."
+                        </blockquote>
+<div class="mt-auto pt-6 space-y-3">
+<div class="flex justify-between text-xs font-semibold text-secondary uppercase tracking-widest">
+<span>Mastery Progress</span>
+<span>65%</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full w-[65%]"></div>
+</div>
+</div>
+</div>
+<div class="group bg-surface-container-low rounded-xl p-8 editorial-shadow hover:translate-y-[-4px] transition-all duration-300 relative overflow-hidden border border-outline-variant/10">
+<div class="absolute top-0 right-0 p-4">
+<div class="flex items-center gap-1.5 bg-secondary/10 text-secondary px-3 py-1 rounded-full text-xs font-bold tracking-tight">
+<span class="material-symbols-outlined text-sm">schedule</span>
+                                Queued
+                            </div>
+</div>
+<h3 class="font-serif text-2xl font-bold text-primary mb-4 leading-tight">Moroni 10:4-5</h3>
+<blockquote class="text-on-surface italic text-lg mb-8 leading-relaxed">
+                            "And when ye shall receive these things, I would exhort you that ye would ask God, the Eternal Father, in the name of Christ..."
+                        </blockquote>
+<div class="mt-auto pt-6 space-y-3 opacity-40">
+<div class="flex justify-between text-xs font-semibold text-secondary uppercase tracking-widest">
+<span>Mastery Progress</span>
+<span>0%</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container-highest rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="space-y-8">
+<div class="flex items-baseline justify-between">
+<h2 class="font-serif text-3xl font-bold text-on-surface border-l-4 border-primary pl-4">New Testament</h2>
+<span class="text-label text-sm font-semibold tracking-widest uppercase text-secondary">32% Mastered</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+<div class="group bg-surface-container-lowest rounded-xl p-8 editorial-shadow hover:translate-y-[-4px] transition-all duration-300 relative overflow-hidden">
+<div class="absolute top-0 right-0 p-4">
+<div class="flex items-center gap-1.5 bg-tertiary/10 text-tertiary px-3 py-1 rounded-full text-xs font-bold tracking-tight">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">stars</span>
+                                Mastered
+                            </div>
+</div>
+<h3 class="font-serif text-2xl font-bold text-primary mb-4 leading-tight">Matthew 5:16</h3>
+<blockquote class="text-on-surface italic text-lg mb-8 leading-relaxed">
+                            "Let your light so shine before men, that they may see your good works, and glorify your Father which is in heaven."
+                        </blockquote>
+<div class="mt-auto pt-6 space-y-3">
+<div class="flex justify-between text-xs font-semibold text-secondary uppercase tracking-widest">
+<span>Mastery Progress</span>
+<span>100%</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary rounded-full shadow-[0_0_8px_rgba(115,92,0,0.3)] w-full"></div>
+</div>
+</div>
+</div>
+<div class="group bg-surface-container-lowest rounded-xl p-8 editorial-shadow hover:translate-y-[-4px] transition-all duration-300 relative overflow-hidden">
+<div class="absolute top-0 right-0 p-4">
+<div class="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold tracking-tight">
+<span class="material-symbols-outlined text-sm">auto_stories</span>
+                                Learning
+                            </div>
+</div>
+<h3 class="font-serif text-2xl font-bold text-primary mb-4 leading-tight">John 14:15</h3>
+<blockquote class="text-on-surface italic text-lg mb-8 leading-relaxed">
+                            "If ye love me, keep my commandments."
+                        </blockquote>
+<div class="mt-auto pt-6 space-y-3">
+<div class="flex justify-between text-xs font-semibold text-secondary uppercase tracking-widest">
+<span>Mastery Progress</span>
+<span>42%</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full w-[42%]"></div>
+</div>
+</div>
+</div>
+<div class="group flex flex-col justify-center items-center bg-surface-container-low/50 rounded-xl p-8 border-2 border-dashed border-outline-variant/30 hover:border-primary/30 transition-colors cursor-pointer group">
+<span class="material-symbols-outlined text-4xl text-outline group-hover:text-primary transition-colors mb-4">add_circle</span>
+<span class="font-serif text-xl font-medium text-outline group-hover:text-primary transition-colors">Add Scripture Focus</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<div class="bg-surface-container-high rounded-xl p-8 flex flex-col items-center justify-center text-center">
+<h3 class="font-serif text-2xl font-bold text-on-surface mb-2">Old Testament</h3>
+<p class="text-on-surface-variant mb-6 italic">25 Scriptures Available</p>
+<button class="bg-primary text-on-primary px-8 py-3 rounded-full font-bold uppercase tracking-widest text-xs hover:opacity-90 transition-opacity">Browse Volume</button>
+</div>
+<div class="bg-surface-container-high rounded-xl p-8 flex flex-col items-center justify-center text-center">
+<h3 class="font-serif text-2xl font-bold text-on-surface mb-2">Doctrine &amp; Covenants</h3>
+<p class="text-on-surface-variant mb-6 italic">25 Scriptures Available</p>
+<button class="bg-primary text-on-primary px-8 py-3 rounded-full font-bold uppercase tracking-widest text-xs hover:opacity-90 transition-opacity">Browse Volume</button>
+</div>
+</div>
+</section>
+</main>
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-2 bg-[#fff8f6]/80 dark:bg-[#221a17]/90 backdrop-blur-xl rounded-t-[3rem] z-50 shadow-[0px_-4px_20px_rgba(34,26,23,0.06)] no-border tonal-shift">
+<a class="flex flex-col items-center justify-center text-[#3b665f] dark:text-[#3b665f]/70 p-3 hover:text-[#94492c] transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-sans text-[10px] uppercase tracking-widest font-semibold mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#94492c]/10 dark:bg-[#D9805F]/20 text-[#94492c] dark:text-[#D9805F] rounded-full p-3 active:scale-90 duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="menu_book">menu_book</span>
+<span class="font-sans text-[10px] uppercase tracking-widest font-semibold mt-1">Library</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#3b665f] dark:text-[#3b665f]/70 p-3 hover:text-[#94492c] transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="extension">extension</span>
+<span class="font-sans text-[10px] uppercase tracking-widest font-semibold mt-1">Practice</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#3b665f] dark:text-[#3b665f]/70 p-3 hover:text-[#94492c] transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="leaderboard">leaderboard</span>
+<span class="font-sans text-[10px] uppercase tracking-widest font-semibold mt-1">Stats</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#3b665f] dark:text-[#3b665f]/70 p-3 hover:text-[#94492c] transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="smart_toy">smart_toy</span>
+<span class="font-sans text-[10px] uppercase tracking-widest font-semibold mt-1">Sidekick</span>
+</a>
+</nav>
+</body></html>
