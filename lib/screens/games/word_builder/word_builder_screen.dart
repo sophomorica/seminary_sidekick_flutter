@@ -3,15 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../models/enums.dart';
-import '../../models/scripture.dart';
-import '../../providers/activity_provider.dart';
-import '../../providers/progress_provider.dart';
-import '../../providers/word_builder_provider.dart';
-import '../../services/audio_service.dart';
-import '../../services/speech_service.dart';
-import '../../theme/app_theme.dart';
-import 'game_results_screen.dart';
+import '../../../models/enums.dart';
+import '../../../models/scripture.dart';
+import '../../../providers/activity_provider.dart';
+import '../../../providers/progress_provider.dart';
+import '../../../providers/word_builder_provider.dart';
+import '../../../services/audio_service.dart';
+import '../../../services/speech_service.dart';
+import '../../../theme/app_theme.dart';
+import '../game_results_screen.dart';
 
 class WordBuilderScreen extends ConsumerStatefulWidget {
   final DifficultyLevel difficulty;
@@ -765,14 +765,13 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 suffixIcon: IconButton(
-                        icon: Icon(
-                          _isSpeechListening ? Icons.mic_off : Icons.mic,
-                          color: _isSpeechListening
-                              ? AppTheme.error
-                              : AppTheme.accent,
-                        ),
-                        onPressed: _toggleSpeechListening,
-                      ),
+                  icon: Icon(
+                    _isSpeechListening ? Icons.mic_off : Icons.mic,
+                    color:
+                        _isSpeechListening ? AppTheme.error : AppTheme.accent,
+                  ),
+                  onPressed: _toggleSpeechListening,
+                ),
               ),
               onChanged: (value) {
                 ref.read(wordBuilderProvider.notifier).onType(value);
@@ -977,8 +976,10 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     final timeInSeconds = (state.completionTime ?? _elapsed).inSeconds;
     for (final scripture in state.scriptureQueue) {
       // Capture previous mastery level before recording
-      final prevProgress = progressNotifier.getProgress(scripture.id, GameType.wordOrder);
-      final prevMastery = prevProgress?.masteryLevel ?? MasteryLevel.newScripture;
+      final prevProgress =
+          progressNotifier.getProgress(scripture.id, GameType.wordOrder);
+      final prevMastery =
+          prevProgress?.masteryLevel ?? MasteryLevel.newScripture;
       final isFirstAttempt = prevProgress == null;
 
       progressNotifier.recordAttempt(
@@ -1008,7 +1009,8 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       }
 
       // Check for mastery level-up
-      final newProgress = progressNotifier.getProgress(scripture.id, GameType.wordOrder);
+      final newProgress =
+          progressNotifier.getProgress(scripture.id, GameType.wordOrder);
       final newMastery = newProgress?.masteryLevel ?? MasteryLevel.newScripture;
       if (newMastery.index > prevMastery.index) {
         activityNotifier.logMasteryLevelUp(

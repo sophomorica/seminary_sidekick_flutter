@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&amp;family=Noto+Serif:ital,wght@0,400;0,700;1,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-fixed-dim": "#e9c349",
+                    "secondary-fixed": "#beece2",
+                    "primary-container": "#d9805f",
+                    "inverse-surface": "#372e2b",
+                    "on-secondary-fixed-variant": "#234e47",
+                    "on-primary-fixed-variant": "#763218",
+                    "surface": "#fff8f6",
+                    "surface-container-low": "#fff1ec",
+                    "on-error": "#ffffff",
+                    "on-secondary-container": "#426c65",
+                    "on-primary-fixed": "#380d00",
+                    "on-tertiary-container": "#4e3d00",
+                    "on-secondary": "#ffffff",
+                    "on-background": "#221a17",
+                    "error-container": "#ffdad6",
+                    "on-primary-container": "#581c03",
+                    "tertiary-container": "#cca72f",
+                    "surface-bright": "#fff8f6",
+                    "surface-container-highest": "#efdfda",
+                    "tertiary-fixed": "#ffe088",
+                    "on-tertiary": "#ffffff",
+                    "on-tertiary-fixed": "#241a00",
+                    "on-surface-variant": "#54433d",
+                    "secondary": "#3b665f",
+                    "outline-variant": "#dac1b9",
+                    "surface-variant": "#efdfda",
+                    "surface-container": "#fbebe6",
+                    "surface-container-high": "#f5e5e0",
+                    "on-surface": "#221a17",
+                    "surface-dim": "#e6d7d2",
+                    "primary": "#94492c",
+                    "tertiary": "#735c00",
+                    "primary-fixed": "#ffdbcf",
+                    "background": "#fff8f6",
+                    "on-tertiary-fixed-variant": "#574500",
+                    "outline": "#87736c",
+                    "inverse-on-surface": "#feede8",
+                    "on-primary": "#ffffff",
+                    "secondary-fixed-dim": "#a3cfc6",
+                    "on-secondary-fixed": "#00201c",
+                    "secondary-container": "#beece2",
+                    "inverse-primary": "#ffb59b",
+                    "surface-tint": "#94492c",
+                    "primary-fixed-dim": "#ffb59b",
+                    "error": "#ba1a1a",
+                    "on-error-container": "#93000a",
+                    "surface-container-lowest": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Merriweather"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+        }
+        .editorial-gradient {
+            background: linear-gradient(135deg, var(--tw-gradient-from) 0%, var(--tw-gradient-to) 100%);
+        }
+        .sacred-glow {
+            box-shadow: 0 0 15px rgba(115, 92, 0, 0.2);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="bg-[#fff8f6]/80 dark:bg-[#221a17]/90 backdrop-blur-md shadow-sm dark:shadow-none docked full-width top-0 z-50 sticky flex justify-between items-center px-6 py-4 w-full">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container-highest flex items-center justify-center">
+<img alt="Student Profile" data-alt="close-up portrait of a thoughtful young person with soft natural lighting and a warm, academic atmosphere" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBcs-HSvf-ZQ4NYnIxv8rKEdJguuDNnXbz3uMGP3Mf92PZlS2LLHS0_ucckuJ4d35Ll0a3pM57a9LmOHSQmsqSTd-c5SBg6FGDHEDwrIUkAIt5833SMVu2QQj34eureEgl9rh5fIjpXKvdTKUI4B-8OvFZOa7Xg_hh8PHsnQUvvPHo57rTY25LuHM8WX5kKEIxL5SDiL4tPTHxurc9uT3Bmx9KRLexFaSo9K5IJhJHV3QD8GCnN2H5_KRY0W5Do8Kf2LAryZYhEgJ8"/>
+</div>
+</div>
+<h1 class="Sacred Editorial font-serif italic text-2xl tracking-tight text-[#94492c] dark:text-[#D9805F]">Sacred Editorial</h1>
+<div class="flex items-center gap-2">
+<span class="text-[#94492c] font-bold text-lg">7🔥</span>
+</div>
+</header>
+<!-- Main Content: Sidekick Chat -->
+<main class="flex-grow container mx-auto max-w-3xl px-4 pt-8 pb-32 flex flex-col">
+<!-- Welcome Section -->
+<section class="mb-10 text-left">
+<span class="font-label text-xs uppercase tracking-widest text-secondary font-semibold mb-2 block">Your Spiritual Guide</span>
+<h2 class="font-headline text-4xl text-on-surface italic leading-tight">Walking in the Light</h2>
+<p class="text-on-surface-variant mt-3 max-w-md">Your Sidekick is here to help you bridge the gap between ancient scripture and modern life.</p>
+</section>
+<!-- Chat Canvas -->
+<div class="flex flex-col space-y-8">
+<!-- Sidekick Message -->
+<div class="flex items-start gap-4 max-w-[85%] group">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-on-secondary-container" data-icon="smart_toy">smart_toy</span>
+</div>
+<div class="space-y-2">
+<div class="bg-surface-container-low rounded-xl rounded-tl-none p-5 text-on-surface shadow-sm">
+<p class="mb-3">Peace be with you. I noticed you spent some time today in <em class="font-headline">Proverbs 3</em>. The imagery of "trusting with all thine heart" is powerful, isn't it?</p>
+<p>Based on your notes, here is a reflection prompt for this afternoon:</p>
+<div class="mt-4 p-4 bg-surface-container-lowest rounded-lg italic border-l-4 border-tertiary">
+                            "In which area of your life right now are you most tempted to lean unto your own understanding, rather than seeking the path laid before you?"
+                        </div>
+</div>
+<span class="text-[10px] text-outline px-1 font-semibold uppercase tracking-widest">Sidekick • 10:24 AM</span>
+</div>
+</div>
+<!-- User Message -->
+<div class="flex items-start gap-4 max-w-[85%] self-end flex-row-reverse group">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-on-primary-container" data-icon="person">person</span>
+</div>
+<div class="space-y-2 text-right">
+<div class="bg-primary text-on-primary rounded-xl rounded-tr-none p-5 shadow-md editorial-gradient from-primary to-primary-container">
+<p>I think it's my new career transition. I feel like I have to control every outcome to be successful.</p>
+</div>
+<span class="text-[10px] text-outline px-1 font-semibold uppercase tracking-widest">You • 10:26 AM</span>
+</div>
+</div>
+<!-- Sidekick Typing / Response -->
+<div class="flex items-start gap-4 max-w-[85%] group">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-on-secondary-container" data-icon="smart_toy">smart_toy</span>
+</div>
+<div class="space-y-2">
+<div class="bg-surface-container-low rounded-xl rounded-tl-none p-5 text-on-surface shadow-sm border border-tertiary/10">
+<p>That is a very human feeling. Remember that "He shall direct thy paths" doesn't mean the road will be easy, but that the destination is purposeful. Shall we look at a verse about finding stillness in transition?</p>
+<!-- Suggestion Chips -->
+<div class="flex flex-wrap gap-2 mt-4">
+<button class="bg-secondary-container/50 hover:bg-secondary-container text-on-secondary-container px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-base" data-icon="auto_stories">auto_stories</span>
+                                Show me verses
+                            </button>
+<button class="bg-surface-container-highest/50 hover:bg-surface-container-highest text-on-surface-variant px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-base" data-icon="edit_note">edit_note</span>
+                                Write a prayer
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Chat Input Area (Fixed/Floating) -->
+<div class="fixed bottom-24 left-0 w-full px-4 md:px-0 pointer-events-none">
+<div class="max-w-3xl mx-auto pointer-events-auto">
+<div class="relative bg-surface-container-lowest rounded-full p-2 shadow-xl border-2 border-tertiary sacred-glow flex items-center gap-2">
+<button class="w-10 h-10 flex items-center justify-center text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="add_circle">add_circle</span>
+</button>
+<input class="flex-grow bg-transparent border-none focus:ring-0 text-on-surface placeholder-outline-variant font-medium py-3 px-2" placeholder="Share your thoughts with Sidekick..." type="text"/>
+<button class="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-on-primary editorial-gradient from-primary to-primary-container shadow-lg active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="send">send</span>
+</button>
+</div>
+<p class="text-center text-[10px] text-outline-variant mt-3 uppercase tracking-widest font-bold">Sidekick is an AI companion for theological exploration.</p>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-2 bg-[#fff8f6]/80 dark:bg-[#221a17]/90 backdrop-blur-xl shadow-[0px_-4px_20px_rgba(34,26,23,0.06)] rounded-t-[3rem] z-50">
+<a class="flex flex-col items-center justify-center text-[#3b665f] dark:text-[#3b665f]/70 p-3 hover:text-[#94492c] transition-colors" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="home">home</span>
+<span class="font-sans text-[10px] uppercase tracking-widest font-semibold">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#3b665f] dark:text-[#3b665f]/70 p-3 hover:text-[#94492c] transition-colors" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="menu_book">menu_book</span>
+<span class="font-sans text-[10px] uppercase tracking-widest font-semibold">Library</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#3b665f] dark:text-[#3b665f]/70 p-3 hover:text-[#94492c] transition-colors" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="extension">extension</span>
+<span class="font-sans text-[10px] uppercase tracking-widest font-semibold">Practice</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#3b665f] dark:text-[#3b665f]/70 p-3 hover:text-[#94492c] transition-colors" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="leaderboard">leaderboard</span>
+<span class="font-sans text-[10px] uppercase tracking-widest font-semibold">Stats</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#94492c]/10 dark:bg-[#D9805F]/20 text-[#94492c] dark:text-[#D9805F] rounded-full p-3" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="smart_toy">smart_toy</span>
+<span class="font-sans text-[10px] uppercase tracking-widest font-semibold">Sidekick</span>
+</a>
+</nav>
+</body></html>
