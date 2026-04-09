@@ -1,6 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../config/app_config.dart';
+import 'dev_mode_provider.dart';
+
 /// Subscription tier for the app.
 enum SubscriptionTier {
   free,
@@ -284,7 +287,20 @@ final subscriptionProvider =
 );
 
 /// Convenience: is the user currently premium?
+///
+/// Resolution order:
+///   1. Dev Menu runtime override (debug only, highest priority)
+///   2. [AppConfig.forcePremium] static flag (debug only)
+///   3. Real subscription state from RevenueCat (always used in release)
 final isPremiumProvider = Provider<bool>((ref) {
+  if (AppConfig.isDevModeActive) {
+    // Runtime override from Dev Menu takes priority
+    final override = ref.watch(devModeOverrideProvider);
+    if (override != null) return override;
+    // Fall back to static config default
+    return AppConfig.forcePremium;
+  }
+  // Release mode: always use real subscription
   return ref.watch(subscriptionProvider).isPremium;
 });
 
