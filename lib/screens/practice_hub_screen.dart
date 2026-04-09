@@ -15,43 +15,46 @@ class PracticeHubScreen extends ConsumerWidget {
       backgroundColor: AppTheme.surface,
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingLg),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Editorial header
-              const SizedBox(height: AppTheme.spacingLg),
+              const SizedBox(height: 48.0),
               Text(
                 'Practice Hub',
-                style: Theme.of(context).textTheme.displayLarge,
-              ),
-              const SizedBox(height: AppTheme.spacingSm),
-              Text(
-                'Master through focused exercises and reflection',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.7),
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontFamily: 'Merriweather',
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                      fontStyle: FontStyle.italic,
                     ),
               ),
-              const SizedBox(height: AppTheme.spacingXl),
+              const SizedBox(height: 16.0),
+              Text(
+                'Engage with sacred texts through focused exercises designed to deepen your spiritual retention and understanding.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: 32.0),
+
+              // Path Selector
+              _PathSelector(),
+              const SizedBox(height: 32.0),
 
               // Hero Word Builder Card
               _WordBuilderHeroCard(),
-              const SizedBox(height: AppTheme.spacingXl),
-
-              // Practice Quizzes Section
-              Text(
-                'Supplementary Practice',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: AppTheme.spacingMd),
+              const SizedBox(height: 32.0),
 
               // Scripture Match & Quick Quiz cards
               _MatchingGameCard(),
-              const SizedBox(height: AppTheme.spacingMd),
+              const SizedBox(height: 16.0),
               _QuizGameCard(),
+              const SizedBox(height: 32.0),
+
+              // Sacred Achievement section
+              _SacredAchievementSection(),
 
               const SizedBox(height: 120), // Bottom padding for floating nav
             ],
@@ -66,63 +69,146 @@ class PracticeHubScreen extends ConsumerWidget {
 class _WordBuilderHeroCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppTheme.primary,
-            AppTheme.primaryContainer,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
-        boxShadow: AppTheme.editorialShadow,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacingXl),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Word Builder',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: AppTheme.onPrimary,
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: AppTheme.spacingMd),
-            Text(
-              'Prove your mastery through progressive word-building exercises. Master all four difficulty levels to achieve scripture mastery.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.onPrimary,
-                    height: 1.6,
-                  ),
-            ),
-            const SizedBox(height: AppTheme.spacingLg),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.onPrimary,
-                  foregroundColor: AppTheme.primary,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: AppTheme.spacingMd),
+    return Stack(
+      children: [
+        // Decorative blurred circle in top right
+        Positioned(
+          top: -40,
+          right: -40,
+          child: Container(
+            width: 200,
+            height: 200,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppTheme.tertiary.withValues(alpha: 0.1),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.tertiary.withValues(alpha: 0.08),
+                  blurRadius: 40,
+                  spreadRadius: 20,
                 ),
-                onPressed: () {
-                  _launchWordBuilder(context);
-                },
-                child: Text(
-                  'Start Building',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: AppTheme.primary,
+              ],
+            ),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppTheme.primary,
+                AppTheme.primaryContainer,
+              ],
+            ),
+            borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+            boxShadow: AppTheme.editorialShadow,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left side: content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // "FEATURED MASTERY" badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12.0,
+                          vertical: 6.0,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.tertiaryContainer.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(20.0),
+                          border: Border.all(
+                            color: AppTheme.tertiaryFixedDim.withValues(alpha: 0.2),
+                            width: 1.0,
+                          ),
+                        ),
+                        child: Text(
+                          'FEATURED MASTERY',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: AppTheme.tertiaryFixed,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 2.0,
+                                fontSize: 10.0,
+                              ),
+                        ),
                       ),
+                      const SizedBox(height: 16.0),
+                      Text(
+                        'Word Builder',
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              fontFamily: 'Merriweather',
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              fontStyle: FontStyle.italic,
+                              color: AppTheme.onPrimary,
+                            ),
+                      ),
+                      const SizedBox(height: 12.0),
+                      Text(
+                        'Prove your mastery through progressive word-building exercises. Master all four difficulty levels to achieve scripture mastery.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppTheme.primaryFixed.withValues(alpha: 0.8),
+                              height: 1.6,
+                        ),
+                      ),
+                      const SizedBox(height: 24.0),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.tertiary,
+                            foregroundColor: AppTheme.onTertiary,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 14.0,
+                              horizontal: 24.0,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(50.0),
+                            ),
+                            elevation: 0,
+                            shadowColor: AppTheme.tertiary.withValues(alpha: 0.4),
+                          ),
+                          onPressed: () {
+                            _launchWordBuilder(context);
+                          },
+                          child: Text(
+                            'Start Building',
+                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              color: AppTheme.onTertiary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+                const SizedBox(width: 24.0),
+                // Right side: icon area
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: AppTheme.tertiaryFixed.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(16.0),
+                  ),
+                  child: const Icon(
+                    Icons.build,
+                    size: 48,
+                    color: AppTheme.tertiaryFixed,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -141,6 +227,105 @@ class _WordBuilderHeroCard extends ConsumerWidget {
   }
 }
 
+/// Path Selector — Difficulty selection control
+class _PathSelector extends StatefulWidget {
+  @override
+  State<_PathSelector> createState() => _PathSelectorState();
+}
+
+class _PathSelectorState extends State<_PathSelector> {
+  DifficultyLevel _selectedDifficulty = DifficultyLevel.beginner;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(8.0),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(50.0),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _PathButton(
+            label: 'Beginner',
+            isSelected: _selectedDifficulty == DifficultyLevel.beginner,
+            onPressed: () {
+              setState(() => _selectedDifficulty = DifficultyLevel.beginner);
+            },
+          ),
+          _PathButton(
+            label: 'Intermediate',
+            isSelected: _selectedDifficulty == DifficultyLevel.intermediate,
+            onPressed: () {
+              setState(() => _selectedDifficulty = DifficultyLevel.intermediate);
+            },
+          ),
+          _PathButton(
+            label: 'Master',
+            isSelected: _selectedDifficulty == DifficultyLevel.master,
+            onPressed: () {
+              setState(() => _selectedDifficulty = DifficultyLevel.master);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Individual path button in the selector
+class _PathButton extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onPressed;
+
+  const _PathButton({
+    required this.label,
+    required this.isSelected,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        decoration: isSelected
+            ? BoxDecoration(
+                color: AppTheme.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(50.0),
+                boxShadow: AppTheme.editorialShadow,
+              )
+            : null,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onPressed,
+            borderRadius: BorderRadius.circular(50.0),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 12.0,
+              ),
+              child: Center(
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: isSelected
+                            ? AppTheme.primary
+                            : AppTheme.onSurfaceVariant,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                      ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Scripture Match card
 class _MatchingGameCard extends StatefulWidget {
   @override
@@ -148,27 +333,87 @@ class _MatchingGameCard extends StatefulWidget {
 }
 
 class _MatchingGameCardState extends State<_MatchingGameCard> {
-  DifficultyLevel _selectedDifficulty = DifficultyLevel.beginner;
-  Set<ScriptureBook> _selectedBooks = {};
+  final DifficultyLevel _selectedDifficulty = DifficultyLevel.beginner;
+  final Set<ScriptureBook> _selectedBooks = {};
 
   @override
   Widget build(BuildContext context) {
-    return _PracticeCard(
-      title: 'Scripture Match',
-      description:
-          'Match key phrases with their scripture references. Tests your recognition and familiarity.',
-      icon: Icons.layers,
-      iconColor: AppTheme.primary,
-      difficulty: _selectedDifficulty,
-      selectedBooks: _selectedBooks,
-      onDifficultyChanged: (d) {
-        setState(() => _selectedDifficulty = d);
-      },
-      onBooksChanged: (books) {
-        setState(() => _selectedBooks = books);
-      },
-      onPressed: () => _launchMatching(context),
-      buttonLabel: 'Begin Match',
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.secondaryContainer.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(
+          color: AppTheme.secondaryContainer.withValues(alpha: 0.5),
+          width: 1.0,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Icon + Title + Description
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: AppTheme.secondaryContainer,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                  ),
+                  child: const Icon(
+                    Icons.layers,
+                    color: AppTheme.secondary,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16.0),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Scripture Match',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontFamily: 'Merriweather',
+                              fontWeight: FontWeight.bold,
+                              fontStyle: FontStyle.italic,
+                              color: AppTheme.onSecondaryContainer,
+                            ),
+                      ),
+                      const SizedBox(height: 8.0),
+                      Text(
+                        'Match key phrases with their scripture references. Tests your recognition and familiarity.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppTheme.onSecondaryContainer.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20.0),
+            // "Begin Session" button
+            TextButton.icon(
+              onPressed: () => _launchMatching(context),
+              label: Text(
+                'Begin Session',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: AppTheme.secondary,
+                    ),
+              ),
+              icon: const Icon(
+                Icons.arrow_forward,
+                color: AppTheme.secondary,
+                size: 18,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -191,27 +436,87 @@ class _QuizGameCard extends StatefulWidget {
 }
 
 class _QuizGameCardState extends State<_QuizGameCard> {
-  DifficultyLevel _selectedDifficulty = DifficultyLevel.beginner;
-  Set<ScriptureBook> _selectedBooks = {};
+  final DifficultyLevel _selectedDifficulty = DifficultyLevel.beginner;
+  final Set<ScriptureBook> _selectedBooks = {};
 
   @override
   Widget build(BuildContext context) {
-    return _PracticeCard(
-      title: 'Quick Quiz',
-      description:
-          'Answer questions about scripture passages. Tests your comprehension and understanding.',
-      icon: Icons.quiz,
-      iconColor: AppTheme.tertiary,
-      difficulty: _selectedDifficulty,
-      selectedBooks: _selectedBooks,
-      onDifficultyChanged: (d) {
-        setState(() => _selectedDifficulty = d);
-      },
-      onBooksChanged: (books) {
-        setState(() => _selectedBooks = books);
-      },
-      onPressed: () => _launchQuiz(context),
-      buttonLabel: 'Take Quiz',
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFE3F2FD).withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(
+          color: const Color(0xFFBBDEFB),
+          width: 1.0,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Icon + Title + Description
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFBBDEFB),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                  ),
+                  child: const Icon(
+                    Icons.quiz,
+                    color: Color(0xFF1565C0),
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16.0),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Quick Quiz',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontFamily: 'Merriweather',
+                              fontWeight: FontWeight.bold,
+                              fontStyle: FontStyle.italic,
+                              color: const Color(0xFF0D47A1),
+                            ),
+                      ),
+                      const SizedBox(height: 8.0),
+                      Text(
+                        'Answer questions about scripture passages. Tests your comprehension and understanding.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFF0D47A1).withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20.0),
+            // "Take Quiz" button
+            TextButton.icon(
+              onPressed: () => _launchQuiz(context),
+              label: Text(
+                'Take Quiz',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: const Color(0xFF1565C0),
+                    ),
+              ),
+              icon: const Icon(
+                Icons.arrow_forward,
+                color: Color(0xFF1565C0),
+                size: 18,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -227,208 +532,91 @@ class _QuizGameCardState extends State<_QuizGameCard> {
   }
 }
 
-/// Reusable practice card component
-class _PracticeCard extends StatelessWidget {
-  final String title;
-  final String description;
-  final IconData icon;
-  final Color iconColor;
-  final DifficultyLevel difficulty;
-  final Set<ScriptureBook> selectedBooks;
-  final ValueChanged<DifficultyLevel> onDifficultyChanged;
-  final ValueChanged<Set<ScriptureBook>> onBooksChanged;
-  final VoidCallback onPressed;
-  final String buttonLabel;
-
-  const _PracticeCard({
-    required this.title,
-    required this.description,
-    required this.icon,
-    required this.iconColor,
-    required this.difficulty,
-    required this.selectedBooks,
-    required this.onDifficultyChanged,
-    required this.onBooksChanged,
-    required this.onPressed,
-    required this.buttonLabel,
-  });
-
+/// Sacred Achievement section at bottom
+class _SacredAchievementSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        boxShadow: AppTheme.editorialShadow,
+        color: AppTheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacingLg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Title + Icon
-            Row(
+      padding: const EdgeInsets.all(40.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Sacred Achievement',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontFamily: 'Merriweather',
+                  fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12.0),
+          Text(
+            'Complete 3 Practice sessions today to unlock your next Mastery Badge',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 24.0),
+          // Progress bar
+          Container(
+            height: 8.0,
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(4.0),
+            ),
+            child: Stack(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(AppTheme.spacingSm),
+                  height: 8.0,
+                  width: MediaQuery.of(context).size.width * 0.66,
                   decoration: BoxDecoration(
-                    color: iconColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                  ),
-                  child: Icon(
-                    icon,
-                    color: iconColor,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: AppTheme.spacingMd),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: Theme.of(context).textTheme.headlineMedium,
-                      ),
-                      const SizedBox(height: AppTheme.spacingSm),
-                      Text(
-                        description,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
+                    color: AppTheme.secondary,
+                    borderRadius: BorderRadius.circular(4.0),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: AppTheme.spacingLg),
+          ),
+          const SizedBox(height: 24.0),
+          // Medal icons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _MedalIcon(),
+              const SizedBox(width: 24.0),
+              _MedalIcon(),
+              const SizedBox(width: 24.0),
+              _MedalIcon(),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-            // Book filter
-            Text(
-              'Select Books',
-              style: Theme.of(context).textTheme.labelMedium,
-            ),
-            const SizedBox(height: AppTheme.spacingSm),
-            _buildMultiSelectBookFilter(context, iconColor),
-            const SizedBox(height: AppTheme.spacingMd),
-
-            // Difficulty filter
-            Text(
-              'Difficulty',
-              style: Theme.of(context).textTheme.labelMedium,
-            ),
-            const SizedBox(height: AppTheme.spacingSm),
-            _buildDifficultyChips(context, iconColor),
-            const SizedBox(height: AppTheme.spacingLg),
-
-            // Start button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: iconColor,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: AppTheme.spacingMd),
-                ),
-                onPressed: onPressed,
-                child: Text(buttonLabel),
-              ),
-            ),
-          ],
+/// Medal icon component
+class _MedalIcon extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 56.0,
+      height: 56.0,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppTheme.tertiary.withValues(alpha: 0.1),
+        border: Border.all(
+          color: AppTheme.tertiary.withValues(alpha: 0.3),
+          width: 2.0,
         ),
       ),
-    );
-  }
-
-  Widget _buildDifficultyChips(BuildContext context, Color accentColor) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: DifficultyLevel.values.map((d) {
-          final isSelected = difficulty == d;
-          return Padding(
-            padding: const EdgeInsets.only(right: AppTheme.spacingSm),
-            child: FilterChip(
-              label: Text(d.label),
-              selected: isSelected,
-              onSelected: (_) => onDifficultyChanged(d),
-              backgroundColor: AppTheme.surfaceContainerLow,
-              selectedColor: accentColor.withValues(alpha: 0.2),
-              side: BorderSide(
-                color: isSelected
-                    ? accentColor
-                    : AppTheme.outline.withValues(alpha: 0.2),
-              ),
-              labelStyle: TextStyle(
-                color: isSelected ? accentColor : AppTheme.onSurface,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildMultiSelectBookFilter(BuildContext context, Color accentColor) {
-    final allSelected = selectedBooks.isEmpty;
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(right: AppTheme.spacingSm),
-            child: FilterChip(
-              label: const Text('All'),
-              selected: allSelected,
-              onSelected: (_) => onBooksChanged({}),
-              backgroundColor: AppTheme.surfaceContainerLow,
-              selectedColor: accentColor.withValues(alpha: 0.2),
-              side: BorderSide(
-                color: allSelected
-                    ? accentColor
-                    : AppTheme.outline.withValues(alpha: 0.2),
-              ),
-              labelStyle: TextStyle(
-                color: allSelected ? accentColor : AppTheme.onSurface,
-                fontWeight: allSelected ? FontWeight.w600 : FontWeight.normal,
-              ),
-            ),
-          ),
-          ...ScriptureBook.values.map((book) {
-            final isSelected = selectedBooks.contains(book);
-            return Padding(
-              padding: const EdgeInsets.only(right: AppTheme.spacingSm),
-              child: FilterChip(
-                label: Text(book.abbreviation),
-                selected: isSelected,
-                onSelected: (selected) {
-                  Set<ScriptureBook> updated = {...selectedBooks};
-                  if (selected) {
-                    updated.add(book);
-                    // Auto-clear if all selected
-                    if (updated.length == ScriptureBook.values.length) {
-                      updated.clear();
-                    }
-                  } else {
-                    updated.remove(book);
-                  }
-                  onBooksChanged(updated);
-                },
-                backgroundColor: AppTheme.surfaceContainerLow,
-                selectedColor: accentColor.withValues(alpha: 0.2),
-                side: BorderSide(
-                  color: isSelected
-                      ? accentColor
-                      : AppTheme.outline.withValues(alpha: 0.2),
-                ),
-                labelStyle: TextStyle(
-                  color: isSelected ? accentColor : AppTheme.onSurface,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                ),
-              ),
-            );
-          }),
-        ],
+      child: const Icon(
+        Icons.emoji_events,
+        color: AppTheme.tertiary,
+        size: 28.0,
       ),
     );
   }

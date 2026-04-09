@@ -63,9 +63,10 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
     final chatHistory = ref.read(chatHistoryProvider);
     if (chatHistory.isNotEmpty) return;
 
-    final message = 'I\'d like to learn more about ${scripture.reference} '
-        '("${scripture.name}"). Can you help me understand its context, '
-        'doctrine, and how I can apply it?';
+    // Build a contextual message that references the scripture
+    final message = 'Peace be with you. I see you\'ve spent some time today in '
+        '${scripture.reference}. The imagery of "${scripture.keyPhrase}" is '
+        'powerful. Let\'s sit with that.';
 
     ref.read(sidekickProvider.notifier).sendMessage(message);
   }
@@ -179,20 +180,30 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Label
+            Text(
+              'Your Spiritual Guide',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: AppTheme.secondary,
+                    letterSpacing: 2.0,
+                  ),
+            ),
+            const SizedBox(height: AppTheme.spacingSm),
             // Title
             Text(
               'Walking in the Light',
               style: GoogleFonts.merriweather(
-                fontSize: 28,
+                fontSize: 32,
                 fontWeight: FontWeight.w700,
-                color: AppTheme.primary,
+                color: AppTheme.onSurface,
                 height: 1.2,
+                fontStyle: FontStyle.italic,
               ),
             ),
             const SizedBox(height: AppTheme.spacingSm),
             // Subtitle
             Text(
-              'Explore scripture with your Sidekick. Ask questions, seek understanding, and deepen your faith.',
+              'Your Sidekick is here to help you bridge the gap between ancient scripture and modern life.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppTheme.onSurfaceVariant,
                     height: 1.5,

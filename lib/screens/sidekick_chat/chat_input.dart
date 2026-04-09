@@ -30,52 +30,67 @@ class ChatInput extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? AppTheme.darkBackground : AppTheme.surface,
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: isDark
-                    ? AppTheme.darkSurfaceContainerLow
-                    : AppTheme.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.onSurface.withValues(alpha: 0.04),
-                    blurRadius: 8,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-              ),
-              child: TextField(
-                controller: controller,
-                focusNode: focusNode,
-                maxLines: 4,
-                minLines: 1,
-                textCapitalization: TextCapitalization.sentences,
-                textInputAction: TextInputAction.newline,
-                style: Theme.of(context).textTheme.bodyMedium,
-                decoration: InputDecoration(
-                  hintText: 'Ask about a scripture...',
-                  hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.onSurfaceVariant.withValues(alpha: 0.5),
+          Container(
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppTheme.darkSurfaceContainerLow
+                  : AppTheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.onSurface.withValues(alpha: 0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    maxLines: 4,
+                    minLines: 1,
+                    textCapitalization: TextCapitalization.sentences,
+                    textInputAction: TextInputAction.newline,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                    decoration: InputDecoration(
+                      hintText: 'Ask about scripture, history, or your journey...',
+                      hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppTheme.outlineVariant,
+                            fontWeight: FontWeight.w400,
+                          ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacingMd,
+                        vertical: AppTheme.spacingMd,
                       ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppTheme.spacingMd,
-                    vertical: AppTheme.spacingMd,
+                    ),
+                    onSubmitted: (_) => onSend(),
                   ),
                 ),
-                onSubmitted: (_) => onSend(),
-              ),
+                // Send button
+                _SendButton(
+                  isLoading: isLoading,
+                  onTap: isLoading ? null : onSend,
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: AppTheme.spacingSm),
-          // Send button
-          _SendButton(
-            isLoading: isLoading,
-            onTap: isLoading ? null : onSend,
+          const SizedBox(height: AppTheme.spacingSm),
+          Text(
+            'Sidekick is an AI companion for theological exploration.',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: AppTheme.outlineVariant,
+                  letterSpacing: 1.5,
+                ),
           ),
         ],
       ),
@@ -94,23 +109,29 @@ class _SendButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = AppTheme.sidekickColor(context);
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+        borderRadius: BorderRadius.circular(18),
         child: Container(
-          width: 44,
-          height: 44,
+          width: 48,
+          height: 48,
+          margin: const EdgeInsets.only(right: AppTheme.spacingSm),
           decoration: BoxDecoration(
-            color: isLoading ? baseColor.withValues(alpha: 0.4) : baseColor,
-            borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppTheme.primary,
+                AppTheme.primaryContainer,
+              ],
+            ),
+            borderRadius: BorderRadius.circular(18),
             boxShadow: !isLoading
                 ? [
                     BoxShadow(
-                      color: baseColor.withValues(alpha: 0.25),
+                      color: AppTheme.primary.withValues(alpha: 0.3),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -119,7 +140,7 @@ class _SendButton extends StatelessWidget {
           ),
           child: Center(
             child: Icon(
-              isLoading ? Icons.hourglass_empty : Icons.arrow_upward,
+              isLoading ? Icons.hourglass_empty : Icons.send,
               color: Colors.white,
               size: 20,
             ),

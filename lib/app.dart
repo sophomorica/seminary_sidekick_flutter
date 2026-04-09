@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'theme/app_theme.dart';
 import 'providers/onboarding_provider.dart';
@@ -149,22 +150,91 @@ class _SeminarySidekickAppState extends ConsumerState<SeminarySidekickApp> {
   }
 }
 
-/// Sacred Editorial shell — glassmorphic bottom nav with 5 destinations.
-class _AppShell extends StatelessWidget {
+/// Sacred Editorial shell — header + glassmorphic bottom nav with 5 destinations.
+class _AppShell extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
   const _AppShell({required this.navigationShell});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final navBg = isDark
         ? AppTheme.darkBackground.withValues(alpha: 0.9)
         : AppTheme.surface.withValues(alpha: 0.8);
+    final headerBg = isDark
+        ? AppTheme.darkBackground.withValues(alpha: 0.9)
+        : AppTheme.surface.withValues(alpha: 0.8);
 
     return Scaffold(
-      body: navigationShell,
+      body: Column(
+        children: [
+          // ─── Sacred Editorial Header ─────────────────────────
+          ClipRRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: Container(
+                color: headerBg,
+                padding: EdgeInsets.only(
+                  top: MediaQuery.of(context).padding.top + 8,
+                  left: 20,
+                  right: 20,
+                  bottom: 12,
+                ),
+                child: Row(
+                  children: [
+                    // Profile avatar
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppTheme.secondaryContainer,
+                        border: Border.all(
+                          color: AppTheme.outlineVariant.withValues(alpha: 0.15),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.person,
+                        size: 20,
+                        color: AppTheme.secondary,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    // "Sacred Editorial" wordmark
+                    Text(
+                      'Sacred Editorial',
+                      style: GoogleFonts.merriweather(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w400,
+                        fontStyle: FontStyle.italic,
+                        color: isDark
+                            ? AppTheme.primaryFixedDim
+                            : AppTheme.primary,
+                      ),
+                    ),
+                    const Spacer(),
+                    // Streak badge
+                    Text(
+                      '7\u{1F525}',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: isDark
+                            ? AppTheme.primaryFixedDim
+                            : AppTheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // ─── Tab content ─────────────────────────────────────
+          Expanded(child: navigationShell),
+        ],
+      ),
       extendBody: true,
       bottomNavigationBar: ClipRRect(
         borderRadius: const BorderRadius.vertical(

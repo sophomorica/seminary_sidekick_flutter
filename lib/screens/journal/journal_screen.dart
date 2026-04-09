@@ -10,6 +10,8 @@ import 'journal_list_view.dart';
 ///
 /// Free users see a teaser; premium users get the full experience.
 /// Sacred Editorial design system with warm, inviting aesthetic.
+/// Redesigned to match HTML mockup with hero heading, gradient editor card,
+/// and portfolio progress tracking.
 class JournalScreen extends ConsumerStatefulWidget {
   /// Optional: pre-select a prompt to start writing immediately.
   final String? initialPrompt;

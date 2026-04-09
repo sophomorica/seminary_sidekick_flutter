@@ -20,419 +20,442 @@ class ProgressScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppTheme.surface,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd),
+        padding: const EdgeInsets.symmetric(horizontal: 24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: AppTheme.spacingXl),
+            const SizedBox(height: 48.0),
 
-            // Editorial Header
-            _buildEditorialHeader(context),
-            const SizedBox(height: AppTheme.spacingXl),
+            // Header
+            _buildHeader(context),
+            const SizedBox(height: 32.0),
 
             // Continuity Heatmap
             _buildContinuityHeatmap(context),
-            const SizedBox(height: AppTheme.spacingXl),
+            const SizedBox(height: 32.0),
 
-            // Sacred Mastery Streak Card
+            // Mastery Streak + Book Breakdown
             _buildStreakCard(context, stats),
-            const SizedBox(height: AppTheme.spacingXl),
+            const SizedBox(height: 32.0),
 
-            // Book Breakdown (4 circular rings)
             _buildBookBreakdown(context, ref, allScriptures),
-            const SizedBox(height: AppTheme.spacingXl),
+            const SizedBox(height: 32.0),
 
-            // Needs Review Section
-            if (needsReview.isNotEmpty) ...[
-              _buildNeedsReviewSection(
-                  context, ref, needsReview.map((s) => s.id).toList()),
-              const SizedBox(height: AppTheme.spacingXl),
-            ],
+            // Needs Review + Achievements
+            if (needsReview.isNotEmpty)
+              _buildNeedsReviewAndAchievements(context, ref, stats, needsReview)
+            else
+              _buildAchievementMedalsStandalone(context, stats),
 
-            // Achievement Medals (placeholder)
-            _buildAchievementMedals(context, stats),
-            const SizedBox(height: 120), // Bottom nav padding
+            const SizedBox(height: 32.0),
+
+            // CTA
+            _buildDeepFoundationCTA(context),
+            const SizedBox(height: 120),
           ],
         ),
       ),
     );
   }
 
-  // Editorial header with title and subtitle
-  Widget _buildEditorialHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Mastery &\nProgress',
+          'Mastery & Progress',
           style: Theme.of(context).textTheme.displayLarge,
         ),
-        const SizedBox(height: AppTheme.spacingSm),
+        const SizedBox(height: 8.0),
         Text(
-          'Reflect on your journey through sacred scripture',
+          'A reflection of your consistency and the deepening of your scriptural understanding. Every verse mastered is a step closer to wisdom.',
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: AppTheme.onSurface.withValues(alpha: 0.7),
+                color: AppTheme.onSurfaceVariant,
               ),
         ),
       ],
     );
   }
 
-  // Continuity heatmap (last 90 days)
   Widget _buildContinuityHeatmap(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Continuity Heatmap',
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-        const SizedBox(height: AppTheme.spacingMd),
-        Container(
-          padding: const EdgeInsets.all(AppTheme.spacingMd),
-          decoration: BoxDecoration(
-            color: AppTheme.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(AppTheme.radiusXl),
-            boxShadow: AppTheme.editorialShadow,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32.0),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+        boxShadow: AppTheme.editorialShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Continuity Heatmap',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontStyle: FontStyle.italic,
+                ),
           ),
-          child: _buildHeatmapGrid(),
-        ),
-      ],
+          const SizedBox(height: 8.0),
+          Text(
+            'Your daily engagement with the sacred word',
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: AppTheme.onSurfaceVariant,
+                ),
+          ),
+          const SizedBox(height: 24.0),
+
+          // Color legend
+          Row(
+            children: [
+              const _ColorLegendBox(color: AppTheme.surfaceContainerHighest),
+              const SizedBox(width: 8.0),
+              _ColorLegendBox(color: AppTheme.primary.withValues(alpha: 0.1)),
+              const SizedBox(width: 8.0),
+              _ColorLegendBox(color: AppTheme.primary.withValues(alpha: 0.3)),
+              const SizedBox(width: 8.0),
+              _ColorLegendBox(color: AppTheme.primary.withValues(alpha: 0.6)),
+              const SizedBox(width: 8.0),
+              const _ColorLegendBox(color: AppTheme.primary),
+            ],
+          ),
+          const SizedBox(height: 24.0),
+
+          // Heatmap grid
+          _buildHeatmapGrid(),
+        ],
+      ),
     );
   }
 
-  // Heatmap grid widget
   Widget _buildHeatmapGrid() {
     const daysToShow = 90;
-    final now = DateTime.now();
     final colors = [
       AppTheme.surfaceContainerHighest,
-      AppTheme.primaryFixed.withValues(alpha: 0.3),
-      AppTheme.primaryFixed.withValues(alpha: 0.6),
-      AppTheme.primaryFixed,
+      AppTheme.primary.withValues(alpha: 0.1),
+      AppTheme.primary.withValues(alpha: 0.3),
+      AppTheme.primary.withValues(alpha: 0.6),
       AppTheme.primary,
     ];
 
-    return GridView.builder(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 13,
-        crossAxisSpacing: 4,
-        mainAxisSpacing: 4,
-      ),
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: daysToShow,
-      itemBuilder: (context, index) {
-        final _ = now.subtract(Duration(days: daysToShow - 1 - index));
-        // Placeholder: 0-4 activity levels
+    return Wrap(
+      spacing: 4.0,
+      runSpacing: 4.0,
+      children: List.generate(daysToShow, (index) {
         final activityLevel = (index % 5).toInt();
-        return Container(
-          decoration: BoxDecoration(
-            color: colors[activityLevel],
-            borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+        return SizedBox(
+          width: 16.0,
+          height: 16.0,
+          child: Container(
+            decoration: BoxDecoration(
+              color: colors[activityLevel],
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+            ),
           ),
         );
-      },
+      }),
     );
   }
 
-  // Sacred Mastery Streak Card
   Widget _buildStreakCard(BuildContext context, HolisticStats stats) {
     return Container(
-      padding: const EdgeInsets.all(AppTheme.spacingLg),
+      width: double.infinity,
+      padding: const EdgeInsets.all(32.0),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerLowest,
+        color: AppTheme.tertiaryFixed,
         borderRadius: BorderRadius.circular(AppTheme.radiusXl),
         boxShadow: AppTheme.editorialShadow,
       ),
       child: Column(
         children: [
-          // Large streak number
           Text(
-            '42',
-            style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                  color: AppTheme.primary,
+            'SACRED MASTERY',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: AppTheme.onTertiaryFixedVariant,
+                  letterSpacing: 1.5,
                 ),
           ),
-          const SizedBox(height: AppTheme.spacingSm),
+          const SizedBox(height: 8.0),
           Text(
-            'Days of Focus',
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-          const SizedBox(height: AppTheme.spacingMd),
-          // Circular progress ring (simplified)
-          Center(
-            child: SizedBox(
-              width: 120,
-              height: 120,
-              child: CustomPaint(
-                painter: _ProgressRingPainter(
-                  progress: 0.7,
-                  color: AppTheme.secondary,
-                  strokeWidth: 8,
+            'Mastery Streak',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: AppTheme.onTertiaryFixed,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 32,
                 ),
+          ),
+          const SizedBox(height: 16.0),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                '42',
+                style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                      color: AppTheme.onTertiaryFixed,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 72,
+                    ),
+              ),
+              const SizedBox(width: 16.0),
+              Text(
+                'Days of Focus',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: AppTheme.onTertiaryFixedVariant,
+                      fontSize: 18,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24.0),
+
+          // Progress bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+            child: LinearProgressIndicator(
+              value: 0.8,
+              minHeight: 8.0,
+              backgroundColor: AppTheme.onTertiaryFixed.withValues(alpha: 0.2),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                AppTheme.onTertiaryFixed,
               ),
             ),
           ),
-          const SizedBox(height: AppTheme.spacingMd),
+          const SizedBox(height: 16.0),
           Text(
-            'Keep the momentum going',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.onSurface.withValues(alpha: 0.6),
+            '12 days until "The Elder" status',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppTheme.onTertiaryFixedVariant,
                 ),
-            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
 
-  // Book breakdown with 4 circular rings
   Widget _buildBookBreakdown(
     BuildContext context,
     WidgetRef ref,
     List<Scripture> allScriptures,
   ) {
-    return Column(
+    return GridView.count(
+      crossAxisCount: 4,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 16.0,
+      crossAxisSpacing: 16.0,
+      childAspectRatio: 1.0,
+      children: ScriptureBook.values.map((book) {
+        final bookScriptures =
+            allScriptures.where((s) => s.book == book).toList();
+
+        int masteredCount = 0;
+        for (final scripture in bookScriptures) {
+          final mastery = ref.watch(scriptureMasteryProvider(scripture.id));
+          if (mastery.level == MasteryLevel.mastered ||
+              mastery.level == MasteryLevel.eternal) {
+            masteredCount++;
+          }
+        }
+
+        final total = bookScriptures.length;
+        final progress = total > 0 ? masteredCount / total : 0.0;
+
+        return _BookBreakdownCard(
+          bookName: book.displayName,
+          progress: progress,
+          percentage: (progress * 100).toInt(),
+          bookColor: AppTheme.bookColor(book.displayName),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildNeedsReviewAndAchievements(
+    BuildContext context,
+    WidgetRef ref,
+    HolisticStats stats,
+    List<Scripture> needsReview,
+  ) {
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Mastery by Book',
-          style: Theme.of(context).textTheme.headlineMedium,
+        // Needs Review (left, wider)
+        Expanded(
+          flex: 7,
+          child: _buildNeedsReviewSection(context, ref, needsReview),
         ),
-        const SizedBox(height: AppTheme.spacingMd),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: AppTheme.spacingMd,
-          crossAxisSpacing: AppTheme.spacingMd,
-          children: ScriptureBook.values.map((book) {
-            final bookScriptures =
-                allScriptures.where((s) => s.book == book).toList();
+        const SizedBox(width: 32.0),
 
-            int masteredCount = 0;
-            for (final scripture in bookScriptures) {
-              final mastery = ref.watch(scriptureMasteryProvider(scripture.id));
-              if (mastery.level == MasteryLevel.mastered ||
-                  mastery.level == MasteryLevel.eternal) {
-                masteredCount++;
-              }
-            }
-
-            final total = bookScriptures.length;
-            final progress = total > 0 ? masteredCount / total : 0.0;
-
-            return _BookCard(
-              bookName: book.displayName,
-              progress: progress,
-              masteredCount: masteredCount,
-              totalCount: total,
-              bookColor: AppTheme.bookColor(book.displayName),
-            );
-          }).toList(),
+        // Achievements (right, narrower)
+        Expanded(
+          flex: 5,
+          child: _buildAchievementMedals(context, stats),
         ),
       ],
     );
   }
 
-  // Needs Review section
   Widget _buildNeedsReviewSection(
     BuildContext context,
     WidgetRef ref,
-    List<String> needsReview,
+    List<Scripture> needsReview,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Needs Review',
-          style: Theme.of(context).textTheme.headlineMedium,
+        Row(
+          children: [
+            Text(
+              'Needs Review',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontStyle: FontStyle.italic,
+                  ),
+            ),
+            const SizedBox(width: 12.0),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+              decoration: BoxDecoration(
+                color: AppTheme.errorContainer,
+                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+              ),
+              child: Text(
+                '${needsReview.length} Flagged',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppTheme.onErrorContainer,
+                    ),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: AppTheme.spacingMd),
-        ...needsReview.take(5).map((scriptureId) {
-          final scripture = ref.watch(scriptureByIdProvider(scriptureId));
-          if (scripture == null) return const SizedBox.shrink();
-          return _NeedsReviewTile(
-            scripture: scripture,
-            daysSincePractice: 15,
-          );
+        const SizedBox(height: 16.0),
+        ...needsReview.take(5).map((scripture) {
+          return _NeedsReviewTile(scripture: scripture);
         }),
       ],
     );
   }
 
-  // Achievement Medals section
   Widget _buildAchievementMedals(BuildContext context, HolisticStats stats) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Achievement Medals',
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-        const SizedBox(height: AppTheme.spacingMd),
-        GridView.count(
-          crossAxisCount: 4,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: AppTheme.spacingMd,
-          crossAxisSpacing: AppTheme.spacingMd,
-          children: [
-            _AchievementMedal(
-              icon: Icons.whatshot,
-              label: 'Hot Streak',
-              unlocked: stats.mastered > 0,
-            ),
-            _AchievementMedal(
-              icon: Icons.auto_awesome,
-              label: 'First Master',
-              unlocked: stats.mastered > 0,
-            ),
-            _AchievementMedal(
-              icon: Icons.workspace_premium,
-              label: 'Book Master',
-              unlocked: stats.eternal > 0,
-            ),
-            _AchievementMedal(
-              icon: Icons.diamond,
-              label: 'Eternal',
-              unlocked: stats.eternal > 0,
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-// Book card with circular progress
-class _BookCard extends StatelessWidget {
-  final String bookName;
-  final double progress;
-  final int masteredCount;
-  final int totalCount;
-  final Color bookColor;
-
-  const _BookCard({
-    required this.bookName,
-    required this.progress,
-    required this.masteredCount,
-    required this.totalCount,
-    required this.bookColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppTheme.spacingMd),
+      padding: const EdgeInsets.all(40.0),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerLowest,
+        color: AppTheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(AppTheme.radiusXl),
         boxShadow: AppTheme.editorialShadow,
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Circular progress ring
-          SizedBox(
-            width: 80,
-            height: 80,
-            child: CustomPaint(
-              painter: _ProgressRingPainter(
-                progress: progress,
-                color: bookColor,
-                strokeWidth: 6,
-              ),
-              child: Center(
-                child: Text(
-                  '${(progress * 100).toStringAsFixed(0)}%',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: bookColor,
-                      ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: AppTheme.spacingMd),
           Text(
-            bookName,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+            'Achievement Medals',
             textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppTheme.spacingSm),
-          Text(
-            '$masteredCount/$totalCount',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.onSurface.withValues(alpha: 0.6),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontStyle: FontStyle.italic,
                 ),
+          ),
+          const SizedBox(height: 48.0),
+
+          // 2x2 grid with larger gaps
+          Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _AchievementMedalWidget(
+                    icon: Icons.whatshot,
+                    label: 'Hot Streak',
+                    unlocked: stats.mastered > 0,
+                  ),
+                  _AchievementMedalWidget(
+                    icon: Icons.auto_awesome,
+                    label: 'First Master',
+                    unlocked: stats.mastered > 0,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 48.0),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _AchievementMedalWidget(
+                    icon: Icons.workspace_premium,
+                    label: 'Book Master',
+                    unlocked: stats.eternal > 0,
+                  ),
+                  _AchievementMedalWidget(
+                    icon: Icons.diamond,
+                    label: 'Eternal',
+                    unlocked: stats.eternal > 0,
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
     );
   }
-}
 
-// Needs Review Tile
-class _NeedsReviewTile extends StatelessWidget {
-  final Scripture scripture;
-  final int daysSincePractice;
+  Widget _buildAchievementMedalsStandalone(
+    BuildContext context,
+    HolisticStats stats,
+  ) {
+    return _buildAchievementMedals(context, stats);
+  }
 
-  const _NeedsReviewTile({
-    required this.scripture,
-    required this.daysSincePractice,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppTheme.spacingMd),
+  Widget _buildDeepFoundationCTA(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [AppTheme.primary, AppTheme.primaryContainer],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+      ),
+      padding: const EdgeInsets.all(4.0),
       child: Container(
-        padding: const EdgeInsets.all(AppTheme.spacingMd),
+        padding: const EdgeInsets.all(48.0),
         decoration: BoxDecoration(
           color: AppTheme.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-          boxShadow: AppTheme.editorialShadow,
+          borderRadius: BorderRadius.circular(28.0),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Column(
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    scripture.reference,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+            Text(
+              'Deepen Your Foundation',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontStyle: FontStyle.italic,
+                    fontSize: 28,
                   ),
-                  const SizedBox(height: AppTheme.spacingSm),
-                  Text(
-                    '$daysSincePractice days since practice',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.warning,
-                        ),
-                  ),
-                ],
-              ),
             ),
+            const SizedBox(height: 16.0),
+            Text(
+              'Continue your journey with daily prompts, reflection exercises, and personalized insights from your Seminary Sidekick.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: AppTheme.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: 32.0),
             ElevatedButton(
               onPressed: () {},
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primary,
                 foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+                ),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: AppTheme.spacingMd,
-                  vertical: AppTheme.spacingSm,
+                  horizontal: 48.0,
+                  vertical: 16.0,
                 ),
               ),
               child: Text(
-                'Review',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                'Explore Premium',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       color: Colors.white,
                     ),
               ),
@@ -444,13 +467,182 @@ class _NeedsReviewTile extends StatelessWidget {
   }
 }
 
+// Color legend box
+class _ColorLegendBox extends StatelessWidget {
+  final Color color;
+
+  const _ColorLegendBox({required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 16.0,
+      height: 16.0,
+      child: Container(
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+        ),
+      ),
+    );
+  }
+}
+
+// Book breakdown card with circular ring
+class _BookBreakdownCard extends StatelessWidget {
+  final String bookName;
+  final double progress;
+  final int percentage;
+  final Color bookColor;
+
+  const _BookBreakdownCard({
+    required this.bookName,
+    required this.progress,
+    required this.percentage,
+    required this.bookColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(32.0),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+        boxShadow: AppTheme.editorialShadow,
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Circular progress ring (128px = w-32 h-32)
+          SizedBox(
+            width: 128,
+            height: 128,
+            child: CustomPaint(
+              painter: _ProgressRingPainter(
+                progress: progress,
+                color: bookColor,
+                strokeWidth: 8,
+              ),
+              child: Center(
+                child: Text(
+                  '$percentage%',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontStyle: FontStyle.italic,
+                        color: bookColor,
+                      ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16.0),
+          Text(
+            bookName,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 4.0),
+          Text(
+            'Scripture Mastery',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppTheme.onSurfaceVariant,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Needs Review Tile
+class _NeedsReviewTile extends StatelessWidget {
+  final Scripture scripture;
+
+  const _NeedsReviewTile({required this.scripture});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Container(
+        padding: const EdgeInsets.all(24.0),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          boxShadow: AppTheme.editorialShadow,
+          border: const Border(
+            left: BorderSide(
+              color: AppTheme.error,
+              width: 4.0,
+            ),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Mastery Low (32%)',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: AppTheme.error,
+                          letterSpacing: 1.0,
+                        ),
+                  ),
+                  const SizedBox(height: 8.0),
+                  Text(
+                    scripture.reference,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontStyle: FontStyle.italic,
+                        ),
+                  ),
+                  const SizedBox(height: 8.0),
+                  Text(
+                    scripture.keyPhrase,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.onSurfaceVariant,
+                          fontStyle: FontStyle.italic,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16.0),
+            Container(
+              width: 48.0,
+              height: 48.0,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+                boxShadow: AppTheme.editorialShadow,
+              ),
+              child: const Icon(
+                Icons.refresh,
+                color: AppTheme.primary,
+                size: 20.0,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // Achievement Medal Widget
-class _AchievementMedal extends StatelessWidget {
+class _AchievementMedalWidget extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool unlocked;
 
-  const _AchievementMedal({
+  const _AchievementMedalWidget({
     required this.icon,
     required this.label,
     required this.unlocked,
@@ -458,36 +650,48 @@ class _AchievementMedal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: unlocked
-            ? AppTheme.tertiary.withValues(alpha: 0.1)
-            : AppTheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        boxShadow: AppTheme.editorialShadow,
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 32,
+    return Column(
+      children: [
+        Container(
+          width: 96.0,
+          height: 96.0,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: unlocked
+                ? AppTheme.tertiaryContainer
+                : AppTheme.surfaceContainerHigh,
+            border: unlocked
+                ? Border.all(
+                    color: AppTheme.tertiary.withValues(alpha: 0.1),
+                    width: 8.0,
+                  )
+                : Border.all(
+                    color: AppTheme.outline,
+                    width: 2.0,
+                    strokeAlign: BorderSide.strokeAlignOutside,
+                    style: BorderStyle.solid,
+                  ),
+          ),
+          child: Icon(
+            unlocked ? icon : Icons.lock_outline,
+            size: 48.0,
             color: unlocked
                 ? AppTheme.tertiary
                 : AppTheme.onSurface.withValues(alpha: 0.3),
           ),
-          const SizedBox(height: AppTheme.spacingSm),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: unlocked
-                      ? AppTheme.onSurface
-                      : AppTheme.onSurface.withValues(alpha: 0.4),
-                ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 12.0),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: unlocked
+                    ? AppTheme.tertiary
+                    : AppTheme.onSurface.withValues(alpha: 0.5),
+                letterSpacing: 1.0,
+              ),
+        ),
+      ],
     );
   }
 }
@@ -514,7 +718,7 @@ class _ProgressRingPainter extends CustomPainter {
       center,
       radius,
       Paint()
-        ..color = AppTheme.surfaceContainerHigh
+        ..color = AppTheme.surfaceContainerHighest
         ..style = PaintingStyle.stroke
         ..strokeWidth = strokeWidth
         ..strokeCap = StrokeCap.round,

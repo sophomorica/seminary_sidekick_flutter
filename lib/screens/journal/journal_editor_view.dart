@@ -259,6 +259,11 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
 
   @override
   Widget build(BuildContext context) {
+    // Get tagged scripture reference for prompt (first tagged scripture)
+    final mainScriptureRef = _taggedScriptureReferences.isNotEmpty
+        ? _taggedScriptureReferences.first
+        : null;
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
@@ -358,199 +363,378 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Daily Reflection Header (Sacred Editorial)
-                    if (_taggedScriptureReferences.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(
-                          bottom: AppTheme.spacingLg,
+                    // "DAILY REFLECTION" label + Hero Heading
+                    if (mainScriptureRef != null)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // "DAILY REFLECTION" uppercase label
+                          Text(
+                            'DAILY REFLECTION',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 2.0,
+                                ),
+                          ),
+                          const SizedBox(height: AppTheme.spacingMd),
+
+                          // Hero heading: "How did Mosiah 2:17 apply to your day?"
+                          Text(
+                            'How did $mainScriptureRef apply to your day?',
+                            style: Theme.of(context)
+                                .textTheme
+                                .displaySmall
+                                ?.copyWith(
+                                  fontStyle: FontStyle.italic,
+                                  height: 1.3,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                          const SizedBox(height: AppTheme.spacingXl),
+                        ],
+                      ),
+
+                    // Main editor card with gradient background + warm colors
+                    Container(
+                      constraints: const BoxConstraints(minHeight: 350),
+                      padding: const EdgeInsets.all(AppTheme.spacingLg),
+                      decoration: BoxDecoration(
+                        // Warm gradient: tertiaryFixed/30 to primaryFixed/30 at 135°
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            AppTheme.tertiaryFixed.withValues(alpha: 0.15),
+                            AppTheme.primaryFixed.withValues(alpha: 0.15),
+                          ],
+                        ),
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.radiusXl),
+                        border: Border.all(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .outlineVariant
+                              .withValues(alpha: 0.1),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header: edit icon + date
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.edit_note_outlined,
+                                size: 18,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                              const SizedBox(width: AppTheme.spacingMd),
+                              Expanded(
+                                child: Text(
+                                  'Journal Entry — ${_formatDate()}',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelSmall
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant
+                                            .withValues(alpha: 0.6),
+                                        letterSpacing: 0.5,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppTheme.spacingLg),
+
+                          // Main textarea with white/surfaceContainerLowest background
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerLowest,
+                                borderRadius: BorderRadius.circular(
+                                    AppTheme.radiusMd),
+                              ),
+                              padding: const EdgeInsets.all(AppTheme.spacingMd),
+                              child: Stack(
+                                children: [
+                                  TextField(
+                                    controller: _contentController,
+                                    textCapitalization:
+                                        TextCapitalization.sentences,
+                                    maxLines: null,
+                                    minLines: 8,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyLarge
+                                        ?.copyWith(
+                                          height: 1.6,
+                                        ),
+                                    decoration: InputDecoration(
+                                      hintText:
+                                          'Begin typing your thoughts here... Let the Spirit guide.',
+                                      hintStyle: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .outline
+                                                .withValues(alpha: 0.5),
+                                            height: 1.6,
+                                          ),
+                                      border: InputBorder.none,
+                                      contentPadding: EdgeInsets.zero,
+                                    ),
+                                  ),
+                                  // Watermark quote icon (bottom-right, very faint)
+                                  Positioned(
+                                    bottom: 0,
+                                    right: -8,
+                                    child: Icon(
+                                      Icons.format_quote,
+                                      size: 120,
+                                      color: AppTheme.primary
+                                          .withValues(alpha: 0.05),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppTheme.spacingLg),
+
+                          // Bottom row: Milestone chip + Save button
+                          Row(
+                            children: [
+                              // Portfolio milestone chip
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppTheme.spacingMd,
+                                  vertical: AppTheme.spacingSm,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.secondaryContainer
+                                      .withValues(alpha: 0.3),
+                                  borderRadius: BorderRadius.circular(
+                                      AppTheme.radiusRound),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.star,
+                                      size: 12,
+                                      color: AppTheme.tertiaryContainer,
+                                    ),
+                                    const SizedBox(
+                                        width: AppTheme.spacingSm),
+                                    Text(
+                                      'Portfolio milestone ready',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                            color: AppTheme.secondary,
+                                            fontStyle: FontStyle.italic,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Spacer(),
+                              // Save to Portfolio button with gradient (primary -> primaryContainer)
+                              Container(
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      AppTheme.primary,
+                                      AppTheme.primaryContainer,
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(
+                                      AppTheme.radiusRound),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppTheme.primary
+                                          .withValues(alpha: 0.2),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: _hasChanges ? _save : null,
+                                    borderRadius: BorderRadius.circular(
+                                        AppTheme.radiusRound),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: AppTheme.spacingLg,
+                                        vertical: AppTheme.spacingMd,
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Text(
+                                            'Save to Portfolio',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          const SizedBox(
+                                              width: AppTheme.spacingMd),
+                                          Icon(
+                                            Icons.arrow_upward,
+                                            size: 18,
+                                            color: Colors.white
+                                                .withValues(alpha: 0.8),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: AppTheme.spacingXl),
+
+                    // Contextual Verse section (if tagged)
+                    if (_taggedScriptureReferences.isNotEmpty) ...[
+                      Container(
+                        padding: const EdgeInsets.all(AppTheme.spacingLg),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerLow,
+                          borderRadius:
+                              BorderRadius.circular(AppTheme.radiusMd),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'How did ${_taggedScriptureReferences.first} apply to your day?',
+                              'Contextual Verse',
                               style: Theme.of(context)
                                   .textTheme
-                                  .displaySmall
+                                  .titleMedium
                                   ?.copyWith(
-                                    height: 1.3,
-                                    fontStyle: FontStyle.italic,
+                                    fontWeight: FontWeight.w600,
                                   ),
                             ),
                             const SizedBox(height: AppTheme.spacingMd),
-                          ],
-                        ),
-                      ),
-
-                    // AI Prompt Card (if present)
-                    if (widget.entry.hasPrompt) ...[
-                      Container(
-                        padding: const EdgeInsets.all(AppTheme.spacingMd),
-                        decoration: BoxDecoration(
-                          color: AppTheme.premiumGold.withValues(alpha: 0.08),
-                          borderRadius:
-                              BorderRadius.circular(AppTheme.radiusMd),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(
-                              Icons.auto_awesome,
-                              size: 18,
-                              color: AppTheme.premiumGold.withValues(alpha: 0.8),
+                            // Scripture quote in italic Merriweather
+                            Text(
+                              '"And behold, I tell you these things that ye may learn wisdom; that ye may learn that when ye are in the service of your fellow beings ye are only in the service of your God."',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    fontStyle: FontStyle.italic,
+                                    height: 1.6,
+                                  ),
                             ),
-                            const SizedBox(width: AppTheme.spacingMd),
-                            Expanded(
-                              child: Text(
-                                widget.entry.prompt!,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                      fontStyle: FontStyle.italic,
-                                      height: 1.5,
-                                    ),
-                              ),
+                            const SizedBox(height: AppTheme.spacingMd),
+                            // Reference below in secondary color
+                            Text(
+                              mainScriptureRef ?? '',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelMedium
+                                  ?.copyWith(
+                                    color: AppTheme.secondary,
+                                  ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: AppTheme.spacingLg),
+                      const SizedBox(height: AppTheme.spacingXl),
                     ],
 
-                    // Main content editor with Sacred Editorial warmth
+                    // Portfolio Progress section
                     Container(
                       padding: const EdgeInsets.all(AppTheme.spacingLg),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainerLow,
+                        color: AppTheme.secondary.withValues(alpha: 0.05),
+                        border: Border.all(
+                          color: AppTheme.secondary.withValues(alpha: 0.1),
+                          width: 1,
+                        ),
                         borderRadius:
                             BorderRadius.circular(AppTheme.radiusMd),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Title field (optional, subtle)
-                          if (_titleController.text.isNotEmpty ||
-                              !_hasChanges)
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                bottom: AppTheme.spacingMd,
-                              ),
-                              child: TextField(
-                                controller: _titleController,
-                                textCapitalization:
-                                    TextCapitalization.sentences,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineMedium
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                decoration: InputDecoration(
-                                  hintText: 'Reflection title (optional)',
-                                  hintStyle: Theme.of(context)
-                                      .textTheme
-                                      .headlineMedium
-                                      ?.copyWith(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withValues(alpha: 0.3),
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                  border: InputBorder.none,
-                                  contentPadding: EdgeInsets.zero,
-                                ),
-                              ),
-                            ),
-
-                          // Main content field
-                          TextField(
-                            controller: _contentController,
-                            textCapitalization:
-                                TextCapitalization.sentences,
-                            maxLines: null,
-                            minLines: 16,
+                          Text(
+                            'PORTFOLIO PROGRESS',
                             style: Theme.of(context)
                                 .textTheme
-                                .bodyLarge
+                                .labelSmall
                                 ?.copyWith(
-                                  height: 1.8,
+                                  color: AppTheme.secondary,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 1.5,
                                 ),
-                            decoration: InputDecoration(
-                              hintText:
-                                  'Begin typing your thoughts here... Let the Spirit guide.',
-                              hintStyle: Theme.of(context)
-                                  .textTheme
-                                  .bodyLarge
-                                  ?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: 0.35),
-                                    height: 1.8,
-                                  ),
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.zero,
+                          ),
+                          const SizedBox(height: AppTheme.spacingMd),
+                          // Progress bar
+                          Container(
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: AppTheme.secondaryContainer
+                                  .withValues(alpha: 0.4),
+                              borderRadius: BorderRadius.circular(
+                                  AppTheme.radiusRound),
                             ),
+                            child: FractionallySizedBox(
+                              widthFactor: 0.75,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: AppTheme.secondary,
+                                  borderRadius: BorderRadius.circular(
+                                      AppTheme.radiusRound),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppTheme.spacingMd),
+                          Text(
+                            'You are 2 reflections away from your next Mastery Seal.',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelMedium
+                                ?.copyWith(
+                                  color: AppTheme.secondary,
+                                ),
                           ),
                         ],
                       ),
                     ),
 
-                    const SizedBox(height: AppTheme.spacingLg),
-
-                    // Tagged scriptures (Contextual Verse)
-                    if (_taggedScriptureReferences.isNotEmpty) ...[
-                      Text(
-                        'Scripture Context',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                      const SizedBox(height: AppTheme.spacingMd),
-                      Wrap(
-                        spacing: AppTheme.spacingSm,
-                        runSpacing: AppTheme.spacingSm,
-                        children:
-                            _taggedScriptureReferences.map((scriptureRef) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppTheme.spacingMd,
-                              vertical: AppTheme.spacingSm,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppTheme.primary.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(
-                                AppTheme.radiusRound,
-                              ),
-                            ),
-                            child: Text(
-                              scriptureRef,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelMedium
-                                  ?.copyWith(
-                                    color: AppTheme.primary,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: AppTheme.spacingLg),
-                    ],
-
-                    // Save to Portfolio Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _hasChanges ? _save : null,
-                        child: const Text('Save to Portfolio'),
-                      ),
-                    ),
-
-                    const SizedBox(height: AppTheme.spacingMd),
+                    const SizedBox(height: AppTheme.spacingXl),
                   ],
                 ),
               ),
@@ -559,5 +743,24 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
         ),
       ),
     );
+  }
+
+  String _formatDate() {
+    final now = DateTime.now();
+    final months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    return '${months[now.month - 1]} ${now.day.toString()}, ${now.year}';
   }
 }

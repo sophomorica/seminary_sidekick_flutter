@@ -9,7 +9,6 @@ import '../../providers/sidekick_provider.dart';
 import '../../providers/spaced_repetition_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/progress_ring.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -25,102 +24,121 @@ class HomeScreen extends ConsumerWidget {
       backgroundColor: AppTheme.surface,
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingLg),
+          padding: const EdgeInsets.only(
+            left: 24.0,
+            right: 24.0,
+            top: 16.0,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ─── Large Editorial Greeting ──────────────────────────────
-              const SizedBox(height: AppTheme.spacingXl),
+              // ─── Two-line Greeting with Name in Primary Italic ─────────
               Text(
-                'Good morning',
+                'Good morning,',
                 style: Theme.of(context).textTheme.displayLarge,
               ),
-              const SizedBox(height: AppTheme.spacingSm),
               Text(
-                'Continue your spiritual journey with intentional study',
+                'Friend',
+                style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                  color: AppTheme.primary,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+              const SizedBox(height: AppTheme.spacingMd),
+              Text(
+                'Peace be unto you. Your journey through the scriptures continues today with renewed strength.',
                 style: Theme.of(context)
                     .textTheme
                     .bodyLarge
                     ?.copyWith(color: AppTheme.onSurfaceVariant),
               ),
 
-              const SizedBox(height: AppTheme.spacingXl),
+              const SizedBox(height: 48.0),
 
               // ─── Overall Mastery Section ───────────────────────────────
-              Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: AppTheme.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(AppTheme.radiusXl),
-                  boxShadow: AppTheme.editorialShadow,
-                ),
-                padding: const EdgeInsets.all(AppTheme.spacingLg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Your Mastery',
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                    const SizedBox(height: AppTheme.spacingLg),
-                    Row(
-                      children: [
-                        // Circular progress ring
-                        Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            ProgressRing(
-                              value: stats.mastered / 100,
-                              size: 100,
-                              color: AppTheme.secondary,
-                            ),
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  '${stats.mastered}',
-                                  style:
-                                      Theme.of(context).textTheme.displaySmall,
-                                ),
-                                Text(
-                                  '/100',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(
-                                        color: AppTheme.onSurfaceVariant,
-                                      ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        const SizedBox(width: AppTheme.spacingLg),
-                        // Stats tiles
-                        Expanded(
-                          child: Column(
-                            children: [
-                              _buildStatTile(
-                                context,
-                                label: 'Memorized',
-                                value: '${stats.memorized}',
-                              ),
-                              const SizedBox(height: AppTheme.spacingMd),
-                              _buildStatTile(
-                                context,
-                                label: 'Needs Review',
-                                value: '${stats.needsReview}',
-                              ),
-                            ],
+              Text(
+                'Overall Mastery',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: AppTheme.spacingSm),
+              Text(
+                'You are nearing the midway point of your mastery journey. Continue with daily practice to unlock deeper insights.',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyLarge
+                    ?.copyWith(color: AppTheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: AppTheme.spacingLg),
+
+              // ─── Mastery Ring (160px) with Stats ───────────────────────
+              Row(
+                children: [
+                  // Circular progress ring (custom painted, 160px)
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: 160,
+                        height: 160,
+                        child: CustomPaint(
+                          painter: _MasteryRingPainter(
+                            progress: stats.mastered / 100,
                           ),
+                        ),
+                      ),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            '${stats.mastered}',
+                            style: Theme.of(context)
+                                .textTheme
+                                .displayLarge
+                                ?.copyWith(
+                                  fontFamily: 'Merriweather',
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '/ 100 MASTERED',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(
+                                  color: AppTheme.onSurfaceVariant,
+                                  letterSpacing: 0.5,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 24.0),
+                  // Stats tiles
+                  Expanded(
+                    child: Column(
+                      children: [
+                        _buildStatTile(
+                          context,
+                          label: 'Scriptures Started',
+                          value: '${stats.attempted}',
+                          valueColor: AppTheme.secondary,
+                        ),
+                        const SizedBox(height: AppTheme.spacingMd),
+                        _buildStatTile(
+                          context,
+                          label: 'Needs Review',
+                          value: '${stats.needsReview}',
+                          valueColor: const Color(0xFF735C00),
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
 
-              const SizedBox(height: AppTheme.spacingXl),
+              const SizedBox(height: 48.0),
 
               // ─── Quick Win Card (Premium Only) ─────────────────────────
               if (isPremium && sidekickResponse?.quickWin != null)
@@ -137,7 +155,7 @@ class HomeScreen extends ConsumerWidget {
                 ),
 
               if (isPremium && sidekickResponse?.quickWin != null)
-                const SizedBox(height: AppTheme.spacingXl),
+                const SizedBox(height: 48.0),
 
               // ─── Two Large Navigation Cards ────────────────────────────
               Row(
@@ -166,7 +184,7 @@ class HomeScreen extends ConsumerWidget {
                 ],
               ),
 
-              const SizedBox(height: AppTheme.spacingXxl),
+              const SizedBox(height: 120.0),
             ],
           ),
         ),
@@ -179,6 +197,7 @@ class HomeScreen extends ConsumerWidget {
     BuildContext context, {
     required String label,
     required String value,
+    required Color valueColor,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -193,23 +212,29 @@ class HomeScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            label,
+            label.toUpperCase(),
             style: Theme.of(context)
                 .textTheme
-                .bodySmall
-                ?.copyWith(color: AppTheme.onSurfaceVariant),
+                .labelSmall
+                ?.copyWith(
+                  color: AppTheme.onSurfaceVariant,
+                  letterSpacing: 0.5,
+                ),
           ),
           const SizedBox(height: AppTheme.spacingSm),
           Text(
             value,
-            style: Theme.of(context).textTheme.headlineMedium,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              color: valueColor,
+              fontStyle: FontStyle.italic,
+            ),
           ),
         ],
       ),
     );
   }
 
-  /// Quick Win card (gold-tinted, from Sidekick AI)
+  /// Quick Win card (tertiary-tinted, from Sidekick AI)
   Widget _buildQuickWinCard(
     BuildContext context,
     QuickWin quickWin, {
@@ -218,17 +243,10 @@ class HomeScreen extends ConsumerWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppTheme.premiumGold.withValues(alpha: 0.12),
-            AppTheme.premiumGoldLight.withValues(alpha: 0.08),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: const Color(0xFF735C00).withValues(alpha: 0.20),
         borderRadius: BorderRadius.circular(AppTheme.radiusXl),
         border: Border.all(
-          color: AppTheme.premiumGold.withValues(alpha: 0.2),
+          color: const Color(0xFF735C00).withValues(alpha: 0.10),
         ),
         boxShadow: AppTheme.editorialShadow,
       ),
@@ -239,17 +257,18 @@ class HomeScreen extends ConsumerWidget {
           Row(
             children: [
               const Icon(
-                Icons.auto_awesome,
-                color: AppTheme.premiumGold,
+                Icons.smart_toy,
+                color: Color(0xFF735C00),
                 size: 20,
               ),
               const SizedBox(width: AppTheme.spacingMd),
               Expanded(
                 child: Text(
-                  'Quick Win',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: AppTheme.premiumGold,
-                      ),
+                  "TODAY'S QUICK WIN",
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: const Color(0xFF735C00),
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
             ],
@@ -257,22 +276,44 @@ class HomeScreen extends ConsumerWidget {
           const SizedBox(height: AppTheme.spacingMd),
           Text(
             quickWin.suggestion,
-            style: Theme.of(context).textTheme.bodyLarge,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontStyle: FontStyle.italic,
+              fontFamily: 'Merriweather',
+              color: const Color(0xFF4E3D00),
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacingSm),
+          Text(
+            'Tap below to continue your practice with this scripture.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppTheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: AppTheme.spacingLg),
-          ElevatedButton(
-            onPressed: onTap,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: onTap,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF735C00),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+              child: Text(
+                'Practice Now',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: Colors.white,
+                ),
+              ),
             ),
-            child: const Text('Start Exercise'),
           ),
         ],
       ),
     );
   }
 
-  /// Large navigation card (Browse Scriptures / Practice Games)
+  /// Large navigation card (Browse Scriptures / Practice Games) — 200px tall
   Widget _buildNavigationCard(
     BuildContext context, {
     required String title,
@@ -284,37 +325,47 @@ class HomeScreen extends ConsumerWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        height: 200,
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(AppTheme.radiusXl),
           boxShadow: AppTheme.editorialShadow,
         ),
         padding: const EdgeInsets.all(AppTheme.spacingLg),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            Icon(
-              icon,
-              color: Colors.white,
-              size: 32,
+            // Bottom solid color layer
+            Container(
+              color: backgroundColor,
             ),
+            // Content overlay
             Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: Theme.of(context)
-                      .textTheme
-                      .headlineMedium
-                      ?.copyWith(color: Colors.white),
+                Icon(
+                  icon,
+                  color: Colors.white,
+                  size: 28,
                 ),
-                const SizedBox(height: AppTheme.spacingSm),
-                Text(
-                  description,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.85),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineMedium
+                          ?.copyWith(color: Colors.white),
+                    ),
+                    const SizedBox(height: AppTheme.spacingSm),
+                    Text(
+                      description,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.80),
                       ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -322,5 +373,52 @@ class HomeScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+/// Custom painter for the mastery ring (160px, primary color)
+class _MasteryRingPainter extends CustomPainter {
+  final double progress;
+
+  _MasteryRingPainter({required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const strokeWidth = 10.0;
+    final rect = Rect.fromLTWH(
+      strokeWidth / 2,
+      strokeWidth / 2,
+      size.width - strokeWidth,
+      size.height - strokeWidth,
+    );
+
+    // Background track
+    final backgroundPaint = Paint()
+      ..color = AppTheme.surfaceVariant
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    canvas.drawOval(rect, backgroundPaint);
+
+    // Progress arc
+    final progressPaint = Paint()
+      ..color = AppTheme.primary
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    canvas.drawArc(
+      rect,
+      -90 * 3.14159 / 180, // Start at top
+      progress * 360 * 3.14159 / 180, // Progress to degrees
+      false,
+      progressPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_MasteryRingPainter oldDelegate) {
+    return oldDelegate.progress != progress;
   }
 }

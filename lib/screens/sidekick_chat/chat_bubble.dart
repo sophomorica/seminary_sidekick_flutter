@@ -23,76 +23,95 @@ class ChatBubble extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppTheme.spacingMd),
+      padding: const EdgeInsets.only(bottom: AppTheme.spacingLg),
       child: Row(
         mainAxisAlignment:
             isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isUser) ...[
-            // Sidekick avatar
+            // Sidekick avatar: 36px circle with secondary gradient
             Container(
-              width: 40,
-              height: 40,
-              margin: const EdgeInsets.only(top: 4, right: AppTheme.spacingSm),
+              width: 36,
+              height: 36,
+              margin: const EdgeInsets.only(top: 4, right: AppTheme.spacingMd),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: AppTheme.sidekickGradient(context),
-                ),
-                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                color: isDark ? AppTheme.secondaryContainer : AppTheme.secondaryContainer,
+                borderRadius: BorderRadius.circular(18),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.sidekickColor(context).withValues(alpha: 0.15),
+                    color: AppTheme.onSurfaceVariant.withValues(alpha: 0.08),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
               child: const Icon(
-                Icons.auto_awesome,
-                size: 20,
-                color: Colors.white,
+                Icons.smart_toy,
+                size: 18,
+                color: AppTheme.onSecondaryContainer,
               ),
             ),
           ],
           Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppTheme.spacingLg,
-                vertical: AppTheme.spacingMd,
-              ),
-              decoration: BoxDecoration(
-                color: isUser
-                    ? AppTheme.primary
-                    : (isDark
-                        ? AppTheme.darkSurfaceContainerLow
-                        : AppTheme.surfaceContainerLow),
-                borderRadius: BorderRadius.circular(AppTheme.radiusXl),
-                boxShadow: !isUser
-                    ? [
-                        BoxShadow(
-                          color: AppTheme.onSurface.withValues(alpha: 0.06),
-                          blurRadius: 12,
-                          offset: const Offset(0, 2),
+            child: Column(
+              crossAxisAlignment:
+                  isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
+                  constraints: const BoxConstraints(maxWidth: 280),
+                  decoration: BoxDecoration(
+                    color: isUser
+                        ? AppTheme.primary
+                        : (isDark
+                            ? AppTheme.darkSurfaceContainerLow
+                            : AppTheme.surfaceContainerLow),
+                    borderRadius: isUser
+                        ? BorderRadius.circular(AppTheme.radiusXl)
+                            .copyWith(bottomRight: const Radius.circular(AppTheme.radiusSm))
+                        : BorderRadius.circular(AppTheme.radiusXl)
+                            .copyWith(bottomLeft: const Radius.circular(AppTheme.radiusSm)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.onSurface.withValues(alpha: 0.06),
+                        blurRadius: 12,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: isUser
+                      ? Text(
+                          message.content,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Colors.white,
+                                height: 1.6,
+                              ),
+                        )
+                      : RichMessageText(
+                          text: message.content,
+                          onScriptureTap: onScriptureTap,
                         ),
-                      ]
-                    : [],
-              ),
-              child: isUser
-                  ? Text(
-                      message.content,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.white,
-                            height: 1.6,
-                          ),
-                    )
-                  : RichMessageText(
-                      text: message.content,
-                      onScriptureTap: onScriptureTap,
-                    ),
+                ),
+                if (!isUser) ...[
+                  const SizedBox(height: 12),
+                  const _SuggestionChips(),
+                ],
+                const SizedBox(height: 4),
+                Text(
+                  isUser ? 'You • 10:26 AM' : 'Sidekick • 10:24 AM',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: AppTheme.outline,
+                        letterSpacing: 1.5,
+                      ),
+                ),
+              ],
             ),
           ),
-          if (isUser) const SizedBox(width: 8),
+          if (isUser) const SizedBox(width: 12),
         ],
       ),
     );
@@ -138,10 +157,9 @@ class RichMessageText extends StatelessWidget {
 
   List<InlineSpan> _buildSpans(BuildContext context) {
     final spans = <InlineSpan>[];
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final textStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
           height: 1.6,
-          color: isDark ? AppTheme.darkOnSurface : AppTheme.onSurface,
+          color: AppTheme.onSurface,
         );
 
     int lastEnd = 0;
@@ -207,5 +225,89 @@ class RichMessageText extends StatelessWidget {
       }
     }
     return null;
+  }
+}
+
+// ─── Suggestion Chips (appear below sidekick messages) ─────────────────────
+
+class _SuggestionChips extends StatelessWidget {
+  const _SuggestionChips();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _SuggestionChip(
+          label: 'Show me verses',
+          icon: Icons.menu_book,
+          isDark: isDark,
+        ),
+        _SuggestionChip(
+          label: 'Write a prayer',
+          icon: Icons.edit_note,
+          isDark: isDark,
+        ),
+      ],
+    );
+  }
+}
+
+class _SuggestionChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool isDark;
+
+  const _SuggestionChip({
+    required this.label,
+    required this.icon,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          // Trigger the tap action
+          HapticFeedback.lightImpact();
+        },
+        borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
+          ),
+          decoration: BoxDecoration(
+            color: isDark
+                ? AppTheme.darkSurfaceContainerLow
+                : AppTheme.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: AppTheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

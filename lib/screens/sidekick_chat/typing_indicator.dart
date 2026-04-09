@@ -33,45 +33,45 @@ class _TypingIndicatorState extends State<TypingIndicator>
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppTheme.spacingMd),
+      padding: const EdgeInsets.only(bottom: AppTheme.spacingLg),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Sidekick avatar
+          // Sidekick avatar: 36px circle with secondary gradient
           Container(
-            width: 40,
-            height: 40,
-            margin: const EdgeInsets.only(top: 4, right: AppTheme.spacingSm),
+            width: 36,
+            height: 36,
+            margin: const EdgeInsets.only(top: 4, right: AppTheme.spacingMd),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: AppTheme.sidekickGradient(context),
-              ),
-              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              color: AppTheme.secondaryContainer,
+              borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
-                  color: AppTheme.sidekickColor(context).withValues(alpha: 0.15),
+                  color: AppTheme.onSurfaceVariant.withValues(alpha: 0.08),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
               ],
             ),
             child: const Icon(
-              Icons.auto_awesome,
-              size: 20,
-              color: Colors.white,
+              Icons.smart_toy,
+              size: 18,
+              color: AppTheme.onSecondaryContainer,
             ),
           ),
           // Typing bubble
           Container(
             padding: const EdgeInsets.symmetric(
-              horizontal: AppTheme.spacingLg,
-              vertical: AppTheme.spacingMd,
+              horizontal: 20,
+              vertical: 16,
             ),
+            constraints: const BoxConstraints(maxWidth: 280),
             decoration: BoxDecoration(
               color: isDark
                   ? AppTheme.darkSurfaceContainerLow
                   : AppTheme.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+              borderRadius: BorderRadius.circular(AppTheme.radiusXl)
+                  .copyWith(bottomLeft: const Radius.circular(AppTheme.radiusSm)),
               boxShadow: [
                 BoxShadow(
                   color: AppTheme.onSurface.withValues(alpha: 0.06),
@@ -90,14 +90,14 @@ class _TypingIndicatorState extends State<TypingIndicator>
                     final opacity = (0.3 + 0.7 * (1 - (offset - 0.5).abs() * 2))
                         .clamp(0.3, 1.0);
                     return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: Opacity(
                         opacity: opacity,
                         child: Container(
                           width: 10,
                           height: 10,
-                          decoration: BoxDecoration(
-                            color: AppTheme.sidekickColor(context),
+                          decoration: const BoxDecoration(
+                            color: AppTheme.onSurfaceVariant,
                             shape: BoxShape.circle,
                           ),
                         ),

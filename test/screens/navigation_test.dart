@@ -165,7 +165,8 @@ void main() {
       // Push scripture list
       router.push('/scriptures/bookOfMormon');
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('scripture-list-bookOfMormon')), findsOneWidget);
+      expect(
+          find.byKey(const Key('scripture-list-bookOfMormon')), findsOneWidget);
 
       // Push scripture detail
       router.push('/scripture/3');
@@ -175,7 +176,8 @@ void main() {
       // Pop to list
       await tester.tap(find.byKey(const Key('back-button')));
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('scripture-list-bookOfMormon')), findsOneWidget);
+      expect(
+          find.byKey(const Key('scripture-list-bookOfMormon')), findsOneWidget);
 
       // Pop to home
       await tester.tap(find.byKey(const Key('list-back-button')));
@@ -224,8 +226,7 @@ class _ScriptureDetailPage extends StatelessWidget {
         leading: IconButton(
           key: const Key('back-button'),
           icon: const Icon(Icons.arrow_back),
-          onPressed: () =>
-              context.canPop() ? context.pop() : context.go('/'),
+          onPressed: () => context.canPop() ? context.pop() : context.go('/'),
         ),
         title: Text('Scripture $scriptureId'),
       ),
@@ -247,8 +248,7 @@ class _ScriptureListPage extends StatelessWidget {
         leading: IconButton(
           key: const Key('list-back-button'),
           icon: const Icon(Icons.arrow_back),
-          onPressed: () =>
-              context.canPop() ? context.pop() : context.go('/'),
+          onPressed: () => context.canPop() ? context.pop() : context.go('/'),
         ),
         title: Text('Book: $bookId'),
       ),
