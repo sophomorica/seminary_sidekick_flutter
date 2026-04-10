@@ -848,7 +848,10 @@ class _MasteryInsights extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(AppTheme.spacingXl),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(AppTheme.radiusXl),
       ),
       child: Column(
@@ -898,7 +901,8 @@ class _MasteryInsights extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(3),
                   child: LinearProgressIndicator(
                     value: retentionPercent / 100,
-                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+                    backgroundColor:
+                        Theme.of(context).colorScheme.surfaceContainerHigh,
                     valueColor:
                         const AlwaysStoppedAnimation(AppTheme.secondary),
                   ),
