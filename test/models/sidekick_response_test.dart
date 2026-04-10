@@ -78,7 +78,7 @@ void main() {
 
     group('toJson', () {
       test('includes only present fields', () {
-        final response = SidekickResponse(
+        const response = SidekickResponse(
           dailyPrompt: 'Hello',
           generatedAt: '2026-04-09T00:00:00.000',
         );
@@ -90,13 +90,14 @@ void main() {
         expect(json.containsKey('quickWin'), false);
         expect(json.containsKey('timelineInsight'), false);
         expect(json.containsKey('reminder'), false);
-        expect(json.containsKey('reflectionPrompts'), false); // empty list omitted
+        expect(
+            json.containsKey('reflectionPrompts'), false); // empty list omitted
         expect(json.containsKey('encouragement'), false);
         expect(json.containsKey('connections'), false);
       });
 
       test('includes non-empty lists', () {
-        final response = SidekickResponse(
+        const response = SidekickResponse(
           reflectionPrompts: ['Prompt 1'],
           connections: [
             ScriptureConnection(
@@ -113,7 +114,7 @@ void main() {
       });
 
       test('roundtrip preserves data', () {
-        final original = SidekickResponse(
+        const original = SidekickResponse(
           dailyPrompt: 'Daily',
           suggestedGoal: SidekickGoal(
             title: 'Goal',
@@ -190,7 +191,7 @@ void main() {
     });
 
     test('toJson roundtrip', () {
-      final original = SidekickGoal(
+      const original = SidekickGoal(
         title: 'T',
         description: 'D',
         relatedScriptureIds: ['1'],
@@ -202,7 +203,7 @@ void main() {
     });
 
     test('toJson omits empty relatedScriptureIds', () {
-      final goal = SidekickGoal(title: 'T', description: 'D');
+      const goal = SidekickGoal(title: 'T', description: 'D');
       final json = goal.toJson();
       expect(json.containsKey('relatedScriptureIds'), false);
     });
@@ -228,7 +229,7 @@ void main() {
     });
 
     test('toJson omits null fields', () {
-      final qw = QuickWin(suggestion: 'Test');
+      const qw = QuickWin(suggestion: 'Test');
       final json = qw.toJson();
       expect(json['suggestion'], 'Test');
       expect(json.containsKey('scriptureId'), false);
@@ -236,7 +237,7 @@ void main() {
     });
 
     test('toJson roundtrip', () {
-      final original = QuickWin(
+      const original = QuickWin(
         suggestion: 'S',
         scriptureId: '5',
         actionType: 'review',
@@ -268,7 +269,7 @@ void main() {
     });
 
     test('toJson roundtrip', () {
-      final original = ScriptureConnection(
+      const original = ScriptureConnection(
         fromReference: 'A',
         toReference: 'B',
         insight: 'C',
@@ -284,14 +285,16 @@ void main() {
     final ts = DateTime(2026, 4, 9, 12, 0, 0);
 
     test('construction', () {
-      final msg = SidekickMessage(role: 'user', content: 'Hello', timestamp: ts);
+      final msg =
+          SidekickMessage(role: 'user', content: 'Hello', timestamp: ts);
       expect(msg.role, 'user');
       expect(msg.content, 'Hello');
       expect(msg.timestamp, ts);
     });
 
     test('toApiMessage returns role and content only', () {
-      final msg = SidekickMessage(role: 'assistant', content: 'Hi', timestamp: ts);
+      final msg =
+          SidekickMessage(role: 'assistant', content: 'Hi', timestamp: ts);
       final api = msg.toApiMessage();
       expect(api, {'role': 'assistant', 'content': 'Hi'});
       expect(api.containsKey('timestamp'), false);
@@ -306,7 +309,8 @@ void main() {
     });
 
     test('fromJson roundtrip', () {
-      final original = SidekickMessage(role: 'user', content: 'Q', timestamp: ts);
+      final original =
+          SidekickMessage(role: 'user', content: 'Q', timestamp: ts);
       final parsed = SidekickMessage.fromJson(original.toJson());
       expect(parsed.role, 'user');
       expect(parsed.content, 'Q');

@@ -139,7 +139,7 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.timer_outlined, size: 18, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
+                  Icon(Icons.timer_outlined, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 4),
                   Text(
                     _formatDuration(_elapsed),
@@ -220,7 +220,7 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
           child: Text(
             title,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   letterSpacing: 1,
                 ),
             textAlign: TextAlign.center,
@@ -632,8 +632,8 @@ class _MatchTile extends StatelessWidget {
               Icons.drag_indicator,
               size: 16,
               color: isSelected
-                  ? AppTheme.primary.withValues(alpha: 0.6)
-                  : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.25),
+                  ? AppTheme.primary.withValues(alpha: 0.7)
+                  : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
             ),
             const SizedBox(width: 6),
           ],

@@ -277,6 +277,22 @@ final userStatsProvider = Provider<UserStats>(
   },
 );
 
+/// Provider that returns the scripture ID most recently practiced in Word Builder,
+/// or null if the user has never played Word Builder.
+final lastWordBuilderScriptureIdProvider = Provider<String?>((ref) {
+  final progressMap = ref.watch(progressProvider);
+  UserProgress? latest;
+  for (final entry in progressMap.values) {
+    if (entry.gameType != GameType.wordOrder) continue;
+    if (entry.lastPracticed == null) continue;
+    if (latest == null ||
+        entry.lastPracticed!.isAfter(latest.lastPracticed!)) {
+      latest = entry;
+    }
+  }
+  return latest?.scriptureId;
+});
+
 /// Family provider to get mastery level for a scripture/game
 final masteryLevelProvider = Provider.family<MasteryLevel, (String, GameType)>(
   (ref, params) {

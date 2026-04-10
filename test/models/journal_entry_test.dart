@@ -163,7 +163,8 @@ void main() {
       });
 
       test('fromJson parses all fields', () {
-        final json = makeEntry(prompt: 'Some prompt', isFavorite: true).toJson();
+        final json =
+            makeEntry(prompt: 'Some prompt', isFavorite: true).toJson();
         final parsed = JournalEntry.fromJson(json);
 
         expect(parsed.id, 'entry-1');

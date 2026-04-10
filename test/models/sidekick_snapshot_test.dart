@@ -4,7 +4,7 @@ import 'package:seminary_sidekick/models/sidekick_snapshot.dart';
 void main() {
   group('MasteryStats', () {
     test('construction with all fields', () {
-      final stats = MasteryStats(
+      const stats = MasteryStats(
         total: 100,
         eternal: 5,
         mastered: 10,
@@ -28,7 +28,7 @@ void main() {
     });
 
     test('toJson includes all fields', () {
-      final stats = MasteryStats(
+      const stats = MasteryStats(
         total: 100,
         eternal: 0,
         mastered: 1,
@@ -55,7 +55,7 @@ void main() {
 
   group('ScriptureProgressSummary', () {
     test('construction', () {
-      final summary = ScriptureProgressSummary(
+      const summary = ScriptureProgressSummary(
         scriptureId: '42',
         reference: 'Mosiah 3:19',
         topic: 'The Natural Man',
@@ -75,7 +75,7 @@ void main() {
     });
 
     test('toJson includes all fields', () {
-      final json = ScriptureProgressSummary(
+      final json = const ScriptureProgressSummary(
         scriptureId: '1',
         reference: 'Ref',
         topic: 'Topic',
@@ -107,7 +107,7 @@ void main() {
     }) {
       return SidekickSnapshot(
         masteryStats: stats ??
-            MasteryStats(
+            const MasteryStats(
               total: 100,
               eternal: 0,
               mastered: 0,
@@ -141,7 +141,7 @@ void main() {
       final snapshot = makeSnapshot(
         goals: ['Master BOM', 'Daily review'],
         needsAttention: [
-          ScriptureProgressSummary(
+          const ScriptureProgressSummary(
             scriptureId: '42',
             reference: 'Mosiah 3:19',
             topic: 'Natural Man',
