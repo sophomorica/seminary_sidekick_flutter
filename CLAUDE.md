@@ -204,6 +204,10 @@ These help with recognition and comprehension but do NOT drive mastery. They liv
 
 ## Conventions
 
+### Image Assets
+
+Never generate or source actual image files. When an image is needed, create a `.txt` file in `assets/images/` with a detailed description of what the image should depict (composition, style, colors, mood, dimensions, etc.). Name the file with the intended final image name but with a `.txt` extension (e.g., `onboarding_hero.txt` for an image that will become `onboarding_hero.png`). The user will generate the image later and replace the `.txt` with the real file.
+
 ### Naming
 
 | Type          | Convention          | Example                     |

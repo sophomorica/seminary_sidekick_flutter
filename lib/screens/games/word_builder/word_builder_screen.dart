@@ -140,6 +140,10 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       if (next.lastFeedback == 'reset' && prev?.lastFeedback != 'reset') {
         _typingController.clear();
       }
+      // Reset hint when scripture changes
+      if (next.currentIndex != (prev?.currentIndex ?? -1)) {
+        setState(() => _hintRevealed = false);
+      }
     });
 
     return Scaffold(
@@ -165,20 +169,23 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     return AppBar(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       elevation: 0,
+      toolbarHeight: 48,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back),
+        icon: const Icon(Icons.arrow_back, size: 20),
         onPressed: () async {
           final shouldPop = await _onWillPop();
           if (!mounted) return;
           if (shouldPop) Navigator.of(context).pop();
         },
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
       ),
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             state.currentScripture?.reference ?? '',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
           ),
@@ -188,20 +195,32 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
               // Difficulty badge
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: AppTheme.spacingSm,
-                  vertical: 3,
+                  horizontal: 6,
+                  vertical: 2,
                 ),
                 decoration: BoxDecoration(
                   color: difficultyColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 ),
                 child: Text(
                   widget.difficulty.label.toUpperCase(),
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: difficultyColor,
                         fontWeight: FontWeight.w700,
+                        fontSize: 10,
                       ),
                 ),
+              ),
+              const SizedBox(width: AppTheme.spacingSm),
+              Text(
+                '${state.currentIndex + 1} of ${state.totalScriptures}',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.5),
+                      fontSize: 10,
+                    ),
               ),
             ],
           ),
@@ -251,11 +270,8 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
   Widget _buildChunkTapBody(WordBuilderState state) {
     return Column(
       children: [
-        // Mastery progress bar (thin, elegant)
+        // Mastery progress bar (thin)
         _buildMasteryProgressBar(state),
-
-        // Scripture reference and topic
-        _buildScriptureHeader(state),
 
         // Placed chunks area (scripture canvas)
         Expanded(
@@ -274,18 +290,18 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
               : _buildChunkPool(state),
         ),
 
-        const SizedBox(height: AppTheme.spacingMd),
+        // Hint card at bottom (hide when complete)
+        if (!state.isScriptureComplete) _buildHintCard(state),
       ],
     );
   }
 
   Widget _buildMasteryProgressBar(WordBuilderState state) {
-    return Container(
+    return Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacingLg,
-        vertical: AppTheme.spacingMd,
+        horizontal: AppTheme.spacingMd,
+        vertical: 4,
       ),
-      color: Theme.of(context).scaffoldBackgroundColor,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppTheme.radiusSm),
         child: LinearProgressIndicator(
@@ -301,36 +317,39 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     );
   }
 
-  Widget _buildScriptureHeader(WordBuilderState state) {
+  bool _hintRevealed = false;
+
+  Widget _buildHintCard(WordBuilderState state) {
+    final keyPhrase = state.currentScripture?.keyPhrase ?? '';
+    if (keyPhrase.isEmpty) return const SizedBox.shrink();
+
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacingLg,
-        vertical: AppTheme.spacingMd,
-      ),
+      padding: const EdgeInsets.only(top: 4, bottom: 4),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            state.currentScripture?.name ?? '',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.6),
-                  fontStyle: FontStyle.italic,
+          GestureDetector(
+            onTap: () => setState(() => _hintRevealed = !_hintRevealed),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.lightbulb_outline,
+                  size: 18,
+                  color: AppTheme.secondary,
                 ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppTheme.spacingMd),
-          // Progress info
-          Text(
-            '${state.currentIndex + 1} of ${state.totalScriptures}',
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.5),
+                const SizedBox(width: 6),
+                Text(
+                  _hintRevealed ? keyPhrase : 'Give me a hint',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.secondary,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.3,
+                      ),
                 ),
+              ],
+            ),
           ),
         ],
       ),
@@ -340,20 +359,20 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
   Widget _buildPlacedChunksArea(WordBuilderState state) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacingLg,
-        vertical: AppTheme.spacingMd,
+        horizontal: AppTheme.spacingSm,
+        vertical: 4,
       ),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(AppTheme.spacingLg),
+        padding: const EdgeInsets.all(AppTheme.spacingMd),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
           boxShadow: AppTheme.editorialShadow,
         ),
         child: Wrap(
-          spacing: AppTheme.spacingMd,
-          runSpacing: AppTheme.spacingMd,
+          spacing: AppTheme.spacingSm,
+          runSpacing: AppTheme.spacingSm,
           alignment: WrapAlignment.center,
           children: List.generate(state.targetChunks.length, (index) {
             final placed = state.placedChunks[index];
@@ -377,8 +396,8 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.symmetric(
-                    horizontal: AppTheme.spacingMd,
-                    vertical: AppTheme.spacingSm,
+                    horizontal: AppTheme.spacingSm,
+                    vertical: 4,
                   ),
                   decoration: BoxDecoration(
                     color: placed != null
@@ -397,8 +416,8 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                   child: Text(
                     placed?.text ?? _chunkPlaceholder(target),
                     style: TextStyle(
-                      fontSize: 16,
-                      height: 1.4,
+                      fontSize: 14,
+                      height: 1.3,
                       fontFamily: 'Merriweather',
                       fontWeight:
                           placed != null ? FontWeight.w700 : FontWeight.w500,
@@ -426,10 +445,13 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
 
   Widget _buildChunkPool(WordBuilderState state) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppTheme.spacingLg),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacingSm,
+        vertical: AppTheme.spacingSm,
+      ),
       child: Wrap(
-        spacing: AppTheme.spacingMd,
-        runSpacing: AppTheme.spacingMd,
+        spacing: AppTheme.spacingSm,
+        runSpacing: AppTheme.spacingSm,
         alignment: WrapAlignment.center,
         children: List.generate(state.availablePool.length, (index) {
           final chunk = state.availablePool[index];
@@ -452,16 +474,16 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
               color: Colors.transparent,
               child: InkWell(
                 onTap: () => _onChunkTapped(index),
-                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
                   padding: const EdgeInsets.symmetric(
-                    horizontal: AppTheme.spacingMd,
-                    vertical: AppTheme.spacingSm,
+                    horizontal: AppTheme.spacingSm,
+                    vertical: 4,
                   ),
                   decoration: BoxDecoration(
                     color: tileColor,
-                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                     boxShadow: isShaking
                         ? [
                             BoxShadow(
@@ -475,7 +497,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                   child: Text(
                     chunk.text,
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 14,
                       fontFamily: 'Merriweather',
                       fontWeight: FontWeight.w600,
                       color: isShaking
@@ -539,9 +561,6 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
         // Mastery progress bar
         _buildMasteryProgressBar(state),
 
-        // Scripture reference and topic
-        _buildScriptureHeader(state),
-
         // Typed text display (scripture canvas for typing)
         Expanded(
           flex: 4,
@@ -560,7 +579,8 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
             child: _buildScriptureCompleteOverlay(state),
           ),
 
-        const SizedBox(height: AppTheme.spacingMd),
+        // Hint card at bottom
+        if (!state.isScriptureComplete) _buildHintCard(state),
       ],
     );
   }
@@ -569,20 +589,23 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     // Show the passage with typed characters colored green/red,
     // and remaining text as gray placeholders.
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppTheme.spacingLg),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacingSm,
+        vertical: 4,
+      ),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(AppTheme.spacingLg),
+        padding: const EdgeInsets.all(AppTheme.spacingMd),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
           boxShadow: AppTheme.editorialShadow,
         ),
         child: RichText(
           text: TextSpan(
             style: TextStyle(
-              fontSize: 18,
-              height: 1.8,
+              fontSize: 16,
+              height: 1.6,
               fontFamily: 'Merriweather',
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -960,25 +983,26 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
   Widget _buildScriptureCompleteOverlay(WordBuilderState state) {
     return Center(
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Icon(
             Icons.check_circle,
             color: AppTheme.success,
-            size: 56,
+            size: 40,
           ),
-          const SizedBox(height: AppTheme.spacingMd),
+          const SizedBox(height: AppTheme.spacingSm),
           Text(
             state.isComplete ? 'All Done!' : 'Scripture Complete!',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: AppTheme.success,
                   fontWeight: FontWeight.bold,
                 ),
           ),
           if (!state.isComplete) ...[
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: 4),
             Text(
-              'Loading next scripture...',
+              'Loading next...',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context)
                         .colorScheme
