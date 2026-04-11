@@ -6,6 +6,9 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'theme/app_theme.dart';
 import 'providers/onboarding_provider.dart';
+import 'providers/study_streak_provider.dart';
+import 'providers/theme_provider.dart';
+import 'providers/user_preferences_provider.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/scripture_list_screen.dart';
@@ -14,6 +17,7 @@ import 'screens/scripture_library/scripture_library_screen.dart';
 import 'screens/practice_hub_screen.dart';
 import 'screens/journal/journal_screen.dart';
 import 'screens/progress/progress_screen.dart';
+import 'screens/settings/settings_screen.dart';
 import 'screens/sidekick_chat/sidekick_chat_screen.dart';
 import 'screens/upgrade_screen.dart';
 
@@ -120,6 +124,10 @@ class _SeminarySidekickAppState extends ConsumerState<SeminarySidekickApp> {
           builder: (context, state) => const UpgradeScreen(),
         ),
         GoRoute(
+          path: '/settings',
+          builder: (context, state) => const SettingsScreen(),
+        ),
+        GoRoute(
           path: '/journal',
           builder: (context, state) => const JournalScreen(),
         ),
@@ -136,13 +144,25 @@ class _SeminarySidekickAppState extends ConsumerState<SeminarySidekickApp> {
 
   @override
   Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeProvider);
+    final fontScale = ref.watch(userPreferencesProvider).fontScale;
+
     return MaterialApp.router(
       title: 'Seminary Sidekick',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.getLightTheme(),
       darkTheme: AppTheme.getDarkTheme(),
-      themeMode: ThemeMode.system,
+      themeMode: themeMode,
       routerConfig: _router,
+      builder: (context, child) {
+        // Apply user's font scale preference
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(fontScale),
+          ),
+          child: child!,
+        );
+      },
     );
   }
 }
@@ -181,25 +201,34 @@ class _AppShell extends ConsumerWidget {
                 ),
                 child: Row(
                   children: [
-                    // Profile avatar
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppTheme.secondaryContainer,
-                        border: Border.all(
-                          color: AppTheme.outlineVariant.withValues(alpha: 0.15),
+                    // Profile avatar — tappable → settings
+                    GestureDetector(
+                      onTap: () => context.push('/settings'),
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isDark
+                              ? AppTheme.darkSurfaceContainerHigh
+                              : AppTheme.secondaryContainer,
+                          border: Border.all(
+                            color: isDark
+                                ? AppTheme.secondaryFixedDim.withValues(alpha: 0.2)
+                                : AppTheme.outlineVariant.withValues(alpha: 0.15),
+                          ),
                         ),
-                      ),
-                      child: const Icon(
-                        Icons.person,
-                        size: 20,
-                        color: AppTheme.secondary,
+                        child: Icon(
+                          Icons.person,
+                          size: 20,
+                          color: isDark
+                              ? AppTheme.secondaryFixedDim
+                              : AppTheme.secondary,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 10),
-                    // "Sacred Editorial" wordmark
+                    // Wordmark
                     Text(
                       'Seminary Sidekick',
                       style: GoogleFonts.merriweather(
@@ -212,17 +241,8 @@ class _AppShell extends ConsumerWidget {
                       ),
                     ),
                     const Spacer(),
-                    // Streak badge
-                    Text(
-                      '7\u{1F525}',
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: isDark
-                            ? AppTheme.primaryFixedDim
-                            : AppTheme.primary,
-                      ),
-                    ),
+                    // Dynamic streak badge
+                    _StreakBadge(isDark: isDark),
                   ],
                 ),
               ),
@@ -342,6 +362,47 @@ class _AppShell extends ConsumerWidget {
         child: Icon(selectedIcon, color: activeColor, size: 24),
       ),
       label: label,
+    );
+  }
+}
+
+/// Live streak badge that reads from [studyStreakProvider].
+class _StreakBadge extends ConsumerWidget {
+  final bool isDark;
+
+  const _StreakBadge({required this.isDark});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final streak = ref.watch(currentStreakProvider);
+    if (streak <= 0) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: (isDark ? AppTheme.primaryFixedDim : AppTheme.primary)
+            .withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.local_fire_department,
+            size: 16,
+            color: isDark ? AppTheme.primaryFixedDim : AppTheme.primary,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '$streak',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: isDark ? AppTheme.primaryFixedDim : AppTheme.primary,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

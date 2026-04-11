@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/journal_entry.dart';
 import '../../providers/journal_provider.dart';
 import '../../providers/scripture_provider.dart';
+import '../../services/haptic_service.dart';
 import '../../services/journal_export_service.dart';
 import '../../services/speech_service.dart';
 import '../../theme/app_theme.dart';
@@ -63,7 +63,7 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
           scriptureIds: _taggedScriptureIds,
           scriptureReferences: _taggedScriptureReferences,
         );
-    HapticFeedback.lightImpact();
+    ref.read(hapticProvider).light();
     setState(() => _hasChanges = false);
   }
 
@@ -120,7 +120,7 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
       _partialSpeechText = '';
     });
 
-    HapticFeedback.lightImpact();
+    ref.read(hapticProvider).light();
 
     await speech.startListening(
       onResult: (text) {

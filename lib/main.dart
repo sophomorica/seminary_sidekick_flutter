@@ -14,7 +14,9 @@ import 'providers/progress_provider.dart';
 import 'providers/spaced_repetition_provider.dart';
 import 'providers/sidekick_provider.dart';
 import 'providers/subscription_provider.dart';
+import 'providers/study_streak_provider.dart';
 import 'providers/theme_provider.dart';
+import 'providers/user_preferences_provider.dart';
 import 'services/audio_service.dart';
 
 void main() async {
@@ -49,6 +51,8 @@ void main() async {
   await container.read(subscriptionProvider.notifier).init();
   await container.read(journalProvider.notifier).init();
   await container.read(audioProvider.notifier).init();
+  await container.read(userPreferencesProvider.notifier).init();
+  await container.read(studyStreakProvider.notifier).init();
 
   // Initialize Goals (loads persisted goals from Hive).
   await container.read(goalsProvider.notifier).init();

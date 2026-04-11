@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/enums.dart';
 import '../../models/scripture.dart';
@@ -8,6 +7,7 @@ import '../../providers/activity_provider.dart';
 import '../../providers/matching_game_provider.dart';
 import '../../providers/progress_provider.dart';
 import '../../services/audio_service.dart';
+import '../../services/haptic_service.dart';
 import '../../theme/app_theme.dart';
 import 'game_results_screen.dart';
 
@@ -248,9 +248,10 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
                 lastMatchedId: gameState.lastMatchedId,
                 shakeAnimation: _shakeAnimation,
                 pulseAnimation: _pulseAnimation,
+                onDragStarted: () => ref.read(hapticProvider).selection(),
                 onTap: () {
                   if (isMatched) return;
-                  HapticFeedback.selectionClick();
+                  ref.read(hapticProvider).selection();
                   if (isLeft) {
                     notifier.selectPhrase(id);
                   } else {
@@ -258,7 +259,7 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
                   }
                 },
                 onDragAccepted: (draggedId) {
-                  HapticFeedback.selectionClick();
+                  ref.read(hapticProvider).selection();
                   if (isLeft) {
                     notifier.attemptDragMatch(
                       draggedId: draggedId,
@@ -280,7 +281,7 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
   }
 
   void _onCorrectMatch() {
-    HapticFeedback.mediumImpact();
+    ref.read(hapticProvider).medium();
     ref.read(audioProvider.notifier).play(SoundEffect.correct);
     _pulseController.forward().then((_) => _pulseController.reverse());
 
@@ -298,7 +299,7 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
   }
 
   void _onIncorrectMatch() {
-    HapticFeedback.heavyImpact();
+    ref.read(hapticProvider).heavy();
     ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
     _shakeController.forward().then((_) {
       _shakeController.reset();
@@ -308,7 +309,7 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
 
   void _onGameComplete(MatchingGameState finalState) {
     _elapsedTimer?.cancel();
-    HapticFeedback.heavyImpact();
+    ref.read(hapticProvider).heavy();
     ref.read(audioProvider.notifier).play(SoundEffect.complete);
 
     // Record an attempt for each scripture in the session
@@ -476,6 +477,7 @@ class _MatchTile extends StatelessWidget {
   final Animation<double> shakeAnimation;
   final Animation<double> pulseAnimation;
   final VoidCallback onTap;
+  final VoidCallback? onDragStarted;
   final void Function(String draggedId) onDragAccepted;
 
   const _MatchTile({
@@ -489,6 +491,7 @@ class _MatchTile extends StatelessWidget {
     required this.shakeAnimation,
     required this.pulseAnimation,
     required this.onTap,
+    this.onDragStarted,
     required this.onDragAccepted,
   });
 
@@ -538,7 +541,7 @@ class _MatchTile extends StatelessWidget {
         opacity: 0.3,
         child: _buildTileContent(context),
       ),
-      onDragStarted: () => HapticFeedback.selectionClick(),
+      onDragStarted: onDragStarted,
       child: DragTarget<String>(
         onWillAcceptWithDetails: (details) => !isMatched,
         onAcceptWithDetails: (details) => onDragAccepted(details.data),

@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../models/user_progress.dart';
 import '../models/enums.dart';
 import 'spaced_repetition_provider.dart';
+import 'study_streak_provider.dart';
 
 /// User statistics model for overall progress
 class UserStats {
@@ -154,6 +155,9 @@ class ProgressNotifier extends StateNotifier<Map<String, UserProgress>> {
 
     state = {...state, key: updated};
     _persist(key, updated);
+
+    // Record daily study streak
+    _ref.read(studyStreakProvider.notifier).recordStudyActivity();
 
     // Update spaced repetition schedule for this scripture
     _ref.read(spacedRepetitionProvider.notifier).recordReview(

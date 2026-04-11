@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/journal_entry.dart';
 import '../../providers/journal_provider.dart';
+import '../../services/haptic_service.dart';
 import '../../services/journal_export_service.dart';
 import '../../theme/app_theme.dart';
 import 'empty_journal_view.dart';
@@ -170,6 +170,7 @@ class _JournalListViewState extends ConsumerState<JournalListView> {
                           ...prompts.map((prompt) => ReflectionPromptCard(
                                 prompt: prompt,
                                 onReflect: () {
+                                  ref.read(hapticProvider).light();
                                   ref
                                       .read(journalProvider.notifier)
                                       .createEntry(prompt: prompt);
@@ -318,7 +319,7 @@ class _JournalListViewState extends ConsumerState<JournalListView> {
             ElevatedButton.icon(
               onPressed: () {
                 Navigator.of(ctx).pop();
-                HapticFeedback.lightImpact();
+                ref.read(hapticProvider).light();
                 JournalExportService.instance.shareWithFamily(
                   entries: entries,
                   personalNote: noteController.text.trim().isNotEmpty
@@ -377,10 +378,7 @@ class ReflectionPromptCard extends StatelessWidget {
             Align(
               alignment: Alignment.centerRight,
               child: TextButton.icon(
-                onPressed: () {
-                  HapticFeedback.lightImpact();
-                  onReflect();
-                },
+                onPressed: onReflect,
                 icon: const Icon(Icons.edit_note, size: 18),
                 label: const Text('Reflect Now'),
                 style: TextButton.styleFrom(

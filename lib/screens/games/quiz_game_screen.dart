@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/enums.dart';
 import '../../models/scripture.dart';
@@ -8,6 +7,7 @@ import '../../providers/activity_provider.dart';
 import '../../providers/progress_provider.dart';
 import '../../providers/quiz_game_provider.dart';
 import '../../services/audio_service.dart';
+import '../../services/haptic_service.dart';
 import '../../theme/app_theme.dart';
 import 'game_results_screen.dart';
 
@@ -204,7 +204,7 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
                               isAnswered: gameState.isAnswered,
                               isCorrect: option == question.correctAnswer,
                               onTap: () {
-                                HapticFeedback.selectionClick();
+                                ref.read(hapticProvider).selection();
                                 notifier.selectAnswer(option);
                               },
                             ),
@@ -223,7 +223,7 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
                             ),
                             onPressed: gameState.selectedAnswer != null
                                 ? () {
-                                    HapticFeedback.mediumImpact();
+                                    ref.read(hapticProvider).medium();
                                     notifier.submitAnswer();
                                   }
                                 : null,
@@ -310,7 +310,7 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
 
   void _onGameComplete(QuizGameState finalState) {
     _elapsedTimer?.cancel();
-    HapticFeedback.heavyImpact();
+    ref.read(hapticProvider).heavy();
     ref.read(audioProvider.notifier).play(SoundEffect.complete);
 
     // Log activity for the quiz completion

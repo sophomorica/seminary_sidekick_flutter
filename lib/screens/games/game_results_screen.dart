@@ -1,11 +1,11 @@
 import 'dart:math';
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/enums.dart';
 import '../../services/audio_service.dart';
+import '../../services/haptic_service.dart';
 import '../../theme/app_theme.dart';
 
 class GameResultsScreen extends ConsumerStatefulWidget {
@@ -86,9 +86,9 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
     }
 
     // Celebration haptics and audio
-    HapticFeedback.heavyImpact();
+    ref.read(hapticProvider).heavy();
     Future.delayed(const Duration(milliseconds: 300), () {
-      HapticFeedback.mediumImpact();
+      ref.read(hapticProvider).medium();
     });
     if (widget.isNewMastery) {
       ref.read(audioProvider.notifier).play(SoundEffect.levelup);

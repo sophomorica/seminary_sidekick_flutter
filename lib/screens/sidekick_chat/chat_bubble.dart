@@ -1,12 +1,13 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/scriptures_data.dart';
 import '../../models/sidekick_response.dart';
+import '../../services/haptic_service.dart';
 import '../../theme/app_theme.dart';
 
-class ChatBubble extends StatelessWidget {
+class ChatBubble extends ConsumerWidget {
   final SidekickMessage message;
   final void Function(String scriptureId) onScriptureTap;
 
@@ -19,7 +20,7 @@ class ChatBubble extends StatelessWidget {
   bool get isUser => message.role == 'user';
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
@@ -141,7 +142,7 @@ final _scriptureRefPattern = RegExp(
   caseSensitive: false,
 );
 
-class RichMessageText extends StatelessWidget {
+class RichMessageText extends ConsumerWidget {
   final String text;
   final void Function(String scriptureId) onScriptureTap;
 
@@ -152,15 +153,15 @@ class RichMessageText extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final spans = _buildSpans(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final spans = _buildSpans(context, ref);
 
     return RichText(
       text: TextSpan(children: spans),
     );
   }
 
-  List<InlineSpan> _buildSpans(BuildContext context) {
+  List<InlineSpan> _buildSpans(BuildContext context, WidgetRef ref) {
     final spans = <InlineSpan>[];
     final textStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
           height: 1.6,
@@ -192,7 +193,7 @@ class RichMessageText extends StatelessWidget {
           ),
           recognizer: (TapGestureRecognizer()
             ..onTap = () {
-              HapticFeedback.lightImpact();
+              ref.read(hapticProvider).light();
               onScriptureTap(scriptureId);
             }),
         ));
@@ -261,7 +262,7 @@ class _SuggestionChips extends StatelessWidget {
   }
 }
 
-class _SuggestionChip extends StatelessWidget {
+class _SuggestionChip extends ConsumerWidget {
   final String label;
   final IconData icon;
   final bool isDark;
@@ -273,13 +274,13 @@ class _SuggestionChip extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
           // Trigger the tap action
-          HapticFeedback.lightImpact();
+          ref.read(hapticProvider).light();
         },
         borderRadius: BorderRadius.circular(AppTheme.radiusRound),
         child: Container(

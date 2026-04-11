@@ -4,20 +4,49 @@ import 'package:go_router/go_router.dart';
 
 import '../../models/sidekick_response.dart';
 import '../../providers/scripture_mastery_provider.dart';
-
 import '../../providers/sidekick_provider.dart';
 import '../../providers/spaced_repetition_provider.dart';
 import '../../providers/subscription_provider.dart';
+import '../../providers/user_preferences_provider.dart';
 import '../../theme/app_theme.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
+
+  /// Time-of-day greeting.
+  static String _timeGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning,';
+    if (hour < 17) return 'Good afternoon,';
+    return 'Good evening,';
+  }
+
+  /// Dynamic mastery description based on actual progress.
+  static String _masteryDescription(HolisticStats stats) {
+    final pct = stats.mastered;
+    if (pct == 0) {
+      return 'Your journey begins here. Pick a scripture and start building mastery one verse at a time.';
+    } else if (pct < 10) {
+      return 'You\'ve taken the first steps. Keep practicing daily and you\'ll see your mastery grow.';
+    } else if (pct < 25) {
+      return 'Great momentum. You\'re building a strong foundation of scripture knowledge.';
+    } else if (pct < 50) {
+      return 'Impressive progress. Continue with daily practice to unlock deeper insights.';
+    } else if (pct < 75) {
+      return 'You\'re well past the halfway mark. Your dedication is paying off beautifully.';
+    } else if (pct < 100) {
+      return 'Almost there. You\'re approaching full mastery of the doctrinal scriptures.';
+    } else {
+      return 'Remarkable. You have mastered all 100 doctrinal mastery scriptures.';
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final stats = ref.watch(holisticStatsProvider);
     final isPremium = ref.watch(isPremiumProvider);
     final sidekickResponse = ref.watch(sidekickResponseProvider);
+    final greetingName = ref.watch(greetingNameProvider);
     ref.watch(dueCountProvider);
 
     return Scaffold(
@@ -32,26 +61,30 @@ class HomeScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ─── Two-line Greeting with Name in Primary Italic ─────────
-              Text(
-                'Good morning,',
-                style: Theme.of(context).textTheme.displayLarge,
-              ),
-              Text(
-                'Friend',
-                style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                      color: AppTheme.primary,
-                      fontStyle: FontStyle.italic,
-                    ),
-              ),
-              const SizedBox(height: AppTheme.spacingMd),
-              Text(
-                'Peace be unto you. Your journey through the scriptures continues today with renewed strength.',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyLarge
-                    ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-              ),
+              // ─── Dynamic Greeting ─────────────────────────────────────
+              // Premium: AI-generated daily prompt (if available)
+              // Free: Time-based greeting + user name
+              if (isPremium && sidekickResponse?.dailyPrompt != null) ...[
+                Text(
+                  sidekickResponse!.dailyPrompt!,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontStyle: FontStyle.italic,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ] else ...[
+                Text(
+                  _timeGreeting(),
+                  style: Theme.of(context).textTheme.displayLarge,
+                ),
+                Text(
+                  greetingName,
+                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                        color: AppTheme.primary,
+                        fontStyle: FontStyle.italic,
+                      ),
+                ),
+              ],
 
               const SizedBox(height: 48.0),
 
@@ -62,7 +95,7 @@ class HomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: AppTheme.spacingSm),
               Text(
-                'You are nearing the midway point of your mastery journey. Continue with daily practice to unlock deeper insights.',
+                _masteryDescription(stats),
                 style: Theme.of(context)
                     .textTheme
                     .bodyLarge

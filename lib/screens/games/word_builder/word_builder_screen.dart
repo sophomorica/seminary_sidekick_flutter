@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../models/enums.dart';
@@ -9,6 +8,7 @@ import '../../../providers/activity_provider.dart';
 import '../../../providers/progress_provider.dart';
 import '../../../providers/word_builder_provider.dart';
 import '../../../services/audio_service.dart';
+import '../../../services/haptic_service.dart';
 import '../../../services/speech_service.dart';
 import '../../../theme/app_theme.dart';
 import '../game_results_screen.dart';
@@ -572,12 +572,12 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
 
     final newState = ref.read(wordBuilderProvider);
     if (newState.lastFeedback == 'correct') {
-      HapticFeedback.lightImpact();
+      ref.read(hapticProvider).light();
       ref.read(audioProvider.notifier).play(SoundEffect.correct);
       _pulseController.forward(from: 0);
 
       if (newState.isScriptureComplete) {
-        HapticFeedback.heavyImpact();
+        ref.read(hapticProvider).heavy();
         if (!newState.isComplete) {
           Future.delayed(const Duration(milliseconds: 800), () {
             if (mounted) {
@@ -587,7 +587,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
         }
       }
     } else if (newState.lastFeedback == 'incorrect') {
-      HapticFeedback.mediumImpact();
+      ref.read(hapticProvider).medium();
       ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
       setState(() => _shakingPoolIndex = poolIndex);
       _shakeController.forward(from: 0).then((_) {
@@ -905,17 +905,17 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                 final newState = ref.read(wordBuilderProvider);
 
                 if (newState.lastFeedback == 'reset') {
-                  HapticFeedback.heavyImpact();
+                  ref.read(hapticProvider).heavy();
                   ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
                   // Don't do anything else — the listener handles clearing
                   return;
                 } else if (newState.lastFeedback == 'incorrect') {
-                  HapticFeedback.mediumImpact();
+                  ref.read(hapticProvider).medium();
                   ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
                 }
 
                 if (newState.isScriptureComplete) {
-                  HapticFeedback.heavyImpact();
+                  ref.read(hapticProvider).heavy();
                   _typingFocusNode.unfocus();
                   if (!newState.isComplete) {
                     Future.delayed(const Duration(milliseconds: 1000), () {
@@ -1002,7 +1002,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       _speechService.stopListening();
       setState(() => _isSpeechListening = false);
 
-      HapticFeedback.heavyImpact();
+      ref.read(hapticProvider).heavy();
       ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
       return;
     }
@@ -1019,7 +1019,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       _speechService.stopListening();
       setState(() => _isSpeechListening = false);
 
-      HapticFeedback.heavyImpact();
+      ref.read(hapticProvider).heavy();
       _typingFocusNode.unfocus();
       if (!stateAfter.isComplete) {
         Future.delayed(const Duration(milliseconds: 1000), () {
