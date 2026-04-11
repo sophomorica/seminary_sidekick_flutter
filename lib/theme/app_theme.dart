@@ -114,14 +114,14 @@ class AppTheme {
   static const Color bookOfMormonColor = Color(0xFF26A69A);
   static const Color doctrineCovenants = Color(0xFFAB47BC);
 
-  // ─── Dark Mode — "Deep Parchment" ──────────────────────────────
-  static const Color darkBackground = Color(0xFF221A17);
-  static const Color darkCard = Color(0xFF2E2420);
-  static const Color darkSurfaceColor = Color(0xFF2A201C);
-  static const Color darkOnSurface = Color(0xFFEFDFDA); // softened to 90% feel
-  static const Color darkSurfaceContainerLow = Color(0xFF322822);
-  static const Color darkSurfaceContainer = Color(0xFF3A302A);
-  static const Color darkSurfaceContainerHigh = Color(0xFF443A34);
+  // ─── Dark Mode — "Deep Grove" (green-slate, matching app logo) ──
+  static const Color darkBackground = Color(0xFF1A2226);
+  static const Color darkCard = Color(0xFF222E32);
+  static const Color darkSurfaceColor = Color(0xFF1E2A2E);
+  static const Color darkOnSurface = Color(0xFFE2EBE8); // cool sage-tinted white
+  static const Color darkSurfaceContainerLow = Color(0xFF263236);
+  static const Color darkSurfaceContainer = Color(0xFF2E3A3E);
+  static const Color darkSurfaceContainerHigh = Color(0xFF384448);
 
   // ─── Spacing ────────────────────────────────────────────────────
   static const double spacingXs = 4.0;
@@ -224,7 +224,7 @@ class AppTheme {
     );
   }
 
-  // ─── Dark Theme — "Deep Parchment" ──────────────────────────────
+  // ─── Dark Theme — "Deep Grove" ───────────────────────────────────
   static ThemeData getDarkTheme() {
     const colorScheme = ColorScheme(
       brightness: Brightness.dark,
@@ -250,14 +250,14 @@ class AppTheme {
       surfaceContainerLow: darkSurfaceContainerLow,
       surfaceContainer: darkSurfaceContainer,
       surfaceContainerHigh: darkSurfaceContainerHigh,
-      surfaceContainerHighest: Color(0xFF4E443E),
-      onSurfaceVariant: Color(0xFFDAC1B9),
-      outline: Color(0xFF87736C),
-      outlineVariant: Color(0xFF54433D),
-      inverseSurface: surfaceContainerHighest,
-      onInverseSurface: onSurface,
+      surfaceContainerHighest: Color(0xFF425054),  // green-slate highest
+      onSurfaceVariant: Color(0xFFB9CFC8),         // sage-tinted muted text
+      outline: Color(0xFF6C8780),                   // green-tinted outline
+      outlineVariant: Color(0xFF3D5450),            // subtle green border
+      inverseSurface: Color(0xFFE2EBE8),            // light sage
+      onInverseSurface: Color(0xFF1A2226),          // dark on light
       inversePrimary: primary,
-      surfaceTint: primaryFixedDim,
+      surfaceTint: secondaryFixedDim,               // green tint instead of brown
     );
 
     return ThemeData(

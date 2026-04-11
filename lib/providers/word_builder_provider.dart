@@ -428,16 +428,25 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
 
   /// Auto-fill any punctuation at the current position in the target text.
   /// Returns the number of punctuation characters auto-filled.
-  int _autoFillPunctuation(List<TypedChar> chars, String currentTyped) {
+  /// Auto-fills punctuation AND spaces in the target text so the user
+  /// only needs to type actual letters/digits. This handles em dashes,
+  /// commas, periods, quotes, and the spaces around them seamlessly.
+  int _autoFillNonLetters(List<TypedChar> chars, String currentTyped) {
     int filled = 0;
     int pos = chars.length;
     while (pos < state.targetText.length &&
-        _punctuation.hasMatch(state.targetText[pos])) {
+        _isAutoFillChar(state.targetText[pos])) {
       chars.add(TypedChar(char: state.targetText[pos], isCorrect: true));
       filled++;
       pos++;
     }
     return filled;
+  }
+
+  /// Returns true if this character should be auto-filled (not typed by user).
+  /// Punctuation and spaces are both auto-filled.
+  bool _isAutoFillChar(String ch) {
+    return ch == ' ' || ch == '\n' || _punctuation.hasMatch(ch);
   }
 
   /// User types a character. Called on every keystroke.
@@ -454,11 +463,11 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
       if (state.difficulty == DifficultyLevel.advanced) {
         final newChars = List<TypedChar>.from(state.typedChars);
         if (newChars.isNotEmpty) {
-          // Remove the last user-typed char, plus any auto-filled punctuation
-          // that preceded it (walk back over consecutive punctuation).
+          // Remove the last user-typed char, plus any auto-filled chars
+          // (punctuation and spaces) that preceded it.
           newChars.removeLast();
           while (newChars.isNotEmpty &&
-              _punctuation.hasMatch(newChars.last.char)) {
+              _isAutoFillChar(newChars.last.char)) {
             newChars.removeLast();
           }
         }
@@ -483,9 +492,16 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
 
       final newChar = newText[newText.length - 1];
 
-      // Auto-fill any punctuation at the current position first
+      // Ignore spaces typed by the user — spaces are auto-filled.
+      // The user only needs to type letters and digits.
+      if (newChar == ' ') {
+        state = state.copyWith(typedText: newText);
+        return;
+      }
+
+      // Auto-fill any punctuation/spaces at the current position first
       final newChars = List<TypedChar>.from(state.typedChars);
-      final punctFilled = _autoFillPunctuation(newChars, state.typedText);
+      final autoFilled = _autoFillNonLetters(newChars, state.typedText);
 
       final expectedIndex = newChars.length;
       if (expectedIndex >= state.targetText.length) return;
@@ -498,9 +514,9 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
         newChars.add(TypedChar(char: newChar, isCorrect: true));
 
         // Also auto-fill any trailing punctuation (e.g. end of verse with period)
-        final trailingFilled = _autoFillPunctuation(newChars, '');
+        final trailingFilled = _autoFillNonLetters(newChars, '');
 
-        final totalFilled = 1 + punctFilled + trailingFilled;
+        final totalFilled = 1 + autoFilled + trailingFilled;
         final newCorrectAcross = state.correctUnitsAcrossAll + totalFilled;
         final done = newChars.length >= state.targetText.length;
 
@@ -576,7 +592,7 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
       }
 
       // Auto-fill punctuation
-      _autoFillPunctuation(newChars, '');
+      _autoFillNonLetters(newChars, '');
       pos = newChars.length;
 
       // Extract the next target word (letters only, up to next space/end)
@@ -632,7 +648,7 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
         }
 
         // Auto-fill trailing punctuation
-        _autoFillPunctuation(newChars, '');
+        _autoFillNonLetters(newChars, '');
 
         final totalFilled = newChars.length - state.typedChars.length;
         final newCorrectAcross = state.correctUnitsAcrossAll + totalFilled;

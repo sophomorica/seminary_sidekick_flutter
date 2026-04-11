@@ -129,133 +129,142 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
       body: Stack(
         children: [
           SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              const Spacer(flex: 1),
-
-              // Stars
-              ScaleTransition(
-                scale: _starsScale,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(3, (index) {
-                    final isFilled = index < widget.starRating;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Icon(
-                        isFilled ? Icons.star_rounded : Icons.star_outline_rounded,
-                        size: index == 1 ? 72 : 56, // Middle star bigger
-                        color: isFilled ? AppTheme.gold : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
-                      ),
-                    );
-                  }),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Message
-              Text(
-                message,
-                style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-
-              // Stats card
-              FadeTransition(
-                opacity: _statsSlide,
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0, 0.3),
-                    end: Offset.zero,
-                  ).animate(_statsSlide),
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  // Scrollable content area — stars, message, stats
+                  Expanded(
+                    child: SingleChildScrollView(
                       child: Column(
                         children: [
-                          _StatRow(
-                            icon: Icons.check_circle_outline,
-                            iconColor: AppTheme.success,
-                            label: 'Correct',
-                            value: '${widget.correctMatches}/${widget.totalPairs}',
+                          const SizedBox(height: 16),
+
+                          // Stars
+                          ScaleTransition(
+                            scale: _starsScale,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: List.generate(3, (index) {
+                                final isFilled = index < widget.starRating;
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                                  child: Icon(
+                                    isFilled ? Icons.star_rounded : Icons.star_outline_rounded,
+                                    size: index == 1 ? 64 : 48,
+                                    color: isFilled
+                                        ? AppTheme.gold
+                                        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
+                                  ),
+                                );
+                              }),
+                            ),
                           ),
-                          const Divider(height: 20),
-                          _StatRow(
-                            icon: Icons.close,
-                            iconColor: AppTheme.error,
-                            label: 'Misses',
-                            value: '${widget.incorrectAttempts}',
+                          const SizedBox(height: 16),
+
+                          // Message
+                          Text(
+                            message,
+                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
-                          const Divider(height: 20),
-                          _StatRow(
-                            icon: Icons.percent,
-                            iconColor: AppTheme.accent,
-                            label: 'Accuracy',
-                            value: '$accuracy%',
+                          const SizedBox(height: 6),
+                          Text(
+                            subtitle,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                ),
+                            textAlign: TextAlign.center,
                           ),
-                          const Divider(height: 20),
-                          _StatRow(
-                            icon: Icons.timer_outlined,
-                            iconColor: AppTheme.secondary,
-                            label: 'Time',
-                            value: _formatDuration(widget.completionTime),
+                          const SizedBox(height: 20),
+
+                          // Stats card
+                          FadeTransition(
+                            opacity: _statsSlide,
+                            child: SlideTransition(
+                              position: Tween<Offset>(
+                                begin: const Offset(0, 0.3),
+                                end: Offset.zero,
+                              ).animate(_statsSlide),
+                              child: Card(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    children: [
+                                      _StatRow(
+                                        icon: Icons.check_circle_outline,
+                                        iconColor: AppTheme.success,
+                                        label: 'Correct',
+                                        value: '${widget.correctMatches}/${widget.totalPairs}',
+                                      ),
+                                      const Divider(height: 16),
+                                      _StatRow(
+                                        icon: Icons.close,
+                                        iconColor: AppTheme.error,
+                                        label: 'Misses',
+                                        value: '${widget.incorrectAttempts}',
+                                      ),
+                                      const Divider(height: 16),
+                                      _StatRow(
+                                        icon: Icons.percent,
+                                        iconColor: AppTheme.accent,
+                                        label: 'Accuracy',
+                                        value: '$accuracy%',
+                                      ),
+                                      const Divider(height: 16),
+                                      _StatRow(
+                                        icon: Icons.timer_outlined,
+                                        iconColor: AppTheme.secondary,
+                                        label: 'Time',
+                                        value: _formatDuration(widget.completionTime),
+                                      ),
+                                      const Divider(height: 16),
+                                      _StatRow(
+                                        icon: Icons.speed,
+                                        iconColor: AppTheme.primary,
+                                        label: 'Difficulty',
+                                        value: widget.difficulty.label,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
-                          const Divider(height: 20),
-                          _StatRow(
-                            icon: Icons.speed,
-                            iconColor: AppTheme.primary,
-                            label: 'Difficulty',
-                            value: widget.difficulty.label,
-                          ),
+                          const SizedBox(height: 16),
                         ],
                       ),
                     ),
                   ),
-                ),
-              ),
 
-              const Spacer(flex: 2),
-
-              // Action buttons
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    // Pop back to practice hub and let user start again
-                    Navigator.of(context).pop();
-                  },
-                  icon: const Icon(Icons.replay),
-                  label: const Text('Try Again'),
-                ),
+                  // Buttons pinned at bottom — always visible
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      icon: const Icon(Icons.replay),
+                      label: const Text('Try Again'),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      icon: const Icon(Icons.home_outlined),
+                      label: const Text('Back to Practice'),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    // Navigate back to practice hub
-                    Navigator.of(context).pop();
-                  },
-                  icon: const Icon(Icons.home_outlined),
-                  label: const Text('Back to Practice'),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
 
           // Confetti overlay — IgnorePointer ensures it never blocks interaction
           if (_shouldCelebrate)
