@@ -15,6 +15,12 @@ class HapticService {
 
   const HapticService._(this._enabled);
 
+  /// For testing: create an enabled service.
+  const HapticService.enabled() : _enabled = true;
+
+  /// For testing: create a disabled service.
+  const HapticService.disabled() : _enabled = false;
+
   void light() {
     if (_enabled) HapticFeedback.lightImpact();
   }
