@@ -504,6 +504,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
         children: List.generate(state.availablePool.length, (index) {
           final chunk = state.availablePool[index];
           final isShaking = _shakingPoolIndex == index;
+          final isUsed = state.usedPoolIndices.contains(index);
           final chunkColor =
               _chunkPalette[chunk.colorIndex % _chunkPalette.length];
           final tileColor = chunk.isDistractor
@@ -518,41 +519,53 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                 child: child,
               );
             },
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => _onChunkTapped(index),
-                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppTheme.spacingSm,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: tileColor,
+            // Used chunks stay in place (preserving Wrap layout) but are
+            // faded out and non-tappable so the remaining chips never shift
+            // under the user's finger.
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 200),
+              opacity: isUsed ? 0.2 : 1.0,
+              child: IgnorePointer(
+                ignoring: isUsed,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _onChunkTapped(index),
                     borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                    boxShadow: isShaking
-                        ? [
-                            BoxShadow(
-                              color: AppTheme.error.withValues(alpha: 0.2),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : AppTheme.editorialShadow,
-                  ),
-                  child: Text(
-                    chunk.text,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontFamily: 'Merriweather',
-                      fontWeight: FontWeight.w600,
-                      color: isShaking
-                          ? AppTheme.error
-                          : (chunk.isDistractor
-                              ? AppTheme.error.withValues(alpha: 0.6)
-                              : Theme.of(context).colorScheme.onSurface),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacingSm,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: tileColor,
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.radiusSm),
+                        boxShadow: isShaking
+                            ? [
+                                BoxShadow(
+                                  color:
+                                      AppTheme.error.withValues(alpha: 0.2),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : (isUsed ? null : AppTheme.editorialShadow),
+                      ),
+                      child: Text(
+                        chunk.text,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontFamily: 'Merriweather',
+                          fontWeight: FontWeight.w600,
+                          color: isShaking
+                              ? AppTheme.error
+                              : (chunk.isDistractor
+                                  ? AppTheme.error.withValues(alpha: 0.6)
+                                  : Theme.of(context).colorScheme.onSurface),
+                        ),
+                      ),
                     ),
                   ),
                 ),
