@@ -255,6 +255,185 @@
 
 ---
 
+## Multiplayer — Live Head-to-Head (Local WebSocket)
+
+> **Vision**: Students in the same classroom race each other on scripture mastery games in real-time.
+> One device hosts a WebSocket server, others join via room code. No cloud, no accounts, no persistence.
+> Sessions are ephemeral — play, see results, done. Room dies when the host closes it.
+>
+> **Tech**: Dart `dart:io` WebSocket server on host device. All players on same WiFi.
+> No Firebase, no external dependencies. Zero cost forever.
+>
+> **Architecture**: All multiplayer code is NEW — existing single-player game logic, providers, and screens are NOT modified.
+> Multiplayer game providers clone the game logic but swap side effects: broadcast progress to WebSocket instead of writing to Hive.
+> No mastery progression, no spaced repetition, no Hive writes — just the raw game racing experience.
+>
+> **Parallelization**: TASK-100 is the foundation. TASK-101 and TASK-102 can run in parallel after it.
+> TASK-103, TASK-104, TASK-105 can all run in parallel after TASK-101 + TASK-102 are done.
+> TASK-106 is the integration pass after everything else.
+
+### TASK-100: WebSocket Server & Multiplayer Service
+
+- **status**: `open`
+- **priority**: P0
+- **estimated_effort**: Medium
+- **files_to_touch**: NEW `lib/services/multiplayer_service.dart`
+- **description**: Core networking layer. Host device runs a WebSocket server via `dart:io`. Clients connect via IP + port. The service handles room creation, player join/leave, message routing, and connection lifecycle. This is the foundation everything else builds on.
+- **acceptance_criteria**:
+  - [ ] `MultiplayerService` can start a WebSocket server on a configurable port (default 8080)
+  - [ ] Host generates a 6-digit alphanumeric room code (no ambiguous chars: 0/O, 1/I/L excluded)
+  - [ ] Clients connect via `ws://<hostIP>:<port>` with room code + nickname in handshake
+  - [ ] Service exposes the host device's local IP address for display (QR code or manual entry)
+  - [ ] Typed message protocol: JSON messages with `type` field (join, leave, ready, countdown, gameStart, progressUpdate, gameComplete, results, error)
+  - [ ] Host tracks connected players (id, nickname, connected status)
+  - [ ] Clean disconnect handling: player leaves → others notified, host leaves → all clients notified with "host disconnected" message
+  - [ ] Service is a singleton or Riverpod-managed — not tied to widget lifecycle
+  - [ ] Works on both iOS and Android (dart:io WebSocket is cross-platform)
+- **depends_on**: —
+- **notes**:
+  - Player ID is a locally-generated UUID (no auth needed)
+  - Message protocol example: `{"type": "progressUpdate", "playerId": "uuid", "progress": 0.45, "errors": 2}`
+  - Host is also a player — the server and game client coexist on the same device
+  - Use `NetworkInterface.list()` to find the device's WiFi IP (filter for IPv4, non-loopback, wlan/en0 interface)
+  - Keep the protocol simple and flat — no nested state sync, just discrete events
+  - Consider a `MultiplayerMessage` sealed class/enum for type-safe message handling in Dart
+
+### TASK-101: Multiplayer Room Provider & Lobby UI
+
+- **status**: `open`
+- **priority**: P0
+- **estimated_effort**: Medium
+- **files_to_touch**: NEW `lib/providers/multiplayer_room_provider.dart`, NEW `lib/screens/multiplayer/multiplayer_hub_screen.dart`, NEW `lib/screens/multiplayer/create_room_screen.dart`, NEW `lib/screens/multiplayer/join_room_screen.dart`, NEW `lib/screens/multiplayer/lobby_screen.dart`
+- **description**: State management for the multiplayer room lifecycle (create → lobby → countdown → active → results → done) and the UI screens for creating, joining, and waiting in the lobby. The host picks a game type, scripture(s), and difficulty, then shares the room code. Players join and see each other in the lobby. Host taps Start.
+- **acceptance_criteria**:
+  - [ ] `MultiplayerRoomNotifier` manages room state machine: `idle → creating → lobby → countdown → active → results → done`
+  - [ ] `MultiplayerRoomState` tracks: room code, host/client role, player list, game config (game type, scripture IDs, difficulty), room status
+  - [ ] **Create Room screen**: Host selects game type (Word Builder, Scripture Match, Quick Quiz), picks scriptures (by book or individual), picks difficulty → room created, code displayed large + device IP
+  - [ ] **Join Room screen**: Enter host IP + room code (or scan QR — stretch goal), enter nickname → connect
+  - [ ] **Lobby screen**: Shows all connected players with join animations, player count, game config summary. Host sees "Start Game" button (enabled when ≥2 players). All players see "Waiting for host to start..."
+  - [ ] Countdown sequence: Host taps Start → 3-2-1-GO countdown synced to all players via WebSocket
+  - [ ] Player leave/disconnect reflected in lobby in real-time
+  - [ ] Back/exit from lobby disconnects cleanly
+- **depends_on**: TASK-100
+- **notes**:
+  - Room state machine transitions are driven by WebSocket messages from the service layer
+  - Scripture selection: reuse existing `scripturesProvider` / `scripturesByBookProvider` for the picker — just need a selection UI
+  - Lobby is a `StreamBuilder` or `ref.listen` on the player list from `MultiplayerService`
+  - Countdown uses server timestamps from host to sync (host sends `countdownStart` message with target start time)
+  - QR code for join is a stretch goal — text entry of IP + code works for prototype
+  - Follow existing screen patterns: `ConsumerStatefulWidget`, AppTheme colors, Inter/Merriweather fonts
+
+### TASK-102: Shared Multiplayer Widgets (Opponent Progress & Race Results)
+
+- **status**: `open`
+- **priority**: P0
+- **estimated_effort**: Small-Medium
+- **files_to_touch**: NEW `lib/widgets/opponent_progress_bar.dart`, NEW `lib/screens/multiplayer/race_results_screen.dart`
+- **description**: Reusable UI components shared across all three multiplayer game modes. The opponent progress overlay shows real-time progress bars for all players during a game. The race results screen shows final rankings after the game ends.
+- **acceptance_criteria**:
+  - [ ] `OpponentProgressBar` widget: shows a horizontal progress bar per opponent with nickname label, progress % (0.0→1.0), and "FINISHED" state. Animated smoothly. Compact enough to overlay at the top of any game screen without blocking gameplay.
+  - [ ] `OpponentProgressOverlay` widget: stacks multiple `OpponentProgressBar`s vertically for all players in the room. Streams updates from `MultiplayerRoomProvider`.
+  - [ ] `RaceResultsScreen`: shows final rankings sorted by finish time. Each row: rank (1st/2nd/3rd with medal icons), nickname, completion time, accuracy %, error count. Winner gets confetti + celebration animation. "Play Again" button (host only) and "Leave" button for all.
+  - [ ] Opponent bars use distinct colors per player (cycle through a palette)
+  - [ ] Graceful handling of disconnected players (grayed out bar, "DNF" in results)
+- **depends_on**: TASK-100, TASK-101
+- **notes**:
+  - Progress data comes from the room provider which streams from WebSocket
+  - OpponentProgressBar should be lightweight — it rebuilds frequently (every ~500ms per player)
+  - Use `AnimatedContainer` or `TweenAnimationBuilder` for smooth bar movement
+  - RaceResultsScreen follows the pattern of existing `GameResultsScreen` but with multiple players
+  - Confetti for the winner uses existing `confetti` package
+  - "Play Again" resets room to lobby state; host picks new scriptures or keeps the same config
+  - Player colors: use a predefined list of 8-10 distinct colors, assigned by join order
+
+### TASK-103: Multiplayer Word Builder
+
+- **status**: `open`
+- **priority**: P1
+- **estimated_effort**: Medium
+- **files_to_touch**: NEW `lib/providers/mp_word_builder_provider.dart`, NEW `lib/screens/multiplayer/mp_word_builder_screen.dart`
+- **description**: Multiplayer version of Word Builder. All players race to complete the same scripture at the same difficulty. Game logic is cloned from the single-player Word Builder but does NOT write to Hive or update mastery. Instead, it broadcasts progress % and error count to the room via WebSocket. Opponent progress bars overlay the game screen.
+- **acceptance_criteria**:
+  - [ ] `MpWordBuilderNotifier` contains the same chunk-tap (Beginner/Intermediate) and typing (Advanced/Master) logic as `WordBuilderNotifier`
+  - [ ] No Hive writes, no mastery updates, no spaced repetition — pure game logic only
+  - [ ] Broadcasts progress update to WebSocket on every correct placement/keystroke (throttled to max 2 updates/sec)
+  - [ ] `OpponentProgressOverlay` displayed at top of screen during gameplay
+  - [ ] When any player finishes, a "FINISHED" indicator appears on their progress bar for all other players
+  - [ ] When the local player finishes, show brief celebration then wait for results (or auto-navigate after timeout)
+  - [ ] When all players finish (or timeout), navigate to `RaceResultsScreen`
+  - [ ] Game timeout: configurable (default 5 min) — players who haven't finished get ranked by progress %
+  - [ ] All existing Word Builder feedback (haptics, colors, animations) preserved
+- **depends_on**: TASK-100, TASK-101, TASK-102
+- **notes**:
+  - Clone logic from `lib/providers/word_builder_provider.dart` — do NOT import or extend it. Keep multiplayer fully isolated.
+  - Progress calculation: `correctPlacements / totalUnits` for chunk-tap, `correctChars / totalChars` for typing
+  - Read existing `word_builder_provider.dart` and `word_builder_screen.dart` carefully before starting — the chunk-tap and typing modes have distinct mechanics
+  - The screen should look identical to single-player WB, just with the opponent overlay at top
+  - Multi-scripture sessions: if host picked multiple scriptures, advance to next scripture when current one completes (progress resets per scripture, overall progress = scriptures completed / total)
+
+### TASK-104: Multiplayer Scripture Match
+
+- **status**: `open`
+- **priority**: P1
+- **estimated_effort**: Medium
+- **files_to_touch**: NEW `lib/providers/mp_matching_provider.dart`, NEW `lib/screens/multiplayer/mp_matching_screen.dart`
+- **description**: Multiplayer version of Scripture Match. All players see the same set of key phrases and references (same randomized order, seeded by host). Race to match them all correctly. Broadcasts progress to WebSocket.
+- **acceptance_criteria**:
+  - [ ] `MpMatchingNotifier` contains the same matching logic as `MatchingGameNotifier`
+  - [ ] No Hive writes, no mastery updates — pure game logic only
+  - [ ] Host generates and distributes the randomized pair order (seeded shuffle via room code) so all players see the same layout
+  - [ ] Broadcasts progress update on every correct match (progress = correctMatches / totalPairs)
+  - [ ] `OpponentProgressOverlay` displayed at top of screen during gameplay
+  - [ ] Haptics, animations, and visual feedback preserved from single-player
+  - [ ] Navigate to `RaceResultsScreen` when all players finish or timeout
+- **depends_on**: TASK-100, TASK-101, TASK-102
+- **notes**:
+  - Clone logic from `lib/providers/matching_game_provider.dart` — keep multiplayer isolated
+  - Seeded shuffle: use room code as seed for `Random(roomCode.hashCode)` so all players get same pair order without transmitting the full state
+  - Read existing `matching_game_provider.dart` and `matching_game_screen.dart` before starting
+
+### TASK-105: Multiplayer Quick Quiz
+
+- **status**: `open`
+- **priority**: P1
+- **estimated_effort**: Medium
+- **files_to_touch**: NEW `lib/providers/mp_quiz_provider.dart`, NEW `lib/screens/multiplayer/mp_quiz_screen.dart`
+- **description**: Multiplayer version of Quick Quiz. All players answer the same questions in the same order (seeded by host). Race to complete all questions. Broadcasts progress to WebSocket.
+- **acceptance_criteria**:
+  - [ ] `MpQuizNotifier` contains the same quiz logic as `QuizGameNotifier`
+  - [ ] No Hive writes, no mastery updates — pure game logic only
+  - [ ] Host generates and distributes question order + answer options (seeded shuffle) so all players see the same questions
+  - [ ] Broadcasts progress update on each answered question (progress = questionsAnswered / totalQuestions)
+  - [ ] `OpponentProgressOverlay` displayed at top of screen during gameplay
+  - [ ] Haptics, animations, and visual feedback preserved from single-player
+  - [ ] Navigate to `RaceResultsScreen` when all players finish or timeout
+- **depends_on**: TASK-100, TASK-101, TASK-102
+- **notes**:
+  - Clone logic from `lib/providers/quiz_game_provider.dart` — keep multiplayer isolated
+  - Same seeded shuffle approach as TASK-104
+  - Read existing `quiz_game_provider.dart` and `quiz_game_screen.dart` before starting
+
+### TASK-106: Multiplayer Navigation & App Integration
+
+- **status**: `open`
+- **priority**: P1
+- **estimated_effort**: Small
+- **files_to_touch**: `lib/app.dart`, `lib/screens/practice_hub_screen.dart`
+- **description**: Wire multiplayer into the existing app. Add a "Multiplayer" entry point on the Practice Hub screen and add GoRouter routes for all multiplayer screens. This is the only task that touches existing files.
+- **acceptance_criteria**:
+  - [ ] "Multiplayer" button/card on Practice Hub screen — prominent, distinct from single-player quizzes
+  - [ ] GoRouter routes added: `/multiplayer` (hub), `/multiplayer/create`, `/multiplayer/join`, `/multiplayer/lobby`
+  - [ ] Multiplayer game screens and results use `Navigator.push()` (transient, same as existing game screens)
+  - [ ] Back navigation from multiplayer hub returns to Practice Hub
+  - [ ] Multiplayer entry point works for both free and premium users (multiplayer is a free feature)
+- **depends_on**: TASK-100, TASK-101, TASK-102, TASK-103, TASK-104, TASK-105
+- **notes**:
+  - Keep the Practice Hub changes minimal — just add one card/button for multiplayer
+  - Follow existing navigation patterns from CLAUDE.md: GoRouter for tab/section nav, Navigator.push for transient game screens
+  - Multiplayer is free-tier — no premium gate
+
+---
+
 ## Backlog — Future (not prioritized)
 
 | Task | What | Effort |
