@@ -21,81 +21,133 @@ class ChatInput extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      padding: EdgeInsets.only(
-        left: AppTheme.spacingMd,
-        right: AppTheme.spacingSm,
-        top: AppTheme.spacingSm,
-        bottom: MediaQuery.of(context).padding.bottom + AppTheme.spacingSm,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacingMd,
+        vertical: AppTheme.spacingMd,
+      ).copyWith(
+        bottom: MediaQuery.of(context).padding.bottom + AppTheme.spacingMd,
       ),
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkCard : Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
+        color: isDark ? AppTheme.darkBackground : Theme.of(context).colorScheme.surface,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppTheme.darkSurfaceContainerLow
+                  : Theme.of(context).colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+              boxShadow: [
+                BoxShadow(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    maxLines: 4,
+                    minLines: 1,
+                    textCapitalization: TextCapitalization.sentences,
+                    textInputAction: TextInputAction.newline,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                    decoration: InputDecoration(
+                      hintText:
+                          'Ask about scripture, history, or your journey...',
+                      hintStyle:
+                          Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: AppTheme.outlineVariant,
+                                fontWeight: FontWeight.w400,
+                              ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacingMd,
+                        vertical: AppTheme.spacingMd,
+                      ),
+                    ),
+                    onSubmitted: (_) => onSend(),
+                  ),
+                ),
+                // Send button
+                _SendButton(
+                  isLoading: isLoading,
+                  onTap: isLoading ? null : onSend,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacingSm),
+          Text(
+            'Sidekick is an AI companion for theological exploration.',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: AppTheme.outlineVariant,
+                  letterSpacing: 1.5,
+                ),
           ),
         ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Expanded(
-            child: TextField(
-              controller: controller,
-              focusNode: focusNode,
-              maxLines: 4,
-              minLines: 1,
-              textCapitalization: TextCapitalization.sentences,
-              textInputAction: TextInputAction.newline,
-              decoration: InputDecoration(
-                hintText: 'Ask about a scripture...',
-                hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.4),
+    );
+  }
+}
+
+class _SendButton extends StatelessWidget {
+  final bool isLoading;
+  final VoidCallback? onTap;
+
+  const _SendButton({
+    required this.isLoading,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          width: 48,
+          height: 48,
+          margin: const EdgeInsets.only(right: AppTheme.spacingSm),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppTheme.primary,
+                AppTheme.primaryContainer,
+              ],
+            ),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: !isLoading
+                ? [
+                    BoxShadow(
+                      color: AppTheme.primary.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor:
-                    isDark ? AppTheme.darkSurfaceColor : AppTheme.offWhite,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: AppTheme.spacingMd,
-                  vertical: AppTheme.spacingSm + 2,
-                ),
-              ),
-              onSubmitted: (_) => onSend(),
+                  ]
+                : [],
+          ),
+          child: Center(
+            child: Icon(
+              isLoading ? Icons.hourglass_empty : Icons.send,
+              color: Colors.white,
+              size: 20,
             ),
           ),
-          const SizedBox(width: AppTheme.spacingSm),
-          // Send button
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: isLoading ? null : onSend,
-              borderRadius: BorderRadius.circular(AppTheme.radiusRound),
-              child: Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: isLoading
-                      ? AppTheme.sidekickColor(context).withValues(alpha: 0.3)
-                      : AppTheme.sidekickColor(context),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  isLoading ? Icons.hourglass_empty : Icons.arrow_upward,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

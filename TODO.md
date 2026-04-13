@@ -255,6 +255,94 @@
 
 ---
 
+## Deployment Readiness — Settings & Polish
+
+### TASK-041: User Preferences & Settings Screen (Scaffolding)
+
+- **status**: `done`
+- **priority**: P0
+- **estimated_effort**: Medium
+- **claimed_by**: claude-opus-agent
+- **started**: 2026-04-11T00:00:00Z
+- **completed**: 2026-04-11T00:30:00Z
+- **files_to_touch**: NEW `lib/providers/user_preferences_provider.dart`, NEW `lib/providers/study_streak_provider.dart`, NEW `lib/screens/settings/settings_screen.dart`, `lib/app.dart`, `lib/main.dart`, `lib/screens/home/home_screen.dart`, `lib/providers/progress_provider.dart`
+- **description**: Settings screen scaffolding, user preferences provider, daily study streak, dynamic greeting, dynamic mastery description, tappable profile icon → settings.
+- **acceptance_criteria**:
+  - [x] UserPreferences provider (Hive-backed) with name, sound, haptics, font scale, notifications
+  - [x] Study streak provider tracking consecutive days of activity
+  - [x] Settings screen with Profile, Appearance, Sound & Feedback, Study Stats, Subscription, Data & Privacy, About sections
+  - [x] Profile icon in header navigates to settings
+  - [x] Hardcoded `'7🔥'` replaced with live streak badge from provider
+  - [x] Hardcoded greeting replaced with time-based + user name (free) / AI prompt (premium)
+  - [x] Hardcoded mastery description replaced with progress-aware text
+  - [x] Study streak auto-records on any `recordAttempt()` call
+- **depends_on**: —
+- **notes**:
+  - Settings UI is built but several toggles aren't wired through to the app yet (see TASK-042, TASK-043, TASK-044)
+  - Sound toggle works (already wired to `AudioNotifier.setMuted()`)
+  - Name field works (wired to `greetingNameProvider`)
+  - Streak display works in both header and settings
+
+### TASK-042: Wire Theme Toggle in Settings
+
+- **status**: `done`
+- **priority**: P0
+- **estimated_effort**: Small
+- **claimed_by**: claude-opus-agent
+- **started**: 2026-04-11T01:00:00Z
+- **completed**: 2026-04-11T01:05:00Z
+- **files_to_touch**: `lib/app.dart`
+- **description**: The theme dropdown in settings writes to `themeProvider` but `MaterialApp.router` ignores it — `themeMode` is hardcoded to `ThemeMode.system`. Wire it up.
+- **acceptance_criteria**:
+  - [x] `MaterialApp.router` reads `themeMode` from `ref.watch(themeProvider)` instead of `ThemeMode.system`
+  - [x] Changing the theme dropdown in settings immediately switches light/dark/system
+- **depends_on**: TASK-041
+- **notes**:
+  - Added `import 'providers/theme_provider.dart'` and `import 'providers/user_preferences_provider.dart'` to app.dart
+  - Changed `themeMode: ThemeMode.system` → `themeMode: ref.watch(themeProvider)`
+
+### TASK-043: Wire Text Size / Font Scale Setting
+
+- **status**: `done`
+- **priority**: P1
+- **estimated_effort**: Small
+- **claimed_by**: claude-opus-agent
+- **started**: 2026-04-11T01:05:00Z
+- **completed**: 2026-04-11T01:10:00Z
+- **files_to_touch**: `lib/app.dart`
+- **description**: The font scale dropdown in settings writes to `userPreferencesProvider.fontScale` but nothing applies it. Wrap the app in a `MediaQuery` override that scales text.
+- **acceptance_criteria**:
+  - [x] Changing text size in settings visibly changes text throughout the app
+  - [x] Font scale persists across restarts
+- **depends_on**: TASK-041
+- **notes**:
+  - Used `MaterialApp.builder` to inject a `MediaQuery` with `textScaler: TextScaler.linear(fontScale)`
+  - Reads `fontScale` from `ref.watch(userPreferencesProvider).fontScale`
+
+### TASK-044: Wire Haptic Feedback Toggle
+
+- **status**: `done`
+- **priority**: P1
+- **estimated_effort**: Small-Medium
+- **claimed_by**: claude-opus-agent
+- **started**: 2026-04-11T01:10:00Z
+- **completed**: 2026-04-11T01:30:00Z
+- **files_to_touch**: NEW `lib/services/haptic_service.dart`, `word_builder_screen.dart`, `matching_game_screen.dart`, `quiz_game_screen.dart`, `game_results_screen.dart`, `memorize_screen.dart`, `chat_bubble.dart`, `journal_list_view.dart`, `journal_editor_view.dart`
+- **description**: Created central HapticService that checks user preference before firing. Replaced all 29 direct HapticFeedback.* calls across 8 files.
+- **acceptance_criteria**:
+  - [x] `HapticService` checks `userPreferencesProvider.hapticsEnabled` before calling `HapticFeedback.*`
+  - [x] All 29 direct `HapticFeedback.*` calls in 8 screen files replaced with the service
+  - [x] Toggling haptics off in settings immediately stops vibration feedback
+- **depends_on**: TASK-041
+- **notes**:
+  - `HapticService` is a simple immutable class with `light()`, `medium()`, `heavy()`, `selection()` methods
+  - Exposed via `hapticProvider` (Riverpod `Provider<HapticService>`) that rebuilds when the pref changes
+  - `memorize_screen.dart` converted from StatefulWidget → ConsumerStatefulWidget for ref access
+  - `chat_bubble.dart` widgets converted from StatelessWidget → ConsumerWidget for ref access
+  - Zero direct `HapticFeedback.*` calls remain in the screens directory
+
+---
+
 ## Backlog — Future (not prioritized)
 
 | Task | What | Effort |

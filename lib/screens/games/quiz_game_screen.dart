@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/enums.dart';
 import '../../models/scripture.dart';
@@ -8,6 +7,7 @@ import '../../providers/activity_provider.dart';
 import '../../providers/progress_provider.dart';
 import '../../providers/quiz_game_provider.dart';
 import '../../services/audio_service.dart';
+import '../../services/haptic_service.dart';
 import '../../theme/app_theme.dart';
 import 'game_results_screen.dart';
 
@@ -118,7 +118,7 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.timer_outlined,
-                      size: 18, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
+                      size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 4),
                   Text(
                     _formatDuration(_elapsed),
@@ -156,8 +156,10 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
                           _getQuestionLabel(question.type),
                           style:
                               Theme.of(context).textTheme.labelMedium?.copyWith(
-                                    color: AppTheme.gold,
-                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? AppTheme.tertiaryFixedDim
+                                        : AppTheme.onTertiaryFixed,
+                                    fontWeight: FontWeight.w700,
                                     letterSpacing: 0.5,
                                   ),
                         ),
@@ -170,7 +172,7 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
                             borderRadius:
                                 BorderRadius.circular(AppTheme.radiusMd),
                             border: Border.all(
-                                color: AppTheme.gold.withValues(alpha: 0.3)),
+                                color: AppTheme.tertiary.withValues(alpha: 0.35)),
                             boxShadow: [
                               BoxShadow(
                                 color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.04),
@@ -202,7 +204,7 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
                               isAnswered: gameState.isAnswered,
                               isCorrect: option == question.correctAnswer,
                               onTap: () {
-                                HapticFeedback.selectionClick();
+                                ref.read(hapticProvider).selection();
                                 notifier.selectAnswer(option);
                               },
                             ),
@@ -213,18 +215,20 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
                         if (!gameState.isAnswered)
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.gold,
+                              backgroundColor: AppTheme.tertiary,
+                              foregroundColor: AppTheme.onTertiary,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               disabledBackgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                              disabledForegroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                             onPressed: gameState.selectedAnswer != null
                                 ? () {
-                                    HapticFeedback.mediumImpact();
+                                    ref.read(hapticProvider).medium();
                                     notifier.submitAnswer();
                                   }
                                 : null,
                             child: const Text('Submit Answer',
-                                style: TextStyle(fontSize: 16)),
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                           )
                         else
                           ElevatedButton(
@@ -306,7 +310,7 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
 
   void _onGameComplete(QuizGameState finalState) {
     _elapsedTimer?.cancel();
-    HapticFeedback.heavyImpact();
+    ref.read(hapticProvider).heavy();
     ref.read(audioProvider.notifier).play(SoundEffect.complete);
 
     // Log activity for the quiz completion
@@ -451,7 +455,7 @@ class _ProgressHeader extends StatelessWidget {
               value: total > 0 ? (current - 1) / total : 0,
               minHeight: 6,
               backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.gold),
+              valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.tertiary),
             ),
           ),
         ],
@@ -498,12 +502,12 @@ class _AnswerOption extends StatelessWidget {
       } else {
         bgColor = Theme.of(context).colorScheme.surface;
         borderColor = Theme.of(context).colorScheme.outlineVariant;
-        textColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4);
+        textColor = Theme.of(context).colorScheme.onSurface;
         trailingIcon = null;
       }
     } else if (isSelected) {
-      bgColor = AppTheme.gold.withValues(alpha: 0.1);
-      borderColor = AppTheme.gold;
+      bgColor = AppTheme.tertiary.withValues(alpha: 0.1);
+      borderColor = AppTheme.tertiary;
       textColor = Theme.of(context).colorScheme.onSurface;
       trailingIcon = null;
     } else {

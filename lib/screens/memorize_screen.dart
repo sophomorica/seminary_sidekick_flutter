@@ -1,8 +1,9 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/scripture.dart';
+import '../services/haptic_service.dart';
 import '../theme/app_theme.dart';
 
 /// The two memorization modes.
@@ -56,16 +57,16 @@ class MemorizeWord {
   bool get isFullyVisible => visibility == WordVisibility.visible;
 }
 
-class MemorizeScreen extends StatefulWidget {
+class MemorizeScreen extends ConsumerStatefulWidget {
   final Scripture scripture;
 
   const MemorizeScreen({super.key, required this.scripture});
 
   @override
-  State<MemorizeScreen> createState() => _MemorizeScreenState();
+  ConsumerState<MemorizeScreen> createState() => _MemorizeScreenState();
 }
 
-class _MemorizeScreenState extends State<MemorizeScreen>
+class _MemorizeScreenState extends ConsumerState<MemorizeScreen>
     with SingleTickerProviderStateMixin {
   late List<MemorizeWord> _words;
   late List<int> _hideOrder; // Randomized order to hide words
@@ -147,7 +148,7 @@ class _MemorizeScreenState extends State<MemorizeScreen>
       _lastChangedIndex = targetIndex;
     });
 
-    HapticFeedback.lightImpact();
+    ref.read(hapticProvider).light();
     _fadeController.forward(from: 0);
   }
 
@@ -160,7 +161,7 @@ class _MemorizeScreenState extends State<MemorizeScreen>
       _hideOrder.shuffle(_random);
       _lastChangedIndex = null;
     });
-    HapticFeedback.mediumImpact();
+    ref.read(hapticProvider).medium();
   }
 
   void _hideAll() {
@@ -172,7 +173,7 @@ class _MemorizeScreenState extends State<MemorizeScreen>
       }
       _lastChangedIndex = null;
     });
-    HapticFeedback.mediumImpact();
+    ref.read(hapticProvider).medium();
   }
 
   int get _visibleCount =>
@@ -526,7 +527,7 @@ class _MemorizeScreenState extends State<MemorizeScreen>
       }
       _lastChangedIndex = mw.index;
     });
-    HapticFeedback.selectionClick();
+    ref.read(hapticProvider).selection();
     _fadeController.forward(from: 0);
   }
 

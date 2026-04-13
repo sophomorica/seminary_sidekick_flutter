@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../models/enums.dart';
@@ -9,6 +8,7 @@ import '../../../providers/activity_provider.dart';
 import '../../../providers/progress_provider.dart';
 import '../../../providers/word_builder_provider.dart';
 import '../../../services/audio_service.dart';
+import '../../../services/haptic_service.dart';
 import '../../../services/speech_service.dart';
 import '../../../theme/app_theme.dart';
 import '../game_results_screen.dart';
@@ -38,14 +38,12 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
   late AnimationController _shakeController;
   late Animation<double> _shakeAnimation;
   late AnimationController _pulseController;
-  late AnimationController _slotPulseController;
-
   int? _shakingPoolIndex;
-  int? _pulsingSlot;
 
   // Typing mode
   final _typingController = TextEditingController();
   final _typingFocusNode = FocusNode();
+  bool _isResetting = false; // Guard against onChanged re-triggers during reset
 
   // Speech-to-text
   final _speechService = SpeechService.instance;
@@ -74,6 +72,17 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
             bookFilter: widget.bookFilter,
             scriptures: widget.scriptures,
           );
+      // For typing modes, ensure the text field gets focus after the
+      // game state is ready. autofocus alone can be unreliable on iOS
+      // when launching via Navigator.push from certain screens.
+      if (widget.difficulty == DifficultyLevel.advanced ||
+          widget.difficulty == DifficultyLevel.master) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted && !_typingFocusNode.hasFocus) {
+            _typingFocusNode.requestFocus();
+          }
+        });
+      }
     });
 
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -99,11 +108,6 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-
-    _slotPulseController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    )..repeat(reverse: true);
   }
 
   @override
@@ -111,7 +115,6 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     _timer.cancel();
     _shakeController.dispose();
     _pulseController.dispose();
-    _slotPulseController.dispose();
     _typingController.dispose();
     _typingFocusNode.dispose();
     _speechService.stopListening();
@@ -134,17 +137,32 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
           if (mounted) _navigateToResults(next);
         });
       }
-      // For typing mode: if a Master reset happened, clear the text controller.
-      // Do NOT clear _lastRecognizedText here — the speech recognizer sends
-      // cumulative text, so clearing it would cause old words to replay.
-      // Instead, _onSpeechResult stops listening on reset.
+      // For typing mode: if a Master reset happened, clear the controller
+      // and re-focus so the user can immediately start typing again.
       if (next.lastFeedback == 'reset' && prev?.lastFeedback != 'reset') {
+        _isResetting = true;
         _typingController.clear();
+        // Wait for the current frame to finish before re-enabling input.
+        // This prevents the onChanged callback from firing with stale text
+        // while the widget tree is still rebuilding.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _isResetting = false;
+          // Re-request focus after the build is fully complete
+          if (!_typingFocusNode.hasFocus) {
+            _typingFocusNode.requestFocus();
+          }
+        });
+      }
+      // Reset hint when scripture changes
+      if (next.currentIndex != (prev?.currentIndex ?? -1)) {
+        setState(() => _hintRevealed = false);
       }
     });
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      resizeToAvoidBottomInset: true,
       appBar: _buildAppBar(state),
       body: state.currentScripture == null
           ? const Center(child: CircularProgressIndicator())
@@ -155,169 +173,104 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // SHARED WIDGETS
+  // APP BAR
   // ═══════════════════════════════════════════════════════════════
 
   PreferredSizeWidget _buildAppBar(WordBuilderState state) {
     final minutes = _elapsed.inMinutes.remainder(60).toString().padLeft(2, '0');
     final seconds = _elapsed.inSeconds.remainder(60).toString().padLeft(2, '0');
+    final difficultyColor = _getDifficultyColor(widget.difficulty);
 
     return AppBar(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      elevation: 0,
+      toolbarHeight: 40,
+      leadingWidth: 40,
       leading: IconButton(
-        icon: const Icon(Icons.close),
+        icon: const Icon(Icons.arrow_back, size: 20),
         onPressed: () async {
           final shouldPop = await _onWillPop();
           if (!mounted) return;
           if (shouldPop) Navigator.of(context).pop();
         },
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
       ),
+      titleSpacing: 0,
       title: Row(
         children: [
-          const Icon(Icons.sort_by_alpha, size: 20),
-          const SizedBox(width: 8),
-          const Text('Word Builder'),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.timer_outlined,
-                    size: 16,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.6)),
-                const SizedBox(width: 4),
-                Text(
-                  '$minutes:$seconds',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.7),
-                  ),
+          // Scripture reference
+          Text(
+            state.currentScripture?.reference ?? '',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
                 ),
-              ],
+          ),
+          const SizedBox(width: AppTheme.spacingSm),
+          // Difficulty badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+            decoration: BoxDecoration(
+              color: difficultyColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(4),
             ),
+            child: Text(
+              widget.difficulty.label.toUpperCase(),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: difficultyColor,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 9,
+                  ),
+            ),
+          ),
+          const SizedBox(width: AppTheme.spacingSm),
+          Text(
+            '${state.currentIndex + 1}/${state.totalScriptures}',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.4),
+                  fontSize: 9,
+                ),
           ),
         ],
       ),
       actions: [
+        // Timer
+        Padding(
+          padding: const EdgeInsets.only(right: 4),
+          child: Text(
+            '$minutes:$seconds',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  fontFamily: 'monospace',
+                  fontSize: 11,
+                ),
+          ),
+        ),
+        // Audio toggle
         IconButton(
           icon: Icon(
             ref.watch(audioProvider).isMuted
                 ? Icons.volume_off
                 : Icons.volume_up,
-            size: 20,
+            size: 18,
           ),
           onPressed: () => ref.read(audioProvider.notifier).toggleMute(),
-          tooltip: ref.watch(audioProvider).isMuted ? 'Unmute' : 'Mute',
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
         ),
       ],
     );
   }
 
-  Widget _buildProgressHeader(WordBuilderState state) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      color: Theme.of(context).colorScheme.surface,
-      child: Row(
-        children: [
-          // Scripture progress
-          _buildPill(Icons.menu_book, AppTheme.secondary,
-              '${state.currentIndex + 1}/${state.totalScriptures}'),
-          const SizedBox(width: 12),
-          // Difficulty label
-          _buildPill(
-            Icons.speed,
-            AppTheme.accent,
-            widget.difficulty.label,
-          ),
-          const Spacer(),
-          if (state.incorrectAttempts > 0)
-            _buildPill(
-                Icons.close, AppTheme.error, '${state.incorrectAttempts}'),
-          if (state.mode == WordBuilderMode.typing && state.resetCount > 0) ...[
-            const SizedBox(width: 8),
-            _buildPill(
-                Icons.refresh, AppTheme.warning, '${state.resetCount} resets'),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPill(IconData icon, Color color, String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 4),
-          Text(text,
-              style: TextStyle(
-                  fontWeight: FontWeight.w600, color: color, fontSize: 13)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildScriptureHeader(WordBuilderState state) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-      child: Column(
-        children: [
-          Text(
-            state.currentScripture?.reference ?? '',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: AppTheme.primary,
-                  fontWeight: FontWeight.bold,
-                ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            state.currentScripture?.name ?? '',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.6),
-                  fontStyle: FontStyle.italic,
-                ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: state.scriptureProgress,
-              backgroundColor:
-                  Theme.of(context).colorScheme.surfaceContainerHighest,
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(AppTheme.secondary),
-              minHeight: 4,
-            ),
-          ),
-        ],
-      ),
-    );
+  Color _getDifficultyColor(DifficultyLevel difficulty) {
+    return switch (difficulty) {
+      DifficultyLevel.beginner => AppTheme.secondary,
+      DifficultyLevel.intermediate => AppTheme.primary,
+      DifficultyLevel.advanced => AppTheme.accent,
+      DifficultyLevel.master => AppTheme.tertiary,
+    };
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -325,124 +278,238 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
   // ═══════════════════════════════════════════════════════════════
 
   Widget _buildChunkTapBody(WordBuilderState state) {
+    if (state.isScriptureComplete) {
+      // Only show the overlay, scrollable if needed
+      return _buildScriptureCompleteOverlay(state);
+    }
     return Column(
       children: [
-        _buildProgressHeader(state),
-        _buildScriptureHeader(state),
+        // Mastery progress bar (thin)
+        _buildMasteryProgressBar(state),
 
-        // Placed chunks area
-        Expanded(
-          flex: 3,
-          child: _buildPlacedChunksArea(state),
-        ),
-
-        // Divider
-        _buildTapHintDivider(),
-
-        // Chunk pool
+        // Scripture canvas — flowing text with inline placeholders
         Expanded(
           flex: 2,
-          child: state.isScriptureComplete
-              ? _buildScriptureCompleteOverlay(state)
-              : _buildChunkPool(state),
+          child: _buildScriptureCanvas(state),
         ),
-        const SizedBox(height: 16),
+
+        // Divider with hint embedded
+        _buildHintDivider(state),
+
+        // Chunk pool (word choice grid) — gets MORE space
+        Expanded(
+          flex: 3,
+          child: _buildChunkPool(state),
+        ),
       ],
     );
   }
 
-  Widget _buildPlacedChunksArea(WordBuilderState state) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 10,
-        alignment: WrapAlignment.center,
-        children: List.generate(state.targetChunks.length, (index) {
-          final placed = state.placedChunks[index];
-          final target = state.targetChunks[index];
-          final isNext =
-              index == state.nextChunkIndex && !state.isScriptureComplete;
-          final isPulsing = _pulsingSlot == index;
-          final chunkColor =
-              _chunkPalette[target.colorIndex % _chunkPalette.length];
-
-          return AnimatedBuilder(
-            animation: _slotPulseController,
-            builder: (context, child) {
-              final borderColor = isNext
-                  ? Color.lerp(
-                      chunkColor,
-                      chunkColor.withValues(alpha: 0.3),
-                      _slotPulseController.value,
-                    )!
-                  : Theme.of(context).colorScheme.outlineVariant;
-
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: placed != null
-                      ? (isPulsing
-                          ? chunkColor.withValues(alpha: 0.2)
-                          : chunkColor.withValues(alpha: 0.1))
-                      : (isNext
-                          ? chunkColor.withValues(alpha: 0.04)
-                          : Theme.of(context).colorScheme.surface),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: placed != null
-                        ? chunkColor.withValues(alpha: 0.5)
-                        : borderColor,
-                    width: isNext ? 2 : 1,
-                  ),
-                ),
-                child: Text(
-                  placed?.text ?? _chunkPlaceholder(target),
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight:
-                        placed != null ? FontWeight.w600 : FontWeight.normal,
-                    color: placed != null
-                        ? chunkColor.withValues(alpha: 0.9)
-                        : Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.35),
-                  ),
-                ),
-              );
-            },
-          );
-        }),
+  Widget _buildMasteryProgressBar(WordBuilderState state) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacingMd,
+        vertical: 4,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+        child: LinearProgressIndicator(
+          value: state.scriptureProgress,
+          backgroundColor:
+              Theme.of(context).colorScheme.surfaceContainerHighest,
+          valueColor: AlwaysStoppedAnimation<Color>(
+            _getDifficultyColor(widget.difficulty),
+          ),
+          minHeight: 3,
+        ),
       ),
     );
   }
 
-  String _chunkPlaceholder(WordChunk target) {
-    // Show dashes for each word in the chunk
-    return target.words.map((w) => '─' * w.length.clamp(2, 6)).join(' ');
+  bool _hintRevealed = false;
+
+  /// Combined divider + hint row. Hint is always visible between the canvas
+  /// and the chip pool — no scrolling needed to find it.
+  Widget _buildHintDivider(WordBuilderState state) {
+    final keyPhrase = state.currentScripture?.keyPhrase ?? '';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd),
+      child: Row(
+        children: [
+          Expanded(
+            child: Divider(
+              color: Theme.of(context).colorScheme.surfaceContainerHigh,
+            ),
+          ),
+          if (keyPhrase.isNotEmpty && !state.isScriptureComplete)
+            Flexible(
+              flex: 0,
+              child: GestureDetector(
+                onTap: () => setState(() => _hintRevealed = !_hintRevealed),
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * 0.55,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingSm),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.lightbulb_outline,
+                        size: 14,
+                        color: AppTheme.secondary,
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          _hintRevealed ? keyPhrase : 'Hint',
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: AppTheme.secondary,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 10,
+                                  ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          else
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm),
+              child: Text(
+                'Tap the next chunk',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.35),
+                      fontStyle: FontStyle.italic,
+                      fontSize: 10,
+                    ),
+              ),
+            ),
+          Expanded(
+            child: Divider(
+              color: Theme.of(context).colorScheme.surfaceContainerHigh,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Scripture canvas: placed words render as flowing inline text (like the
+  /// design reference). The next slot is a dashed underline. Future slots are
+  /// faded placeholder text. No chip containers — just natural paragraph flow.
+  Widget _buildScriptureCanvas(WordBuilderState state) {
+    final diffColor = _getDifficultyColor(widget.difficulty);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.spacingMd, vertical: 4),
+      child: RichText(
+        text: TextSpan(
+          style: TextStyle(
+            fontSize: 22,
+            height: 1.6,
+            fontFamily: 'Merriweather',
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+          children: _buildCanvasSpans(state, diffColor),
+        ),
+      ),
+    );
+  }
+
+  List<InlineSpan> _buildCanvasSpans(WordBuilderState state, Color diffColor) {
+    final spans = <InlineSpan>[];
+
+    for (int i = 0; i < state.targetChunks.length; i++) {
+      final placed = state.placedChunks[i];
+      final target = state.targetChunks[i];
+      final isNext = i == state.nextChunkIndex && !state.isScriptureComplete;
+
+      if (i > 0) {
+        // Space between chunks
+        spans.add(const TextSpan(text: ' '));
+      }
+
+      if (placed != null) {
+        // ── Already placed: show as bold colored text ──
+        spans.add(TextSpan(
+          text: placed.text,
+          style: TextStyle(
+            color: diffColor,
+            fontWeight: FontWeight.w700,
+            decoration: TextDecoration.underline,
+            decorationColor: diffColor.withValues(alpha: 0.2),
+            decorationStyle: TextDecorationStyle.solid,
+          ),
+        ));
+      } else if (isNext) {
+        // ── Next slot: dashed underline placeholder ──
+        final placeholder = '─' * target.text.length.clamp(3, 10);
+        spans.add(TextSpan(
+          text: placeholder,
+          style: TextStyle(
+            color:
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.25),
+            letterSpacing: 2,
+            decoration: TextDecoration.underline,
+            decorationColor: diffColor.withValues(alpha: 0.5),
+            decorationStyle: TextDecorationStyle.dashed,
+          ),
+        ));
+      } else {
+        // ── Future slots: uniform underscores, no readable text ──
+        // Each word in the chunk becomes a run of underscores,
+        // separated by spaces to preserve word-break flow.
+        final hidden =
+            target.words.map((w) => '_' * w.length.clamp(2, 8)).join(' ');
+        spans.add(TextSpan(
+          text: hidden,
+          style: TextStyle(
+            color:
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.10),
+            letterSpacing: 1,
+          ),
+        ));
+      }
+    }
+
+    return spans;
   }
 
   Widget _buildChunkPool(WordBuilderState state) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.spacingSm,
+        AppTheme.spacingSm,
+        AppTheme.spacingSm,
+        // Extra bottom padding so the last row is fully accessible
+        AppTheme.spacingXl + AppTheme.spacingLg,
+      ),
       child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
+        spacing: AppTheme.spacingSm,
+        runSpacing: AppTheme.spacingSm,
         alignment: WrapAlignment.center,
         children: List.generate(state.availablePool.length, (index) {
           final chunk = state.availablePool[index];
           final isShaking = _shakingPoolIndex == index;
+          final isUsed = state.usedPoolIndices.contains(index);
+          final chunkColor =
+              _chunkPalette[chunk.colorIndex % _chunkPalette.length];
           final tileColor = chunk.isDistractor
-              ? AppTheme.warning.withValues(alpha: 0.06)
-              : _chunkPalette[chunk.colorIndex % _chunkPalette.length]
-                  .withValues(alpha: 0.08);
-          final borderCol = chunk.isDistractor
-              ? AppTheme.warning.withValues(alpha: 0.3)
-              : _chunkPalette[chunk.colorIndex % _chunkPalette.length]
-                  .withValues(alpha: 0.3);
+              ? AppTheme.error.withValues(alpha: 0.08)
+              : chunkColor.withValues(alpha: 0.08);
 
           return AnimatedBuilder(
             animation: _shakeAnimation,
@@ -452,38 +519,53 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                 child: child,
               );
             },
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => _onChunkTapped(index),
-                borderRadius: BorderRadius.circular(10),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: tileColor,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: isShaking ? AppTheme.error : borderCol,
-                      width: isShaking ? 2 : 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
+            // Used chunks stay in place (preserving Wrap layout) but are
+            // faded out and non-tappable so the remaining chips never shift
+            // under the user's finger.
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 200),
+              opacity: isUsed ? 0.2 : 1.0,
+              child: IgnorePointer(
+                ignoring: isUsed,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _onChunkTapped(index),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacingSm,
+                        vertical: 4,
                       ),
-                    ],
-                  ),
-                  child: Text(
-                    chunk.text,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: isShaking
-                          ? AppTheme.error
-                          : Theme.of(context).colorScheme.onSurface,
+                      decoration: BoxDecoration(
+                        color: tileColor,
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.radiusSm),
+                        boxShadow: isShaking
+                            ? [
+                                BoxShadow(
+                                  color:
+                                      AppTheme.error.withValues(alpha: 0.2),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : (isUsed ? null : AppTheme.editorialShadow),
+                      ),
+                      child: Text(
+                        chunk.text,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontFamily: 'Merriweather',
+                          fontWeight: FontWeight.w600,
+                          color: isShaking
+                              ? AppTheme.error
+                              : (chunk.isDistractor
+                                  ? AppTheme.error.withValues(alpha: 0.6)
+                                  : Theme.of(context).colorScheme.onSurface),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -503,15 +585,12 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
 
     final newState = ref.read(wordBuilderProvider);
     if (newState.lastFeedback == 'correct') {
-      HapticFeedback.lightImpact();
+      ref.read(hapticProvider).light();
       ref.read(audioProvider.notifier).play(SoundEffect.correct);
-      setState(() => _pulsingSlot = newState.nextChunkIndex - 1);
-      _pulseController.forward(from: 0).then((_) {
-        if (mounted) setState(() => _pulsingSlot = null);
-      });
+      _pulseController.forward(from: 0);
 
       if (newState.isScriptureComplete) {
-        HapticFeedback.heavyImpact();
+        ref.read(hapticProvider).heavy();
         if (!newState.isComplete) {
           Future.delayed(const Duration(milliseconds: 800), () {
             if (mounted) {
@@ -521,7 +600,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
         }
       }
     } else if (newState.lastFeedback == 'incorrect') {
-      HapticFeedback.mediumImpact();
+      ref.read(hapticProvider).medium();
       ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
       setState(() => _shakingPoolIndex = poolIndex);
       _shakeController.forward(from: 0).then((_) {
@@ -538,31 +617,36 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
   // ═══════════════════════════════════════════════════════════════
 
   Widget _buildTypingBody(WordBuilderState state) {
-    return Column(
-      children: [
-        _buildProgressHeader(state),
-        _buildScriptureHeader(state),
+    if (state.isScriptureComplete) {
+      // Only show the overlay, scrollable if needed
+      return _buildScriptureCompleteOverlay(state);
+    }
 
-        // Typed text display (colored per character)
-        Expanded(
-          flex: 4,
-          child: _buildTypedTextDisplay(state),
-        ),
+    // Active typing layout: input pinned at bottom, text display fills rest.
+    // IMPORTANT: The widget tree structure must stay stable across state
+    // changes (e.g. reset banner appearing/disappearing). If children are
+    // conditionally added/removed, Flutter can't match the TextField across
+    // rebuilds, causing it to be recreated and lose focus.
+    return SafeArea(
+      top: false,
+      child: Column(
+        children: [
+          // Progress bar
+          _buildMasteryProgressBar(state),
 
-        // Feedback banner for Master resets
-        if (state.lastFeedback == 'reset') _buildResetBanner(),
-
-        // Text input area
-        if (!state.isScriptureComplete) _buildTypingInput(state),
-
-        if (state.isScriptureComplete)
+          // Typed text display fills available space
           Expanded(
-            flex: 1,
-            child: _buildScriptureCompleteOverlay(state),
+            child: _buildTypedTextDisplay(state),
           ),
 
-        const SizedBox(height: 16),
-      ],
+          // Reset banner — always present in tree, just animated visible/hidden
+          // so the TextField below never loses its position in the widget tree.
+          _buildResetBanner(visible: state.lastFeedback == 'reset'),
+
+          // Input is always last — never hidden by Expanded
+          _buildTypingInput(state),
+        ],
+      ),
     );
   }
 
@@ -570,22 +654,25 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     // Show the passage with typed characters colored green/red,
     // and remaining text as gray placeholders.
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacingSm,
+        vertical: 4,
+      ),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppTheme.spacingMd),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
-          border:
-              Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+          color: Theme.of(context).colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          boxShadow: AppTheme.editorialShadow,
         ),
         child: RichText(
           text: TextSpan(
-            style: const TextStyle(
-              fontSize: 18,
+            style: TextStyle(
+              fontSize: 16,
               height: 1.6,
-              fontFamily: 'monospace',
+              fontFamily: 'Merriweather',
+              color: Theme.of(context).colorScheme.onSurface,
             ),
             children: _buildTypedSpans(state),
           ),
@@ -621,16 +708,19 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
           text: tc.char,
           style: TextStyle(
             color: tc.isCorrect ? AppTheme.success : AppTheme.error,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
             backgroundColor: tc.isCorrect
-                ? AppTheme.success.withValues(alpha: 0.08)
-                : AppTheme.error.withValues(alpha: 0.12),
+                ? AppTheme.success.withValues(alpha: 0.1)
+                : AppTheme.error.withValues(alpha: 0.15),
             decoration: tc.isCorrect ? null : TextDecoration.underline,
             decorationColor: AppTheme.error,
           ),
         ));
-      } else if (i == typed.length && !isMaster) {
-        // Cursor position (Advanced only) — highlight the next expected char
+      } else if (i >= typed.length &&
+          !isMaster &&
+          i == _nextLetterIndex(target, typed.length)) {
+        // Cursor position (Advanced only) — highlight the next letter the user
+        // needs to type (skipping auto-filled punctuation/spaces)
         spans.add(TextSpan(
           text: target[i],
           style: TextStyle(
@@ -671,7 +761,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
             spans.add(TextSpan(
               text: ch,
               style: TextStyle(
-                color: AppTheme.accent.withValues(alpha: 0.4),
+                color: AppTheme.accent.withValues(alpha: 0.7),
                 fontWeight: FontWeight.w600,
               ),
             ));
@@ -694,26 +784,56 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     return spans;
   }
 
-  Widget _buildResetBanner() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-      color: AppTheme.error.withValues(alpha: 0.1),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.refresh, color: AppTheme.error, size: 18),
-          SizedBox(width: 8),
-          Text(
-            'Wrong character! Starting over...',
-            style: TextStyle(
-              color: AppTheme.error,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-            ),
-          ),
-        ],
-      ),
+  /// Find the index of the next actual letter/digit in the target,
+  /// skipping spaces and punctuation (which are auto-filled).
+  int _nextLetterIndex(String target, int from) {
+    int i = from;
+    while (i < target.length) {
+      final ch = target[i];
+      if (ch != ' ' &&
+          ch != '\n' &&
+          !RegExp(r'''[,;:!?\-\—\–\.\'\"\'\'\"\"\(\)\[\]]''').hasMatch(ch)) {
+        return i;
+      }
+      i++;
+    }
+    return from; // fallback
+  }
+
+  Widget _buildResetBanner({bool visible = true}) {
+    // Always present in widget tree to keep Column children stable.
+    // Uses AnimatedSize + ClipRect so it collapses to zero height when hidden
+    // without removing the widget (which would shift TextField's tree position).
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 200),
+      child: visible
+          ? Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                vertical: AppTheme.spacingSm,
+                horizontal: AppTheme.spacingMd,
+              ),
+              color: AppTheme.error.withValues(alpha: 0.12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.refresh,
+                    color: AppTheme.error,
+                    size: 16,
+                  ),
+                  const SizedBox(width: AppTheme.spacingSm),
+                  Text(
+                    'Wrong character! Starting over...',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.error,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ],
+              ),
+            )
+          : const SizedBox.shrink(),
     );
   }
 
@@ -721,77 +841,101 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     final isMaster = widget.difficulty == DifficultyLevel.master;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.spacingMd,
+        AppTheme.spacingSm,
+        AppTheme.spacingMd,
+        AppTheme.spacingSm,
+      ),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: Theme.of(context).scaffoldBackgroundColor,
         border: Border(
-          top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+          top: BorderSide(
+            color: Theme.of(context).colorScheme.surfaceContainerHigh,
+          ),
         ),
       ),
       child: Row(
         children: [
           Expanded(
             child: TextField(
+              key: const ValueKey('wb_typing_field'),
               controller: _typingController,
               focusNode: _typingFocusNode,
               autofocus: true,
               autocorrect: false,
               enableSuggestions: false,
               textCapitalization: TextCapitalization.none,
+              style: const TextStyle(fontSize: 14),
               decoration: InputDecoration(
+                isDense: true,
                 hintText: state.hasActiveError
                     ? 'Delete the error and try again...'
                     : (isMaster
                         ? 'Type from memory — no peeking!'
                         : 'Type the scripture (first letters shown)...'),
                 hintStyle: TextStyle(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.35)),
+                  fontSize: 13,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.35),
+                ),
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surfaceContainerLow,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                      color: Theme.of(context).colorScheme.outlineVariant),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                  borderSide: BorderSide.none,
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                   borderSide: BorderSide(
-                    color:
-                        state.hasActiveError ? AppTheme.error : AppTheme.accent,
+                    color: state.hasActiveError
+                        ? AppTheme.error
+                        : _getDifficultyColor(widget.difficulty),
                     width: 2,
                   ),
                 ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.spacingSm,
+                  vertical: AppTheme.spacingSm,
+                ),
                 suffixIcon: IconButton(
                   icon: Icon(
                     _isSpeechListening ? Icons.mic_off : Icons.mic,
-                    color:
-                        _isSpeechListening ? AppTheme.error : AppTheme.accent,
+                    color: _isSpeechListening
+                        ? AppTheme.error
+                        : _getDifficultyColor(widget.difficulty),
                   ),
                   onPressed: _toggleSpeechListening,
                 ),
               ),
               onChanged: (value) {
+                // Skip if we're in the middle of a programmatic reset/clear
+                if (_isResetting) return;
+
                 ref.read(wordBuilderProvider.notifier).onType(value);
                 final newState = ref.read(wordBuilderProvider);
-                // If Master reset, controller is cleared via the listener
+
                 if (newState.lastFeedback == 'reset') {
-                  HapticFeedback.heavyImpact();
+                  ref.read(hapticProvider).heavy();
                   ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
+                  // Don't do anything else — the listener handles clearing
+                  return;
                 } else if (newState.lastFeedback == 'incorrect') {
-                  HapticFeedback.mediumImpact();
+                  ref.read(hapticProvider).medium();
                   ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
                 }
 
                 if (newState.isScriptureComplete) {
-                  HapticFeedback.heavyImpact();
+                  ref.read(hapticProvider).heavy();
                   _typingFocusNode.unfocus();
                   if (!newState.isComplete) {
                     Future.delayed(const Duration(milliseconds: 1000), () {
                       if (mounted) {
+                        _isResetting = true;
                         _typingController.clear();
+                        _isResetting = false;
                         ref.read(wordBuilderProvider.notifier).nextScripture();
                         _typingFocusNode.requestFocus();
                       }
@@ -871,7 +1015,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       _speechService.stopListening();
       setState(() => _isSpeechListening = false);
 
-      HapticFeedback.heavyImpact();
+      ref.read(hapticProvider).heavy();
       ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
       return;
     }
@@ -888,7 +1032,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       _speechService.stopListening();
       setState(() => _isSpeechListening = false);
 
-      HapticFeedback.heavyImpact();
+      ref.read(hapticProvider).heavy();
       _typingFocusNode.unfocus();
       if (!stateAfter.isComplete) {
         Future.delayed(const Duration(milliseconds: 1000), () {
@@ -906,63 +1050,41 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
   // SHARED HELPERS
   // ═══════════════════════════════════════════════════════════════
 
-  Widget _buildTapHintDivider() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Row(
-        children: [
-          Expanded(
-              child:
-                  Divider(color: Theme.of(context).colorScheme.outlineVariant)),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(
-              'Tap the next chunk',
-              style: TextStyle(
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.5),
-                fontSize: 12,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ),
-          Expanded(
-              child:
-                  Divider(color: Theme.of(context).colorScheme.outlineVariant)),
-        ],
-      ),
-    );
-  }
-
   Widget _buildScriptureCompleteOverlay(WordBuilderState state) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.check_circle, color: AppTheme.success, size: 48),
-          const SizedBox(height: 12),
-          Text(
-            state.isComplete ? 'All Done!' : 'Scripture Complete!',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppTheme.success,
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          if (!state.isComplete) ...[
-            const SizedBox(height: 4),
-            Text(
-              'Loading next scripture...',
-              style: TextStyle(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.5),
-                  fontSize: 13),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.check_circle,
+              color: AppTheme.success,
+              size: 40,
             ),
+            const SizedBox(height: AppTheme.spacingSm),
+            Text(
+              state.isComplete ? 'All Done!' : 'Scripture Complete!',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: AppTheme.success,
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            if (!state.isComplete) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Loading next...',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.5),
+                    ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

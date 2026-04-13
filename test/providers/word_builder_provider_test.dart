@@ -83,7 +83,7 @@ void main() {
     });
 
     test(
-        'selectChunk — correct — chunk placed, removed from pool, correctPlacements increments',
+        'selectChunk — correct — chunk placed, marked used (pool length unchanged), correctPlacements increments',
         () {
       final scripture = testScriptures[0];
       notifier.startGame(
@@ -105,10 +105,44 @@ void main() {
 
       notifier.selectChunk(correctIndex);
 
-      expect(notifier.state.availablePool.length, initialPoolSize - 1);
+      // Pool length stays the same so Wrap layout doesn't reflow — the
+      // chunk is tracked as "used" instead of being removed.
+      expect(notifier.state.availablePool.length, initialPoolSize);
+      expect(notifier.state.usedPoolIndices.contains(correctIndex), isTrue);
       expect(notifier.state.correctPlacements, initialCorrect + 1);
       expect(notifier.state.placedChunks[0], isNotNull);
       expect(notifier.state.lastFeedback, 'correct');
+    });
+
+    test('selectChunk — tapping already-used chunk is a no-op', () {
+      final scripture = testScriptures[0];
+      notifier.startGame(
+          difficulty: DifficultyLevel.beginner, scriptures: [scripture]);
+
+      // Find and place the first correct chunk.
+      int correctIndex = -1;
+      for (int i = 0; i < notifier.state.availablePool.length; i++) {
+        if (!notifier.state.availablePool[i].isDistractor &&
+            notifier.state.availablePool[i].startIndex == 0) {
+          correctIndex = i;
+          break;
+        }
+      }
+      notifier.selectChunk(correctIndex);
+
+      final placedSnapshot =
+          List<WordChunk?>.from(notifier.state.placedChunks);
+      final correctSnapshot = notifier.state.correctPlacements;
+      final incorrectSnapshot = notifier.state.incorrectAttempts;
+      final nextIdxSnapshot = notifier.state.nextChunkIndex;
+
+      // Tapping the same (already-used) index again must do nothing.
+      notifier.selectChunk(correctIndex);
+
+      expect(notifier.state.placedChunks, equals(placedSnapshot));
+      expect(notifier.state.correctPlacements, correctSnapshot);
+      expect(notifier.state.incorrectAttempts, incorrectSnapshot);
+      expect(notifier.state.nextChunkIndex, nextIdxSnapshot);
     });
 
     test('selectChunk — wrong — incorrectAttempts increments, pool unchanged',
@@ -428,14 +462,15 @@ void main() {
         final partial = notifier.state.targetText.substring(0, i + 1);
         notifier.onType(partial);
       }
-      expect(notifier.state.correctPlacements, 3);
+      // 3 typed chars + 1 auto-filled trailing space after 'd' in "And "
+      expect(notifier.state.correctPlacements, 4);
       final correctAcrossBefore = notifier.state.correctUnitsAcrossAll;
-      expect(correctAcrossBefore, 3);
+      expect(correctAcrossBefore, 4);
 
       // Type wrong to trigger reset
       notifier.onType('${notifier.state.targetText.substring(0, 3)}x');
 
-      expect(notifier.state.correctUnitsAcrossAll, correctAcrossBefore - 3);
+      expect(notifier.state.correctUnitsAcrossAll, correctAcrossBefore - 4);
     });
 
     test('Star rating — 0 errors=3, 1-3 errors=2, 4+ errors=1', () {
@@ -499,11 +534,14 @@ void main() {
       typed += target[commaIndex - 1];
       notifier.onType(typed);
 
-      // typedChars should include: all typed chars + auto-filled comma
-      expect(notifier.state.typedChars.length, commaIndex + 1);
+      // typedChars should include: all typed chars + auto-filled comma + auto-filled space
+      expect(notifier.state.typedChars.length, commaIndex + 2);
       // The comma should be auto-filled and marked correct
       expect(notifier.state.typedChars[commaIndex].char, ',');
       expect(notifier.state.typedChars[commaIndex].isCorrect, isTrue);
+      // The space after the comma should also be auto-filled
+      expect(notifier.state.typedChars[commaIndex + 1].char, ' ');
+      expect(notifier.state.typedChars[commaIndex + 1].isCorrect, isTrue);
     });
 
     test(
@@ -586,12 +624,12 @@ void main() {
       }
       final placementsBefore = notifier.state.correctPlacements;
 
-      // Type 'd' — comma auto-fills as trailing punctuation (+1 for 'd', +1 for comma)
+      // Type 'd' — comma and space auto-fill as trailing non-letters (+1 for 'd', +1 for comma, +1 for space)
       typed += target[commaIndex - 1];
       notifier.onType(typed);
 
-      // Should have gained 2: typed 'd' + auto-filled comma
-      expect(notifier.state.correctPlacements, placementsBefore + 2);
+      // Should have gained 3: typed 'd' + auto-filled comma + auto-filled space
+      expect(notifier.state.correctPlacements, placementsBefore + 3);
     });
 
     test('Backspace removes auto-filled punctuation in advanced mode', () {

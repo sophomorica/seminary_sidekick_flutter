@@ -1,12 +1,13 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/scriptures_data.dart';
 import '../../models/sidekick_response.dart';
+import '../../services/haptic_service.dart';
 import '../../theme/app_theme.dart';
 
-class ChatBubble extends StatelessWidget {
+class ChatBubble extends ConsumerWidget {
   final SidekickMessage message;
   final void Function(String scriptureId) onScriptureTap;
 
@@ -19,70 +20,104 @@ class ChatBubble extends StatelessWidget {
   bool get isUser => message.role == 'user';
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
+      padding: const EdgeInsets.only(bottom: AppTheme.spacingLg),
       child: Row(
         mainAxisAlignment:
             isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isUser) ...[
-            // Sidekick avatar
+            // Sidekick avatar: 36px circle with secondary gradient
             Container(
-              width: 32,
-              height: 32,
-              margin: const EdgeInsets.only(top: 4),
+              width: 36,
+              height: 36,
+              margin: const EdgeInsets.only(top: 4, right: AppTheme.spacingMd),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: AppTheme.sidekickGradient(context),
-                ),
-                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                color: isDark
+                    ? AppTheme.secondaryContainer
+                    : AppTheme.secondaryContainer,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: const Icon(
-                Icons.auto_awesome,
-                size: 16,
-                color: Colors.white,
+                Icons.smart_toy,
+                size: 18,
+                color: AppTheme.onSecondaryContainer,
               ),
             ),
-            const SizedBox(width: 8),
           ],
           Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppTheme.spacingMd,
-                vertical: AppTheme.spacingSm + 4,
-              ),
-              decoration: BoxDecoration(
-                color: isUser
-                    ? AppTheme.primary
-                    : (isDark ? AppTheme.darkCard : AppTheme.surface),
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(AppTheme.radiusMd),
-                  topRight: const Radius.circular(AppTheme.radiusMd),
-                  bottomLeft: Radius.circular(
-                      isUser ? AppTheme.radiusMd : AppTheme.radiusSm / 2),
-                  bottomRight: Radius.circular(
-                      isUser ? AppTheme.radiusSm / 2 : AppTheme.radiusMd),
+            child: Column(
+              crossAxisAlignment:
+                  isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
+                  constraints: const BoxConstraints(maxWidth: 280),
+                  decoration: BoxDecoration(
+                    color: isUser
+                        ? AppTheme.primary
+                        : (isDark
+                            ? AppTheme.darkSurfaceContainerLow
+                            : Theme.of(context).colorScheme.surfaceContainerLow),
+                    borderRadius: isUser
+                        ? BorderRadius.circular(AppTheme.radiusXl).copyWith(
+                            bottomRight:
+                                const Radius.circular(AppTheme.radiusSm))
+                        : BorderRadius.circular(AppTheme.radiusXl).copyWith(
+                            bottomLeft:
+                                const Radius.circular(AppTheme.radiusSm)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
+                        blurRadius: 12,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: isUser
+                      ? Text(
+                          message.content,
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Colors.white,
+                                    height: 1.6,
+                                  ),
+                        )
+                      : RichMessageText(
+                          text: message.content,
+                          onScriptureTap: onScriptureTap,
+                        ),
                 ),
-              ),
-              child: isUser
-                  ? Text(
-                      message.content,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.white,
-                            height: 1.4,
-                          ),
-                    )
-                  : RichMessageText(
-                      text: message.content,
-                      onScriptureTap: onScriptureTap,
-                    ),
+                if (!isUser) ...[
+                  const SizedBox(height: 12),
+                  const _SuggestionChips(),
+                ],
+                const SizedBox(height: 4),
+                Text(
+                  isUser ? 'You • 10:26 AM' : 'Sidekick • 10:24 AM',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: AppTheme.outline,
+                        letterSpacing: 1.5,
+                      ),
+                ),
+              ],
             ),
           ),
-          if (isUser) const SizedBox(width: 40),
+          if (isUser) const SizedBox(width: 12),
         ],
       ),
     );
@@ -107,7 +142,7 @@ final _scriptureRefPattern = RegExp(
   caseSensitive: false,
 );
 
-class RichMessageText extends StatelessWidget {
+class RichMessageText extends ConsumerWidget {
   final String text;
   final void Function(String scriptureId) onScriptureTap;
 
@@ -118,18 +153,19 @@ class RichMessageText extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final spans = _buildSpans(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final spans = _buildSpans(context, ref);
 
     return RichText(
       text: TextSpan(children: spans),
     );
   }
 
-  List<InlineSpan> _buildSpans(BuildContext context) {
+  List<InlineSpan> _buildSpans(BuildContext context, WidgetRef ref) {
     final spans = <InlineSpan>[];
     final textStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
-          height: 1.5,
+          height: 1.6,
+          color: Theme.of(context).colorScheme.onSurface,
         );
 
     int lastEnd = 0;
@@ -157,7 +193,7 @@ class RichMessageText extends StatelessWidget {
           ),
           recognizer: (TapGestureRecognizer()
             ..onTap = () {
-              HapticFeedback.lightImpact();
+              ref.read(hapticProvider).light();
               onScriptureTap(scriptureId);
             }),
         ));
@@ -195,5 +231,89 @@ class RichMessageText extends StatelessWidget {
       }
     }
     return null;
+  }
+}
+
+// ─── Suggestion Chips (appear below sidekick messages) ─────────────────────
+
+class _SuggestionChips extends StatelessWidget {
+  const _SuggestionChips();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _SuggestionChip(
+          label: 'Show me verses',
+          icon: Icons.menu_book,
+          isDark: isDark,
+        ),
+        _SuggestionChip(
+          label: 'Write a prayer',
+          icon: Icons.edit_note,
+          isDark: isDark,
+        ),
+      ],
+    );
+  }
+}
+
+class _SuggestionChip extends ConsumerWidget {
+  final String label;
+  final IconData icon;
+  final bool isDark;
+
+  const _SuggestionChip({
+    required this.label,
+    required this.icon,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          // Trigger the tap action
+          ref.read(hapticProvider).light();
+        },
+        borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
+          ),
+          decoration: BoxDecoration(
+            color: isDark
+                ? AppTheme.darkSurfaceContainerLow
+                : Theme.of(context).colorScheme.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

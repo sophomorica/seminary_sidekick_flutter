@@ -13,10 +13,10 @@ class ChatEmptyState extends StatelessWidget {
   });
 
   static const _suggestions = [
-    'What does this scripture teach about faith?',
-    'How can I apply this passage in my life?',
-    'Which scriptures connect to the plan of salvation?',
-    'Help me understand the Abrahamic covenant',
+    'Show me verses about faith',
+    'Write a prayer with me',
+    'Explore the plan of salvation',
+    'Help me apply this to my life',
   ];
 
   @override
@@ -27,10 +27,10 @@ class ChatEmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Sidekick icon
+            // Sidekick icon with gradient
             Container(
-              width: 64,
-              height: 64,
+              width: 80,
+              height: 80,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
@@ -38,70 +38,113 @@ class ChatEmptyState extends StatelessWidget {
                   colors: AppTheme.sidekickGradient(context),
                 ),
                 borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                boxShadow: [
+                  BoxShadow(
+                    color:
+                        AppTheme.sidekickColor(context).withValues(alpha: 0.2),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
               child: const Icon(
                 Icons.auto_awesome,
-                size: 32,
+                size: 40,
                 color: Colors.white,
               ),
             ),
+            const SizedBox(height: AppTheme.spacingLg),
+
+            // Main heading
+            Text(
+              'Begin the Conversation',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: AppTheme.primary,
+                  ),
+            ),
             const SizedBox(height: AppTheme.spacingMd),
 
+            // Subtitle
             Text(
-              'Ask Your Sidekick',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: AppTheme.spacingSm),
-            Text(
-              'I can help you understand scriptures, find connections, '
-              'and apply doctrines in your life.',
+              'Your Sidekick is ready to explore scripture with you—ask about doctrines, find connections, or dive deeper into your faith.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.6),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    height: 1.6,
                   ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: AppTheme.spacingLg),
+            const SizedBox(height: AppTheme.spacingXl),
 
-            // Suggestion chips
+            // Suggestion chips label
             Text(
-              'Try asking...',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.4),
+              'Try one of these',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                    letterSpacing: 0.5,
                   ),
             ),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacingMd),
+
+            // Suggestion chips
             Wrap(
               spacing: AppTheme.spacingSm,
               runSpacing: AppTheme.spacingSm,
               alignment: WrapAlignment.center,
               children: _suggestions.map((suggestion) {
-                return ActionChip(
-                  label: Text(
-                    suggestion,
-                    style: Theme.of(context).textTheme.bodySmall,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  onPressed: () => onSuggestionTap(suggestion),
-                  avatar: Icon(
-                    Icons.chat_bubble_outline,
-                    size: 16,
-                    color: AppTheme.sidekickColor(context),
-                  ),
-                  side: BorderSide(
-                    color:
-                        AppTheme.sidekickColor(context).withValues(alpha: 0.3),
-                  ),
+                return _SuggestionChip(
+                  label: suggestion,
+                  onTap: () => onSuggestionTap(suggestion),
                 );
               }).toList(),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SuggestionChip extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _SuggestionChip({
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTheme.spacingMd,
+            vertical: AppTheme.spacingSm,
+          ),
+          decoration: BoxDecoration(
+            color: isDark
+                ? AppTheme.darkSurfaceContainerLow
+                : Theme.of(context).colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+            border: Border.all(
+              color: AppTheme.outlineVariant.withValues(alpha: 0.3),
+              width: 1,
+            ),
+          ),
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ),
     );
