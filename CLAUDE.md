@@ -13,7 +13,9 @@ The core loop is **Study → Build → Prove → Master**. Users study the text,
 
 **Key UX principle**: The path to mastery must be obvious. When a user opens a scripture, they should immediately see where they are on the mastery path, what to do next, and what “mastered” means. Word Builder lives directly under each scripture as the central mastery tool.
 
-**Design philosophy**: Fun first with warm, satisfying feedback (animations, haptics, confetti, progressive difficulty). The experience is reverent and purposeful while remaining engaging for seminary students.
+**Landing principle**: The app should open to **"Let's Learn / Let's Play"** — not a dashboard. Home is the jumping-off point to study and practice. Stats, progress rings, and long descriptions belong on the Stats tab, not on the first thing a kid sees. Keep Home punchy: pick up where you left off, start a quick quiz, launch Word Builder. The dashboard view is reachable via the Stats tab for users who want it.
+
+**Design philosophy**: Fun first with warm, satisfying feedback (animations, haptics, confetti, progressive difficulty). The experience is reverent and purposeful while remaining engaging for seminary students. The primary success metrics are **engagement with friends and mastery retention** — we want kids to come back on their own AND invite their seminary group to play together.
 
 **Status**: Free-tier MVP is complete. The app is now moving into the **Premium tier**, which unlocks the **Seminary Sidekick** — an AI companion powered by Grok.  
 Premium features focus on deeper understanding and application through AI-generated journal prompts, reflection questions, smart goals, timeline insights, and subtle engagement enhancements that make diligent study feel natural and rewarding.
@@ -207,6 +209,18 @@ These help with recognition and comprehension but do NOT drive mastery. They liv
 ### Image Assets
 
 Never generate or source actual image files. When an image is needed, create a `.txt` file in `assets/images/` with a detailed description of what the image should depict (composition, style, colors, mood, dimensions, etc.). Name the file with the intended final image name but with a `.txt` extension (e.g., `onboarding_hero.txt` for an image that will become `onboarding_hero.png`). The user will generate the image later and replace the `.txt` with the real file.
+
+### Audio Assets
+
+Same rule as images — **never generate audio files** (no TTS, no Python synthesis, no auto-generated SFX). Previous agent-generated `.wav` files sounded bad and had to be thrown out. When a new sound effect is needed, create a `.txt` placeholder in `assets/audio/` with:
+
+1. **Filename** — use the intended final audio name with a `.txt` extension (e.g., `streak_milestone.txt` for a file that will eventually become `streak_milestone.wav`).
+2. **Sound description** — short prose description of what it should sound like (e.g., "A warm, bell-like chime that rings for ~400ms, reverent but satisfying").
+3. **Where to source it** — name 2–3 places the user can grab something suitable: e.g., freesound.org search terms, Pixabay audio, Zapsplat categories, or specific SFX pack references.
+4. **Expected duration and format** — e.g., "~300ms, 44.1kHz .wav, mono is fine".
+5. **Any references to similar sounds** in other apps the user can mimic.
+
+The user will manually source/record the real audio and drop it in next to the `.txt` (keep both during review; delete the `.txt` once the real file is in place). Do not reference the `.txt` from code — `SoundEffect` enum entries should keep pointing at the intended `.wav` path, and the user will replace the file.
 
 ### Naming
 
@@ -530,13 +544,22 @@ flutter run              # Run app
 
 - TASK-039 done: Premium teasers placed in home screen (after stats), scripture detail (inline link + mastery-level teaser), and onboarding (Sidekick mention on final page). All rate-limited and dismissible.
 
-**Active direction** (Premium Tier – Seminary Sidekick):
+**Premium Tier — Seminary Sidekick AI** (completed 2026-04-07):
 
-- **P1**: TASK-035 (AI-powered journal & dynamic reflection prompts)
-- **P1**: TASK-036 (AI-driven goals, timeline & gentle reminders)
-- **P1**: TASK-037 (“Ask Your Sidekick” chat)
-- **P2**: TASK-038 (Premium polish)
-- **P2**: TASK-040 (Subtle engagement enhancements)
+- TASK-035/036/037/038/040 all done — journal + prompts, goals + timeline + reminders, chat, polish, engagement layers.
+
+**Deployment readiness polish** (completed 2026-04-11):
+
+- TASK-041/042/043/044 done — settings screen, theme toggle wiring, font scale, haptics routed through a service.
+
+**Active direction** (post-MVP, owner-reviewed 2026-04-21):
+
+- **P0 TASK-045**: Replace generated `.wav` sound effects with real audio (owner-sourced). New `.txt` placeholder convention mirrors the image-asset rule.
+- **P0 TASK-046**: Reorient Home to "Let's Learn / Let's Play" — move dashboard feel to Stats tab, keep Home action-first.
+- **P0 TASK-047**: Multi-scripture Quick Quiz + Scripture Match setup — pick a whole book, or all 100, with optional "every-scripture" question count override.
+- **P1 TASK-048**: Seminary Group Play (Kahoot-style multiplayer). Backend pick + lobby + live quiz + leaderboard. Nothing in the codebase yet.
+- **P1 TASK-049**: Small cleanup of dead `_selectedBooks` / `_selectedDifficulty` fields on Practice Hub cards (absorbed by TASK-047).
+- **P2 TASK-050**: Async friends & group layer (challenges, weekly class leaderboards) — after TASK-048 lands.
 
 ---
 
