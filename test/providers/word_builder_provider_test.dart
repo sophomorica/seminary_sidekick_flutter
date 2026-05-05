@@ -83,7 +83,7 @@ void main() {
     });
 
     test(
-        'selectChunk — correct — chunk placed, removed from pool, correctPlacements increments',
+        'selectChunk — correct — chunk placed, marked used (pool length unchanged), correctPlacements increments',
         () {
       final scripture = testScriptures[0];
       notifier.startGame(
@@ -105,10 +105,44 @@ void main() {
 
       notifier.selectChunk(correctIndex);
 
-      expect(notifier.state.availablePool.length, initialPoolSize - 1);
+      // Pool length stays the same so Wrap layout doesn't reflow — the
+      // chunk is tracked as "used" instead of being removed.
+      expect(notifier.state.availablePool.length, initialPoolSize);
+      expect(notifier.state.usedPoolIndices.contains(correctIndex), isTrue);
       expect(notifier.state.correctPlacements, initialCorrect + 1);
       expect(notifier.state.placedChunks[0], isNotNull);
       expect(notifier.state.lastFeedback, 'correct');
+    });
+
+    test('selectChunk — tapping already-used chunk is a no-op', () {
+      final scripture = testScriptures[0];
+      notifier.startGame(
+          difficulty: DifficultyLevel.beginner, scriptures: [scripture]);
+
+      // Find and place the first correct chunk.
+      int correctIndex = -1;
+      for (int i = 0; i < notifier.state.availablePool.length; i++) {
+        if (!notifier.state.availablePool[i].isDistractor &&
+            notifier.state.availablePool[i].startIndex == 0) {
+          correctIndex = i;
+          break;
+        }
+      }
+      notifier.selectChunk(correctIndex);
+
+      final placedSnapshot =
+          List<WordChunk?>.from(notifier.state.placedChunks);
+      final correctSnapshot = notifier.state.correctPlacements;
+      final incorrectSnapshot = notifier.state.incorrectAttempts;
+      final nextIdxSnapshot = notifier.state.nextChunkIndex;
+
+      // Tapping the same (already-used) index again must do nothing.
+      notifier.selectChunk(correctIndex);
+
+      expect(notifier.state.placedChunks, equals(placedSnapshot));
+      expect(notifier.state.correctPlacements, correctSnapshot);
+      expect(notifier.state.incorrectAttempts, incorrectSnapshot);
+      expect(notifier.state.nextChunkIndex, nextIdxSnapshot);
     });
 
     test('selectChunk — wrong — incorrectAttempts increments, pool unchanged',

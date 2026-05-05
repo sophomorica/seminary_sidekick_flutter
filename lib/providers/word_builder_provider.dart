@@ -53,7 +53,8 @@ class WordBuilderState {
 
   // ── Chunk-tap mode fields ──
   final List<WordChunk> targetChunks;    // Chunks in correct order
-  final List<WordChunk> availablePool;   // Shuffled pool of chunk tiles
+  final List<WordChunk> availablePool;   // Shuffled pool of chunk tiles (positions are stable)
+  final Set<int> usedPoolIndices;        // Indices in availablePool that have been correctly placed
   final List<WordChunk?> placedChunks;   // Placed chunks (null = empty slot)
   final int nextChunkIndex;              // Next empty slot to fill
 
@@ -88,6 +89,7 @@ class WordBuilderState {
     // Chunk mode
     this.targetChunks = const [],
     this.availablePool = const [],
+    this.usedPoolIndices = const <int>{},
     this.placedChunks = const [],
     this.nextChunkIndex = 0,
     // Typing mode
@@ -144,6 +146,7 @@ class WordBuilderState {
     int? totalScriptures,
     List<WordChunk>? targetChunks,
     List<WordChunk>? availablePool,
+    Set<int>? usedPoolIndices,
     List<WordChunk?>? placedChunks,
     int? nextChunkIndex,
     String? targetText,
@@ -172,6 +175,7 @@ class WordBuilderState {
       totalScriptures: totalScriptures ?? this.totalScriptures,
       targetChunks: targetChunks ?? this.targetChunks,
       availablePool: availablePool ?? this.availablePool,
+      usedPoolIndices: usedPoolIndices ?? this.usedPoolIndices,
       placedChunks: placedChunks ?? this.placedChunks,
       nextChunkIndex: nextChunkIndex ?? this.nextChunkIndex,
       targetText: targetText ?? this.targetText,
@@ -318,6 +322,7 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
       currentIndex: index,
       targetChunks: chunks,
       availablePool: pool,
+      usedPoolIndices: const <int>{},
       placedChunks: List.filled(chunks.length, null),
       nextChunkIndex: 0,
       correctPlacements: 0,
@@ -359,6 +364,8 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
     if (state.isScriptureComplete || state.mode != WordBuilderMode.chunkTap) {
       return;
     }
+    // Ignore taps on chunks that have already been correctly placed.
+    if (state.usedPoolIndices.contains(poolIndex)) return;
 
     final tapped = state.availablePool[poolIndex];
 
@@ -376,12 +383,13 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
 
     // Check correctness: same start index and not a distractor
     if (!tapped.isDistractor && tapped.startIndex == expectedChunk.startIndex) {
-      // Correct!
+      // Correct! Mark the pool index as used instead of removing it,
+      // so the chip layout stays stable (no reflow) and users can tap
+      // remaining chunks without the bubbles shifting under their finger.
       final updated = List<WordChunk?>.from(state.placedChunks);
       updated[targetSlot] = tapped;
 
-      final updatedPool = List<WordChunk>.from(state.availablePool);
-      updatedPool.removeAt(poolIndex);
+      final newUsedIndices = <int>{...state.usedPoolIndices, poolIndex};
 
       final newCorrect = state.correctPlacements + 1;
       final newCorrectAcross = state.correctUnitsAcrossAll + 1;
@@ -389,7 +397,7 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
 
       state = state.copyWith(
         placedChunks: updated,
-        availablePool: updatedPool,
+        usedPoolIndices: newUsedIndices,
         nextChunkIndex: targetSlot + 1,
         correctPlacements: newCorrect,
         correctUnitsAcrossAll: newCorrectAcross,
