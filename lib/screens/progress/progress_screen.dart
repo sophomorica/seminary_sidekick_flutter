@@ -280,17 +280,27 @@ class ProgressScreen extends ConsumerWidget {
     HolisticStats stats,
     List<Scripture> needsReview,
   ) {
+    final isWide = MediaQuery.of(context).size.width > 600;
+
+    if (!isWide) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildNeedsReviewSection(context, ref, needsReview),
+          const SizedBox(height: 24.0),
+          _buildAchievementMedals(context, stats),
+        ],
+      );
+    }
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Needs Review (left, wider)
         Expanded(
           flex: 7,
           child: _buildNeedsReviewSection(context, ref, needsReview),
         ),
         const SizedBox(width: 32.0),
-
-        // Achievements (right, narrower)
         Expanded(
           flex: 5,
           child: _buildAchievementMedals(context, stats),
@@ -309,11 +319,14 @@ class ProgressScreen extends ConsumerWidget {
       children: [
         Row(
           children: [
-            Text(
-              'Needs Review',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontStyle: FontStyle.italic,
-                  ),
+            Flexible(
+              child: Text(
+                'Needs Review',
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontStyle: FontStyle.italic,
+                    ),
+              ),
             ),
             const SizedBox(width: 12.0),
             Container(

@@ -408,29 +408,273 @@
   - Consider exposing a `quizGameSetupProvider` (Hive-backed) to hold the last-used difficulty + scope
   - Think carefully about `matching_game_provider.dart` — `MatchPair` list gets long when scope is "all 100"; confirm the game screen handles 100-pair sessions or paginates
 
-### TASK-048: Seminary Group Play (Kahoot-style multiplayer)
+### TASK-048: Seminary Group Play (Kahoot-style multiplayer) — UMBRELLA, decomposed
+
+- **status**: `decomposed` — DO NOT CLAIM. See TASK-051 through TASK-061.
+- **priority**: P1
+- **decisions_made** (owner-reviewed 2026-05-05):
+  - **Backend: Supabase** (Realtime + Postgres + Anonymous Auth). Owner already runs Supabase for another project so the platform skill is in-house. A new dedicated Supabase project will be created for this app to isolate quotas/billing.
+  - **Architecture: cloud-relay**, host as a *logical* role (not a websocket server on the host's device). All participants are clients of Supabase; the host is just the player whose actions advance the quiz.
+  - **No accounts for students.** Anonymous auth + nickname + 4-letter code.
+  - **Free vs. Premium split**:
+    - JOINING is always free. No exceptions, no caps, no signup.
+    - HOSTING tiered: free hosts can run a *Casual* room (cap 6 players, 1 game/week). Premium hosts get *Class* rooms (cap 30, unlimited games, saved rosters, post-game analytics).
+    - Premium price unchanged ($2.99/mo or $1.67/mo yearly). Group hosting becomes one more reason to subscribe alongside the existing Sidekick AI bundle.
+  - **V1 scope limited to Quick Quiz only.** Scripture Match in group form is a v2 question — drag-and-drop multiplayer is awkward. Word Builder stays solo forever.
+  - **Cost ceiling at the worst credible adoption** (~100K MAU, ~10K concurrent peak): roughly $2K–5K/mo on Supabase Realtime. Premium revenue at that scale ($15K–25K/mo at 5% conversion) covers it comfortably. We do NOT need to architect against this scale on day one — Pro tier ($25/mo, 500 concurrent) is fine for a long time.
+  - **Future cost optimization** (NOT v1): WebRTC peer-to-peer with Supabase as signaling, or migrating the Realtime layer to Cloudflare Durable Objects. Both are v2 levers, mentioned here so the data model doesn't paint itself into a corner.
+
+---
+
+## Active — Group Play Build (decomposed from TASK-048, owner-decided 2026-05-05)
+
+> **Scope guardrail**: NONE of the existing solo features are being modified. Word Builder, solo Quick Quiz, solo Scripture Match, mastery tracking, journal, Sidekick AI all remain exactly as they are. The only edits to existing files are:
+>
+> - `pubspec.yaml` (add `supabase_flutter`, `qr_flutter`)
+> - `lib/main.dart` (initialize Supabase + anonymous sign-in)
+> - `lib/app.dart` (add `/group-play/*` routes)
+> - `lib/screens/practice_hub_screen.dart` (one new entry-point card)
+> - `lib/screens/home/home_screen.dart` (one new "Play with friends" CTA)
+>
+> Everything else is NEW files under `lib/screens/group_play/`, `lib/services/group_play_service.dart`, `lib/providers/group_play_provider.dart`, and `lib/models/group_*.dart`.
+
+> **Parallelism plan** (so multiple agents can move concurrently):
+>
+> | Phase | Tasks | Parallel? | Why |
+> |---|---|---|---|
+> | 1 | TASK-051 (Supabase setup) | No — owner-driven | Schema + dashboard config block everything else |
+> | 2 | TASK-052 (foundation: models + service + provider + route stubs) | No — single agent | Defines interfaces every UI task depends on |
+> | 3 | TASK-053, TASK-054, TASK-055, TASK-056, TASK-060 | **YES — up to 5 agents** | Each owns its own files; route stubs from TASK-052 prevent conflicts in `app.dart` |
+> | 4 | TASK-057, TASK-058, TASK-059, TASK-061 | Mostly parallel | TASK-057 touches shared files (practice hub + home), the others are independent |
+>
+> **Shared-file caution.** TASK-057 is the only task in Phase 3+ that edits shared files (`practice_hub_screen.dart` and `home_screen.dart`). Schedule it serially or coordinate via commits. Everything else owns isolated files.
+
+### TASK-051: Supabase project, schema, RLS, anonymous auth
+
+- **status**: `partial` — migration files are written and committed; owner needs to run dashboard steps (see SUPABASE_SETUP.md)
+- **priority**: P0
+- **estimated_effort**: Small (mostly owner clicking through dashboard)
+- **claimed_by**: —
+- **files_to_touch**: `supabase/migrations/0001_group_play_init.sql` (DONE), `supabase/migrations/0002_rls_policies.sql` (DONE), `supabase/migrations/0003_realtime.sql` (DONE), NEW `SUPABASE_SETUP.md` (DONE), `.gitignore` (verify `.env` is ignored)
+- **description**: Stand up a new Supabase project dedicated to Seminary Sidekick. Run migrations, enable anonymous auth, verify realtime. Detailed runbook in `SUPABASE_SETUP.md`.
+- **acceptance_criteria**:
+  - [x] Migration files for tables, RLS, realtime committed to `supabase/migrations/`
+  - [x] `SUPABASE_SETUP.md` written with end-to-end instructions
+  - [ ] **Owner step**: New Supabase project created in dashboard, separate from any existing project
+  - [ ] **Owner step**: `supabase link --project-ref <ref>` + `supabase db push` runs cleanly
+  - [ ] **Owner step**: Anonymous auth toggled on
+  - [ ] **Owner step**: Realtime publication includes `rooms`, `players`, `answers`
+  - [ ] **Owner step**: Project URL + anon key stashed; `--dart-define=SUPABASE_URL=... SUPABASE_ANON_KEY=...` added to local run command
+  - [ ] **Verifying agent step (after TASK-052 lands)**: smoke test in SUPABASE_SETUP.md passes — anonymous user can create a room and a second device can see it via realtime
+- **depends_on**: —
+- **notes**:
+  - Service-role key stays out of the Flutter app forever. anon key is safe to ship.
+  - Owner already runs Supabase elsewhere — a separate project keeps quotas isolated.
+  - Default free-tier limits (200 concurrent connections, 5GB DB) are way more than this app needs in dev or even early adoption.
+
+### TASK-052: Group play foundation (models, service, provider, route stubs)
 
 - **status**: `open`
-- **priority**: P1 (this is the big social lever — but it's also the biggest scope)
-- **estimated_effort**: XL
+- **priority**: P0
+- **estimated_effort**: Large
 - **claimed_by**: —
-- **files_to_touch**: NEW `lib/providers/group_play_provider.dart`, NEW `lib/services/group_play_service.dart`, NEW `lib/screens/group_play/` (host_lobby_screen, join_lobby_screen, group_quiz_screen, group_results_screen), `lib/screens/practice_hub_screen.dart`, `lib/screens/home/home_screen.dart`, `pubspec.yaml` (backend SDK), probably new backend/cloud function
-- **description**: Owner called it Kahoot-style — one host (the seminary teacher or a student) starts a room, students join with a code, everyone answers the same questions simultaneously, live leaderboard at the end. Nothing meaningful has been built yet; this task is the scaffold.
+- **files_to_touch**: NEW `lib/models/group_room.dart`, NEW `lib/models/group_player.dart`, NEW `lib/models/group_question.dart`, NEW `lib/models/group_answer.dart`, NEW `lib/models/group_play_state.dart`, NEW `lib/services/group_play_service.dart`, NEW `lib/providers/group_play_provider.dart`, NEW `lib/screens/group_play/_placeholder_screens.dart`, `lib/main.dart` (Supabase init + anonymous sign-in), `lib/app.dart` (add `/group-play/*` routes wired to placeholder screens), `pubspec.yaml` (`supabase_flutter ^2.x`, `qr_flutter ^4.x`)
+- **description**: Establish the data layer and orchestration layer for group play. Add placeholder screens for each route so UI tasks (TASK-053..TASK-056) can build in parallel without conflicting on `app.dart`.
 - **acceptance_criteria**:
-  - [ ] **Decision doc first** (before code): one-pager picking the backend. Candidates: Firebase Realtime DB + Firestore, Supabase (Realtime + Postgres), a thin custom WebSocket server. Criteria: cost at ~50 concurrent rooms of 30 kids, account requirements for kids (ideally none — just a name + code), offline fallback for spotty seminary wifi
-  - [ ] **Lobby flow**: host taps "Start Group Play" → gets a 4-letter room code + QR → students tap "Join Group" → enter code + nickname → show list of joined students to the host → host taps "Start"
-  - [ ] **Quiz flow**: re-uses the existing `QuizGameNotifier` question generation so we don't fork it — the host picks scope+difficulty (reuses TASK-047 setup sheet) → questions pushed to all clients → each student answers → scoring factors in correctness AND speed (Kahoot model)
-  - [ ] **Leaderboard**: live after each question (top 5) + final podium after the quiz
-  - [ ] **Teacher controls**: host can kick, skip, end early
-  - [ ] **No accounts required** for students — just nickname + room code. Host might need a light-touch account eventually, but MVP can be anonymous.
-  - [ ] **Free tier question**: decide whether group play is free (likely yes — this is the viral loop) or gated to Premium for hosts (possible — teachers/parents pay, kids join free)
-  - [ ] **Analytics**: log session completion + answer distribution so teachers can see which scriptures the group struggled on (nice-to-have, could be TASK-050)
-- **depends_on**: TASK-047 (question scope selection is shared)
+  - [ ] `GroupRoom`, `GroupPlayer`, `GroupQuestion`, `GroupAnswer` models with `copyWith`, `fromJson`/`toJson`, equality
+  - [ ] `GroupPlayState` provider state with subStates: `idle`, `hosting`, `joining`, `inLobby`, `inQuiz`, `viewingResults`, `error`
+  - [ ] `GroupPlayService` covers: `createRoom(scope, isPremium)`, `joinRoom(code, nickname)`, `leaveRoom()`, `startRoom()`, `advanceQuestion()`, `submitAnswer(...)`, `endRoom()`, `kickPlayer(playerId)`, `watchRoom(roomId)`, `watchPlayers(roomId)`, `watchAnswers(roomId)`, `broadcastEvent(roomCode, eventType, payload)`, `listenForEvents(roomCode)`
+  - [ ] `GroupPlayNotifier` exposes the same surface, transforms service streams into state updates
+  - [ ] 4-letter room code generator uses an unambiguous alphabet (excludes I, O, 0, 1) and runs through a profanity wordlist before returning (use the same wordlist TASK-060 will own — soft-import the validator with a fallback)
+  - [ ] Speed-weighted scoring formula: `points = round(maxPoints * (1 - 0.5 * elapsedSec / questionTimeoutSec))`, clamped to `[maxPoints/2, maxPoints]` for correct answers, `0` for wrong/timeout. `maxPoints` defaults to 1000.
+  - [ ] Question generation reuses the existing solo Quick Quiz logic — extract `QuizGameNotifier`'s scripture-pool selection + question construction into a shared helper (`lib/services/quiz_question_factory.dart`) and have BOTH the solo provider and the group service consume it. **Do not fork or duplicate the question logic.**
+  - [ ] Routes added: `/group-play/host`, `/group-play/join`, `/group-play/lobby/:code`, `/group-play/quiz/:code`, `/group-play/results/:code` — each pointing at a placeholder Scaffold that displays the screen name + a "TODO: TASK-NNN" hint
+  - [ ] `main.dart`: after Hive init and before `runApp`, call `Supabase.initialize(url: ..., anonKey: ...)` from `--dart-define`, then `await supabase.auth.signInAnonymously()` if there's no session
+  - [ ] Smoke test (manual): launch app with `--dart-define`s, verify console logs an anonymous user id, navigate to `/group-play/host`, see placeholder screen
+  - [ ] Add a brief `lib/services/group_play_service.dart` doc comment listing every Supabase channel name and table the service touches (so future readers can audit at a glance)
+- **depends_on**: TASK-051 (the migrations must be deployed before service smoke-tests work, but the Dart code can be written in parallel)
 - **notes**:
-  - Current codebase has ZERO multiplayer infrastructure — `grep -i 'multiplayer|kahoot|lobby|firebase|websocket|supabase'` returns only unrelated matches in scripture text and `Icons.family_restroom`
-  - Word Builder is NOT part of group play in V1 (it's a solo mastery tool) — group play is Quick Quiz + maybe Scripture Match
-  - Think about abuse: nicknames need a light profanity filter so kids don't name themselves something dumb on the projector
-  - Consider persistent "Seminary classes" later so teachers can run the same group week to week with saved rosters — out of scope for V1 but worth designing the data model with that future in mind
+  - Models go in `lib/models/group_*.dart` with one model per file (matches existing code style)
+  - Use `supabase_flutter`'s `RealtimeChannel` for both Postgres Changes (durable) and Broadcast (ephemeral)
+  - Question pushes during a live quiz should go via Broadcast on `room:{code}`, not Postgres Changes — Broadcast is faster and meant for ephemeral signals
+  - Provider must dispose channels on `leaveRoom()` / `endRoom()` to avoid connection leaks
+
+### TASK-053: Host lobby screen
+
+- **status**: `open`
+- **priority**: P0
+- **estimated_effort**: Medium
+- **claimed_by**: —
+- **files_to_touch**: NEW `lib/screens/group_play/host_lobby_screen.dart`, NEW `lib/screens/group_play/widgets/room_code_display.dart`, NEW `lib/screens/group_play/widgets/joined_players_list.dart`, NEW `lib/screens/group_play/widgets/group_play_scope_picker.dart` (minimal v1 picker — full version comes from TASK-047)
+- **description**: Two views in one screen. **Setup view**: pick scope + difficulty + start the room. **Lobby view**: huge 4-letter code, QR, live list of joined players, kick button per player, "Start Game" button.
+- **acceptance_criteria**:
+  - [ ] Setup view: difficulty selector (Beginner / Intermediate / Master), scope selector (single book picker for v1; "All 100" option), question count override
+  - [ ] On "Create Room", call `groupPlayProvider.notifier.hostCreateRoom(...)` and switch to lobby view
+  - [ ] Lobby view: code displayed at ~96sp, projector-friendly contrast; QR code below using `qr_flutter`
+  - [ ] Player list updates in real-time as joins arrive; each row has a kick (X) button for the host
+  - [ ] Player cap indicator: free hosts see "Players: N/6", premium hosts see "Players: N/30"
+  - [ ] Start button disabled until ≥1 non-host player has joined
+  - [ ] Tapping Start calls `hostStartGame()` and navigates to `/group-play/quiz/:code`
+  - [ ] Back nav prompts confirmation dialog ("End this room?") and on confirm calls `endRoom()`
+  - [ ] If free host hits the player cap, show inline upgrade teaser (uses `PremiumInlineLink`)
+- **depends_on**: TASK-052
+- **notes**:
+  - Keep the v1 scope picker minimal — TASK-047 will replace it with the full multi-select version
+  - QR code encodes a deep link `seminary-sidekick://group-play/join?code=ABCD` (deep linking config can come later if needed; for now the QR can encode just the code as text and we'll iterate)
+  - The widget-level files (`room_code_display.dart`, etc.) keep this screen small and reusable
+
+### TASK-054: Join lobby screen
+
+- **status**: `open`
+- **priority**: P0
+- **estimated_effort**: Small
+- **claimed_by**: —
+- **files_to_touch**: NEW `lib/screens/group_play/join_lobby_screen.dart`
+- **description**: Player enters a 4-letter code + nickname, joins the room, sees the lobby, waits for host to start.
+- **acceptance_criteria**:
+  - [ ] Code field: monospace, auto-uppercase, 4-char limit; visually friendly (big tap target)
+  - [ ] Nickname field: 2–14 chars, validated via `NicknameValidator` if available (soft import — gracefully accepts anything if TASK-060 hasn't landed)
+  - [ ] "Join" button calls `groupPlayProvider.notifier.joinAsPlayer(code, nickname)`
+  - [ ] Error states render inline: room not found, room is full, nickname taken, room already started, network error
+  - [ ] On success, render "Waiting for host to start" view with the live list of joined players (so kids can watch friends arrive)
+  - [ ] When room transitions to `active`, navigate to `/group-play/quiz/:code`
+- **depends_on**: TASK-052
+- **notes**:
+  - When TASK-060 ships, the soft import becomes a hard one and inline error messages get specific per-failure-mode text
+
+### TASK-055: Live group quiz screen
+
+- **status**: `open`
+- **priority**: P0
+- **estimated_effort**: Large
+- **claimed_by**: —
+- **files_to_touch**: NEW `lib/screens/group_play/group_quiz_screen.dart`, NEW `lib/screens/group_play/widgets/group_question_card.dart`, NEW `lib/screens/group_play/widgets/live_leaderboard.dart`, NEW `lib/screens/group_play/widgets/answers_received_indicator.dart`
+- **description**: The actual gameplay. Host pushes questions one at a time; players answer; between questions, top-5 leaderboard with deltas; after the last question, navigate to the results screen.
+- **acceptance_criteria**:
+  - [ ] **Host view**: current question, 20-second countdown, live "X of N answered" counter, "Next Question" button (skip if needed)
+  - [ ] **Player view**: current question, four answer buttons; locks after answer or timeout; shows "+850 pts ✓" feedback after submission
+  - [ ] **Between-question screen**: top-5 leaderboard with rank deltas (e.g. "▲2"); auto-advances after 5s on host's command (host taps "Next" or it auto-advances on a timer)
+  - [ ] After last question, host calls `endRoom()` and everyone navigates to `/group-play/results/:code`
+  - [ ] Disconnect handling: if host disconnects >30s, all clients show "Host left" and gracefully end (room state set to `ended`)
+  - [ ] Disconnect handling: if a player disconnects, mark them stale; allow rejoin within room lifetime
+  - [ ] Score updates persist to `answers` table per submission so the results screen has authoritative data
+- **depends_on**: TASK-052
+- **notes**:
+  - Question pushes via Broadcast on `room:{code}` — durable state (current_question_index) updates via Postgres on the same `rooms` row
+  - Reuse the visual language from solo Quick Quiz (`lib/screens/games/quiz_game_screen.dart`) — same answer button shapes, same correct/incorrect colors — so this feels familiar
+  - Use `confetti` (already in pubspec) for "you got it" flair on correct answers, but keep it tame so 30 simultaneous celebrations don't tank performance
+
+### TASK-056: Group results screen
+
+- **status**: `open`
+- **priority**: P1
+- **estimated_effort**: Small-Medium
+- **claimed_by**: —
+- **files_to_touch**: NEW `lib/screens/group_play/group_results_screen.dart`, NEW `lib/screens/group_play/widgets/podium_view.dart`
+- **description**: Final podium for top 3, full leaderboard, share, and host actions (Play Again / End).
+- **acceptance_criteria**:
+  - [ ] Podium for top 3 with confetti
+  - [ ] Full leaderboard: rank, nickname, score, accuracy %, average response time
+  - [ ] Host: "Play Again" creates a new room with the same scope; "End" returns home
+  - [ ] Players: "Done" returns home
+  - [ ] Share button: composes a text-only message ("Our class scored 78% on Mosiah scriptures!") and uses `share_plus` (already in pubspec)
+  - [ ] Sharing is FREE — no premium gate (it's a viral hook)
+- **depends_on**: TASK-052
+- **notes**:
+  - The "Class breakdown" tab (per-question accuracy) is a separate task (TASK-061) and gates behind premium
+
+### TASK-057: Practice Hub & Home entry points
+
+- **status**: `open`
+- **priority**: P0
+- **estimated_effort**: Small-Medium
+- **claimed_by**: —
+- **files_to_touch**: `lib/screens/practice_hub_screen.dart`, `lib/screens/home/home_screen.dart` (and possibly `lib/screens/home/play_now_card.dart` if we extract)
+- **description**: Surface group play in the app shell. **Practice Hub**: new "Group Play" card with Host / Join buttons. **Home**: a "Play with friends" CTA tile.
+- **acceptance_criteria**:
+  - [ ] Practice Hub: new card at the top (above existing Quick Quiz / Scripture Match cards) with two buttons — "Host a Game" → `/group-play/host`, "Join a Game" → `/group-play/join`
+  - [ ] Free hosts see subtitle: "Up to 6 players free • Premium for class size"
+  - [ ] Premium hosts see subtitle: "Up to 30 players • Save your class roster"
+  - [ ] Home: new tile/CTA placed below the primary actions (or wherever TASK-046 lands the layout)
+  - [ ] Both entry points navigate via GoRouter
+- **depends_on**: TASK-053, TASK-054
+- **notes**:
+  - **This task touches shared files** (practice_hub_screen.dart, home_screen.dart). Schedule serially with TASK-046 (Home reorientation) — coordinate by commit timing or merge order
+  - Don't add an "Ask a friend to play" toast yet — comes later with TASK-050
+
+### TASK-058: Premium gating for group hosting
+
+- **status**: `open`
+- **priority**: P1
+- **estimated_effort**: Small-Medium
+- **claimed_by**: —
+- **files_to_touch**: `lib/services/group_play_service.dart`, `lib/providers/group_play_provider.dart`, `lib/screens/group_play/host_lobby_screen.dart`
+- **description**: Enforce the free/premium hosting split. Free hosts: cap 6, 1 game/week. Premium hosts: cap 30, unlimited games.
+- **acceptance_criteria**:
+  - [ ] On `createRoom`, the service reads `isPremiumProvider` and writes `player_cap` (6 or 30) + `is_premium_host` to the row
+  - [ ] On `createRoom`, the service calls `bump_host_usage(host_id)` (RPC). For free hosts, if `rooms_this_week > 1`, the service throws a `FreeTierLimitException` with an upgrade CTA
+  - [ ] On `joinAsPlayer`, the service rejects join if `players` count for the room ≥ `player_cap` (returns `RoomFullException`)
+  - [ ] Host lobby renders "Upgrade for class size" inline link (rate-limited via `canShowUpgradePromptProvider`) when free host approaches cap
+  - [ ] Joining is NEVER gated — any user, free or premium, can join any room they have a code for
+- **depends_on**: TASK-053
+- **notes**:
+  - Server-side enforcement (the RPC) is the source of truth; client-side checks are UX nice-to-haves
+  - If a host upgrades mid-room, the cap doesn't auto-raise on the active room — they'd have to start a new one. Document this behavior in code comments.
+
+### TASK-059: Saved class rosters (premium feature)
+
+- **status**: `open`
+- **priority**: P1
+- **estimated_effort**: Medium
+- **claimed_by**: —
+- **files_to_touch**: NEW `lib/screens/group_play/saved_rosters_screen.dart`, NEW `lib/providers/saved_rosters_provider.dart`, `lib/services/group_play_service.dart`, `lib/screens/group_play/host_lobby_screen.dart`, `lib/screens/group_play/group_results_screen.dart`
+- **description**: The killer paywall feature for teachers. Premium hosts can name + save the current room's roster, then start a new game pre-populated with that class. Expected players light up green when they actually join.
+- **acceptance_criteria**:
+  - [ ] After a game ends, premium host sees "Save as Class" → name dialog → `saved_rosters` row inserted via service
+  - [ ] Host lobby setup view has "Load saved class" button (premium only) → bottom sheet listing saved rosters → loading one prefills the lobby with expected nicknames as ghosted entries
+  - [ ] Ghosted entries turn solid + green when that nickname actually joins
+  - [ ] Saved rosters list screen with rename / delete / view-history actions
+  - [ ] Free users tapping "Load saved class" see a `PremiumTeaser` instead of the bottom sheet
+- **depends_on**: TASK-058
+- **notes**:
+  - Schema (`saved_rosters` table) is already in TASK-051 — no migration changes needed
+  - Roster size inherently respects the 30-player premium cap
+  - "View history" can defer to v2 (linking past `rooms` rows to a roster requires a new join column — just leave it as a TODO comment for now)
+
+### TASK-060: Nickname profanity filter
+
+- **status**: `open`
+- **priority**: P1
+- **estimated_effort**: Small
+- **claimed_by**: —
+- **files_to_touch**: NEW `lib/services/nickname_validator.dart`, NEW `assets/data/profanity_seed.txt`, `pubspec.yaml` (asset declaration), `lib/screens/group_play/join_lobby_screen.dart` (consume the validator)
+- **description**: Light profanity filter so kids don't put something dumb on the projector. No false-positive horror stories — keep the wordlist short and obvious.
+- **acceptance_criteria**:
+  - [ ] `NicknameValidator.validate(name)` returns a sealed result: `Valid | Profanity | TooShort | TooLong | InvalidChars`
+  - [ ] Length: 2–14 chars
+  - [ ] Allowed chars: alphanumeric + spaces only (no emoji, no symbols)
+  - [ ] Wordlist covers obvious English profanity + common bypasses (l33t-speak normalization). Keep it short — ~50 entries — and stored in `assets/data/profanity_seed.txt` so it's easy to extend
+  - [ ] Validator is pure — no async, no DB calls, no service deps. Easy to unit-test.
+- **depends_on**: —
+- **notes**:
+  - This task can start immediately, in parallel with TASK-052, because it has no dependencies
+  - TASK-052's room code generator should use this validator too — for v1 a soft import / fallback is fine, but the eventual integration is "all user-visible strings get filtered"
+
+### TASK-061: Post-game class breakdown analytics (premium)
+
+- **status**: `open`
+- **priority**: P2
+- **estimated_effort**: Medium
+- **claimed_by**: —
+- **files_to_touch**: `lib/screens/group_play/group_results_screen.dart`, NEW `lib/screens/group_play/widgets/class_breakdown_view.dart`
+- **description**: Teachers want to know which scriptures their class struggled on. Tally per-question accuracy across the session.
+- **acceptance_criteria**:
+  - [ ] Results screen has a second tab "Class breakdown" (premium only)
+  - [ ] Per-question rows: scripture reference, correct %, hardest answer (most common wrong choice)
+  - [ ] Sort by hardest → easiest by default
+  - [ ] Tap a row → opens scripture detail
+  - [ ] Free hosts see a `PremiumTeaser` in place of the tab content
+- **depends_on**: TASK-056
 
 ### TASK-049: Kill the dead difficulty/book state on Quick Quiz & Match cards
 
