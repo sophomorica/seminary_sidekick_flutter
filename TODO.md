@@ -364,11 +364,12 @@
 
 ### TASK-046: Reorient Home to "Let's Learn / Let's Play"
 
-- **status**: `open`
+- **status**: `in_progress`
 - **priority**: P0
 - **estimated_effort**: Medium
-- **claimed_by**: —
-- **files_to_touch**: `lib/screens/home/home_screen.dart`, potentially new `lib/screens/home/jump_in_card.dart`, `lib/screens/home/play_now_card.dart`
+- **claimed_by**: claude-sonnet-cowork
+- **started**: 2026-05-05T12:00:00Z
+- **files_to_touch**: `lib/screens/home/home_screen.dart`, NEW `lib/providers/resume_target_provider.dart`, `lib/screens/progress/progress_screen.dart`
 - **description**: The current Home is a dashboard — greeting, mastery ring, long progress description, then tiny "Practice Games" CTA buried below. Kids should land on a screen that says "do something now." Move the dashboard feel (ring, numbers, long text) to the Stats tab and keep Home action-first.
 - **acceptance_criteria**:
   - [ ] First viewport of Home has at most a one-line greeting + two big action CTAs: **"Keep Learning"** (last-touched scripture or daily review) and **"Play a Quick Quiz"** (launches Quick Quiz on a sensible default set)
