@@ -569,10 +569,11 @@
 
 ### TASK-055: Live group quiz screen
 
-- **status**: `open`
+- **status**: `in_progress`
 - **priority**: P0
 - **estimated_effort**: Large
-- **claimed_by**: —
+- **claimed_by**: claude-opus-agent
+- **started**: 2026-05-07T18:00:00Z
 - **files_to_touch**: NEW `lib/screens/group_play/group_quiz_screen.dart`, NEW `lib/screens/group_play/widgets/group_question_card.dart`, NEW `lib/screens/group_play/widgets/live_leaderboard.dart`, NEW `lib/screens/group_play/widgets/answers_received_indicator.dart`, `lib/app.dart` (one-line swap: replace `GroupQuizPlaceholderScreen` import + reference with `GroupQuizScreen`)
 - **description**: The actual gameplay. Host pushes questions one at a time; players answer; between questions, top-5 leaderboard with deltas; after the last question, navigate to the results screen.
 - **agent_context_block** (read first):
