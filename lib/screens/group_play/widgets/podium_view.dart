@@ -23,11 +23,9 @@ class PodiumView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 240,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
           Expanded(
             child: _PodiumColumn(
               rank: 2,
@@ -59,7 +57,6 @@ class PodiumView extends StatelessWidget {
             ),
           ),
         ],
-      ),
     );
   }
 }
@@ -95,6 +92,7 @@ class _PodiumColumn extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
         children: [
           if (rank == 1)
             const Padding(

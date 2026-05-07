@@ -73,7 +73,7 @@ class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
         title: Text(inLobby ? 'Lobby' : 'Host a Game'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => _confirmLeave(context, isLobby: inLobby),
+          onPressed: () => _confirmLeave(isLobby: inLobby),
         ),
       ),
       body: SafeArea(
@@ -152,8 +152,7 @@ class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
     await ref.read(groupPlayProvider.notifier).hostKickPlayer(playerId);
   }
 
-  Future<void> _confirmLeave(BuildContext context,
-      {required bool isLobby}) async {
+  Future<void> _confirmLeave({required bool isLobby}) async {
     if (!isLobby) {
       // Setup view — nothing was created, just pop.
       ref.read(groupPlayProvider.notifier).resetToIdle();
@@ -233,7 +232,7 @@ class _SetupView extends StatelessWidget {
 
         const SizedBox(height: AppTheme.spacingXl),
 
-        _SectionLabel('DIFFICULTY'),
+        const _SectionLabel('DIFFICULTY'),
         const SizedBox(height: AppTheme.spacingSm),
         _DifficultyChips(
           selected: difficulty,
@@ -249,7 +248,7 @@ class _SetupView extends StatelessWidget {
 
         const SizedBox(height: AppTheme.spacingXl),
 
-        _SectionLabel('SCOPE'),
+        const _SectionLabel('SCOPE'),
         const SizedBox(height: AppTheme.spacingSm),
         _BookChips(
           selected: book,
@@ -258,7 +257,7 @@ class _SetupView extends StatelessWidget {
 
         const SizedBox(height: AppTheme.spacingXl),
 
-        _SectionLabel('YOUR NICKNAME'),
+        const _SectionLabel('YOUR NICKNAME'),
         const SizedBox(height: AppTheme.spacingSm),
         TextField(
           controller: nicknameController,
