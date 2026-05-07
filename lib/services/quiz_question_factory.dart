@@ -74,8 +74,31 @@ class QuizQuestionFactory {
       explicit: scriptures,
     );
 
-    final distractorPool =
-        allScriptures.where((s) => !selected.contains(s)).toList();
+    // Distractor pool: scriptures whose references / key phrases are eligible
+    // as wrong-answer options.
+    //
+    // Three cases:
+    //   1. **Book-filtered quiz** → keep distractors IN-SCOPE so a student
+    //      who knows the books can't eliminate three answers immediately by
+    //      "those aren't from this book." We deliberately do NOT exclude the
+    //      selected set here: for a small scope (e.g. all of D&C with a Master
+    //      40-question quiz on a 25-scripture book) the selected set equals
+    //      the scope, and excluding it would leave zero distractors. Allowing
+    //      a question's correct answer to also appear as a wrong-answer option
+    //      in another question is fine — that's recall pressure, not a bug.
+    //   2. **Explicit scripture list** (e.g. saved-roster-style targeted drill)
+    //      → keep the original "exclude selected from pool" behavior. The
+    //      narrow list is intentional and we want plausible-looking distractors
+    //      from outside it.
+    //   3. **No filter, no explicit list** ("All 100") → original behavior.
+    final List<Scripture> distractorPool;
+    if (bookFilters.isNotEmpty) {
+      distractorPool =
+          allScriptures.where((s) => bookFilters.contains(s.book)).toList();
+    } else {
+      distractorPool =
+          allScriptures.where((s) => !selected.contains(s)).toList();
+    }
 
     final questions = <GeneratedQuestion>[];
     const types = QuizQuestionTypeKind.values;
