@@ -21,6 +21,8 @@ import 'screens/settings/settings_screen.dart';
 import 'screens/sidekick_chat/sidekick_chat_screen.dart';
 import 'screens/upgrade_screen.dart';
 import 'screens/group_play/_placeholder_screens.dart';
+import 'screens/group_play/group_quiz_screen.dart';
+import 'screens/group_play/group_results_screen.dart';
 import 'screens/group_play/host_lobby_screen.dart';
 import 'screens/group_play/join_lobby_screen.dart';
 
@@ -161,13 +163,13 @@ class _SeminarySidekickAppState extends ConsumerState<SeminarySidekickApp> {
         ),
         GoRoute(
           path: '/group-play/quiz/:code',
-          builder: (context, state) => GroupQuizPlaceholderScreen(
+          builder: (context, state) => GroupQuizScreen(
             code: state.pathParameters['code']!,
           ),
         ),
         GoRoute(
           path: '/group-play/results/:code',
-          builder: (context, state) => GroupResultsPlaceholderScreen(
+          builder: (context, state) => GroupResultsScreen(
             code: state.pathParameters['code']!,
           ),
         ),

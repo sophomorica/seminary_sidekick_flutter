@@ -569,11 +569,12 @@
 
 ### TASK-055: Live group quiz screen
 
-- **status**: `in_progress`
+- **status**: `done`
 - **priority**: P0
 - **estimated_effort**: Large
 - **claimed_by**: claude-opus-agent
 - **started**: 2026-05-07T18:00:00Z
+- **completed**: 2026-05-07T18:45:00Z
 - **files_to_touch**: NEW `lib/screens/group_play/group_quiz_screen.dart`, NEW `lib/screens/group_play/widgets/group_question_card.dart`, NEW `lib/screens/group_play/widgets/live_leaderboard.dart`, NEW `lib/screens/group_play/widgets/answers_received_indicator.dart`, `lib/app.dart` (one-line swap: replace `GroupQuizPlaceholderScreen` import + reference with `GroupQuizScreen`)
 - **description**: The actual gameplay. Host pushes questions one at a time; players answer; between questions, top-5 leaderboard with deltas; after the last question, navigate to the results screen.
 - **agent_context_block** (read first):
@@ -591,27 +592,34 @@
   - **Models**: `GroupQuestion` (in `lib/models/group_question.dart`) has `prompt`, `options` (4 strings), `correctIndex`, `scriptureReference`. `GroupAnswer` is what the leaderboard reads. Speed-weighted scoring is already done in the service — you just call `submitAnswer` with the elapsed Duration and points appear on the player row.
   - **Route**: `/group-play/quiz/:code`. The host lobby and join lobby both navigate here when `phase == GroupPlayPhase.inQuiz`. After last question or `hostEndGame`, navigate to `/group-play/results/:code`.
 - **acceptance_criteria**:
-  - [ ] **Host view**: current question, 20-second countdown (use `room.scope.questionTimeoutSeconds`), live "X of N answered" counter pulled from `state.answers.where((a) => a.questionIndex == room.currentQuestionIndex)`, "Next Question" button calls `hostAdvanceQuestion()`
-  - [ ] **Player view**: current question, four answer buttons; locks after answer (use `state.currentQuestionAnswered`) or timeout; shows "+N pts ✓" feedback after submission (the points are on the updated `me.score` after submit)
-  - [ ] **Between-question screen** (transient state): top-5 leaderboard from `groupPlayLeaderboardProvider` with rank deltas — keep a snapshot of last leaderboard in local state to compute "▲2" / "▼1" / "—"
-  - [ ] After last question (`room.currentQuestionIndex >= state.questions.length - 1`), host taps Next → `hostEndGame()` → `ref.listen` sees phase flip to `viewingResults` and navigates everyone to `/group-play/results/:code`
-  - [ ] Disconnect handling (V1, simple): rely on the existing room watcher — if `room.status == ended`, navigate to results. Per-player disconnect detection can wait
-  - [ ] Score updates already persist via `submitAnswer` — no extra work needed
-  - [ ] After completion, swap the placeholder import in `app.dart` for the real screen
+  - [x] **Host view**: current question, 20-second countdown (uses `room.scope.questionTimeoutSeconds`), live `AnswersReceivedIndicator` ("X of N answered") computed from `state.answers.where((a) => a.questionIndex == room.currentQuestionIndex)`, "Next Question" button calls `hostAdvanceQuestion()`
+  - [x] **Player view**: current question, four answer buttons via `GroupQuestionCard`; locks via `state.currentQuestionAnswered` or timeout; "+N pts ✓" feedback banner pulls `pointsEarned` from the player's `GroupAnswer` for the current question
+  - [x] **Between-question screen** (transient state): `_LocalPhase.leaderboard` triggered when timer expires (auto for everyone) or when host taps "Show Leaderboard". `LiveLeaderboard` renders top-5 with `▲N` / `▼N` / `—` deltas — `_previousRanks` snapshot captured when each new question's index lands
+  - [x] After last question (`room.currentQuestionIndex >= state.questions.length - 1`), host taps Finish → `hostEndGame()` → `ref.listen` on `groupPlayPhaseProvider` sees `viewingResults` and navigates everyone to `/group-play/results/:code`
+  - [x] Disconnect handling (V1, simple): the room watcher already flips phase to `viewingResults` when `room.status == ended`, so we ride that
+  - [x] Score updates already persist via `submitAnswer` — no extra work needed
+  - [x] Placeholder swap in `app.dart`: `GroupQuizPlaceholderScreen` reference replaced with `GroupQuizScreen` and the import added
 - **depends_on**: TASK-052
 - **notes**:
   - Question pushes already happen via Broadcast in the service — clients see them via the `rooms` Postgres Changes stream. You don't need to subscribe to broadcast directly; just watch `currentQuestionIndex` change via the existing provider state.
   - `confetti` is already in pubspec — use sparingly for correct-answer flair; keep duration short so a class of 30 doesn't lag.
   - V1 doesn't need rejoin-after-disconnect logic. Document any edge cases as TODO comments instead of building them.
   - Don't create a new provider — everything you need is on `groupPlayProvider`.
+  - **Implementation notes**:
+    - Local UI phase (`question` ↔ `leaderboard`) is driven by the timer expiring or by the host's "Show Leaderboard" button. Resets when `room.currentQuestionIndex` changes via the existing provider stream — no extra subscriptions
+    - Rank deltas use a `Map<String, int>` snapshot of the leaderboard captured at the start of each question; `previousRank - currentRank` gives signed delta (▲ up, ▼ down)
+    - Confetti fires once per question on the player's first correct answer (700ms burst, ~14 particles — kept light for class-of-30 perf)
+    - Host gets an explicit "Show Leaderboard" outline button alongside "Next Question" so they can stage the reveal before advancing
+    - `flutter analyze` clean on all four new files
 
 ### TASK-056: Group results screen
 
-- **status**: `in_progress`
+- **status**: `done`
 - **priority**: P1
 - **estimated_effort**: Small-Medium
 - **claimed_by**: claude-opus-agent
 - **started**: 2026-05-07T03:15:00Z
+- **completed**: 2026-05-07T03:35:00Z
 - **files_to_touch**: NEW `lib/screens/group_play/group_results_screen.dart`, NEW `lib/screens/group_play/widgets/podium_view.dart`, `lib/app.dart` (one-line swap: `GroupResultsPlaceholderScreen` → `GroupResultsScreen`)
 - **description**: Final podium for top 3, full leaderboard, share, and host actions (Play Again / End).
 - **agent_context_block** (read first):
@@ -634,17 +642,26 @@
   - **Confetti**: `package:confetti` already in pubspec. See `lib/screens/games/game_results_screen.dart` for an existing controller/duration pattern.
   - **Route**: `/group-play/results/:code`. Phase is `viewingResults`. Both host and player land here.
 - **acceptance_criteria**:
-  - [ ] Podium for top 3 with confetti (3 columns: 2nd, 1st-tallest, 3rd)
-  - [ ] Full leaderboard rows: rank, nickname, score, accuracy %, avg response time. Highlight the local user's row.
-  - [ ] Host: "Play Again" → creates a new room with same scope, navigates to `/group-play/host` (or directly into a fresh lobby). "End" → `notifier.resetToIdle()` + `context.go('/')`
-  - [ ] Players: "Done" → `notifier.resetToIdle()` + `context.go('/')`
-  - [ ] Share button: text-only summary via `share_plus` (no premium gate — sharing IS the viral hook)
-  - [ ] After completion, swap placeholder import in `app.dart` for the real screen
+  - [x] Podium for top 3 with confetti (3 columns: 2nd, 1st-tallest, 3rd)
+  - [x] Full leaderboard rows: rank, nickname, score, accuracy %, avg response time. Highlight the local user's row.
+  - [x] Host: "Play Again" → creates a new room with same scope, navigates to `/group-play/host` (or directly into a fresh lobby). "End" → `notifier.resetToIdle()` + `context.go('/')`
+  - [x] Players: "Done" → `notifier.resetToIdle()` + `context.go('/')`
+  - [x] Share button: text-only summary via `share_plus` (no premium gate — sharing IS the viral hook)
+  - [x] After completion, swap placeholder import in `app.dart` for the real screen
 - **depends_on**: TASK-052
 - **notes**:
   - The "Class breakdown" tab (per-question accuracy) is TASK-061's job — leave space for it but don't build it
   - "Play Again" reuses scope via `state.room!.scope` — that's why `GroupRoom.scope` is preserved through endRoom
   - Don't gate sharing behind premium even though most premium features are gated. Sharing is the viral loop.
+  - **Implementation notes (2026-05-07)**:
+    - `PodiumView` lives at `lib/screens/group_play/widgets/podium_view.dart` as a reusable widget. Empty slots render as a faded "—" + dimmed block so a 1- or 2-player game still looks intentional.
+    - "Play Again" uses a `ref.listen<GroupPlayPhase>` on the results screen — when `hostCreateRoom` flips phase to `inLobby`, the listener navigates to `/group-play/host`. The host lobby's `build` already gates on `phase == inLobby && room != null` and shows the lobby view, so the existing screen handles the new room without extra plumbing.
+    - "End" / "Done" both call `notifier.resetToIdle()` + `context.go('/')` (lands on Home).
+    - Per-player accuracy + avg response time computed from `state.answers` filtered by `playerId`. Shown as `${pct}% accuracy · ${avg}s avg` in the leaderboard row subtitle. Players who submitted no answers show "No answers" instead.
+    - Local user's row highlighted with a tinted primary background + 1.5px primary border.
+    - Confetti fires on entry via `WidgetsBinding.addPostFrameCallback` — single 3s burst, top-down, `IgnorePointer` so it never blocks taps.
+    - Left a `// TASK-061` placeholder comment under the leaderboard for the upcoming class-breakdown tab.
+    - `flutter analyze` clean on both new files.
 
 ### TASK-057: Practice Hub & Home entry points
 
