@@ -738,10 +738,11 @@
 
 ### TASK-060: Nickname profanity filter
 
-- **status**: `open`
+- **status**: `in_progress`
 - **priority**: P1
 - **estimated_effort**: Small
-- **claimed_by**: —
+- **claimed_by**: agent-nickname-filter
+- **started**: 2026-05-07T00:00:00Z
 - **files_to_touch**: NEW `lib/services/nickname_validator.dart`, NEW `assets/data/profanity_seed.txt`, `pubspec.yaml` (already declares `assets/data/` — verify nothing changes), `lib/screens/group_play/join_lobby_screen.dart` (replace inline validator), `lib/screens/group_play/host_lobby_screen.dart` (apply the same validator to the host's nickname field), NEW `test/services/nickname_validator_test.dart`
 - **description**: Light profanity filter so kids don't put something dumb on the projector. No false-positive horror stories — keep the wordlist short and obvious.
 - **agent_context_block** (read first):
