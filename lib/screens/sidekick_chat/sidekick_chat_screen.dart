@@ -167,10 +167,11 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
 
   Widget _buildEditorialHeader(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final canPop = Navigator.of(context).canPop();
     return Container(
       color: isDark ? AppTheme.darkBackground : Theme.of(context).colorScheme.surface,
-      padding: const EdgeInsets.fromLTRB(
-        AppTheme.spacingMd,
+      padding: EdgeInsets.fromLTRB(
+        canPop ? AppTheme.spacingSm : AppTheme.spacingMd,
         AppTheme.spacingMd,
         AppTheme.spacingMd,
         AppTheme.spacingLg,
@@ -180,6 +181,19 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (canPop)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  color: Theme.of(context).colorScheme.onSurface,
+                  onPressed: () => Navigator.of(context).pop(),
+                  padding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
+                  constraints: const BoxConstraints(),
+                  tooltip: 'Back',
+                ),
+              ),
             // Label
             Text(
               'Your Spiritual Guide',
@@ -226,12 +240,18 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
       ),
       color: AppTheme.errorLight,
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.warning_amber, size: 16, color: AppTheme.error),
+          const Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: Icon(Icons.warning_amber, size: 16, color: AppTheme.error),
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               error!,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppTheme.error,
                   ),
@@ -239,7 +259,10 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
           ),
           GestureDetector(
             onTap: () => ref.read(sidekickProvider.notifier).clearError(),
-            child: const Icon(Icons.close, size: 16, color: AppTheme.error),
+            child: const Padding(
+              padding: EdgeInsets.only(top: 2, left: 4),
+              child: Icon(Icons.close, size: 16, color: AppTheme.error),
+            ),
           ),
         ],
       ),

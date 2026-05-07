@@ -1,7 +1,10 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 import 'providers/activity_provider.dart';
@@ -61,10 +64,72 @@ void main() async {
   // Non-blocking — the app starts immediately, sidekick loads in background.
   container.read(sidekickProvider.notifier).init();
 
+  // Initialize Supabase for Group Play multiplayer.
+  // Credentials come from --dart-define at build/run time:
+  //   --dart-define=SUPABASE_URL=...
+  //   --dart-define=SUPABASE_ANON_KEY=...
+  // If either is missing, group play is gracefully unavailable but the rest
+  // of the app still works (solo mastery loop has no Supabase dependency).
+  await _maybeInitSupabase();
+
   runApp(
     UncontrolledProviderScope(
       container: container,
       child: const SeminarySidekickApp(),
     ),
   );
+}
+
+/// Read Supabase credentials from --dart-define and initialize the client.
+/// Also performs an anonymous sign-in if there's no existing session, so the
+/// rest of the app can assume `Supabase.instance.client.auth.currentUser`
+/// is non-null when group play is reachable.
+///
+/// Failures are logged but do not crash the app — solo features have no
+/// Supabase dependency. Group play screens check session validity at the
+/// service layer before issuing any DB calls.
+Future<void> _maybeInitSupabase() async {
+  const url = String.fromEnvironment('SUPABASE_URL', defaultValue: '');
+  const anonKey = String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
+
+  if (url.isEmpty || anonKey.isEmpty) {
+    developer.log(
+      'Supabase not configured — set --dart-define=SUPABASE_URL and '
+      '--dart-define=SUPABASE_ANON_KEY to enable Group Play.',
+      name: 'main',
+    );
+    return;
+  }
+
+  try {
+    await Supabase.initialize(
+      url: url,
+      anonKey: anonKey,
+      // Realtime is on by default; explicit no-op kept here for clarity.
+      realtimeClientOptions: const RealtimeClientOptions(
+        logLevel: RealtimeLogLevel.warn,
+      ),
+    );
+
+    final auth = Supabase.instance.client.auth;
+    if (auth.currentUser == null) {
+      await auth.signInAnonymously();
+      developer.log(
+        'Anonymous Supabase session created: ${auth.currentUser?.id}',
+        name: 'main',
+      );
+    } else {
+      developer.log(
+        'Reusing Supabase session: ${auth.currentUser!.id}',
+        name: 'main',
+      );
+    }
+  } catch (e, st) {
+    developer.log(
+      'Supabase init failed; group play will be unavailable.',
+      name: 'main',
+      error: e,
+      stackTrace: st,
+    );
+  }
 }

@@ -1,0 +1,347 @@
+import 'dart:async';
+import 'dart:developer' as developer;
+
+import 'package:collection/collection.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../models/group_answer.dart';
+import '../models/group_play_state.dart';
+import '../models/group_player.dart';
+import '../models/group_question.dart';
+import '../models/group_room.dart';
+import '../services/group_play_service.dart';
+import 'subscription_provider.dart';
+
+/// Singleton service. Tests can override via the regular Riverpod override
+/// pattern.
+final groupPlayServiceProvider = Provider<GroupPlayService>((ref) {
+  return GroupPlayService();
+});
+
+/// State + orchestration for Group Play. Wraps [GroupPlayService] with
+/// stream subscriptions and pure state transitions.
+///
+/// Lifecycle:
+///   - `hostCreateRoom` → phase becomes `inLobby`
+///   - `hostStartGame`  → phase becomes `inQuiz`
+///   - last question or `hostEndGame` → phase becomes `viewingResults`
+///   - `leave()` from any phase resets to `idle` and disposes streams
+class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
+  GroupPlayNotifier(this._service, this._readIsPremium)
+      : super(const GroupPlayState());
+
+  final GroupPlayService _service;
+  final bool Function() _readIsPremium;
+
+  StreamSubscription<GroupRoom?>? _roomSub;
+  StreamSubscription<List<GroupPlayer>>? _playersSub;
+  StreamSubscription<List<GroupAnswer>>? _answersSub;
+  StreamSubscription<({String event, Map<String, dynamic> payload})>?
+      _eventsSub;
+
+  // ─── Host actions ──────────────────────────────────────────────────────
+
+  /// Host creates a room and immediately enters the lobby.
+  Future<void> hostCreateRoom({
+    required GroupRoomScope scope,
+    required String hostNickname,
+  }) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final result = await _service.createRoom(
+        scope: scope,
+        hostNickname: hostNickname,
+        isPremiumHost: _readIsPremium(),
+      );
+      _enterRoom(room: result.room, self: result.hostPlayer);
+    } catch (e) {
+      _handleError(e);
+    } finally {
+      state = state.copyWith(isLoading: false);
+    }
+  }
+
+  /// Host starts the game. Generates questions, flips room to active, pushes
+  /// the first question via broadcast.
+  Future<void> hostStartGame() async {
+    final room = state.room;
+    if (room == null) return;
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final updated = await _service.startRoom(room);
+      final questions = (updated.questionSet ?? const [])
+          .map(GroupQuestion.fromJson)
+          .toList();
+      state = state.copyWith(
+        phase: GroupPlayPhase.inQuiz,
+        room: updated,
+        questions: questions,
+        currentQuestionAnswered: false,
+        clearMySelection: true,
+      );
+    } catch (e) {
+      _handleError(e);
+    } finally {
+      state = state.copyWith(isLoading: false);
+    }
+  }
+
+  /// Host advances to the next question. If we're past the last, ends the room.
+  Future<void> hostAdvanceQuestion() async {
+    final room = state.room;
+    if (room == null) return;
+    try {
+      final updated = await _service.advanceQuestion(room);
+      final phase = updated.isEnded
+          ? GroupPlayPhase.viewingResults
+          : GroupPlayPhase.inQuiz;
+      state = state.copyWith(
+        phase: phase,
+        room: updated,
+        currentQuestionAnswered: false,
+        clearMySelection: true,
+      );
+    } catch (e) {
+      _handleError(e);
+    }
+  }
+
+  /// Host kicks a player.
+  Future<void> hostKickPlayer(String playerId) async {
+    final room = state.room;
+    if (room == null) return;
+    try {
+      await _service.kickPlayer(roomId: room.id, playerId: playerId);
+    } catch (e) {
+      _handleError(e);
+    }
+  }
+
+  /// Host ends the room early.
+  Future<void> hostEndGame() async {
+    final room = state.room;
+    if (room == null) return;
+    try {
+      final updated = await _service.endRoom(room);
+      state = state.copyWith(
+        phase: GroupPlayPhase.viewingResults,
+        room: updated,
+      );
+    } catch (e) {
+      _handleError(e);
+    }
+  }
+
+  // ─── Player actions ────────────────────────────────────────────────────
+
+  /// Join a room as a non-host player.
+  Future<void> joinAsPlayer({
+    required String code,
+    required String nickname,
+  }) async {
+    state = state.copyWith(
+      phase: GroupPlayPhase.joining,
+      isLoading: true,
+      clearError: true,
+    );
+    try {
+      final result = await _service.joinRoom(code: code, nickname: nickname);
+      _enterRoom(room: result.room, self: result.self);
+    } catch (e) {
+      _handleError(e);
+    } finally {
+      state = state.copyWith(isLoading: false);
+    }
+  }
+
+  /// Submit the current question's answer. Computes points server-side
+  /// (well, in the service which is the same process — but sourced from the
+  /// authoritative room.questionSet).
+  Future<void> submitAnswer({
+    required int selectedChoice,
+    required Duration elapsed,
+  }) async {
+    final room = state.room;
+    final me = state.me;
+    if (room == null || me == null) return;
+    if (state.currentQuestionAnswered) return;
+
+    final qIndex = room.currentQuestionIndex;
+    if (qIndex < 0) return;
+
+    state = state.copyWith(
+      currentQuestionAnswered: true,
+      mySelectedChoice: selectedChoice,
+    );
+
+    try {
+      await _service.submitAnswer(
+        room: room,
+        player: me,
+        questionIndex: qIndex,
+        selectedChoice: selectedChoice,
+        responseTimeMs: elapsed.inMilliseconds,
+      );
+    } catch (e) {
+      _handleError(e);
+    }
+  }
+
+  /// Leave the room (player) or close it (host).
+  Future<void> leave() async {
+    final room = state.room;
+    final me = state.me;
+    try {
+      if (me != null && me.isHost && room != null && !room.isEnded) {
+        await _service.endRoom(room);
+      } else if (room != null) {
+        await _service.leaveRoom(room.id);
+      }
+    } catch (e) {
+      developer.log('leave() cleanup failed', error: e);
+    }
+    await _disposeStreams();
+    state = const GroupPlayState();
+  }
+
+  /// Reset to idle without leaving (e.g., user navigated away post-results).
+  void resetToIdle() {
+    _disposeStreams();
+    state = const GroupPlayState();
+  }
+
+  // ─── Streams ───────────────────────────────────────────────────────────
+
+  void _enterRoom({required GroupRoom room, required GroupPlayer self}) {
+    final questions = (room.questionSet ?? const [])
+        .map(GroupQuestion.fromJson)
+        .toList();
+
+    state = state.copyWith(
+      phase: GroupPlayPhase.inLobby,
+      room: room,
+      me: self,
+      players: [self],
+      questions: questions,
+      answers: const [],
+      currentQuestionAnswered: false,
+      clearMySelection: true,
+    );
+
+    _subscribeStreams(room);
+  }
+
+  void _subscribeStreams(GroupRoom room) {
+    _roomSub?.cancel();
+    _playersSub?.cancel();
+    _answersSub?.cancel();
+    _eventsSub?.cancel();
+
+    _roomSub = _service.watchRoom(room.id).listen((updated) {
+      if (updated == null) {
+        // Room was deleted — treat like it ended.
+        state = state.copyWith(phase: GroupPlayPhase.viewingResults);
+        return;
+      }
+      final phase = switch (updated.status) {
+        GroupRoomStatus.lobby => GroupPlayPhase.inLobby,
+        GroupRoomStatus.active => GroupPlayPhase.inQuiz,
+        GroupRoomStatus.ended => GroupPlayPhase.viewingResults,
+      };
+      final newQuestions = (updated.questionSet ?? const [])
+          .map(GroupQuestion.fromJson)
+          .toList();
+      // Reset per-question UI state when the index advances.
+      final indexAdvanced =
+          updated.currentQuestionIndex != state.room?.currentQuestionIndex;
+      state = state.copyWith(
+        phase: phase,
+        room: updated,
+        questions: newQuestions.isNotEmpty ? newQuestions : null,
+        currentQuestionAnswered: indexAdvanced ? false : null,
+        clearMySelection: indexAdvanced,
+      );
+    });
+
+    _playersSub = _service.watchPlayers(room.id).listen((players) {
+      // Refresh "me" with the latest score.
+      final myUserId = _service.currentUserId;
+      final me = myUserId == null
+          ? null
+          : players.firstWhereOrNull((p) => p.userId == myUserId);
+      state = state.copyWith(
+        players: players,
+        me: me ?? state.me,
+      );
+    });
+
+    _answersSub = _service.watchAnswers(room.id).listen((answers) {
+      state = state.copyWith(answers: answers);
+    });
+
+    _eventsSub = _service.listenForEvents(room.code).listen((event) {
+      // Ephemeral broadcast events; the durable state already came through
+      // the room/players streams. Use these only for animations / haptics.
+      developer.log('Group play event: ${event.event}', name: 'group_play');
+    });
+  }
+
+  Future<void> _disposeStreams() async {
+    await _roomSub?.cancel();
+    await _playersSub?.cancel();
+    await _answersSub?.cancel();
+    await _eventsSub?.cancel();
+    _roomSub = null;
+    _playersSub = null;
+    _answersSub = null;
+    _eventsSub = null;
+  }
+
+  void _handleError(Object e) {
+    final message = e is GroupPlayException ? e.message : e.toString();
+    developer.log('GroupPlay error: $message', name: 'group_play');
+    state = state.copyWith(
+      phase: GroupPlayPhase.error,
+      error: message,
+    );
+  }
+
+  @override
+  void dispose() {
+    _disposeStreams();
+    super.dispose();
+  }
+}
+
+/// Top-level provider. Reads `isPremiumProvider` so the host's premium status
+/// is captured at room-creation time.
+final groupPlayProvider =
+    StateNotifierProvider<GroupPlayNotifier, GroupPlayState>((ref) {
+  final service = ref.watch(groupPlayServiceProvider);
+  return GroupPlayNotifier(
+    service,
+    () => ref.read(isPremiumProvider),
+  );
+});
+
+// ─── Convenience selectors ──────────────────────────────────────────────────
+
+final groupPlayPhaseProvider = Provider<GroupPlayPhase>((ref) {
+  return ref.watch(groupPlayProvider).phase;
+});
+
+final currentGroupRoomProvider = Provider<GroupRoom?>((ref) {
+  return ref.watch(groupPlayProvider).room;
+});
+
+final groupPlayLeaderboardProvider = Provider<List<GroupPlayer>>((ref) {
+  return ref.watch(groupPlayProvider).leaderboard;
+});
+
+final currentGroupQuestionProvider = Provider<GroupQuestion?>((ref) {
+  return ref.watch(groupPlayProvider).currentQuestion;
+});
+
+final isGroupHostProvider = Provider<bool>((ref) {
+  return ref.watch(groupPlayProvider).isHost;
+});

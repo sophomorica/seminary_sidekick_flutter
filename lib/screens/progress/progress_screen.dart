@@ -6,6 +6,7 @@ import '../../models/scripture.dart';
 import '../../providers/scripture_provider.dart';
 import '../../providers/scripture_mastery_provider.dart';
 import '../../providers/spaced_repetition_provider.dart';
+import '../../providers/study_streak_provider.dart';
 import '../../theme/app_theme.dart';
 
 class ProgressScreen extends ConsumerWidget {
@@ -16,6 +17,7 @@ class ProgressScreen extends ConsumerWidget {
     final stats = ref.watch(holisticStatsProvider);
     final allScriptures = ref.watch(scripturesProvider);
     final needsReview = ref.watch(smartReviewQueueProvider);
+    final currentStreak = ref.watch(currentStreakProvider);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -30,12 +32,14 @@ class ProgressScreen extends ConsumerWidget {
             _buildHeader(context),
             const SizedBox(height: 16.0),
 
-            // Continuity Heatmap
-            _buildContinuityHeatmap(context),
+            // Mastery hero — relocated from the home screen.
+            // Big ring with Started + Needs Review tiles alongside.
+            _buildMasteryHero(context, stats),
             const SizedBox(height: 16.0),
 
-            // Mastery Streak + Book Breakdown
-            _buildStreakCard(context, stats),
+            // Continuity Heatmap (streak now lives here as a subtitle —
+            // the standalone streak card was redundant).
+            _buildContinuityHeatmap(context, currentStreak),
             const SizedBox(height: 16.0),
 
             _buildBookBreakdown(context, ref, allScriptures),
@@ -58,6 +62,76 @@ class ProgressScreen extends ConsumerWidget {
     );
   }
 
+  /// Mastery hero — 140px ring with Started + Needs Review tiles alongside.
+  /// Relocated from the home screen as part of TASK-046.
+  Widget _buildMasteryHero(BuildContext context, HolisticStats stats) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 140.0,
+          height: 140.0,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              CustomPaint(
+                size: const Size(140, 140),
+                painter: _ProgressRingPainter(
+                  progress: stats.totalScriptures > 0
+                      ? stats.mastered / stats.totalScriptures
+                      : 0.0,
+                  color: AppTheme.primary,
+                  strokeWidth: 10.0,
+                  backgroundColor:
+                      Theme.of(context).colorScheme.surfaceContainerHighest,
+                ),
+              ),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '${stats.mastered}',
+                    style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                          fontFamily: 'Merriweather',
+                          fontWeight: FontWeight.bold,
+                          height: 1.0,
+                        ),
+                  ),
+                  const SizedBox(height: 4.0),
+                  Text(
+                    '/ ${stats.totalScriptures} MASTERED',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          letterSpacing: 0.6,
+                        ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16.0),
+        Expanded(
+          child: Column(
+            children: [
+              _StatTile(
+                label: 'Started',
+                value: '${stats.attempted}',
+                valueColor: AppTheme.secondary,
+              ),
+              const SizedBox(height: 12.0),
+              _StatTile(
+                label: 'Needs review',
+                value: '${stats.needsReview}',
+                valueColor: AppTheme.gold,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildHeader(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,7 +151,11 @@ class ProgressScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildContinuityHeatmap(BuildContext context) {
+  Widget _buildContinuityHeatmap(BuildContext context, int currentStreak) {
+    final streakLabel = currentStreak > 0
+        ? '$currentStreak-day streak · daily engagement with the word'
+        : 'Your daily engagement with the sacred word';
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12.0),
@@ -97,7 +175,7 @@ class ProgressScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8.0),
           Text(
-            'Your daily engagement with the sacred word',
+            streakLabel,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -153,83 +231,6 @@ class ProgressScreen extends ConsumerWidget {
           ),
         );
       }),
-    );
-  }
-
-  Widget _buildStreakCard(BuildContext context, HolisticStats stats) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12.0),
-      decoration: BoxDecoration(
-        color: AppTheme.tertiaryFixed,
-        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
-        boxShadow: AppTheme.editorialShadow,
-      ),
-      child: Column(
-        children: [
-          Text(
-            'SACRED MASTERY',
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppTheme.onTertiaryFixedVariant,
-                  letterSpacing: 1.5,
-                ),
-          ),
-          const SizedBox(height: 8.0),
-          Text(
-            'Mastery Streak',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppTheme.onTertiaryFixed,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 24,
-                ),
-          ),
-          const SizedBox(height: 8.0),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                '42',
-                style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                      color: AppTheme.onTertiaryFixed,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 48,
-                    ),
-              ),
-              const SizedBox(width: 16.0),
-              Text(
-                'Days of Focus',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: AppTheme.onTertiaryFixedVariant,
-                      fontSize: 18,
-                    ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12.0),
-
-          // Progress bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-            child: LinearProgressIndicator(
-              value: 0.8,
-              minHeight: 8.0,
-              backgroundColor: AppTheme.onTertiaryFixed.withValues(alpha: 0.2),
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                AppTheme.onTertiaryFixed,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8.0),
-          Text(
-            '12 days until "The Elder" status',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.onTertiaryFixedVariant,
-                ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -767,5 +768,53 @@ class _ProgressRingPainter extends CustomPainter {
         oldDelegate.color != color ||
         oldDelegate.strokeWidth != strokeWidth ||
         oldDelegate.backgroundColor != backgroundColor;
+  }
+}
+
+/// Compact stat tile used in the dashboard hero (Started, Needs review).
+class _StatTile extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color valueColor;
+
+  const _StatTile({
+    required this.label,
+    required this.value,
+    required this.valueColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacingMd,
+        vertical: AppTheme.spacingMd,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  letterSpacing: 0.5,
+                ),
+          ),
+          const SizedBox(height: 6.0),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: valueColor,
+                  fontStyle: FontStyle.italic,
+                ),
+          ),
+        ],
+      ),
+    );
   }
 }
