@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../models/group_play_state.dart';
 import '../../models/group_player.dart';
 import '../../providers/group_play_provider.dart';
+import '../../services/nickname_validator.dart';
 import '../../theme/app_theme.dart';
 
 /// Join screen — kid types a 4-letter code and a nickname, taps Join,
@@ -282,11 +283,14 @@ class _EntryView extends StatelessWidget {
               ),
             ),
             validator: (value) {
-              final v = value?.trim() ?? '';
-              if (v.length < 2) return 'At least 2 characters';
-              if (v.length > 14) return 'No more than 14 characters';
-              // TASK-060 will plug a profanity filter in here once it lands.
-              return null;
+              final result = NicknameValidator.validate(value ?? '');
+              return switch (result) {
+                NicknameValid() => null,
+                NicknameTooShort() => 'At least 2 characters',
+                NicknameTooLong() => 'No more than 14 characters',
+                NicknameInvalidChars() => 'Letters, numbers, and spaces only',
+                NicknameProfanity() => 'Pick something else.',
+              };
             },
             onFieldSubmitted: (_) => onJoin(),
           ),

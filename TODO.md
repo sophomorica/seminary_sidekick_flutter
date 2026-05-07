@@ -755,11 +755,12 @@
 
 ### TASK-060: Nickname profanity filter
 
-- **status**: `in_progress`
+- **status**: `done`
 - **priority**: P1
 - **estimated_effort**: Small
 - **claimed_by**: agent-nickname-filter
 - **started**: 2026-05-07T00:00:00Z
+- **completed**: 2026-05-07T00:00:00Z
 - **files_to_touch**: NEW `lib/services/nickname_validator.dart`, NEW `assets/data/profanity_seed.txt`, `pubspec.yaml` (already declares `assets/data/` — verify nothing changes), `lib/screens/group_play/join_lobby_screen.dart` (replace inline validator), `lib/screens/group_play/host_lobby_screen.dart` (apply the same validator to the host's nickname field), NEW `test/services/nickname_validator_test.dart`
 - **description**: Light profanity filter so kids don't put something dumb on the projector. No false-positive horror stories — keep the wordlist short and obvious.
 - **agent_context_block** (read first):
@@ -777,19 +778,27 @@
     ```
   - **Asset loading**: the wordlist file is loaded via `rootBundle.loadString('assets/data/profanity_seed.txt')` once at startup. Wrap it in a static cached future so the first call awaits, subsequent calls are sync.
 - **acceptance_criteria**:
-  - [ ] `NicknameValidator.validate(name)` returns a sealed result: `NicknameValid | NicknameProfanity | NicknameTooShort | NicknameTooLong | NicknameInvalidChars` (use a sealed class or Dart pattern matching)
-  - [ ] Length: 2–14 chars
-  - [ ] Allowed chars: alphanumeric + spaces only (no emoji, no symbols)
-  - [ ] Wordlist covers obvious English profanity + common bypasses (l33t-speak normalization: 0→o, 1→l, 3→e, 4→a, 5→s, 7→t, @→a). Keep it short — ~50 entries — stored in `assets/data/profanity_seed.txt` (one word per line, lowercase)
-  - [ ] Validator is pure — no async, no DB, no service deps. The wordlist is loaded once at app start (or lazily on first call), then matching is sync
-  - [ ] Both `join_lobby_screen.dart` and `host_lobby_screen.dart` switch their inline validators to call `NicknameValidator.validate`
-  - [ ] Unit tests in `test/services/nickname_validator_test.dart` covering: too-short, too-long, invalid chars, valid clean name, obvious profanity, l33t-speak bypass, mixed case bypass
+  - [x] `NicknameValidator.validate(name)` returns a sealed result: `NicknameValid | NicknameProfanity | NicknameTooShort | NicknameTooLong | NicknameInvalidChars` (use a sealed class or Dart pattern matching)
+  - [x] Length: 2–14 chars
+  - [x] Allowed chars: alphanumeric + spaces only (no emoji, no symbols)
+  - [x] Wordlist covers obvious English profanity + common bypasses (l33t-speak normalization: 0→o, 1→l, 3→e, 4→a, 5→s, 7→t, @→a). Keep it short — ~50 entries — stored in `assets/data/profanity_seed.txt` (one word per line, lowercase)
+  - [x] Validator is pure — no async, no DB, no service deps. The wordlist is loaded once at app start (or lazily on first call), then matching is sync
+  - [x] Both `join_lobby_screen.dart` and `host_lobby_screen.dart` switch their inline validators to call `NicknameValidator.validate`
+  - [x] Unit tests in `test/services/nickname_validator_test.dart` covering: too-short, too-long, invalid chars, valid clean name, obvious profanity, l33t-speak bypass, mixed case bypass
 - **depends_on**: —
 - **notes**:
   - This task is fully isolated — can start immediately and lands without touching the service or provider
   - Don't ship a real profanity list in this PR. Use placeholder pseudo-words ("badword", "bypass", "rude") in `profanity_seed.txt` so the test suite is meaningful but the repo doesn't have actual offensive language committed. The owner will swap in a real seed list before production
   - Match against the *normalized* string (lowercase + l33t replacement + spaces stripped) so "B@dW0rd" still gets caught
   - Don't be aggressive with matching — exact word match only, not substring. A nickname containing the letters "ass" should NOT trigger if it's "Cassandra"
+- **completion_notes** (2026-05-07):
+  - `pubspec.yaml` already declares `assets/data/` — no change needed. Verified.
+  - Validation order is **length → profanity → charset**, intentionally. Profanity runs before the charset rule so l33t bypasses that rely on `@` (e.g. `B@dW0rd` → `badword`) are caught as profanity rather than falling out as `NicknameInvalidChars` first. Plain typos with stray punctuation still get `NicknameInvalidChars`.
+  - Wordlist matching uses two complementary checks against the normalized string: (1) exact match against the whole input with whitespace stripped (catches space-bypass like `b a d w o r d`), and (2) per-token exact match (catches `the loser` → `loser`). Substrings never match — `Cassandra` and `Stu` are explicitly tested as clean.
+  - Validator exposes `preload()` (idempotent, called once from `main.dart` fire-and-forget) and **fails open** if the wordlist hasn't loaded yet — length+charset still apply, profanity is silently skipped. Worst case is a missed hit on the first lobby visit, never a false positive. Test-only `loadWordsForTesting`/`resetForTesting` hooks let unit tests run without a Flutter binding.
+  - Seed file shipped with **51 placeholder pseudo-words** (`badword`, `bypass`, `rude`, `dummy`, etc.) per task notes — owner swaps in the real list before production.
+  - 20 unit tests pass; full suite (532 tests) green; `flutter analyze` shows only the 4 pre-existing info-level warnings in `host_lobby_screen.dart` (none introduced by this change).
+  - **No `app.dart` placeholder swap was applicable** to this task — TASK-060 doesn't add a route, it replaces inline validators inside two existing screens. Placeholder routes (`/group-play/lobby`, `/group-play/quiz`, `/group-play/results`) belong to TASK-053..056.
 
 ### TASK-061: Post-game class breakdown analytics (premium)
 

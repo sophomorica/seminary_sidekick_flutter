@@ -21,6 +21,7 @@ import 'providers/study_streak_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/user_preferences_provider.dart';
 import 'services/audio_service.dart';
+import 'services/nickname_validator.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -63,6 +64,11 @@ void main() async {
   // Initialize Sidekick AI (loads cache; auto-refreshes if premium).
   // Non-blocking — the app starts immediately, sidekick loads in background.
   container.read(sidekickProvider.notifier).init();
+
+  // Preload the nickname profanity wordlist. Fire-and-forget — the validator
+  // fails open until the asset finishes loading, so the only consequence of
+  // skipping the await is a missed profanity hit on the first lobby visit.
+  NicknameValidator.preload();
 
   // Initialize Supabase for Group Play multiplayer.
   // Credentials come from --dart-define at build/run time:

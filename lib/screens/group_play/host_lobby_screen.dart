@@ -10,6 +10,7 @@ import '../../models/group_room.dart';
 import '../../providers/group_play_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../providers/user_preferences_provider.dart';
+import '../../services/nickname_validator.dart';
 import '../../theme/app_theme.dart';
 
 /// Host screen — pick a difficulty + book scope, create a room, watch
@@ -104,9 +105,17 @@ class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
 
   Future<void> _handleCreate() async {
     final nickname = _nicknameController.text.trim();
-    if (nickname.length < 2) {
+    final result = NicknameValidator.validate(nickname);
+    final errorText = switch (result) {
+      NicknameValid() => null,
+      NicknameTooShort() => 'Pick a nickname (2+ characters)',
+      NicknameTooLong() => 'Nickname must be 14 characters or fewer',
+      NicknameInvalidChars() => 'Letters, numbers, and spaces only',
+      NicknameProfanity() => 'Pick something else.',
+    };
+    if (errorText != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pick a nickname (2+ characters)')),
+        SnackBar(content: Text(errorText)),
       );
       return;
     }
