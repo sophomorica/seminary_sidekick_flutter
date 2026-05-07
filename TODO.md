@@ -607,10 +607,11 @@
 
 ### TASK-056: Group results screen
 
-- **status**: `open`
+- **status**: `in_progress`
 - **priority**: P1
 - **estimated_effort**: Small-Medium
-- **claimed_by**: —
+- **claimed_by**: claude-opus-agent
+- **started**: 2026-05-07T03:15:00Z
 - **files_to_touch**: NEW `lib/screens/group_play/group_results_screen.dart`, NEW `lib/screens/group_play/widgets/podium_view.dart`, `lib/app.dart` (one-line swap: `GroupResultsPlaceholderScreen` → `GroupResultsScreen`)
 - **description**: Final podium for top 3, full leaderboard, share, and host actions (Play Again / End).
 - **agent_context_block** (read first):
