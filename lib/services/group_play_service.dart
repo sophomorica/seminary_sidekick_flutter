@@ -279,12 +279,26 @@ class GroupPlayService {
   }
 
   /// Host kicks a player.
+  ///
+  /// Supabase v2 returns an empty array (not an error) when RLS blocks a
+  /// delete, so we follow the delete with `.select()` and check the result.
+  /// If nothing was deleted, throw [KickFailedException] so the UI can show a
+  /// real message instead of silently doing nothing — that's the bug we hit
+  /// during testing where tapping the X looked like a no-op.
   Future<void> kickPlayer({
     required String roomId,
     required String playerId,
   }) async {
-    await _client.from('players').delete().eq('id', playerId);
-    // RLS will reject if the caller isn't the host.
+    final deleted = await _client
+        .from('players')
+        .delete()
+        .eq('id', playerId)
+        .select();
+    if ((deleted as List).isEmpty) {
+      throw const KickFailedException(
+        'Could not kick that player. Are you still the host of this room?',
+      );
+    }
   }
 
   /// Submit an answer for the current question. Computes points client-side
@@ -623,4 +637,8 @@ class RoomEndedException extends GroupPlayException {
 
 class FreeTierLimitException extends GroupPlayException {
   const FreeTierLimitException(super.message);
+}
+
+class KickFailedException extends GroupPlayException {
+  const KickFailedException(super.message);
 }

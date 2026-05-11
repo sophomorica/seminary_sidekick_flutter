@@ -107,13 +107,30 @@ class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
   }
 
   /// Host kicks a player.
+  ///
+  /// If the kick fails (RLS rejection, network), we set [GroupPlayState.error]
+  /// for the UI to render WITHOUT flipping the global phase to `error` — the
+  /// host should stay in the lobby view and just see a snackbar/banner. Phase
+  /// flips would tear them out of the lobby unexpectedly.
+  ///
+  /// On success we optimistically remove the player from `state.players` so
+  /// the roster updates immediately. The realtime stream will (eventually)
+  /// reconfirm the same state — see migration `0004_replica_identity_full.sql`
+  /// for why DELETE events need extra setup to fan out at all.
   Future<void> hostKickPlayer(String playerId) async {
     final room = state.room;
     if (room == null) return;
+    state = state.copyWith(clearError: true);
     try {
       await _service.kickPlayer(roomId: room.id, playerId: playerId);
+      state = state.copyWith(
+        players:
+            state.players.where((p) => p.id != playerId).toList(growable: false),
+      );
     } catch (e) {
-      _handleError(e);
+      final message = e is GroupPlayException ? e.message : e.toString();
+      developer.log('GroupPlay kick error: $message', name: 'group_play');
+      state = state.copyWith(error: message);
     }
   }
 

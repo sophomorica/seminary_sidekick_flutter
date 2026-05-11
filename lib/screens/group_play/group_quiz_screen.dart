@@ -427,7 +427,14 @@ class _QuestionView extends StatelessWidget {
                     ),
                   ),
                   icon: const Icon(Icons.leaderboard, size: 18),
-                  label: const Text('Show Leaderboard'),
+                  // "Show" is redundant once the chart icon is there, and the
+                  // longer label doesn't fit the 1:2 flex column on phones —
+                  // it wrapped onto three lines mid-word. One word fits.
+                  label: const Text(
+                    'Leaderboard',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),

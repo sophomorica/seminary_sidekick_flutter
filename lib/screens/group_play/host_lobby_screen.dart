@@ -149,7 +149,39 @@ class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
   }
 
   Future<void> _handleKick(String playerId) async {
+    // Find the nickname BEFORE we kick so the snackbar can name them even
+    // after they're removed from the roster.
+    final players = ref.read(groupPlayProvider).players;
+    final nickname = players
+            .where((p) => p.id == playerId)
+            .map((p) => p.nickname)
+            .firstOrNull ??
+        'Player';
+
+    // Clear any prior snackbar so consecutive kicks don't stack visibly.
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+
     await ref.read(groupPlayProvider.notifier).hostKickPlayer(playerId);
+
+    if (!mounted) return;
+    final state = ref.read(groupPlayProvider);
+    final errorMessage = state.error;
+    if (errorMessage != null) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: AppTheme.error,
+        ),
+      );
+    } else {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('$nickname removed from the room'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   Future<void> _confirmLeave({required bool isLobby}) async {
@@ -341,11 +373,20 @@ class _LobbyView extends ConsumerWidget {
     final nonHostCount = players.where((p) => !p.isHost).length;
     final atCap = players.length >= room.playerCap;
 
-    return ListView(
+    // Layout: scrollable code + QR + roster on top, Start button pinned to the
+    // bottom so it's always reachable regardless of how big the code renders or
+    // how many players are in the lobby.
+    return Column(
       children: [
-        const SizedBox(height: AppTheme.spacingMd),
+        Expanded(
+          child: ListView(
+            children: [
+              const SizedBox(height: AppTheme.spacingMd),
 
         // ─── Massive code (projector-friendly) ───
+        // FittedBox auto-shrinks on narrow phones so the code never wraps or
+        // pushes the Start button off-screen. On wider devices (iPad, projector
+        // mirroring) the code renders at full 72sp.
         Center(
           child: Container(
             margin: const EdgeInsets.symmetric(vertical: 12),
@@ -358,14 +399,17 @@ class _LobbyView extends ConsumerWidget {
               borderRadius: BorderRadius.circular(AppTheme.radiusXl),
               boxShadow: AppTheme.editorialShadow,
             ),
-            child: Text(
-              room.code,
-              style: const TextStyle(
-                fontSize: 72,
-                fontFamily: 'monospace',
-                fontWeight: FontWeight.bold,
-                color: AppTheme.onPrimary,
-                letterSpacing: 16,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                room.code,
+                style: const TextStyle(
+                  fontSize: 72,
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.onPrimary,
+                  letterSpacing: 12,
+                ),
               ),
             ),
           ),
@@ -422,50 +466,55 @@ class _LobbyView extends ConsumerWidget {
               onKick: p.isHost ? null : () => onKick(p.id),
             )),
 
-        if (players.length == 1)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Text(
-              'Waiting for someone to join…',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color:
-                        Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontStyle: FontStyle.italic,
+              if (players.length == 1)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    'Waiting for someone to join…',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurfaceVariant,
+                          fontStyle: FontStyle.italic,
+                        ),
+                    textAlign: TextAlign.center,
                   ),
-              textAlign: TextAlign.center,
-            ),
+                ),
+
+              const SizedBox(height: AppTheme.spacingMd),
+            ],
           ),
+        ),
 
-        const SizedBox(height: AppTheme.spacingXl),
-
-        // ─── Start button ───
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.tertiary,
-              foregroundColor: AppTheme.onTertiary,
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(50),
+        // ─── Start button (pinned footer, always reachable) ───
+        Padding(
+          padding: const EdgeInsets.only(top: AppTheme.spacingSm),
+          child: SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.tertiary,
+                foregroundColor: AppTheme.onTertiary,
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(50),
+                ),
+                elevation: 0,
               ),
-              elevation: 0,
-            ),
-            onPressed: nonHostCount < 1 ? null : onStart,
-            icon: const Icon(Icons.play_arrow_rounded),
-            label: Text(
-              nonHostCount < 1
-                  ? 'Waiting for players…'
-                  : 'Start Game ($nonHostCount ${nonHostCount == 1 ? 'player' : 'players'})',
-              style: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.bold,
+              onPressed: nonHostCount < 1 ? null : onStart,
+              icon: const Icon(Icons.play_arrow_rounded),
+              label: Text(
+                nonHostCount < 1
+                    ? 'Waiting for players…'
+                    : 'Start Game ($nonHostCount ${nonHostCount == 1 ? 'player' : 'players'})',
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
         ),
-
-        const SizedBox(height: AppTheme.spacingMd),
       ],
     );
   }
