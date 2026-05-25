@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:seminary_sidekick/providers/word_builder_provider.dart';
+import 'package:seminary_sidekick/providers/scripture_builder_provider.dart';
 import 'package:seminary_sidekick/models/enums.dart';
 import 'package:seminary_sidekick/models/scripture.dart';
 
@@ -8,22 +8,22 @@ import '../helpers/test_helpers.dart';
 
 void main() {
   late ProviderContainer container;
-  late WordBuilderNotifier notifier;
+  late ScriptureBuilderNotifier notifier;
 
   setUp(() {
     container = ProviderContainer();
-    notifier = container.read(wordBuilderProvider.notifier);
+    notifier = container.read(scriptureBuilderProvider.notifier);
   });
 
   tearDown(() {
     container.dispose();
   });
 
-  group('Word Builder — Chunk-Tap Mode', () {
+  group('Scripture Builder — Chunk-Tap Mode', () {
     test('startGame beginner — mode is chunkTap, chunks are size 3', () {
       notifier.startGame(difficulty: DifficultyLevel.beginner);
 
-      expect(notifier.state.mode, WordBuilderMode.chunkTap);
+      expect(notifier.state.mode, ScriptureBuilderMode.chunkTap);
       expect(notifier.state.difficulty, DifficultyLevel.beginner);
       expect(notifier.state.scriptureQueue.length,
           DifficultyLevel.beginner.scriptureCount);
@@ -37,7 +37,7 @@ void main() {
     test('startGame intermediate — mode is chunkTap, chunks are size 2', () {
       notifier.startGame(difficulty: DifficultyLevel.intermediate);
 
-      expect(notifier.state.mode, WordBuilderMode.chunkTap);
+      expect(notifier.state.mode, ScriptureBuilderMode.chunkTap);
       expect(notifier.state.difficulty, DifficultyLevel.intermediate);
       expect(notifier.state.scriptureQueue.length,
           DifficultyLevel.intermediate.scriptureCount);
@@ -56,7 +56,7 @@ void main() {
       // Beginner: chunk size 3, 24 words = 8 chunks
       expect(notifier.state.targetChunks.length, 8);
 
-      notifier = WordBuilderNotifier(); // Reset
+      notifier = ScriptureBuilderNotifier(); // Reset
       notifier.startGame(
           difficulty: DifficultyLevel.intermediate, scriptures: [scripture]);
 
@@ -255,13 +255,13 @@ void main() {
     });
   });
 
-  group('Word Builder — Typing Mode', () {
+  group('Scripture Builder — Typing Mode', () {
     test('startGame advanced — mode is typing, targetText is fullText', () {
       notifier.startGame(
           difficulty: DifficultyLevel.advanced,
           scriptures: [testScriptures[0]]);
 
-      expect(notifier.state.mode, WordBuilderMode.typing);
+      expect(notifier.state.mode, ScriptureBuilderMode.typing);
       expect(notifier.state.difficulty, DifficultyLevel.advanced);
       expect(notifier.state.targetText, isNotEmpty);
       expect(notifier.state.targetText,
@@ -272,7 +272,7 @@ void main() {
       notifier.startGame(
           difficulty: DifficultyLevel.master, scriptures: [testScriptures[0]]);
 
-      expect(notifier.state.mode, WordBuilderMode.typing);
+      expect(notifier.state.mode, ScriptureBuilderMode.typing);
       expect(notifier.state.difficulty, DifficultyLevel.master);
     });
 
@@ -505,7 +505,7 @@ void main() {
     });
   });
 
-  group('Word Builder — Punctuation Auto-Fill', () {
+  group('Scripture Builder — Punctuation Auto-Fill', () {
     test('Punctuation is auto-filled when next expected char is punctuation',
         () {
       // "In the beginning was the Word, and the Word was with God, ..."

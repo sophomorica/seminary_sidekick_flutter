@@ -10,8 +10,8 @@ import '../../models/group_answer.dart';
 import '../../models/group_play_state.dart';
 import '../../models/group_player.dart';
 import '../../models/group_room.dart';
-import '../../models/group_wb_config.dart';
-import '../../models/group_wb_finish.dart';
+import '../../models/group_sb_config.dart';
+import '../../models/group_sb_finish.dart';
 import '../../providers/group_play_provider.dart';
 import '../../theme/app_theme.dart';
 import 'widgets/podium_view.dart';
@@ -63,13 +63,13 @@ class _GroupResultsScreenState extends ConsumerState<GroupResultsScreen> {
     final isHost = ref.watch(isGroupHostProvider);
     final myUserId = ref.read(groupPlayServiceProvider).currentUserId;
 
-    final isWb = state.room?.scope.mode == GroupGameMode.wordBuilder &&
-        state.wbConfig != null;
-    final rankedRows = isWb
-        ? _rankWbPlayers(
+    final isSb = state.room?.scope.mode == GroupGameMode.scriptureBuilder &&
+        state.sbConfig != null;
+    final rankedRows = isSb
+        ? _rankSbPlayers(
             players: state.players,
-            wbConfig: state.wbConfig!,
-            finishes: state.wbFinishes,
+            sbConfig: state.sbConfig!,
+            finishes: state.sbFinishes,
           )
         : _rankQuizPlayers(
             players: state.players,
@@ -94,7 +94,7 @@ class _GroupResultsScreenState extends ConsumerState<GroupResultsScreen> {
                       vertical: AppTheme.spacingMd,
                     ),
                     children: [
-                      _Header(state: state, isWb: isWb, leaderboard: leaderboard),
+                      _Header(state: state, isSb: isSb, leaderboard: leaderboard),
                       const SizedBox(height: AppTheme.spacingLg),
                       PodiumView(
                         topThree: leaderboard.take(3).toList(),
@@ -220,7 +220,7 @@ class _GroupResultsScreenState extends ConsumerState<GroupResultsScreen> {
     return '$accuracyPct% accuracy · ${avgSec}s avg';
   }
 
-  /// Rank players for a Word Builder race. Excludes the host (who watched
+  /// Rank players for a Scripture Builder race. Excludes the host (who watched
   /// rather than raced) and players who didn't submit a single finish.
   ///
   /// Round-by-Round → cumulative round wins (faster finish wins each round);
@@ -230,22 +230,22 @@ class _GroupResultsScreenState extends ConsumerState<GroupResultsScreen> {
   /// Set-of-N → total elapsed time ascending, fewer mistakes as tiebreaker.
   /// Players who didn't finish every scripture rank below those who did.
   /// DNFs and missing scriptures both count as last for that scripture.
-  List<_RankedRow> _rankWbPlayers({
+  List<_RankedRow> _rankSbPlayers({
     required List<GroupPlayer> players,
-    required GroupWbConfig wbConfig,
-    required List<GroupWbFinish> finishes,
+    required GroupSbConfig sbConfig,
+    required List<GroupSbFinish> finishes,
   }) {
     final racers =
         players.where((p) => !p.isHost).toList(growable: false);
 
-    if (wbConfig.playMode == GroupWbPlayMode.roundByRound) {
+    if (sbConfig.playMode == GroupSbPlayMode.roundByRound) {
       // Count round wins per player. For each scripture index, the player
       // whose finish has the earliest `completedAt` and isn't a DNF wins.
       final wins = <String, int>{for (final p in racers) p.id: 0};
       final totalMs = <String, int>{for (final p in racers) p.id: 0};
       final totalMistakes = <String, int>{for (final p in racers) p.id: 0};
       final finishesPerPlayer = <String, int>{for (final p in racers) p.id: 0};
-      for (var i = 0; i < wbConfig.scriptureIds.length; i++) {
+      for (var i = 0; i < sbConfig.scriptureIds.length; i++) {
         final round = finishes
             .where((f) => f.scriptureIndex == i && !f.isDnf)
             .toList()
@@ -283,7 +283,7 @@ class _GroupResultsScreenState extends ConsumerState<GroupResultsScreen> {
               winCount: wins[p.id] ?? 0,
               totalMs: totalMs[p.id] ?? 0,
               finished: finishesPerPlayer[p.id] ?? 0,
-              total: wbConfig.scriptureIds.length,
+              total: sbConfig.scriptureIds.length,
             ),
           ),
       ];
@@ -307,7 +307,7 @@ class _GroupResultsScreenState extends ConsumerState<GroupResultsScreen> {
           (totalMistakes[f.playerId] ?? 0) + f.mistakeCount;
       cleanFinishes[f.playerId] = (cleanFinishes[f.playerId] ?? 0) + 1;
     }
-    final n = wbConfig.scriptureIds.length;
+    final n = sbConfig.scriptureIds.length;
     final sorted = [...racers]..sort((a, b) {
         // Completed-the-set rank above incomplete.
         final aDone = (cleanFinishes[a.id] ?? 0) >= n && !(hasDnf[a.id] ?? false);
@@ -392,9 +392,9 @@ class _GroupResultsScreenState extends ConsumerState<GroupResultsScreen> {
     GroupPlayState state,
     List<_RankedRow> rows,
   ) async {
-    final isWb = state.room?.scope.mode == GroupGameMode.wordBuilder;
-    final title = isWb
-        ? 'Seminary Sidekick — Group Word Builder Race'
+    final isSb = state.room?.scope.mode == GroupGameMode.scriptureBuilder;
+    final title = isSb
+        ? 'Seminary Sidekick — Group Scripture Builder Race'
         : 'Seminary Sidekick — Group Quiz Results';
     final buf = StringBuffer()
       ..writeln(title)
@@ -437,12 +437,12 @@ class _RankedRow {
 
 class _Header extends StatelessWidget {
   final GroupPlayState state;
-  final bool isWb;
+  final bool isSb;
   final List<GroupPlayer> leaderboard;
 
   const _Header({
     required this.state,
-    required this.isWb,
+    required this.isSb,
     required this.leaderboard,
   });
 
@@ -462,15 +462,15 @@ class _Header extends StatelessWidget {
       _ => 'Great game!',
     };
 
-    // Different sub-line text per mode. WB hosts don't compete so they get
+    // Different sub-line text per mode. SB hosts don't compete so they get
     // a neutral line.
     String? subLine;
-    if (isWb) {
+    if (isSb) {
       if (state.isHost) {
         subLine = 'Race complete.';
       } else if (me != null) {
         final myFinishes =
-            state.wbFinishes.where((f) => f.playerId == me.id).toList();
+            state.sbFinishes.where((f) => f.playerId == me.id).toList();
         if (myFinishes.isEmpty) {
           subLine = 'No finishes recorded.';
         } else {

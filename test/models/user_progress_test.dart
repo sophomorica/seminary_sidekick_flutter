@@ -65,12 +65,12 @@ void main() {
       expect(progress.storageKey, equals('test-1_matching'));
     });
 
-    test('storageKey for wordOrder', () {
+    test('storageKey for scriptureBuilder', () {
       const progress = UserProgress(
         scriptureId: '42',
-        gameType: GameType.wordOrder,
+        gameType: GameType.scriptureBuilder,
       );
-      expect(progress.storageKey, equals('42_wordOrder'));
+      expect(progress.storageKey, equals('42_scriptureBuilder'));
     });
 
     test('storageKey for quiz', () {
@@ -185,7 +185,7 @@ void main() {
     test('toJson includes consecutivePerfectMaster', () {
       const progress = UserProgress(
         scriptureId: 'test-1',
-        gameType: GameType.wordOrder,
+        gameType: GameType.scriptureBuilder,
         consecutivePerfectMaster: 3,
       );
       final json = progress.toJson();
@@ -215,7 +215,7 @@ void main() {
     test('round-trip serialization preserves explicitlyCompletedDifficulties', () {
       const original = UserProgress(
         scriptureId: 'test-1',
-        gameType: GameType.wordOrder,
+        gameType: GameType.scriptureBuilder,
         explicitlyCompletedDifficulties: {
           DifficultyLevel.beginner,
           DifficultyLevel.master,
@@ -255,7 +255,7 @@ void main() {
     test('toJson includes explicitlyCompletedDifficulties', () {
       const progress = UserProgress(
         scriptureId: 'test-1',
-        gameType: GameType.wordOrder,
+        gameType: GameType.scriptureBuilder,
         explicitlyCompletedDifficulties: {DifficultyLevel.master},
       );
       final json = progress.toJson();

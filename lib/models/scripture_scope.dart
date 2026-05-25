@@ -10,7 +10,7 @@ abstract class ScopeUsageContext {
   static const String quickQuiz = 'quickQuiz';
   static const String scriptureMatch = 'scriptureMatch';
   static const String groupQuiz = 'groupQuiz';
-  static const String groupWordBuilder = 'groupWordBuilder';
+  static const String groupScriptureBuilder = 'groupScriptureBuilder';
 }
 
 /// Looks up a [ScriptureMastery] for a given scripture id, or returns null

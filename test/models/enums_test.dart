@@ -90,7 +90,7 @@ void main() {
 
     test('contains expected values', () {
       expect(GameType.values, contains(GameType.matching));
-      expect(GameType.values, contains(GameType.wordOrder));
+      expect(GameType.values, contains(GameType.scriptureBuilder));
       expect(GameType.values, contains(GameType.quiz));
     });
 
@@ -189,15 +189,15 @@ void main() {
       }
     });
 
-    test('matching descriptions differ from wordOrder descriptions', () {
+    test('matching descriptions differ from scriptureBuilder descriptions', () {
       for (final difficulty in DifficultyLevel.values) {
         final matchingDesc =
             difficulty.descriptionForGame(GameType.matching);
-        final wordOrderDesc =
-            difficulty.descriptionForGame(GameType.wordOrder);
-        expect(matchingDesc, isNot(equals(wordOrderDesc)),
+        final scriptureBuilderDesc =
+            difficulty.descriptionForGame(GameType.scriptureBuilder);
+        expect(matchingDesc, isNot(equals(scriptureBuilderDesc)),
             reason:
-                '${difficulty.name}: matching and wordOrder have same description');
+                '${difficulty.name}: matching and scriptureBuilder have same description');
       }
     });
   });

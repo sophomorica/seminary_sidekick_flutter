@@ -1,4 +1,4 @@
-/// A single Word-Builder-race finish event. Mirrors `group_wb_finishes` row.
+/// A single Word-Builder-race finish event. Mirrors `group_sb_finishes` row.
 ///
 /// One row is inserted per (player, scriptureIndex) pair when the player
 /// completes (or DNFs) that scripture. Finishes are immutable — no UPDATE
@@ -7,7 +7,7 @@
 /// Sentinel value: `mistakeCount == -1` signals DNF (timeout). `elapsedMs`
 /// still records how long the player held the screen before giving up;
 /// callers ranking by speed should treat DNFs as last regardless of time.
-class GroupWbFinish {
+class GroupSbFinish {
   static const int dnfMistakeCount = -1;
 
   final String id;
@@ -18,7 +18,7 @@ class GroupWbFinish {
   final int mistakeCount;
   final DateTime completedAt;
 
-  const GroupWbFinish({
+  const GroupSbFinish({
     required this.id,
     required this.roomId,
     required this.playerId,
@@ -40,8 +40,8 @@ class GroupWbFinish {
         'completed_at': completedAt.toIso8601String(),
       };
 
-  factory GroupWbFinish.fromJson(Map<String, dynamic> json) {
-    return GroupWbFinish(
+  factory GroupSbFinish.fromJson(Map<String, dynamic> json) {
+    return GroupSbFinish(
       id: json['id'] as String,
       roomId: json['room_id'] as String,
       playerId: json['player_id'] as String,
@@ -54,7 +54,7 @@ class GroupWbFinish {
 
   @override
   bool operator ==(Object other) {
-    if (other is! GroupWbFinish) return false;
+    if (other is! GroupSbFinish) return false;
     return other.id == id &&
         other.roomId == roomId &&
         other.playerId == playerId &&

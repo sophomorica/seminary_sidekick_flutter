@@ -34,17 +34,17 @@ class TypedChar {
 
 // ─── Game mode enum ─────────────────────────────────────────────
 
-/// The two fundamental interaction modes for Word Builder.
-enum WordBuilderMode {
+/// The two fundamental interaction modes for Scripture Builder.
+enum ScriptureBuilderMode {
   chunkTap,  // Beginner & Intermediate: tap word chunks in order
   typing,    // Advanced & Master: type the passage character by character
 }
 
 // ─── State ──────────────────────────────────────────────────────
 
-class WordBuilderState {
+class ScriptureBuilderState {
   final DifficultyLevel difficulty;
-  final WordBuilderMode mode;
+  final ScriptureBuilderMode mode;
   final ScriptureBook? bookFilter;
   final Scripture? currentScripture;
   final List<Scripture> scriptureQueue;
@@ -78,7 +78,7 @@ class WordBuilderState {
   final Duration? completionTime;
   final String? lastFeedback;            // 'correct', 'incorrect', 'reset', null
 
-  const WordBuilderState({
+  const ScriptureBuilderState({
     required this.difficulty,
     required this.mode,
     this.bookFilter,
@@ -134,11 +134,11 @@ class WordBuilderState {
       targetText.isEmpty ? 0.0 : typedChars.length / targetText.length;
 
   double get scriptureProgress =>
-      mode == WordBuilderMode.chunkTap ? chunkProgress : typingProgress;
+      mode == ScriptureBuilderMode.chunkTap ? chunkProgress : typingProgress;
 
-  WordBuilderState copyWith({
+  ScriptureBuilderState copyWith({
     DifficultyLevel? difficulty,
-    WordBuilderMode? mode,
+    ScriptureBuilderMode? mode,
     ScriptureBook? bookFilter,
     Scripture? currentScripture,
     List<Scripture>? scriptureQueue,
@@ -165,7 +165,7 @@ class WordBuilderState {
     String? lastFeedback,
     bool clearFeedback = false,
   }) {
-    return WordBuilderState(
+    return ScriptureBuilderState(
       difficulty: difficulty ?? this.difficulty,
       mode: mode ?? this.mode,
       bookFilter: bookFilter ?? this.bookFilter,
@@ -199,11 +199,11 @@ class WordBuilderState {
 
 // ─── Notifier ───────────────────────────────────────────────────
 
-class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
-  WordBuilderNotifier()
-      : super(WordBuilderState(
+class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
+  ScriptureBuilderNotifier()
+      : super(ScriptureBuilderState(
           difficulty: DifficultyLevel.beginner,
-          mode: WordBuilderMode.chunkTap,
+          mode: ScriptureBuilderMode.chunkTap,
           startTime: DateTime.now(),
         ));
 
@@ -234,8 +234,8 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
   }) {
     final mode = (difficulty == DifficultyLevel.beginner ||
             difficulty == DifficultyLevel.intermediate)
-        ? WordBuilderMode.chunkTap
-        : WordBuilderMode.typing;
+        ? ScriptureBuilderMode.chunkTap
+        : ScriptureBuilderMode.typing;
 
     List<Scripture> selected;
     if (scriptures != null && scriptures.isNotEmpty) {
@@ -250,7 +250,7 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
       selected = available.take(count).toList();
     }
 
-    state = WordBuilderState(
+    state = ScriptureBuilderState(
       difficulty: difficulty,
       mode: mode,
       bookFilter: bookFilter,
@@ -274,7 +274,7 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
 
     final scripture = state.scriptureQueue[index];
 
-    if (state.mode == WordBuilderMode.chunkTap) {
+    if (state.mode == ScriptureBuilderMode.chunkTap) {
       _loadChunkMode(index, scripture);
     } else {
       _loadTypingMode(index, scripture);
@@ -361,7 +361,7 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
 
   /// User taps a chunk from the pool.
   void selectChunk(int poolIndex) {
-    if (state.isScriptureComplete || state.mode != WordBuilderMode.chunkTap) {
+    if (state.isScriptureComplete || state.mode != ScriptureBuilderMode.chunkTap) {
       return;
     }
     // Ignore taps on chunks that have already been correctly placed.
@@ -461,7 +461,7 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
   /// Punctuation in the target text is auto-filled so that speech-to-text
   /// (which typically omits punctuation) works seamlessly.
   void onType(String newText) {
-    if (state.isScriptureComplete || state.mode != WordBuilderMode.typing) {
+    if (state.isScriptureComplete || state.mode != ScriptureBuilderMode.typing) {
       return;
     }
 
@@ -576,7 +576,7 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
   /// This handles homophones (e.g. STT "four" vs target "for"), capitalization,
   /// spaces, and punctuation automatically. Returns true if a Master reset occurred.
   bool onSpeechInput(String newWords) {
-    if (state.isScriptureComplete || state.mode != WordBuilderMode.typing) {
+    if (state.isScriptureComplete || state.mode != ScriptureBuilderMode.typing) {
       return false;
     }
 
@@ -758,7 +758,7 @@ class WordBuilderNotifier extends StateNotifier<WordBuilderState> {
 
 // ─── Provider ───────────────────────────────────────────────────
 
-final wordBuilderProvider =
-    StateNotifierProvider<WordBuilderNotifier, WordBuilderState>((ref) {
-  return WordBuilderNotifier();
+final scriptureBuilderProvider =
+    StateNotifierProvider<ScriptureBuilderNotifier, ScriptureBuilderState>((ref) {
+  return ScriptureBuilderNotifier();
 });

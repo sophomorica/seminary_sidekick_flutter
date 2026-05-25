@@ -10,7 +10,7 @@ import '../models/group_answer.dart';
 import '../models/group_player.dart';
 import '../models/group_question.dart';
 import '../models/group_room.dart';
-import '../models/group_wb_finish.dart';
+import '../models/group_sb_finish.dart';
 import '../models/scripture.dart';
 import 'quiz_question_factory.dart';
 
@@ -134,8 +134,8 @@ class GroupPlayService {
   /// the row, and flip status to 'active'. Only callable by the host (RLS
   /// enforces this).
   ///
-  /// Word Builder rooms don't have a question set — the scripture list lives
-  /// in `scope.wordBuilderConfig.scriptureIds`. The `current_question_index`
+  /// Scripture Builder rooms don't have a question set — the scripture list lives
+  /// in `scope.scriptureBuilderConfig.scriptureIds`. The `current_question_index`
   /// column is reused as the "current scripture index" in Round-by-Round mode;
   /// in Set-of-N it stays at 0 and isn't read by anyone.
   Future<GroupRoom> startRoom(GroupRoom room) async {
@@ -173,13 +173,13 @@ class GroupPlayService {
   }
 
   /// Total advanceable units in a room — questions for quiz mode, scriptures
-  /// for Word Builder Round-by-Round. Set-of-N never advances via the host,
+  /// for Scripture Builder Round-by-Round. Set-of-N never advances via the host,
   /// so this returns 1 (the index is irrelevant after start).
   int _advanceableTotal(GroupRoom room) {
     if (room.scope.mode == GroupGameMode.quiz) {
       return room.questionSet?.length ?? 0;
     }
-    final wb = room.scope.wordBuilderConfig;
+    final wb = room.scope.scriptureBuilderConfig;
     return wb?.scriptureIds.length ?? 0;
   }
 
@@ -211,7 +211,7 @@ class GroupPlayService {
 
   /// Word-Builder-flavored alias of [advanceQuestion]. The on-the-wire column
   /// is shared (`current_question_index`); this method exists so call sites in
-  /// the WB screen read clearly.
+  /// the SB screen read clearly.
   Future<GroupRoom> hostAdvanceScripture(GroupRoom room) =>
       advanceQuestion(room);
 
@@ -373,16 +373,16 @@ class GroupPlayService {
     return GroupAnswer.fromJson(row);
   }
 
-  // ─── Word Builder race: submit + watch finishes ────────────────────────
+  // ─── Scripture Builder race: submit + watch finishes ────────────────────────
 
   /// Insert a finish event for the local player. Mirrors [submitAnswer]'s
-  /// error-handling shape. Pass `mistakeCount = GroupWbFinish.dnfMistakeCount`
+  /// error-handling shape. Pass `mistakeCount = GroupSbFinish.dnfMistakeCount`
   /// to record a timeout DNF.
   ///
-  /// Intentionally does NOT update `players.score` — Word Builder race scoring
-  /// is computed in the UI from the full finish stream. Group WB also never
+  /// Intentionally does NOT update `players.score` — Scripture Builder race scoring
+  /// is computed in the UI from the full finish stream. Group SB also never
   /// touches the personal mastery / progress pipeline.
-  Future<GroupWbFinish> submitWbFinish({
+  Future<GroupSbFinish> submitSbFinish({
     required GroupRoom room,
     required GroupPlayer player,
     required int scriptureIndex,
@@ -390,7 +390,7 @@ class GroupPlayService {
     required int mistakeCount,
   }) async {
     final row = await _client
-        .from('group_wb_finishes')
+        .from('group_sb_finishes')
         .insert({
           'room_id': room.id,
           'player_id': player.id,
@@ -400,34 +400,34 @@ class GroupPlayService {
         })
         .select()
         .single();
-    return GroupWbFinish.fromJson(row);
+    return GroupSbFinish.fromJson(row);
   }
 
   /// Watch the finish stream for a room. Yields the full list ordered by
   /// `completed_at` ascending (so per-scripture leaderboard ranking is just
   /// "first row first"). Mirrors [watchAnswers].
-  Stream<List<GroupWbFinish>> watchWbFinishes(String roomId) {
-    final controller = StreamController<List<GroupWbFinish>>();
+  Stream<List<GroupSbFinish>> watchSbFinishes(String roomId) {
+    final controller = StreamController<List<GroupSbFinish>>();
 
     Future<void> refetch() async {
       try {
         final rows = await _client
-            .from('group_wb_finishes')
+            .from('group_sb_finishes')
             .select()
             .eq('room_id', roomId)
             .order('completed_at');
-        controller.add(rows.map(GroupWbFinish.fromJson).toList());
+        controller.add(rows.map(GroupSbFinish.fromJson).toList());
       } catch (e) {
-        developer.log('watchWbFinishes refetch failed', error: e);
+        developer.log('watchSbFinishes refetch failed', error: e);
       }
     }
 
     final channel = _client
-        .channel('public:group_wb_finishes:room_id=$roomId')
+        .channel('public:group_sb_finishes:room_id=$roomId')
         .onPostgresChanges(
           event: PostgresChangeEvent.insert,
           schema: 'public',
-          table: 'group_wb_finishes',
+          table: 'group_sb_finishes',
           filter: PostgresChangeFilter(
             type: PostgresChangeFilterType.eq,
             column: 'room_id',

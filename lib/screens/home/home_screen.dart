@@ -107,7 +107,7 @@ class HomeScreen extends ConsumerWidget {
               _buildImageNavigationCard(
                 context,
                 title: "Let's Play",
-                description: 'Quizzes, scripture match, and Word Builder.',
+                description: 'Quizzes, scripture match, and Scripture Builder.',
                 overlayColor: AppTheme.primary,
                 icon: Icons.extension,
                 imagePath: 'assets/images/practice_games.jpg',

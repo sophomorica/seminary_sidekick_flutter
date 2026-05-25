@@ -7,7 +7,7 @@ import '../../models/enums.dart';
 import '../../models/group_play_state.dart';
 import '../../models/group_player.dart';
 import '../../models/group_room.dart';
-import '../../models/group_wb_config.dart';
+import '../../models/group_sb_config.dart';
 import '../../models/scripture_scope.dart';
 import '../../providers/group_play_provider.dart';
 import '../../providers/scripture_provider.dart';
@@ -35,9 +35,9 @@ class HostLobbyScreen extends ConsumerStatefulWidget {
 class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
   GroupGameMode _gameMode = GroupGameMode.quiz;
   DifficultyLevel _difficulty = DifficultyLevel.beginner;
-  GroupWbChunkDifficulty _wbChunkDifficulty = GroupWbChunkDifficulty.beginner;
-  GroupWbPlayMode _wbPlayMode = GroupWbPlayMode.roundByRound;
-  int _wbSetSize = 5;
+  GroupSbChunkDifficulty _sbChunkDifficulty = GroupSbChunkDifficulty.beginner;
+  GroupSbPlayMode _sbPlayMode = GroupSbPlayMode.roundByRound;
+  int _sbSetSize = 5;
   ScriptureScope _scope = const ScopeAll();
   late TextEditingController _nicknameController;
 
@@ -61,7 +61,7 @@ class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
   /// last-used scope so changing modes doesn't smear the saved selection.
   String get _scopeUsageContext => _gameMode == GroupGameMode.quiz
       ? ScopeUsageContext.groupQuiz
-      : ScopeUsageContext.groupWordBuilder;
+      : ScopeUsageContext.groupScriptureBuilder;
 
   void _restoreScopeForMode() {
     final last = ref
@@ -88,7 +88,7 @@ class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
       if (next == GroupPlayPhase.inQuiz) {
         final room = ref.read(currentGroupRoomProvider);
         if (room == null || !mounted) return;
-        final path = room.scope.mode == GroupGameMode.wordBuilder
+        final path = room.scope.mode == GroupGameMode.scriptureBuilder
             ? '/group-play/word-builder/${room.code}'
             : '/group-play/quiz/${room.code}';
         context.go(path);
@@ -122,9 +122,9 @@ class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
                   state: state,
                   gameMode: _gameMode,
                   difficulty: _difficulty,
-                  wbChunkDifficulty: _wbChunkDifficulty,
-                  wbPlayMode: _wbPlayMode,
-                  wbSetSize: _wbSetSize,
+                  sbChunkDifficulty: _sbChunkDifficulty,
+                  sbPlayMode: _sbPlayMode,
+                  sbSetSize: _sbSetSize,
                   scope: _scope,
                   scopeUsageContext: _scopeUsageContext,
                   nicknameController: _nicknameController,
@@ -134,11 +134,11 @@ class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
                   },
                   onDifficultyChanged: (d) =>
                       setState(() => _difficulty = d),
-                  onWbChunkDifficultyChanged: (d) =>
-                      setState(() => _wbChunkDifficulty = d),
-                  onWbPlayModeChanged: (m) =>
-                      setState(() => _wbPlayMode = m),
-                  onWbSetSizeChanged: (n) => setState(() => _wbSetSize = n),
+                  onSbChunkDifficultyChanged: (d) =>
+                      setState(() => _sbChunkDifficulty = d),
+                  onSbPlayModeChanged: (m) =>
+                      setState(() => _sbPlayMode = m),
+                  onSbSetSizeChanged: (n) => setState(() => _sbSetSize = n),
                   onScopeChanged: (s) => setState(() => _scope = s),
                   onCreate: _handleCreate,
                 ),
@@ -164,8 +164,8 @@ class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
       return;
     }
 
-    // Word Builder needs at least one scripture in scope to race against.
-    if (_gameMode == GroupGameMode.wordBuilder) {
+    // Scripture Builder needs at least one scripture in scope to race against.
+    if (_gameMode == GroupGameMode.scriptureBuilder) {
       final allScrips = ref.read(scripturesProvider);
       final resolved = _scope.resolve(allScrips);
       if (resolved.isEmpty) {
@@ -207,7 +207,7 @@ class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
             scriptureIds: scriptureIds,
             questionCount: _difficulty.quizQuestionCount,
           )
-        : _buildWordBuilderScope();
+        : _buildScriptureBuilderScope();
 
     await ref.read(groupPlayProvider.notifier).hostCreateRoom(
           scope: scope,
@@ -217,29 +217,29 @@ class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
 
   /// Build the [GroupRoomScope] for a Word-Builder room. Resolves the picker
   /// scope down to a concrete list of scripture ids (Set-of-N caps to
-  /// `_wbSetSize`, Round-by-Round uses all in scope).
-  GroupRoomScope _buildWordBuilderScope() {
+  /// `_sbSetSize`, Round-by-Round uses all in scope).
+  GroupRoomScope _buildScriptureBuilderScope() {
     final allScrips = ref.read(scripturesProvider);
     final resolved = _scope.resolve(allScrips);
     final ids = resolved.map((s) => s.id).toList();
-    final raceIds = _wbPlayMode == GroupWbPlayMode.setOfN
-        ? ids.take(_wbSetSize).toList()
+    final raceIds = _sbPlayMode == GroupSbPlayMode.setOfN
+        ? ids.take(_sbSetSize).toList()
         : ids;
 
-    final wbConfig = GroupWbConfig(
-      chunkDifficulty: _wbChunkDifficulty,
-      playMode: _wbPlayMode,
+    final sbConfig = GroupSbConfig(
+      chunkDifficulty: _sbChunkDifficulty,
+      playMode: _sbPlayMode,
       scriptureIds: raceIds,
     );
 
     return GroupRoomScope(
-      mode: GroupGameMode.wordBuilder,
-      // Difficulty/questionCount aren't used by WB rooms but the scope row
+      mode: GroupGameMode.scriptureBuilder,
+      // Difficulty/questionCount aren't used by SB rooms but the scope row
       // requires both. Stamp safe defaults.
       difficultyName: DifficultyLevel.beginner.name,
       scriptureIds: raceIds,
       questionCount: raceIds.length,
-      wordBuilderConfig: wbConfig,
+      scriptureBuilderConfig: sbConfig,
     );
   }
 
@@ -334,17 +334,17 @@ class _SetupView extends StatelessWidget {
   final GroupPlayState state;
   final GroupGameMode gameMode;
   final DifficultyLevel difficulty;
-  final GroupWbChunkDifficulty wbChunkDifficulty;
-  final GroupWbPlayMode wbPlayMode;
-  final int wbSetSize;
+  final GroupSbChunkDifficulty sbChunkDifficulty;
+  final GroupSbPlayMode sbPlayMode;
+  final int sbSetSize;
   final ScriptureScope scope;
   final String scopeUsageContext;
   final TextEditingController nicknameController;
   final ValueChanged<GroupGameMode> onGameModeChanged;
   final ValueChanged<DifficultyLevel> onDifficultyChanged;
-  final ValueChanged<GroupWbChunkDifficulty> onWbChunkDifficultyChanged;
-  final ValueChanged<GroupWbPlayMode> onWbPlayModeChanged;
-  final ValueChanged<int> onWbSetSizeChanged;
+  final ValueChanged<GroupSbChunkDifficulty> onSbChunkDifficultyChanged;
+  final ValueChanged<GroupSbPlayMode> onSbPlayModeChanged;
+  final ValueChanged<int> onSbSetSizeChanged;
   final ValueChanged<ScriptureScope> onScopeChanged;
   final Future<void> Function() onCreate;
 
@@ -352,17 +352,17 @@ class _SetupView extends StatelessWidget {
     required this.state,
     required this.gameMode,
     required this.difficulty,
-    required this.wbChunkDifficulty,
-    required this.wbPlayMode,
-    required this.wbSetSize,
+    required this.sbChunkDifficulty,
+    required this.sbPlayMode,
+    required this.sbSetSize,
     required this.scope,
     required this.scopeUsageContext,
     required this.nicknameController,
     required this.onGameModeChanged,
     required this.onDifficultyChanged,
-    required this.onWbChunkDifficultyChanged,
-    required this.onWbPlayModeChanged,
-    required this.onWbSetSizeChanged,
+    required this.onSbChunkDifficultyChanged,
+    required this.onSbPlayModeChanged,
+    required this.onSbSetSizeChanged,
     required this.onScopeChanged,
     required this.onCreate,
   });
@@ -420,21 +420,21 @@ class _SetupView extends StatelessWidget {
           const _SectionLabel('CHUNK DIFFICULTY'),
           const SizedBox(height: AppTheme.spacingSm),
           _WbChunkDifficultyChips(
-            selected: wbChunkDifficulty,
-            onChanged: onWbChunkDifficultyChanged,
+            selected: sbChunkDifficulty,
+            onChanged: onSbChunkDifficultyChanged,
           ),
           const SizedBox(height: AppTheme.spacingLg),
           const _SectionLabel('PLAY MODE'),
           const SizedBox(height: AppTheme.spacingSm),
           _WbPlayModeChips(
-            selected: wbPlayMode,
-            onChanged: onWbPlayModeChanged,
+            selected: sbPlayMode,
+            onChanged: onSbPlayModeChanged,
           ),
-          if (wbPlayMode == GroupWbPlayMode.setOfN) ...[
+          if (sbPlayMode == GroupSbPlayMode.setOfN) ...[
             const SizedBox(height: AppTheme.spacingMd),
             _WbSetSizeRow(
-              value: wbSetSize,
-              onChanged: onWbSetSizeChanged,
+              value: sbSetSize,
+              onChanged: onSbSetSizeChanged,
             ),
           ],
         ],
@@ -535,8 +535,8 @@ class _GameModeSegmented extends StatelessWidget {
           icon: Icon(Icons.quiz),
         ),
         ButtonSegment(
-          value: GroupGameMode.wordBuilder,
-          label: Text('Word Builder Race'),
+          value: GroupGameMode.scriptureBuilder,
+          label: Text('Scripture Builder Race'),
           icon: Icon(Icons.flag_outlined),
         ),
       ],
@@ -549,8 +549,8 @@ class _GameModeSegmented extends StatelessWidget {
 }
 
 class _WbChunkDifficultyChips extends StatelessWidget {
-  final GroupWbChunkDifficulty selected;
-  final ValueChanged<GroupWbChunkDifficulty> onChanged;
+  final GroupSbChunkDifficulty selected;
+  final ValueChanged<GroupSbChunkDifficulty> onChanged;
 
   const _WbChunkDifficultyChips({
     required this.selected,
@@ -562,11 +562,11 @@ class _WbChunkDifficultyChips extends StatelessWidget {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: GroupWbChunkDifficulty.values.map((d) {
+      children: GroupSbChunkDifficulty.values.map((d) {
         final isSelected = d == selected;
         final label = switch (d) {
-          GroupWbChunkDifficulty.beginner => 'Beginner — 3-word chunks',
-          GroupWbChunkDifficulty.intermediate =>
+          GroupSbChunkDifficulty.beginner => 'Beginner — 3-word chunks',
+          GroupSbChunkDifficulty.intermediate =>
             'Intermediate — 2-word chunks + distractors',
         };
         return ChoiceChip(
@@ -585,8 +585,8 @@ class _WbChunkDifficultyChips extends StatelessWidget {
 }
 
 class _WbPlayModeChips extends StatelessWidget {
-  final GroupWbPlayMode selected;
-  final ValueChanged<GroupWbPlayMode> onChanged;
+  final GroupSbPlayMode selected;
+  final ValueChanged<GroupSbPlayMode> onChanged;
 
   const _WbPlayModeChips({
     required this.selected,
@@ -598,12 +598,12 @@ class _WbPlayModeChips extends StatelessWidget {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: GroupWbPlayMode.values.map((m) {
+      children: GroupSbPlayMode.values.map((m) {
         final isSelected = m == selected;
         final label = switch (m) {
-          GroupWbPlayMode.roundByRound =>
+          GroupSbPlayMode.roundByRound =>
             'Round-by-Round — host advances each scripture',
-          GroupWbPlayMode.setOfN =>
+          GroupSbPlayMode.setOfN =>
             'Set of N — race through the whole set',
         };
         return ChoiceChip(

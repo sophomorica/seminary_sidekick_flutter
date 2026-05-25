@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../models/group_player.dart';
-import '../../../models/group_wb_config.dart';
-import '../../../models/group_wb_finish.dart';
+import '../../../models/group_sb_config.dart';
+import '../../../models/group_sb_finish.dart';
 import '../../../theme/app_theme.dart';
 
-/// Host's view during a Word Builder race.
+/// Host's view during a Scripture Builder race.
 ///
 /// Round-by-Round: shows each player's status for the current scripture
 /// (racing / finished — time + mistakes / DNF). When all live players have
@@ -13,10 +13,10 @@ import '../../../theme/app_theme.dart';
 ///
 /// Set-of-N: shows each player's running progress through the set
 /// ("Sarah: 7 of 10") plus a horizontal progress bar.
-class WbHostProgressDashboard extends StatelessWidget {
-  final GroupWbPlayMode mode;
+class SbHostProgressDashboard extends StatelessWidget {
+  final GroupSbPlayMode mode;
   final List<GroupPlayer> players;
-  final List<GroupWbFinish> finishes;
+  final List<GroupSbFinish> finishes;
 
   /// Current scripture index — only used in Round-by-Round mode to filter
   /// finishes down to this round.
@@ -28,7 +28,7 @@ class WbHostProgressDashboard extends StatelessWidget {
   /// The host's own player id, so we can pin it to the bottom (or omit it).
   final String? hostPlayerId;
 
-  const WbHostProgressDashboard({
+  const SbHostProgressDashboard({
     super.key,
     required this.mode,
     required this.players,
@@ -65,7 +65,7 @@ class WbHostProgressDashboard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          mode == GroupWbPlayMode.roundByRound
+          mode == GroupSbPlayMode.roundByRound
               ? 'ROUND ${currentScriptureIndex + 1} OF $totalScriptures'
               : 'CLASS PROGRESS',
           style: theme.textTheme.labelSmall?.copyWith(
@@ -91,8 +91,8 @@ class WbHostProgressDashboard extends StatelessWidget {
 
 class _Row extends StatelessWidget {
   final GroupPlayer player;
-  final GroupWbPlayMode mode;
-  final List<GroupWbFinish> finishesForPlayer;
+  final GroupSbPlayMode mode;
+  final List<GroupSbFinish> finishesForPlayer;
   final int currentScriptureIndex;
   final int totalScriptures;
 
@@ -151,10 +151,10 @@ class _Row extends StatelessWidget {
   }
 
   Widget _statusWidget(ThemeData theme) {
-    if (mode == GroupWbPlayMode.roundByRound) {
+    if (mode == GroupSbPlayMode.roundByRound) {
       final round = finishesForPlayer.firstWhere(
         (f) => f.scriptureIndex == currentScriptureIndex,
-        orElse: () => GroupWbFinish(
+        orElse: () => GroupSbFinish(
           id: '',
           roomId: '',
           playerId: '',

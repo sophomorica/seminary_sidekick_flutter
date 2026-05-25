@@ -7,13 +7,13 @@ import '../../theme/app_theme.dart';
 import 'mastery_page.dart';
 import 'quizzes_page.dart';
 import 'welcome_page.dart';
-import 'word_builder_page.dart';
+import 'scripture_builder_page.dart';
 
 /// First-launch onboarding that explains the mastery journey.
 ///
 /// 4 pages:
 ///   1. Welcome — introduce the app's purpose
-///   2. Word Builder — the central mastery tool with 4 tiers
+///   2. Scripture Builder — the central mastery tool with 4 tiers
 ///   3. What "Mastered" means — 3 perfect Master runs
 ///   4. Practice quizzes — supplementary recognition tools
 ///
@@ -100,7 +100,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 onPageChanged: _onPageChanged,
                 children: const [
                   WelcomePage(),
-                  WordBuilderPage(),
+                  ScriptureBuilderPage(),
                   MasteredPage(),
                   PracticeQuizzesPage(),
                 ],

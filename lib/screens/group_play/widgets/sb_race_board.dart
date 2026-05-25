@@ -4,29 +4,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/scriptures_data.dart';
-import '../../../models/group_wb_config.dart';
+import '../../../models/group_sb_config.dart';
 import '../../../models/scripture.dart';
 import '../../../services/audio_service.dart';
 import '../../../services/haptic_service.dart';
 import '../../../theme/app_theme.dart';
 
-/// Chunk-tap board for the group Word Builder race.
+/// Chunk-tap board for the group Scripture Builder race.
 ///
-/// **Intentionally a fork** of `lib/screens/games/word_builder/word_builder_screen.dart`
-/// rather than a shared widget. Solo Word Builder writes through to personal
+/// **Intentionally a fork** of `lib/screens/games/scripture_builder/scripture_builder_screen.dart`
+/// rather than a shared widget. Solo Scripture Builder writes through to personal
 /// mastery (progress_provider); the race must never touch personal mastery.
 /// Forking guarantees that promise — there's no chance a future refactor of
 /// the solo board accidentally imports `progress_provider` into the race.
 ///
 /// The board owns its own local chunk state. On completion it calls
 /// [onFinish] with `(elapsedMs, mistakeCount)`; the parent screen records the
-/// finish in Supabase via `groupPlayProvider.submitWbFinish`.
-class WbRaceBoard extends ConsumerStatefulWidget {
+/// finish in Supabase via `groupPlayProvider.submitSbFinish`.
+class SbRaceBoard extends ConsumerStatefulWidget {
   /// The scripture being raced.
   final Scripture scripture;
 
   /// Difficulty for chunk sizing + distractor inclusion.
-  final GroupWbChunkDifficulty chunkDifficulty;
+  final GroupSbChunkDifficulty chunkDifficulty;
 
   /// Pool of other in-scope scriptures used for distractor chunks (Intermediate
   /// only). Distractors are drawn from this pool — never from out-of-scope
@@ -43,7 +43,7 @@ class WbRaceBoard extends ConsumerStatefulWidget {
   /// Resets the internal stopwatch when this key changes. Pass the scripture
   /// index from the parent so a Round-by-Round host advance re-instantiates
   /// the board fresh.
-  const WbRaceBoard({
+  const SbRaceBoard({
     super.key,
     required this.scripture,
     required this.chunkDifficulty,
@@ -52,10 +52,10 @@ class WbRaceBoard extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<WbRaceBoard> createState() => _WbRaceBoardState();
+  ConsumerState<SbRaceBoard> createState() => _WbRaceBoardState();
 }
 
-class _WbRaceBoardState extends ConsumerState<WbRaceBoard>
+class _WbRaceBoardState extends ConsumerState<SbRaceBoard>
     with TickerProviderStateMixin {
   late final DateTime _startedAt;
   final List<_RaceChunk> _targetChunks = [];

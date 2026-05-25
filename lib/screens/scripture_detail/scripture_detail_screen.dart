@@ -16,7 +16,7 @@ import '../memorize_screen.dart';
 import '../sidekick_chat/sidekick_chat_screen.dart';
 import '../upgrade_screen.dart';
 import '../games/matching_game_screen.dart';
-import '../games/word_builder/word_builder_screen.dart';
+import '../games/scripture_builder/scripture_builder_screen.dart';
 import '../games/quiz_game_screen.dart';
 import 'encouragement_card.dart';
 import 'mastery_path_section.dart';
@@ -24,7 +24,7 @@ import 'scripture_connections_card.dart';
 
 enum _DetailTab {
   study,
-  wordBuilder,
+  scriptureBuilder,
   progress,
 }
 
@@ -406,9 +406,9 @@ class _MainContent extends ConsumerWidget {
             ),
             const SizedBox(width: AppTheme.spacingXl),
             _TabButton(
-              label: 'Word Builder',
-              isActive: activeTab == _DetailTab.wordBuilder,
-              onPressed: () => onTabChanged(_DetailTab.wordBuilder),
+              label: 'Scripture Builder',
+              isActive: activeTab == _DetailTab.scriptureBuilder,
+              onPressed: () => onTabChanged(_DetailTab.scriptureBuilder),
             ),
             const SizedBox(width: AppTheme.spacingXl),
             _TabButton(
@@ -421,7 +421,7 @@ class _MainContent extends ConsumerWidget {
         const SizedBox(height: AppTheme.spacingXl),
         // Tab content
         if (activeTab == _DetailTab.study) ...[
-          _WordBuilderPreview(
+          _ScriptureBuilderPreview(
             scriptureId: scriptureId,
             scripture: scripture,
           ),
@@ -480,8 +480,8 @@ class _MainContent extends ConsumerWidget {
           ),
           const SizedBox(height: AppTheme.spacingMd),
           ..._buildPracticeButtons(context, scriptureId),
-        ] else if (activeTab == _DetailTab.wordBuilder) ...[
-          // Word Builder tab content
+        ] else if (activeTab == _DetailTab.scriptureBuilder) ...[
+          // Scripture Builder tab content
           HolisticMasterySection(
             scriptureId: scriptureId,
             scripture: scripture,
@@ -505,7 +505,7 @@ class _MainContent extends ConsumerWidget {
     String scriptureId,
   ) {
     return GameType.values
-        .where((gameType) => gameType != GameType.wordOrder)
+        .where((gameType) => gameType != GameType.scriptureBuilder)
         .map((gameType) {
       return Padding(
         padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
@@ -607,8 +607,8 @@ class _MainContent extends ConsumerWidget {
           difficulty: difficulty,
           scriptures: scriptures,
         );
-      case GameType.wordOrder:
-        screen = WordBuilderScreen(
+      case GameType.scriptureBuilder:
+        screen = ScriptureBuilderScreen(
           difficulty: difficulty,
           scriptures: scriptures,
         );
@@ -718,12 +718,12 @@ class _TabButton extends StatelessWidget {
   }
 }
 
-// Private widget: Word Builder Preview card
-class _WordBuilderPreview extends ConsumerWidget {
+// Private widget: Scripture Builder Preview card
+class _ScriptureBuilderPreview extends ConsumerWidget {
   final String scriptureId;
   final Scripture scripture;
 
-  const _WordBuilderPreview({
+  const _ScriptureBuilderPreview({
     required this.scriptureId,
     required this.scripture,
   });
@@ -742,7 +742,7 @@ class _WordBuilderPreview extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
-              'Word Builder Preview',
+              'Scripture Builder Preview',
               style: Theme.of(context)
                   .textTheme
                   .headlineSmall

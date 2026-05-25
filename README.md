@@ -7,7 +7,7 @@ A gamified scripture memorization app for LDS Doctrinal Mastery passages. Master
 
 ## Features
 
-- **Three Game Modes**: Matching, Word Builder, and Quiz games
+- **Three Game Modes**: Matching, Scripture Builder, and Quiz games
 - **Progress Tracking**: Persistent progress with Hive local storage
 - **Multiple Difficulty Levels**: Beginner, Intermediate, Advanced, Master
 - **Scripture Library**: 100+ Doctrinal Mastery passages

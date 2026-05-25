@@ -115,10 +115,10 @@ class ProgressNotifier extends StateNotifier<Map<String, UserProgress>> {
           : (time < current.bestTime! ? time : current.bestTime);
     }
 
-    // Track consecutive perfect completions at Master difficulty (Word Builder only).
+    // Track consecutive perfect completions at Master difficulty (Scripture Builder only).
     // This is the key metric for reaching Mastered level.
     int newConsecutivePerfectMaster = current.consecutivePerfectMaster;
-    if (gameType == GameType.wordOrder &&
+    if (gameType == GameType.scriptureBuilder &&
         difficultyCompleted == DifficultyLevel.master) {
       if (correct) {
         newConsecutivePerfectMaster++;
@@ -281,13 +281,13 @@ final userStatsProvider = Provider<UserStats>(
   },
 );
 
-/// Provider that returns the scripture ID most recently practiced in Word Builder,
-/// or null if the user has never played Word Builder.
-final lastWordBuilderScriptureIdProvider = Provider<String?>((ref) {
+/// Provider that returns the scripture ID most recently practiced in Scripture Builder,
+/// or null if the user has never played Scripture Builder.
+final lastScriptureBuilderScriptureIdProvider = Provider<String?>((ref) {
   final progressMap = ref.watch(progressProvider);
   UserProgress? latest;
   for (final entry in progressMap.values) {
-    if (entry.gameType != GameType.wordOrder) continue;
+    if (entry.gameType != GameType.scriptureBuilder) continue;
     if (entry.lastPracticed == null) continue;
     if (latest == null ||
         entry.lastPracticed!.isAfter(latest.lastPracticed!)) {

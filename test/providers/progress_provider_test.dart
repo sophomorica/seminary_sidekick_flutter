@@ -570,17 +570,17 @@ void main() {
       );
       notifier.recordAttempt(
         scriptureId: 'test-1',
-        gameType: GameType.wordOrder,
+        gameType: GameType.scriptureBuilder,
         correct: false,
       );
 
       final matching = notifier.getProgress('test-1', GameType.matching);
-      final wordOrder = notifier.getProgress('test-1', GameType.wordOrder);
+      final scriptureBuilder = notifier.getProgress('test-1', GameType.scriptureBuilder);
 
       expect(matching!.accuracy, 100.0);
       expect(matching.currentStreak, 1);
-      expect(wordOrder!.accuracy, 0.0);
-      expect(wordOrder.currentStreak, 0);
+      expect(scriptureBuilder!.accuracy, 0.0);
+      expect(scriptureBuilder.currentStreak, 0);
     });
 
     test('same scripture different games are separate entries', () {
@@ -607,57 +607,57 @@ void main() {
     test('defaults to 0 on first attempt', () {
       notifier.recordAttempt(
         scriptureId: 'test-1',
-        gameType: GameType.wordOrder,
+        gameType: GameType.scriptureBuilder,
         correct: true,
         difficultyCompleted: DifficultyLevel.beginner,
       );
 
-      final progress = notifier.getProgress('test-1', GameType.wordOrder);
+      final progress = notifier.getProgress('test-1', GameType.scriptureBuilder);
       expect(progress!.consecutivePerfectMaster, 0);
     });
 
-    test('increments on correct WB Master attempt', () {
+    test('increments on correct SB Master attempt', () {
       notifier.recordAttempt(
         scriptureId: 'test-1',
-        gameType: GameType.wordOrder,
+        gameType: GameType.scriptureBuilder,
         correct: true,
         difficultyCompleted: DifficultyLevel.master,
       );
 
-      final progress = notifier.getProgress('test-1', GameType.wordOrder);
+      final progress = notifier.getProgress('test-1', GameType.scriptureBuilder);
       expect(progress!.consecutivePerfectMaster, 1);
     });
 
-    test('increments consecutively on multiple correct WB Master attempts', () {
+    test('increments consecutively on multiple correct SB Master attempts', () {
       for (var i = 0; i < 3; i++) {
         notifier.recordAttempt(
           scriptureId: 'test-1',
-          gameType: GameType.wordOrder,
+          gameType: GameType.scriptureBuilder,
           correct: true,
           difficultyCompleted: DifficultyLevel.master,
         );
       }
 
-      final progress = notifier.getProgress('test-1', GameType.wordOrder);
+      final progress = notifier.getProgress('test-1', GameType.scriptureBuilder);
       expect(progress!.consecutivePerfectMaster, 3);
     });
 
-    test('resets to 0 on incorrect WB Master attempt', () {
+    test('resets to 0 on incorrect SB Master attempt', () {
       // Build up to 2
       notifier.recordAttempt(
         scriptureId: 'test-1',
-        gameType: GameType.wordOrder,
+        gameType: GameType.scriptureBuilder,
         correct: true,
         difficultyCompleted: DifficultyLevel.master,
       );
       notifier.recordAttempt(
         scriptureId: 'test-1',
-        gameType: GameType.wordOrder,
+        gameType: GameType.scriptureBuilder,
         correct: true,
         difficultyCompleted: DifficultyLevel.master,
       );
       expect(
-        notifier.getProgress('test-1', GameType.wordOrder)!
+        notifier.getProgress('test-1', GameType.scriptureBuilder)!
             .consecutivePerfectMaster,
         2,
       );
@@ -665,25 +665,25 @@ void main() {
       // Fail at Master → reset
       notifier.recordAttempt(
         scriptureId: 'test-1',
-        gameType: GameType.wordOrder,
+        gameType: GameType.scriptureBuilder,
         correct: false,
         difficultyCompleted: DifficultyLevel.master,
       );
 
-      final progress = notifier.getProgress('test-1', GameType.wordOrder);
+      final progress = notifier.getProgress('test-1', GameType.scriptureBuilder);
       expect(progress!.consecutivePerfectMaster, 0);
     });
 
-    test('unchanged on non-Master WB attempts', () {
+    test('unchanged on non-Master SB attempts', () {
       // First get a Master success
       notifier.recordAttempt(
         scriptureId: 'test-1',
-        gameType: GameType.wordOrder,
+        gameType: GameType.scriptureBuilder,
         correct: true,
         difficultyCompleted: DifficultyLevel.master,
       );
       expect(
-        notifier.getProgress('test-1', GameType.wordOrder)!
+        notifier.getProgress('test-1', GameType.scriptureBuilder)!
             .consecutivePerfectMaster,
         1,
       );
@@ -691,16 +691,16 @@ void main() {
       // Advanced attempt should not change the counter
       notifier.recordAttempt(
         scriptureId: 'test-1',
-        gameType: GameType.wordOrder,
+        gameType: GameType.scriptureBuilder,
         correct: true,
         difficultyCompleted: DifficultyLevel.advanced,
       );
 
-      final progress = notifier.getProgress('test-1', GameType.wordOrder);
+      final progress = notifier.getProgress('test-1', GameType.scriptureBuilder);
       expect(progress!.consecutivePerfectMaster, 1);
     });
 
-    test('unchanged on non-WB game types at Master difficulty', () {
+    test('unchanged on non-SB game types at Master difficulty', () {
       notifier.recordAttempt(
         scriptureId: 'test-1',
         gameType: GameType.matching,
@@ -717,27 +717,27 @@ void main() {
       for (var i = 0; i < 2; i++) {
         notifier.recordAttempt(
           scriptureId: 'test-1',
-          gameType: GameType.wordOrder,
+          gameType: GameType.scriptureBuilder,
           correct: true,
           difficultyCompleted: DifficultyLevel.master,
         );
       }
       notifier.recordAttempt(
         scriptureId: 'test-1',
-        gameType: GameType.wordOrder,
+        gameType: GameType.scriptureBuilder,
         correct: false,
         difficultyCompleted: DifficultyLevel.master,
       );
       for (var i = 0; i < 3; i++) {
         notifier.recordAttempt(
           scriptureId: 'test-1',
-          gameType: GameType.wordOrder,
+          gameType: GameType.scriptureBuilder,
           correct: true,
           difficultyCompleted: DifficultyLevel.master,
         );
       }
 
-      final progress = notifier.getProgress('test-1', GameType.wordOrder);
+      final progress = notifier.getProgress('test-1', GameType.scriptureBuilder);
       expect(progress!.consecutivePerfectMaster, 3);
     });
   });
@@ -765,7 +765,7 @@ void main() {
       );
       notifier.recordAttempt(
         scriptureId: 'test-1',
-        gameType: GameType.wordOrder,
+        gameType: GameType.scriptureBuilder,
         correct: true,
       );
       notifier.recordAttempt(
@@ -775,7 +775,7 @@ void main() {
       );
 
       expect(notifier.state.containsKey('test-1_matching'), true);
-      expect(notifier.state.containsKey('test-1_wordOrder'), true);
+      expect(notifier.state.containsKey('test-1_scriptureBuilder'), true);
       expect(notifier.state.containsKey('test-1_quiz'), true);
     });
   });
@@ -787,12 +787,12 @@ void main() {
     test('correct completion adds difficulty to explicit set', () {
       notifier.recordAttempt(
         scriptureId: 'test-1',
-        gameType: GameType.wordOrder,
+        gameType: GameType.scriptureBuilder,
         correct: true,
         difficultyCompleted: DifficultyLevel.master,
       );
 
-      final progress = notifier.getProgress('test-1', GameType.wordOrder);
+      final progress = notifier.getProgress('test-1', GameType.scriptureBuilder);
       expect(
         progress!.explicitlyCompletedDifficulties,
         contains(DifficultyLevel.master),
@@ -802,24 +802,24 @@ void main() {
     test('incorrect attempt does NOT add difficulty to explicit set', () {
       notifier.recordAttempt(
         scriptureId: 'test-1',
-        gameType: GameType.wordOrder,
+        gameType: GameType.scriptureBuilder,
         correct: false,
         difficultyCompleted: DifficultyLevel.master,
       );
 
-      final progress = notifier.getProgress('test-1', GameType.wordOrder);
+      final progress = notifier.getProgress('test-1', GameType.scriptureBuilder);
       expect(progress!.explicitlyCompletedDifficulties, isEmpty);
     });
 
     test('jumping to Master only adds Master, not lower tiers', () {
       notifier.recordAttempt(
         scriptureId: 'test-1',
-        gameType: GameType.wordOrder,
+        gameType: GameType.scriptureBuilder,
         correct: true,
         difficultyCompleted: DifficultyLevel.master,
       );
 
-      final progress = notifier.getProgress('test-1', GameType.wordOrder);
+      final progress = notifier.getProgress('test-1', GameType.scriptureBuilder);
       expect(progress!.explicitlyCompletedDifficulties, {DifficultyLevel.master});
       expect(progress.highestDifficultyCompleted, DifficultyLevel.master);
       // Lower tiers are NOT in the explicit set — they're auto-credited
@@ -834,13 +834,13 @@ void main() {
       for (final difficulty in DifficultyLevel.values) {
         notifier.recordAttempt(
           scriptureId: 'test-1',
-          gameType: GameType.wordOrder,
+          gameType: GameType.scriptureBuilder,
           correct: true,
           difficultyCompleted: difficulty,
         );
       }
 
-      final progress = notifier.getProgress('test-1', GameType.wordOrder);
+      final progress = notifier.getProgress('test-1', GameType.scriptureBuilder);
       expect(
         progress!.explicitlyCompletedDifficulties,
         DifficultyLevel.values.toSet(),
@@ -850,18 +850,18 @@ void main() {
     test('explicit set persists across multiple attempts', () {
       notifier.recordAttempt(
         scriptureId: 'test-1',
-        gameType: GameType.wordOrder,
+        gameType: GameType.scriptureBuilder,
         correct: true,
         difficultyCompleted: DifficultyLevel.beginner,
       );
       notifier.recordAttempt(
         scriptureId: 'test-1',
-        gameType: GameType.wordOrder,
+        gameType: GameType.scriptureBuilder,
         correct: true,
         difficultyCompleted: DifficultyLevel.master,
       );
 
-      final progress = notifier.getProgress('test-1', GameType.wordOrder);
+      final progress = notifier.getProgress('test-1', GameType.scriptureBuilder);
       expect(
         progress!.explicitlyCompletedDifficulties,
         {DifficultyLevel.beginner, DifficultyLevel.master},

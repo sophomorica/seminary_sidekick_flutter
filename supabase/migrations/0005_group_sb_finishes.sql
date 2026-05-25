@@ -1,4 +1,4 @@
--- Seminary Sidekick — Group Word Builder finishes
+-- Seminary Sidekick — Group Scripture Builder finishes
 --
 -- Stores per-(player, scripture) finish events for the Word-Builder race
 -- mode added in TASK-062. Mirrors the shape of `answers` so the realtime
@@ -8,7 +8,7 @@
 --
 -- Sentinel: `mistake_count = -1` means DNF (timed out without completing).
 
-create table public.group_wb_finishes (
+create table public.group_sb_finishes (
   id              uuid primary key default gen_random_uuid(),
   room_id         uuid not null references public.rooms(id) on delete cascade,
   player_id       uuid not null references public.players(id) on delete cascade,
@@ -21,28 +21,28 @@ create table public.group_wb_finishes (
   unique (player_id, scripture_index)
 );
 
-create index group_wb_finishes_room_idx
-  on public.group_wb_finishes (room_id, scripture_index);
+create index group_sb_finishes_room_idx
+  on public.group_sb_finishes (room_id, scripture_index);
 
 -- ─── RLS ───────────────────────────────────────────────────────────────────
-alter table public.group_wb_finishes enable row level security;
+alter table public.group_sb_finishes enable row level security;
 
 -- Any authenticated user can SELECT; the host's progress dashboard and the
 -- per-player race position both need to read finishes across the room.
-create policy "group_wb_finishes_select_authenticated"
-  on public.group_wb_finishes for select
+create policy "group_sb_finishes_select_authenticated"
+  on public.group_sb_finishes for select
   to authenticated
   using (true);
 
 -- INSERT only on behalf of yourself — the player_id row must be owned by
 -- the calling user. Matches the answers_insert_self pattern exactly.
-create policy "group_wb_finishes_insert_self"
-  on public.group_wb_finishes for insert
+create policy "group_sb_finishes_insert_self"
+  on public.group_sb_finishes for insert
   to authenticated
   with check (
     exists (
       select 1 from public.players p
-      where p.id = group_wb_finishes.player_id
+      where p.id = group_sb_finishes.player_id
         and p.user_id = auth.uid()
     )
   );
@@ -56,5 +56,5 @@ create policy "group_wb_finishes_insert_self"
 -- the room_id, which keeps the client's filter coherent — even though we
 -- don't currently subscribe to DELETE events here, parity with the rest of
 -- the group-play tables avoids future foot-guns.
-alter table public.group_wb_finishes replica identity full;
-alter publication supabase_realtime add table public.group_wb_finishes;
+alter table public.group_sb_finishes replica identity full;
+alter publication supabase_realtime add table public.group_sb_finishes;

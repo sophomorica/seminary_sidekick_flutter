@@ -15,7 +15,7 @@ void main() {
           'quickWin': {
             'suggestion': 'Review 1 Nephi 3:7',
             'scriptureId': '1',
-            'actionType': 'wordBuilder',
+            'actionType': 'scriptureBuilder',
           },
           'timelineInsight': 'At your pace, you\'ll master all by June.',
           'reminder': 'Romans 1:16 hasn\'t been reviewed in 12 days.',
@@ -39,7 +39,7 @@ void main() {
         expect(response.quickWin, isNotNull);
         expect(response.quickWin!.suggestion, 'Review 1 Nephi 3:7');
         expect(response.quickWin!.scriptureId, '1');
-        expect(response.quickWin!.actionType, 'wordBuilder');
+        expect(response.quickWin!.actionType, 'scriptureBuilder');
         expect(response.timelineInsight, contains('June'));
         expect(response.reminder, contains('Romans 1:16'));
         expect(response.reflectionPrompts, hasLength(2));
@@ -214,11 +214,11 @@ void main() {
       final qw = QuickWin.fromJson({
         'suggestion': 'Review this',
         'scriptureId': '42',
-        'actionType': 'wordBuilder',
+        'actionType': 'scriptureBuilder',
       });
       expect(qw.suggestion, 'Review this');
       expect(qw.scriptureId, '42');
-      expect(qw.actionType, 'wordBuilder');
+      expect(qw.actionType, 'scriptureBuilder');
     });
 
     test('fromJson with missing optional fields', () {

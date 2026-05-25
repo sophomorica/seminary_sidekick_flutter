@@ -6,19 +6,19 @@ import '../../../models/enums.dart';
 import '../../../models/scripture.dart';
 import '../../../providers/activity_provider.dart';
 import '../../../providers/progress_provider.dart';
-import '../../../providers/word_builder_provider.dart';
+import '../../../providers/scripture_builder_provider.dart';
 import '../../../services/audio_service.dart';
 import '../../../services/haptic_service.dart';
 import '../../../services/speech_service.dart';
 import '../../../theme/app_theme.dart';
 import '../game_results_screen.dart';
 
-class WordBuilderScreen extends ConsumerStatefulWidget {
+class ScriptureBuilderScreen extends ConsumerStatefulWidget {
   final DifficultyLevel difficulty;
   final ScriptureBook? bookFilter;
   final List<Scripture>? scriptures;
 
-  const WordBuilderScreen({
+  const ScriptureBuilderScreen({
     super.key,
     required this.difficulty,
     this.bookFilter,
@@ -26,10 +26,10 @@ class WordBuilderScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<WordBuilderScreen> createState() => _WordBuilderScreenState();
+  ConsumerState<ScriptureBuilderScreen> createState() => _ScriptureBuilderScreenState();
 }
 
-class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
+class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
     with TickerProviderStateMixin {
   late Timer _timer;
   Duration _elapsed = Duration.zero;
@@ -67,7 +67,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(wordBuilderProvider.notifier).startGame(
+      ref.read(scriptureBuilderProvider.notifier).startGame(
             difficulty: widget.difficulty,
             bookFilter: widget.bookFilter,
             scriptures: widget.scriptures,
@@ -127,9 +127,9 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(wordBuilderProvider);
+    final state = ref.watch(scriptureBuilderProvider);
 
-    ref.listen<WordBuilderState>(wordBuilderProvider, (prev, next) {
+    ref.listen<ScriptureBuilderState>(scriptureBuilderProvider, (prev, next) {
       if (next.isComplete && !(prev?.isComplete ?? false)) {
         _timer.cancel();
         ref.read(audioProvider.notifier).play(SoundEffect.complete);
@@ -166,7 +166,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       appBar: _buildAppBar(state),
       body: state.currentScripture == null
           ? const Center(child: CircularProgressIndicator())
-          : (state.mode == WordBuilderMode.chunkTap
+          : (state.mode == ScriptureBuilderMode.chunkTap
               ? _buildChunkTapBody(state)
               : _buildTypingBody(state)),
     );
@@ -176,7 +176,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
   // APP BAR
   // ═══════════════════════════════════════════════════════════════
 
-  PreferredSizeWidget _buildAppBar(WordBuilderState state) {
+  PreferredSizeWidget _buildAppBar(ScriptureBuilderState state) {
     final minutes = _elapsed.inMinutes.remainder(60).toString().padLeft(2, '0');
     final seconds = _elapsed.inSeconds.remainder(60).toString().padLeft(2, '0');
     final difficultyColor = _getDifficultyColor(widget.difficulty);
@@ -277,7 +277,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
   // CHUNK-TAP MODE (Beginner / Intermediate)
   // ═══════════════════════════════════════════════════════════════
 
-  Widget _buildChunkTapBody(WordBuilderState state) {
+  Widget _buildChunkTapBody(ScriptureBuilderState state) {
     if (state.isScriptureComplete) {
       // Only show the overlay, scrollable if needed
       return _buildScriptureCompleteOverlay(state);
@@ -305,7 +305,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     );
   }
 
-  Widget _buildMasteryProgressBar(WordBuilderState state) {
+  Widget _buildMasteryProgressBar(ScriptureBuilderState state) {
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppTheme.spacingMd,
@@ -330,7 +330,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
 
   /// Combined divider + hint row. Hint is always visible between the canvas
   /// and the chip pool — no scrolling needed to find it.
-  Widget _buildHintDivider(WordBuilderState state) {
+  Widget _buildHintDivider(ScriptureBuilderState state) {
     final keyPhrase = state.currentScripture?.keyPhrase ?? '';
 
     return Padding(
@@ -409,7 +409,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
   /// Scripture canvas: placed words render as flowing inline text (like the
   /// design reference). The next slot is a dashed underline. Future slots are
   /// faded placeholder text. No chip containers — just natural paragraph flow.
-  Widget _buildScriptureCanvas(WordBuilderState state) {
+  Widget _buildScriptureCanvas(ScriptureBuilderState state) {
     final diffColor = _getDifficultyColor(widget.difficulty);
 
     return SingleChildScrollView(
@@ -429,7 +429,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     );
   }
 
-  List<InlineSpan> _buildCanvasSpans(WordBuilderState state, Color diffColor) {
+  List<InlineSpan> _buildCanvasSpans(ScriptureBuilderState state, Color diffColor) {
     final spans = <InlineSpan>[];
 
     for (int i = 0; i < state.targetChunks.length; i++) {
@@ -488,7 +488,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     return spans;
   }
 
-  Widget _buildChunkPool(WordBuilderState state) {
+  Widget _buildChunkPool(ScriptureBuilderState state) {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(
         AppTheme.spacingSm,
@@ -578,12 +578,12 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
   }
 
   void _onChunkTapped(int poolIndex) {
-    final state = ref.read(wordBuilderProvider);
+    final state = ref.read(scriptureBuilderProvider);
     if (state.isScriptureComplete || state.isComplete) return;
 
-    ref.read(wordBuilderProvider.notifier).selectChunk(poolIndex);
+    ref.read(scriptureBuilderProvider.notifier).selectChunk(poolIndex);
 
-    final newState = ref.read(wordBuilderProvider);
+    final newState = ref.read(scriptureBuilderProvider);
     if (newState.lastFeedback == 'correct') {
       ref.read(hapticProvider).light();
       ref.read(audioProvider.notifier).play(SoundEffect.correct);
@@ -594,7 +594,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
         if (!newState.isComplete) {
           Future.delayed(const Duration(milliseconds: 800), () {
             if (mounted) {
-              ref.read(wordBuilderProvider.notifier).nextScripture();
+              ref.read(scriptureBuilderProvider.notifier).nextScripture();
             }
           });
         }
@@ -606,7 +606,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       _shakeController.forward(from: 0).then((_) {
         if (mounted) {
           setState(() => _shakingPoolIndex = null);
-          ref.read(wordBuilderProvider.notifier).clearFeedback();
+          ref.read(scriptureBuilderProvider.notifier).clearFeedback();
         }
       });
     }
@@ -616,7 +616,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
   // TYPING MODE (Advanced / Master)
   // ═══════════════════════════════════════════════════════════════
 
-  Widget _buildTypingBody(WordBuilderState state) {
+  Widget _buildTypingBody(ScriptureBuilderState state) {
     if (state.isScriptureComplete) {
       // Only show the overlay, scrollable if needed
       return _buildScriptureCompleteOverlay(state);
@@ -650,7 +650,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     );
   }
 
-  Widget _buildTypedTextDisplay(WordBuilderState state) {
+  Widget _buildTypedTextDisplay(ScriptureBuilderState state) {
     // Show the passage with typed characters colored green/red,
     // and remaining text as gray placeholders.
     return SingleChildScrollView(
@@ -681,7 +681,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     );
   }
 
-  List<TextSpan> _buildTypedSpans(WordBuilderState state) {
+  List<TextSpan> _buildTypedSpans(ScriptureBuilderState state) {
     final spans = <TextSpan>[];
     final target = state.targetText;
     final typed = state.typedChars;
@@ -837,7 +837,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     );
   }
 
-  Widget _buildTypingInput(WordBuilderState state) {
+  Widget _buildTypingInput(ScriptureBuilderState state) {
     final isMaster = widget.difficulty == DifficultyLevel.master;
 
     return Container(
@@ -859,7 +859,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
         children: [
           Expanded(
             child: TextField(
-              key: const ValueKey('wb_typing_field'),
+              key: const ValueKey('sb_typing_field'),
               controller: _typingController,
               focusNode: _typingFocusNode,
               autofocus: true,
@@ -914,8 +914,8 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                 // Skip if we're in the middle of a programmatic reset/clear
                 if (_isResetting) return;
 
-                ref.read(wordBuilderProvider.notifier).onType(value);
-                final newState = ref.read(wordBuilderProvider);
+                ref.read(scriptureBuilderProvider.notifier).onType(value);
+                final newState = ref.read(scriptureBuilderProvider);
 
                 if (newState.lastFeedback == 'reset') {
                   ref.read(hapticProvider).heavy();
@@ -936,7 +936,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
                         _isResetting = true;
                         _typingController.clear();
                         _isResetting = false;
-                        ref.read(wordBuilderProvider.notifier).nextScripture();
+                        ref.read(scriptureBuilderProvider.notifier).nextScripture();
                         _typingFocusNode.requestFocus();
                       }
                     });
@@ -1003,7 +1003,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
 
     if (newText.isEmpty) return;
 
-    final notifier = ref.read(wordBuilderProvider.notifier);
+    final notifier = ref.read(scriptureBuilderProvider.notifier);
 
     // Use word-based speech processing (handles homophones, case, punctuation)
     final didReset = notifier.onSpeechInput(newText);
@@ -1020,7 +1020,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       return;
     }
 
-    final stateAfter = ref.read(wordBuilderProvider);
+    final stateAfter = ref.read(scriptureBuilderProvider);
 
     // Keep text controller in sync with provider state
     _typingController.text = stateAfter.typedText;
@@ -1039,7 +1039,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
           if (mounted) {
             _typingController.clear();
             _lastRecognizedText = '';
-            ref.read(wordBuilderProvider.notifier).nextScripture();
+            ref.read(scriptureBuilderProvider.notifier).nextScripture();
           }
         });
       }
@@ -1050,7 +1050,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
   // SHARED HELPERS
   // ═══════════════════════════════════════════════════════════════
 
-  Widget _buildScriptureCompleteOverlay(WordBuilderState state) {
+  Widget _buildScriptureCompleteOverlay(ScriptureBuilderState state) {
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
@@ -1089,7 +1089,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     );
   }
 
-  void _navigateToResults(WordBuilderState state) {
+  void _navigateToResults(ScriptureBuilderState state) {
     _timer.cancel();
 
     // Record an attempt for each scripture in the session
@@ -1099,14 +1099,14 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     for (final scripture in state.scriptureQueue) {
       // Capture previous mastery level before recording
       final prevProgress =
-          progressNotifier.getProgress(scripture.id, GameType.wordOrder);
+          progressNotifier.getProgress(scripture.id, GameType.scriptureBuilder);
       final prevMastery =
           prevProgress?.masteryLevel ?? MasteryLevel.newScripture;
       final isFirstAttempt = prevProgress == null;
 
       progressNotifier.recordAttempt(
         scriptureId: scripture.id,
-        gameType: GameType.wordOrder,
+        gameType: GameType.scriptureBuilder,
         correct: true, // All scriptures are completed at this point
         time: timeInSeconds,
         difficultyCompleted: widget.difficulty,
@@ -1116,7 +1116,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       activityNotifier.logGameCompleted(
         scriptureId: scripture.id,
         scriptureReference: scripture.reference,
-        gameType: GameType.wordOrder,
+        gameType: GameType.scriptureBuilder,
         difficulty: widget.difficulty,
         timeSeconds: timeInSeconds,
       );
@@ -1126,13 +1126,13 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
         activityNotifier.logFirstAttempt(
           scriptureId: scripture.id,
           scriptureReference: scripture.reference,
-          gameType: GameType.wordOrder,
+          gameType: GameType.scriptureBuilder,
         );
       }
 
       // Check for mastery level-up
       final newProgress =
-          progressNotifier.getProgress(scripture.id, GameType.wordOrder);
+          progressNotifier.getProgress(scripture.id, GameType.scriptureBuilder);
       final newMastery = newProgress?.masteryLevel ?? MasteryLevel.newScripture;
       if (newMastery.index > prevMastery.index) {
         activityNotifier.logMasteryLevelUp(
@@ -1150,7 +1150,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
           scriptureId: scripture.id,
           scriptureReference: scripture.reference,
           streakCount: newStreak,
-          gameType: GameType.wordOrder,
+          gameType: GameType.scriptureBuilder,
         );
       }
     }
@@ -1160,7 +1160,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
       activityNotifier.logPerfectRun(
         scriptureId: state.scriptureQueue.first.id,
         scriptureReference: state.scriptureQueue.first.reference,
-        gameType: GameType.wordOrder,
+        gameType: GameType.scriptureBuilder,
         difficulty: widget.difficulty,
       );
     }
@@ -1168,7 +1168,7 @@ class _WordBuilderScreenState extends ConsumerState<WordBuilderScreen>
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => GameResultsScreen(
-          gameType: GameType.wordOrder,
+          gameType: GameType.scriptureBuilder,
           difficulty: widget.difficulty,
           correctMatches: state.correctUnitsAcrossAll,
           incorrectAttempts: state.incorrectAttempts,

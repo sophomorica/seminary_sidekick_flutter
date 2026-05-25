@@ -1,10 +1,10 @@
-import 'group_wb_config.dart';
+import 'group_sb_config.dart';
 
 /// Game type for a group play room. Defaults to `quiz` so any room JSON
 /// written before this enum existed continues to deserialize correctly.
 enum GroupGameMode {
   quiz,
-  wordBuilder;
+  scriptureBuilder;
 
   static GroupGameMode fromName(String name) =>
       GroupGameMode.values.firstWhere(
@@ -38,8 +38,8 @@ enum GroupRoomStatus {
 ///
 /// `mode` defaults to [GroupGameMode.quiz] so scope JSON written before the
 /// mode field existed (any room shipped before TASK-062) still parses with
-/// no migration. `wordBuilderConfig` is only meaningful when
-/// `mode == GroupGameMode.wordBuilder`.
+/// no migration. `scriptureBuilderConfig` is only meaningful when
+/// `mode == GroupGameMode.scriptureBuilder`.
 class GroupRoomScope {
   final GroupGameMode mode;
   final String difficultyName; // matches DifficultyLevel.name
@@ -47,7 +47,7 @@ class GroupRoomScope {
   final List<String> scriptureIds; // optional explicit list (e.g. saved roster)
   final int questionCount;
   final int questionTimeoutSeconds;
-  final GroupWbConfig? wordBuilderConfig;
+  final GroupSbConfig? scriptureBuilderConfig;
 
   const GroupRoomScope({
     this.mode = GroupGameMode.quiz,
@@ -56,7 +56,7 @@ class GroupRoomScope {
     this.scriptureIds = const [],
     required this.questionCount,
     this.questionTimeoutSeconds = 20,
-    this.wordBuilderConfig,
+    this.scriptureBuilderConfig,
   });
 
   Map<String, dynamic> toJson() => {
@@ -69,12 +69,12 @@ class GroupRoomScope {
         'scriptureIds': scriptureIds,
         'questionCount': questionCount,
         'questionTimeoutSeconds': questionTimeoutSeconds,
-        if (wordBuilderConfig != null)
-          'wordBuilderConfig': wordBuilderConfig!.toJson(),
+        if (scriptureBuilderConfig != null)
+          'scriptureBuilderConfig': scriptureBuilderConfig!.toJson(),
       };
 
   factory GroupRoomScope.fromJson(Map<String, dynamic> json) {
-    final wbJson = json['wordBuilderConfig'];
+    final sbJson = json['scriptureBuilderConfig'];
     return GroupRoomScope(
       mode: GroupGameMode.fromName(json['mode'] as String? ?? 'quiz'),
       difficultyName: json['difficulty'] as String? ?? 'beginner',
@@ -88,8 +88,8 @@ class GroupRoomScope {
           const [],
       questionCount: json['questionCount'] as int? ?? 10,
       questionTimeoutSeconds: json['questionTimeoutSeconds'] as int? ?? 20,
-      wordBuilderConfig: wbJson is Map
-          ? GroupWbConfig.fromJson(wbJson.cast<String, dynamic>())
+      scriptureBuilderConfig: sbJson is Map
+          ? GroupSbConfig.fromJson(sbJson.cast<String, dynamic>())
           : null,
     );
   }

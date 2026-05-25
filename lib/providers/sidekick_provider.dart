@@ -430,7 +430,7 @@ final nextBestWinProvider = Provider<NextBestWin?>((ref) {
     return NextBestWin(
       message: '${best.reference} is almost at the next level — one more session could do it!',
       scriptureId: best.id,
-      actionType: 'wordBuilder',
+      actionType: 'scriptureBuilder',
     );
   }
 
@@ -491,7 +491,7 @@ class QuickSessionPrompt {
   final String title;
   final String subtitle;
   final String? scriptureId;
-  final String actionType; // 'wordBuilder', 'review', 'reflect', 'quiz'
+  final String actionType; // 'scriptureBuilder', 'review', 'reflect', 'quiz'
 
   const QuickSessionPrompt({
     required this.title,
@@ -513,7 +513,7 @@ final quickSessionPromptsProvider = Provider<List<QuickSessionPrompt>>((ref) {
       title: 'Quick Win',
       subtitle: quickWin.suggestion,
       scriptureId: quickWin.scriptureId,
-      actionType: quickWin.actionType ?? 'wordBuilder',
+      actionType: quickWin.actionType ?? 'scriptureBuilder',
     ));
   }
 
@@ -526,7 +526,7 @@ final quickSessionPromptsProvider = Provider<List<QuickSessionPrompt>>((ref) {
       title: 'Almost There',
       subtitle: '${top.reference} is $progressPct% to ${_nextLevelName(top.level)}',
       scriptureId: top.id,
-      actionType: 'wordBuilder',
+      actionType: 'scriptureBuilder',
     ));
   }
 

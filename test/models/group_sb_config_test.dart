@@ -1,82 +1,82 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:seminary_sidekick/models/group_room.dart';
-import 'package:seminary_sidekick/models/group_wb_config.dart';
+import 'package:seminary_sidekick/models/group_sb_config.dart';
 
 void main() {
-  group('GroupWbChunkDifficulty', () {
+  group('GroupSbChunkDifficulty', () {
     test('chunkSize is 3 for beginner, 2 for intermediate', () {
-      expect(GroupWbChunkDifficulty.beginner.chunkSize, 3);
-      expect(GroupWbChunkDifficulty.intermediate.chunkSize, 2);
+      expect(GroupSbChunkDifficulty.beginner.chunkSize, 3);
+      expect(GroupSbChunkDifficulty.intermediate.chunkSize, 2);
     });
 
     test('only intermediate has distractors', () {
-      expect(GroupWbChunkDifficulty.beginner.hasDistractors, isFalse);
-      expect(GroupWbChunkDifficulty.intermediate.hasDistractors, isTrue);
+      expect(GroupSbChunkDifficulty.beginner.hasDistractors, isFalse);
+      expect(GroupSbChunkDifficulty.intermediate.hasDistractors, isTrue);
     });
 
     test('fromName falls back to beginner for unknown names', () {
-      expect(GroupWbChunkDifficulty.fromName('alien'),
-          GroupWbChunkDifficulty.beginner);
-      expect(GroupWbChunkDifficulty.fromName('beginner'),
-          GroupWbChunkDifficulty.beginner);
-      expect(GroupWbChunkDifficulty.fromName('intermediate'),
-          GroupWbChunkDifficulty.intermediate);
+      expect(GroupSbChunkDifficulty.fromName('alien'),
+          GroupSbChunkDifficulty.beginner);
+      expect(GroupSbChunkDifficulty.fromName('beginner'),
+          GroupSbChunkDifficulty.beginner);
+      expect(GroupSbChunkDifficulty.fromName('intermediate'),
+          GroupSbChunkDifficulty.intermediate);
     });
   });
 
-  group('GroupWbPlayMode', () {
+  group('GroupSbPlayMode', () {
     test('fromName falls back to roundByRound for unknown names', () {
-      expect(GroupWbPlayMode.fromName('alien'), GroupWbPlayMode.roundByRound);
-      expect(GroupWbPlayMode.fromName('setOfN'), GroupWbPlayMode.setOfN);
+      expect(GroupSbPlayMode.fromName('alien'), GroupSbPlayMode.roundByRound);
+      expect(GroupSbPlayMode.fromName('setOfN'), GroupSbPlayMode.setOfN);
     });
   });
 
-  group('GroupWbConfig JSON round-trip', () {
+  group('GroupSbConfig JSON round-trip', () {
     test('basic round-trip preserves all fields', () {
-      const cfg = GroupWbConfig(
-        chunkDifficulty: GroupWbChunkDifficulty.intermediate,
-        playMode: GroupWbPlayMode.setOfN,
+      const cfg = GroupSbConfig(
+        chunkDifficulty: GroupSbChunkDifficulty.intermediate,
+        playMode: GroupSbPlayMode.setOfN,
         scriptureIds: ['12', '7', '54'],
         perScriptureTimeoutSeconds: 45,
       );
-      final restored = GroupWbConfig.fromJson(cfg.toJson());
+      final restored = GroupSbConfig.fromJson(cfg.toJson());
       expect(restored, equals(cfg));
     });
 
     test('null timeout survives round-trip', () {
-      const cfg = GroupWbConfig(
-        chunkDifficulty: GroupWbChunkDifficulty.beginner,
-        playMode: GroupWbPlayMode.roundByRound,
+      const cfg = GroupSbConfig(
+        chunkDifficulty: GroupSbChunkDifficulty.beginner,
+        playMode: GroupSbPlayMode.roundByRound,
         scriptureIds: ['1', '2'],
       );
-      final restored = GroupWbConfig.fromJson(cfg.toJson());
+      final restored = GroupSbConfig.fromJson(cfg.toJson());
       expect(restored.perScriptureTimeoutSeconds, isNull);
       expect(restored, equals(cfg));
     });
 
     test('scriptureIds preserve order', () {
-      const cfg = GroupWbConfig(
-        chunkDifficulty: GroupWbChunkDifficulty.beginner,
-        playMode: GroupWbPlayMode.setOfN,
+      const cfg = GroupSbConfig(
+        chunkDifficulty: GroupSbChunkDifficulty.beginner,
+        playMode: GroupSbPlayMode.setOfN,
         scriptureIds: ['c', 'a', 'b'],
       );
-      final restored = GroupWbConfig.fromJson(cfg.toJson());
+      final restored = GroupSbConfig.fromJson(cfg.toJson());
       expect(restored.scriptureIds, ['c', 'a', 'b']);
     });
 
     test('toJson omits perScriptureTimeoutSeconds when null', () {
-      const cfg = GroupWbConfig(
-        chunkDifficulty: GroupWbChunkDifficulty.beginner,
-        playMode: GroupWbPlayMode.roundByRound,
+      const cfg = GroupSbConfig(
+        chunkDifficulty: GroupSbChunkDifficulty.beginner,
+        playMode: GroupSbPlayMode.roundByRound,
         scriptureIds: ['1'],
       );
       expect(cfg.toJson().containsKey('perScriptureTimeoutSeconds'), isFalse);
     });
 
     test('copyWith.clearTimeout drops the timeout', () {
-      const cfg = GroupWbConfig(
-        chunkDifficulty: GroupWbChunkDifficulty.beginner,
-        playMode: GroupWbPlayMode.roundByRound,
+      const cfg = GroupSbConfig(
+        chunkDifficulty: GroupSbChunkDifficulty.beginner,
+        playMode: GroupSbPlayMode.roundByRound,
         scriptureIds: ['1'],
         perScriptureTimeoutSeconds: 30,
       );
@@ -96,7 +96,7 @@ void main() {
       };
       final restored = GroupRoomScope.fromJson(json);
       expect(restored.mode, GroupGameMode.quiz);
-      expect(restored.wordBuilderConfig, isNull);
+      expect(restored.scriptureBuilderConfig, isNull);
     });
 
     test('quiz scope toJson does NOT include mode', () {
@@ -106,28 +106,28 @@ void main() {
       );
       final json = scope.toJson();
       expect(json.containsKey('mode'), isFalse);
-      expect(json.containsKey('wordBuilderConfig'), isFalse);
+      expect(json.containsKey('scriptureBuilderConfig'), isFalse);
     });
 
     test('word builder scope round-trip', () {
       const scope = GroupRoomScope(
-        mode: GroupGameMode.wordBuilder,
+        mode: GroupGameMode.scriptureBuilder,
         difficultyName: 'beginner',
         scriptureIds: ['1', '2', '3'],
         questionCount: 3,
-        wordBuilderConfig: GroupWbConfig(
-          chunkDifficulty: GroupWbChunkDifficulty.intermediate,
-          playMode: GroupWbPlayMode.setOfN,
+        scriptureBuilderConfig: GroupSbConfig(
+          chunkDifficulty: GroupSbChunkDifficulty.intermediate,
+          playMode: GroupSbPlayMode.setOfN,
           scriptureIds: ['1', '2', '3'],
         ),
       );
       final restored = GroupRoomScope.fromJson(scope.toJson());
-      expect(restored.mode, GroupGameMode.wordBuilder);
-      expect(restored.wordBuilderConfig, isNotNull);
-      expect(restored.wordBuilderConfig!.chunkDifficulty,
-          GroupWbChunkDifficulty.intermediate);
-      expect(restored.wordBuilderConfig!.playMode, GroupWbPlayMode.setOfN);
-      expect(restored.wordBuilderConfig!.scriptureIds, ['1', '2', '3']);
+      expect(restored.mode, GroupGameMode.scriptureBuilder);
+      expect(restored.scriptureBuilderConfig, isNotNull);
+      expect(restored.scriptureBuilderConfig!.chunkDifficulty,
+          GroupSbChunkDifficulty.intermediate);
+      expect(restored.scriptureBuilderConfig!.playMode, GroupSbPlayMode.setOfN);
+      expect(restored.scriptureBuilderConfig!.scriptureIds, ['1', '2', '3']);
     });
 
     test('quiz scope JSON with explicit mode=quiz still parses', () {
@@ -146,7 +146,7 @@ void main() {
 
     test('GroupGameMode.fromName falls back to quiz for unknown', () {
       expect(GroupGameMode.fromName('alien'), GroupGameMode.quiz);
-      expect(GroupGameMode.fromName('wordBuilder'), GroupGameMode.wordBuilder);
+      expect(GroupGameMode.fromName('scriptureBuilder'), GroupGameMode.scriptureBuilder);
     });
   });
 }

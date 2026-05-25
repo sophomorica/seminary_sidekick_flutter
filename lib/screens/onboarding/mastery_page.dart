@@ -47,7 +47,7 @@ class MasteredPage extends StatelessWidget {
               children: [
                 const TextSpan(
                   text:
-                      'Complete all four Word Builder tiers to reach Memorized. '
+                      'Complete all four Scripture Builder tiers to reach Memorized. '
                       'Then prove it with ',
                 ),
                 TextSpan(

@@ -19,16 +19,16 @@ class MasteryRequirement {
   });
 }
 
-/// Holistic mastery for a single scripture, driven by Word Builder progression.
+/// Holistic mastery for a single scripture, driven by Scripture Builder progression.
 ///
-/// The mastery path is linear and tied to Word Builder difficulty tiers:
+/// The mastery path is linear and tied to Scripture Builder difficulty tiers:
 ///   New → Learning → Familiar → Memorized → Mastered → Eternal
 ///
-/// - **New**: Haven't started Word Builder
-/// - **Learning**: Completed Word Builder Beginner (tap 3-word chunks)
-/// - **Familiar**: Completed Word Builder Intermediate (tap 2-word chunks + distractors)
-/// - **Memorized**: Completed Word Builder Advanced (typed with first-letter hints)
-/// - **Mastered**: 3 consecutive perfect completions at Word Builder Master (blind typing)
+/// - **New**: Haven't started Scripture Builder
+/// - **Learning**: Completed Scripture Builder Beginner (tap 3-word chunks)
+/// - **Familiar**: Completed Scripture Builder Intermediate (tap 2-word chunks + distractors)
+/// - **Memorized**: Completed Scripture Builder Advanced (typed with first-letter hints)
+/// - **Mastered**: 3 consecutive perfect completions at Scripture Builder Master (blind typing)
 /// - **Eternal**: Maintained Mastered for 6 continuous months (permanent, no decay)
 ///
 /// Scripture Match and Quiz are helpful recognition tools but do NOT gate mastery.
@@ -71,12 +71,12 @@ class ScriptureMastery {
   /// When the scripture first reached Mastered level (for Eternal tracking).
   final DateTime? masteredSince;
 
-  /// Consecutive perfect completions at Word Builder Master difficulty.
+  /// Consecutive perfect completions at Scripture Builder Master difficulty.
   final int consecutivePerfectMaster;
 
-  /// Difficulty levels the user explicitly completed in Word Builder.
+  /// Difficulty levels the user explicitly completed in Scripture Builder.
   /// Used to detect "skipped" tiers that were auto-credited.
-  final Set<DifficultyLevel> explicitlyCompletedWbDifficulties;
+  final Set<DifficultyLevel> explicitlyCompletedSbDifficulties;
 
   const ScriptureMastery({
     required this.scriptureId,
@@ -92,18 +92,18 @@ class ScriptureMastery {
     required this.gameTypesWithCorrect,
     this.masteredSince,
     this.consecutivePerfectMaster = 0,
-    this.explicitlyCompletedWbDifficulties = const {},
+    this.explicitlyCompletedSbDifficulties = const {},
   });
 
-  /// Whether a given Word Builder difficulty was auto-credited (skipped)
+  /// Whether a given Scripture Builder difficulty was auto-credited (skipped)
   /// rather than explicitly completed by the user.
   /// Returns true if the difficulty is credited (highestDifficultyCompleted >= it)
   /// but the user never actually completed it.
   bool wasDifficultySkipped(DifficultyLevel difficulty) {
-    final wbHighest = highestDifficultyPerGame[GameType.wordOrder];
-    if (wbHighest == null) return false;
-    final isCredited = difficulty.index <= wbHighest.index;
-    final wasExplicit = explicitlyCompletedWbDifficulties.contains(difficulty);
+    final sbHighest = highestDifficultyPerGame[GameType.scriptureBuilder];
+    if (sbHighest == null) return false;
+    final isCredited = difficulty.index <= sbHighest.index;
+    final wasExplicit = explicitlyCompletedSbDifficulties.contains(difficulty);
     return isCredited && !wasExplicit;
   }
 
@@ -121,11 +121,11 @@ class ScriptureMastery {
 
   /// Compute holistic mastery from per-game progress records.
   ///
-  /// The mastery level is driven entirely by Word Builder progression:
-  ///   - Learning: completed WB Beginner
-  ///   - Familiar: completed WB Intermediate
-  ///   - Memorized: completed WB Advanced
-  ///   - Mastered: 3 consecutive perfect completions at WB Master
+  /// The mastery level is driven entirely by Scripture Builder progression:
+  ///   - Learning: completed SB Beginner
+  ///   - Familiar: completed SB Intermediate
+  ///   - Memorized: completed SB Advanced
+  ///   - Mastered: 3 consecutive perfect completions at SB Master
   ///   - Eternal: 6 months sustained at Mastered (permanent)
   ///
   /// [progressByGame] maps GameType → UserProgress? for a single scripture.
@@ -172,13 +172,13 @@ class ScriptureMastery {
     final overallAccuracy =
         totalAttempts > 0 ? (totalCorrect / totalAttempts) * 100 : 0.0;
 
-    // Extract Word Builder progress (the primary mastery driver)
-    final wbProgress = progressByGame[GameType.wordOrder];
-    final wbDifficultyRank =
-        _difficultyRank(highestDifficulty[GameType.wordOrder]);
-    final perfectMasterCount = wbProgress?.consecutivePerfectMaster ?? 0;
-    final explicitWbDifficulties =
-        wbProgress?.explicitlyCompletedDifficulties ?? const {};
+    // Extract Scripture Builder progress (the primary mastery driver)
+    final sbProgress = progressByGame[GameType.scriptureBuilder];
+    final sbDifficultyRank =
+        _difficultyRank(highestDifficulty[GameType.scriptureBuilder]);
+    final perfectMasterCount = sbProgress?.consecutivePerfectMaster ?? 0;
+    final explicitSbDifficulties =
+        sbProgress?.explicitlyCompletedDifficulties ?? const {};
 
     // Days since last practice
     final daysSince = lastPracticed != null
@@ -201,13 +201,13 @@ class ScriptureMastery {
         gameTypesWithCorrect: gameTypesWithCorrect,
         masteredSince: masteredSinceDate,
         consecutivePerfectMaster: perfectMasterCount,
-        explicitlyCompletedWbDifficulties: explicitWbDifficulties,
+        explicitlyCompletedSbDifficulties: explicitSbDifficulties,
       );
     }
 
-    // Determine raw mastery level from Word Builder progression
+    // Determine raw mastery level from Scripture Builder progression
     final rawLevel = _computeRawLevel(
-      wbDifficultyRank: wbDifficultyRank,
+      sbDifficultyRank: sbDifficultyRank,
       perfectMasterCount: perfectMasterCount,
     );
 
@@ -223,7 +223,7 @@ class ScriptureMastery {
     final requirements = nextLevel != null
         ? _requirementsFor(
             nextLevel,
-            wbDifficultyRank: wbDifficultyRank,
+            sbDifficultyRank: sbDifficultyRank,
             perfectMasterCount: perfectMasterCount,
             masteredSinceDate: masteredSinceDate,
           )
@@ -253,42 +253,42 @@ class ScriptureMastery {
       gameTypesWithCorrect: gameTypesWithCorrect,
       masteredSince: masteredSinceDate,
       consecutivePerfectMaster: perfectMasterCount,
-      explicitlyCompletedWbDifficulties: explicitWbDifficulties,
+      explicitlyCompletedSbDifficulties: explicitSbDifficulties,
     );
   }
 
   // ---------------------------------------------------------------------------
-  // Level computation — Word Builder-centric linear path
+  // Level computation — Scripture Builder-centric linear path
   // ---------------------------------------------------------------------------
 
-  /// Determine mastery level purely from Word Builder progression.
+  /// Determine mastery level purely from Scripture Builder progression.
   ///
-  /// - Mastered: completed WB Master + 3 consecutive perfect runs at Master
-  /// - Memorized: completed WB Advanced (rank >= 2)
-  /// - Familiar: completed WB Intermediate (rank >= 1)
-  /// - Learning: completed WB Beginner (rank >= 0, i.e. has any WB progress)
-  /// - New: no Word Builder progress at all
+  /// - Mastered: completed SB Master + 3 consecutive perfect runs at Master
+  /// - Memorized: completed SB Advanced (rank >= 2)
+  /// - Familiar: completed SB Intermediate (rank >= 1)
+  /// - Learning: completed SB Beginner (rank >= 0, i.e. has any SB progress)
+  /// - New: no Scripture Builder progress at all
   static MasteryLevel _computeRawLevel({
-    required int wbDifficultyRank,
+    required int sbDifficultyRank,
     required int perfectMasterCount,
   }) {
-    // Mastered: reached WB Master difficulty AND 3 consecutive perfect runs
-    if (wbDifficultyRank >= 3 && perfectMasterCount >= 3) {
+    // Mastered: reached SB Master difficulty AND 3 consecutive perfect runs
+    if (sbDifficultyRank >= 3 && perfectMasterCount >= 3) {
       return MasteryLevel.mastered;
     }
 
-    // Memorized: completed WB Advanced
-    if (wbDifficultyRank >= 2) {
+    // Memorized: completed SB Advanced
+    if (sbDifficultyRank >= 2) {
       return MasteryLevel.memorized;
     }
 
-    // Familiar: completed WB Intermediate
-    if (wbDifficultyRank >= 1) {
+    // Familiar: completed SB Intermediate
+    if (sbDifficultyRank >= 1) {
       return MasteryLevel.familiar;
     }
 
-    // Learning: completed WB Beginner (any WB attempt that reached beginner)
-    if (wbDifficultyRank >= 0) {
+    // Learning: completed SB Beginner (any SB attempt that reached beginner)
+    if (sbDifficultyRank >= 0) {
       return MasteryLevel.learning;
     }
 
@@ -321,7 +321,7 @@ class ScriptureMastery {
 
   static List<MasteryRequirement> _requirementsFor(
     MasteryLevel targetLevel, {
-    required int wbDifficultyRank,
+    required int sbDifficultyRank,
     required int perfectMasterCount,
     DateTime? masteredSinceDate,
   }) {
@@ -329,43 +329,43 @@ class ScriptureMastery {
       case MasteryLevel.learning:
         return [
           MasteryRequirement(
-            description: 'Complete Word Builder on Beginner',
-            isMet: wbDifficultyRank >= 0,
-            progress: wbDifficultyRank >= 0 ? 1.0 : 0.0,
+            description: 'Complete Scripture Builder on Beginner',
+            isMet: sbDifficultyRank >= 0,
+            progress: sbDifficultyRank >= 0 ? 1.0 : 0.0,
           ),
         ];
 
       case MasteryLevel.familiar:
         return [
           MasteryRequirement(
-            description: 'Complete Word Builder on Intermediate',
-            isMet: wbDifficultyRank >= 1,
-            progress: wbDifficultyRank >= 1
+            description: 'Complete Scripture Builder on Intermediate',
+            isMet: sbDifficultyRank >= 1,
+            progress: sbDifficultyRank >= 1
                 ? 1.0
-                : (wbDifficultyRank >= 0 ? 0.5 : 0.0),
+                : (sbDifficultyRank >= 0 ? 0.5 : 0.0),
           ),
         ];
 
       case MasteryLevel.memorized:
         return [
           MasteryRequirement(
-            description: 'Complete Word Builder on Advanced',
-            isMet: wbDifficultyRank >= 2,
-            progress: wbDifficultyRank >= 2
+            description: 'Complete Scripture Builder on Advanced',
+            isMet: sbDifficultyRank >= 2,
+            progress: sbDifficultyRank >= 2
                 ? 1.0
-                : (wbDifficultyRank + 1).clamp(0, 2) / 2,
+                : (sbDifficultyRank + 1).clamp(0, 2) / 2,
           ),
         ];
 
       case MasteryLevel.mastered:
-        final reachedMaster = wbDifficultyRank >= 3;
+        final reachedMaster = sbDifficultyRank >= 3;
         return [
           MasteryRequirement(
-            description: 'Reach Word Builder Master difficulty',
+            description: 'Reach Scripture Builder Master difficulty',
             isMet: reachedMaster,
             progress: reachedMaster
                 ? 1.0
-                : (wbDifficultyRank + 1).clamp(0, 3) / 3,
+                : (sbDifficultyRank + 1).clamp(0, 3) / 3,
           ),
           MasteryRequirement(
             description:

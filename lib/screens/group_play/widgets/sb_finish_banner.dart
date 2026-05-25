@@ -6,7 +6,7 @@ import '../../../theme/app_theme.dart';
 ///
 /// Reused by the player-side race screen (your own finish) and the host
 /// progress dashboard (per-player rows once each one finishes).
-class WbFinishBanner extends StatelessWidget {
+class SbFinishBanner extends StatelessWidget {
   final int elapsedMs;
   final int mistakeCount;
   final bool isDnf;
@@ -22,7 +22,7 @@ class WbFinishBanner extends StatelessWidget {
   /// own banner. When false, render compact for roster rows.
   final bool prominent;
 
-  const WbFinishBanner({
+  const SbFinishBanner({
     super.key,
     required this.elapsedMs,
     required this.mistakeCount,

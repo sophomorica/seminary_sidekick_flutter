@@ -5,7 +5,7 @@ import '../models/scripture_scope.dart';
 
 /// Hive-backed store of "last used scope per game type".
 ///
-/// Each consumer (Quick Quiz, Scripture Match, group Quiz, group Word Builder
+/// Each consumer (Quick Quiz, Scripture Match, group Quiz, group Scripture Builder
 /// race) writes under its own [ScopeUsageContext] key and reads back its own
 /// scope on next session start. Scopes never bleed between contexts.
 class ScriptureScopeNotifier

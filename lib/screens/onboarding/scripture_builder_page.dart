@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../models/enums.dart';
 import '../../theme/app_theme.dart';
 
-class WordBuilderPage extends StatelessWidget {
-  const WordBuilderPage({super.key});
+class ScriptureBuilderPage extends StatelessWidget {
+  const ScriptureBuilderPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +31,7 @@ class WordBuilderPage extends StatelessWidget {
           ),
           const SizedBox(height: AppTheme.spacingLg),
           Text(
-            'Word Builder',
+            'Scripture Builder',
             style: theme.textTheme.displaySmall,
             textAlign: TextAlign.center,
           ),

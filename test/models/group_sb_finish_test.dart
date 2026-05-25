@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:seminary_sidekick/models/group_wb_finish.dart';
+import 'package:seminary_sidekick/models/group_sb_finish.dart';
 
 void main() {
-  group('GroupWbFinish', () {
-    final fixture = GroupWbFinish(
+  group('GroupSbFinish', () {
+    final fixture = GroupSbFinish(
       id: 'fin-1',
       roomId: 'room-1',
       playerId: 'player-1',
@@ -14,18 +14,18 @@ void main() {
     );
 
     test('JSON round-trip preserves all fields', () {
-      final restored = GroupWbFinish.fromJson(fixture.toJson());
+      final restored = GroupSbFinish.fromJson(fixture.toJson());
       expect(restored, equals(fixture));
     });
 
     test('DNF sentinel detected via isDnf', () {
-      final dnf = GroupWbFinish(
+      final dnf = GroupSbFinish(
         id: 'fin-2',
         roomId: 'room-1',
         playerId: 'player-2',
         scriptureIndex: 0,
         elapsedMs: 30000,
-        mistakeCount: GroupWbFinish.dnfMistakeCount,
+        mistakeCount: GroupSbFinish.dnfMistakeCount,
         completedAt: DateTime.utc(2026, 5, 25, 12, 1, 0),
       );
       expect(dnf.isDnf, isTrue);
@@ -33,7 +33,7 @@ void main() {
     });
 
     test('equality is value-based', () {
-      final twin = GroupWbFinish(
+      final twin = GroupSbFinish(
         id: 'fin-1',
         roomId: 'room-1',
         playerId: 'player-1',
@@ -47,7 +47,7 @@ void main() {
     });
 
     test('different ids are unequal', () {
-      final other = GroupWbFinish(
+      final other = GroupSbFinish(
         id: 'fin-99',
         roomId: 'room-1',
         playerId: 'player-1',

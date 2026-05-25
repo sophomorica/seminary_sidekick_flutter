@@ -14,7 +14,7 @@ import '../providers/scripture_scope_provider.dart';
 /// Shows three sections — quick presets, by-book multi-select, and an
 /// individual-scripture searchable list — and emits a [ScriptureScope] via
 /// [onChanged]. Used by solo Quick Quiz, solo Scripture Match, group Quiz
-/// host lobby, and group Word Builder host lobby.
+/// host lobby, and group Scripture Builder host lobby.
 ///
 /// Two ways to embed:
 ///   * Drop the widget into a form (lobby setup view)

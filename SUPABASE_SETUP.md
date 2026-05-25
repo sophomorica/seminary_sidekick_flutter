@@ -9,7 +9,7 @@
 
 A dedicated Supabase project that powers the multiplayer "Seminary Group Play" feature: 4-letter room codes, live quizzes for up to 30 students, anonymous student auth, and a saved-class-rosters feature for premium teachers.
 
-The free tier of the Flutter app is unaffected. None of the existing solo features (Word Builder, Quick Quiz, Scripture Match, mastery tracking, journal, Sidekick AI) talk to this database.
+The free tier of the Flutter app is unaffected. None of the existing solo features (Scripture Builder, Quick Quiz, Scripture Match, mastery tracking, journal, Sidekick AI) talk to this database.
 
 ---
 

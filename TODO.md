@@ -35,9 +35,9 @@
 | TASK-025 | Word builder provider tests | 2026-03-30 |
 | TASK-026 | Holistic mastery system — data layer | 2026-04-02 |
 | TASK-027 | Holistic mastery system — UI integration | 2026-04-02 |
-| TASK-028 | Word Builder-centric mastery path (redesign v2) | 2026-04-02 |
+| TASK-028 | Scripture Builder-centric mastery path (redesign v2) | 2026-04-02 |
 | TASK-029 | Mastery system tests (40 tests) | 2026-04-02 |
-| TASK-030 | Move Word Builder under scripture detail | 2026-04-02 |
+| TASK-030 | Move Scripture Builder under scripture detail | 2026-04-02 |
 | TASK-031 | Mastery shortcut — prove it at Master, skip the ladder | 2026-04-06 |
 | TASK-032 | Rename Games Hub → Practice/Quizzes | 2026-04-06 |
 
@@ -89,25 +89,25 @@
 | TASK-047 | Shared `ScriptureScope` model + Hive-backed `scriptureScopeProvider` + `ScriptureScopePicker` widget. Wired into Practice Hub (Quick Quiz / Scripture Match open a setup sheet with difficulty + scope + question-count override) and group play host lobby (replaces the minimal book chips). `QuizGameNotifier.startGame` and `MatchingGameNotifier.startGame` now accept optional `targetQuestionCount` / `targetPairCount` for "Every scripture in scope". | 2026-05-25 |
 | TASK-049 | Dead `_selectedBooks` / `_selectedDifficulty` fields on Practice Hub quiz/match cards removed (absorbed by TASK-047). | 2026-05-25 |
 
-### Phase 5b — Word Builder Race (2026-05-25)
+### Phase 5b — Scripture Builder Race (2026-05-25)
 
 | Task | What | Completed |
 |------|------|-----------|
-| TASK-062 | Group Word Builder race (second group-play game type). `GroupGameMode.wordBuilder` + `GroupWbConfig` + `GroupWbFinish` models with backward-compat JSON; supabase migration `0005_group_wb_finishes.sql` with RLS + realtime; `GroupPlayService.submitWbFinish/watchWbFinishes/hostAdvanceScripture`; notifier wbFinishes subscription + wbConfig + submit dedup; forked chunk-tap board (`WbRaceBoard`) decoupled from progress_provider; `GroupWordBuilderScreen` with host dashboard + player race view + DNF timer + per-mode finish flow (Round-by-Round vs Set-of-N); host-lobby game-mode selector; conditional auto-nav on phase transition; WB-flavored results with per-mode ranking. Added mounted-guards to all GroupPlayNotifier stream listeners. 34 new tests (594 total, all green). | 2026-05-25 |
+| TASK-062 | Group Scripture Builder race (second group-play game type). `GroupGameMode.scriptureBuilder` + `GroupSbConfig` + `GroupSbFinish` models with backward-compat JSON; supabase migration `0005_group_sb_finishes.sql` with RLS + realtime; `GroupPlayService.submitSbFinish/watchSbFinishes/hostAdvanceScripture`; notifier sbFinishes subscription + sbConfig + submit dedup; forked chunk-tap board (`SbRaceBoard`) decoupled from progress_provider; `GroupScriptureBuilderScreen` with host dashboard + player race view + DNF timer + per-mode finish flow (Round-by-Round vs Set-of-N); host-lobby game-mode selector; conditional auto-nav on phase transition; SB-flavored results with per-mode ranking. Added mounted-guards to all GroupPlayNotifier stream listeners. 34 new tests (594 total, all green). | 2026-05-25 |
 
 ---
 
 ## Active Tasks
 
-> **Group Play status (2026-05-25)**: Quiz-mode v1 SHIPPED end-to-end. Phase 4 polish (TASK-058/059/061) is queued. Phase 5 expands to a second game type: Word Builder Race (TASK-062), which requires the shared scope picker (TASK-047) to land first.
+> **Group Play status (2026-05-25)**: Quiz-mode v1 SHIPPED end-to-end. Phase 4 polish (TASK-058/059/061) is queued. Phase 5 expands to a second game type: Scripture Builder Race (TASK-062), which requires the shared scope picker (TASK-047) to land first.
 >
 > | Phase | Tasks | Status | Parallel? |
 > |---|---|---|---|
 > | 4 | TASK-058 (premium gating), TASK-059 (saved rosters), TASK-061 (analytics) | open | TASK-058/059 serial — both edit service + host_lobby |
 > | 5a | TASK-047 (shared scope picker) | **DONE 2026-05-25** | — |
-> | 5b | **TASK-062 (Word Builder Race)** | **DONE 2026-05-25** — pending owner: `supabase db push` for `0005_group_wb_finishes.sql` + two-instance smoke test | — |
+> | 5b | **TASK-062 (Scripture Builder Race)** | **DONE 2026-05-25** — pending owner: `supabase db push` for `0005_group_sb_finishes.sql` + two-instance smoke test | — |
 
-> **Scope guardrail for group play**: NONE of the existing solo features are being modified. Word Builder, solo Quick Quiz, solo Scripture Match, mastery tracking, journal, Sidekick AI all remain exactly as they are. Touch only:
+> **Scope guardrail for group play**: NONE of the existing solo features are being modified. Scripture Builder, solo Quick Quiz, solo Scripture Match, mastery tracking, journal, Sidekick AI all remain exactly as they are. Touch only:
 > - `pubspec.yaml`, `lib/main.dart`, `lib/app.dart`
 > - `lib/screens/practice_hub_screen.dart` (entry-point card)
 > - `lib/screens/home/home_screen.dart` (Play with Friends CTA)
@@ -126,7 +126,7 @@
   - [ ] Delete or rename the four existing `.wav` files so they don't ship
   - [ ] Create `correct.txt`, `incorrect.txt`, `complete.txt`, `levelup.txt` in `assets/audio/` following the new convention in `CLAUDE.md` (description, sourcing hints, duration/format, reference examples)
   - [ ] Verify `AudioNotifier.init()` fails gracefully when the real `.wav`s are missing (don't crash the app — log and no-op `play()`)
-  - [ ] Owner drops in the real audio, deletes the `.txt`s, sanity-checks playback in Word Builder / Quick Quiz / Match
+  - [ ] Owner drops in the real audio, deletes the `.txt`s, sanity-checks playback in Scripture Builder / Quick Quiz / Match
 - **depends_on**: —
 - **notes**:
   - See `lib/services/audio_service.dart` — `SoundEffect` enum paths stay the same; only the underlying files change
@@ -137,11 +137,11 @@
 
 - **status**: `done` — see Completed table above
 - **completed**: 2026-05-25
-- **priority**: P0 — **blocks TASK-062 (Word Builder Race) and should land first**
+- **priority**: P0 — **blocks TASK-062 (Scripture Builder Race) and should land first**
 - **estimated_effort**: Medium-Large
 - **claimed_by**: claude-opus-4-7
 - **started**: 2026-05-25
-- **scope_pivot** (2026-05-25): Originally a Quick-Quiz-only setup sheet. Promoted to a **shared picker component** consumed by every game that needs to choose "what's in scope." Group play needs the same UX (host picks scope before starting a room) and so does the upcoming Word Builder race mode (TASK-062). Doing this once, well, beats reimplementing it three times.
+- **scope_pivot** (2026-05-25): Originally a Quick-Quiz-only setup sheet. Promoted to a **shared picker component** consumed by every game that needs to choose "what's in scope." Group play needs the same UX (host picks scope before starting a room) and so does the upcoming Scripture Builder race mode (TASK-062). Doing this once, well, beats reimplementing it three times.
 - **files_to_touch**:
   - NEW `lib/models/scripture_scope.dart` — value type representing a selection
   - NEW `lib/providers/scripture_scope_provider.dart` — Hive-backed last-used scope per game type
@@ -152,10 +152,10 @@
   - `lib/screens/group_play/host_lobby_screen.dart` — swap minimal v1 picker for the shared widget
   - `lib/screens/group_play/widgets/group_play_scope_picker.dart` — DELETE or replace with thin wrapper around shared widget
   - NEW `test/models/scripture_scope_test.dart`, `test/providers/scripture_scope_provider_test.dart`
-- **description**: Build a single scripture-scope picker used everywhere a user (or host) needs to choose "which scriptures are eligible for this session." Used by solo Quick Quiz, solo Scripture Match, group Quiz (replacing minimal v1 picker), and group Word Builder race (TASK-062). The provider layer already accepts `bookFilters: List<ScriptureBook>`, but the UI hard-codes `_selectedBooks = {}` and `_selectedDifficulty = beginner` in both `_QuizGameCard` and `_MatchingGameCardState` — so the user has no way to choose. Even with books selected, question count is capped at `difficulty.quizQuestionCount` (10–40), so you can't actually quiz on every scripture in a book at once. Owner's vision: "I want to quiz on all the scriptures eventually." Per-scripture selection is also required for the group Word Builder race mode where teachers want to assemble a custom set ("the 10 we've done so far this term").
+- **description**: Build a single scripture-scope picker used everywhere a user (or host) needs to choose "which scriptures are eligible for this session." Used by solo Quick Quiz, solo Scripture Match, group Quiz (replacing minimal v1 picker), and group Scripture Builder race (TASK-062). The provider layer already accepts `bookFilters: List<ScriptureBook>`, but the UI hard-codes `_selectedBooks = {}` and `_selectedDifficulty = beginner` in both `_QuizGameCard` and `_MatchingGameCardState` — so the user has no way to choose. Even with books selected, question count is capped at `difficulty.quizQuestionCount` (10–40), so you can't actually quiz on every scripture in a book at once. Owner's vision: "I want to quiz on all the scriptures eventually." Per-scripture selection is also required for the group Scripture Builder race mode where teachers want to assemble a custom set ("the 10 we've done so far this term").
 
 - **agent_context_block** (read first):
-  - **Why this exists as one widget**: three different game setups (Quick Quiz, group Quiz host lobby, group Word Builder host lobby) all need the user to answer the same question: "which scriptures count?" Building three pickers diverges UX and triples maintenance. Build one and let each call site supply its own callbacks + persisted-state slot.
+  - **Why this exists as one widget**: three different game setups (Quick Quiz, group Quiz host lobby, group Scripture Builder host lobby) all need the user to answer the same question: "which scriptures count?" Building three pickers diverges UX and triples maintenance. Build one and let each call site supply its own callbacks + persisted-state slot.
   - **Existing data layer to lean on**:
     - `lib/data/scriptures_data.dart` exposes all 100 `Scripture` records.
     - `lib/providers/scripture_provider.dart` already has `scripturesByBookProvider(String)` and `searchScripturesProvider(String)` — use them inside the picker rather than re-querying.
@@ -166,7 +166,7 @@
     - `MatchingGameNotifier.startGame(...)` — same shape
     - Only thing missing is per-scripture selection and "every scripture in scope" question-count override.
   - **Group play already takes a scope**: `GroupRoomScope` (in `lib/models/group_room.dart`) has `difficultyName`, `bookNames`, `scriptureIds`, `questionCount`, `questionTimeoutSeconds`. The shared picker's output should map cleanly to it.
-  - **Persistence**: `ScriptureScope` should serialize to JSON for Hive. Store one record per `ScopeUsageContext` (`quickQuiz`, `scriptureMatch`, `groupQuiz`, `groupWordBuilder`) so each game remembers its own last-used scope.
+  - **Persistence**: `ScriptureScope` should serialize to JSON for Hive. Store one record per `ScopeUsageContext` (`quickQuiz`, `scriptureMatch`, `groupQuiz`, `groupScriptureBuilder`) so each game remembers its own last-used scope.
   - **Don't make this a wizard**: two taps from Practice Hub to "in a quiz" is the target. Defaults to last-used; advanced controls live behind a "Customize" disclosure.
 
 - **acceptance_criteria**:
@@ -197,7 +197,7 @@
   - [ ] **`QuizGameNotifier.startGame` accepts an optional `targetQuestionCount` param** so the cap can be bypassed for "every scripture in scope". Default behavior unchanged (uses `difficulty.quizQuestionCount`).
   - [ ] **`MatchingGameNotifier.startGame` accepts the same `ScriptureScope`** — Master already signals "use all"; extend it for explicit per-book / per-scripture scopes.
   - [ ] **Practice Hub Quick Quiz card and Scripture Match card** each open a setup sheet on tap with:
-    - Difficulty selector (same as Word Builder selector at top of Practice Hub)
+    - Difficulty selector (same as Scripture Builder selector at top of Practice Hub)
     - `ScriptureScopePicker` widget for scope
     - "Question count" segmented control with default (per difficulty) + "Every scripture in scope" option that pipes `targetQuestionCount = resolved.length` to the notifier
     - "Start" CTA at the bottom
@@ -216,7 +216,7 @@
   - For the picker UX, model the "Pick specific scriptures" section after how email apps let you pick recipients — search at top, scrollable list, checkboxes, running tally at the bottom. Don't overload the user with all 100 visible at once before they search/filter.
   - **`MatchingGameNotifier` watch-out**: `MatchPair` list gets long when scope is "all 100". Confirm `matching_game_screen.dart` handles 100-pair sessions (pagination, scroll, or sub-rounds) — if it breaks, file a follow-up but don't block this task on it.
   - **Don't introduce `ScopeUsageContext` as a Hive enum** — use a `String` key (`'quickQuiz'`, `'groupQuiz'`, etc.) so we can add new contexts without migrations.
-  - **Group-play host-lobby fallback**: if a host has no last-used scope for `groupQuiz`, default to `ScopeAll` (matches current minimal-picker behavior). Same for `groupWordBuilder` once TASK-062 lands.
+  - **Group-play host-lobby fallback**: if a host has no last-used scope for `groupQuiz`, default to `ScopeAll` (matches current minimal-picker behavior). Same for `groupScriptureBuilder` once TASK-062 lands.
 
 ### TASK-048: Seminary Group Play (Kahoot-style multiplayer) — UMBRELLA, decomposed
 
@@ -230,7 +230,7 @@
     - JOINING is always free. No exceptions, no caps, no signup.
     - HOSTING tiered: free hosts can run a *Casual* room (cap 6 players, 1 game/week). Premium hosts get *Class* rooms (cap 30, unlimited games, saved rosters, post-game analytics).
     - Premium price unchanged ($2.99/mo or $1.67/mo yearly). Group hosting becomes one more reason to subscribe alongside the existing Sidekick AI bundle.
-  - **V1 scope limited to Quick Quiz only.** Scripture Match in group form is a v2 question — drag-and-drop multiplayer is awkward. Word Builder (race-mode) added to v1.5 as TASK-062 (2026-05-25 decision).
+  - **V1 scope limited to Quick Quiz only.** Scripture Match in group form is a v2 question — drag-and-drop multiplayer is awkward. Scripture Builder (race-mode) added to v1.5 as TASK-062 (2026-05-25 decision).
   - **Cost ceiling at the worst credible adoption** (~100K MAU, ~10K concurrent peak): roughly $2K–5K/mo on Supabase Realtime. Premium revenue at that scale ($15K–25K/mo at 5% conversion) covers it comfortably. We do NOT need to architect against this scale on day one — Pro tier ($25/mo, 500 concurrent) is fine for a long time.
   - **Future cost optimization** (NOT v1): WebRTC peer-to-peer with Supabase as signaling, or migrating the Realtime layer to Cloudflare Durable Objects. Both are v2 levers, mentioned here so the data model doesn't paint itself into a corner.
 
@@ -352,12 +352,12 @@
 
 ---
 
-## Active — Group Play Phase 5: Word Builder Race Mode (owner-decided 2026-05-25)
+## Active — Group Play Phase 5: Scripture Builder Race Mode (owner-decided 2026-05-25)
 
-> **Why this is its own phase**: TASK-051..TASK-061 shipped a Quiz-only v1 of group play. Owner has now decided that Word Builder belongs in group play too — but as a **race mode**, fully decoupled from personal mastery. Personal solo Word Builder is untouched. Don't refactor or "share" the solo Word Builder screen — copy what's useful, fork what isn't, and keep group play in `lib/screens/group_play/` and `lib/services/group_play_service.dart`.
+> **Why this is its own phase**: TASK-051..TASK-061 shipped a Quiz-only v1 of group play. Owner has now decided that Scripture Builder belongs in group play too — but as a **race mode**, fully decoupled from personal mastery. Personal solo Scripture Builder is untouched. Don't refactor or "share" the solo Scripture Builder screen — copy what's useful, fork what isn't, and keep group play in `lib/screens/group_play/` and `lib/services/group_play_service.dart`.
 >
 > **Owner decisions baked into the design**:
-> - **Decoupled from personal mastery.** Group Word Builder finishes are NOT written to `progress_provider`. No streak, no mastery level change, no spaced-repetition bump. The classroom race is purely social.
+> - **Decoupled from personal mastery.** Group Scripture Builder finishes are NOT written to `progress_provider`. No streak, no mastery level change, no spaced-repetition bump. The classroom race is purely social.
 > - **Chunk-tap difficulties only for v1.** Beginner (3-word chunks) and Intermediate (2-word chunks + distractors). Typing-based Advanced/Master are deferred — owner's seminary teaching experience: "most kids won't be able to type the answers very well."
 > - **Two play modes, host-selected at room creation**:
 >   1. **Round-by-Round** — host advances one scripture at a time. Per-scripture race: fastest correct completion wins the round. Cumulative score determines overall winner.
@@ -365,9 +365,9 @@
 > - **Per-scripture host selection is a hard requirement.** Teachers want to assemble a custom set ("the 10 we've done so far this term"). This is why TASK-047 promotes the scope picker into a shared component.
 > - **Future, not v1**: bracketed finals, head-to-head 1v1 round, "finals round" of top 4. Mentioned in `notes` of TASK-062 so the data model leaves room.
 
-### TASK-062: Word Builder Race Mode (group play — second game type)
+### TASK-062: Scripture Builder Race Mode (group play — second game type)
 
-- **status**: `done` — code complete 2026-05-25; owner still needs to run `supabase db push` for `0005_group_wb_finishes.sql` and the two-instance smoke test before marking the dashboard step closed
+- **status**: `done` — code complete 2026-05-25; owner still needs to run `supabase db push` for `0005_group_sb_finishes.sql` and the two-instance smoke test before marking the dashboard step closed
 - **priority**: P1
 - **estimated_effort**: Large
 - **claimed_by**: claude-opus-4-7
@@ -375,69 +375,69 @@
 - **completed**: 2026-05-25
 - **files_to_touch**:
   - **Model extensions** (additive only, backward-compatible with shipped Quiz rooms):
-    - `lib/models/group_room.dart` — add `GroupGameMode` enum (`quiz`, `wordBuilder`); add `mode` and `wordBuilderConfig` fields to `GroupRoomScope`; default `mode = quiz` so existing rooms deserialize unchanged
+    - `lib/models/group_room.dart` — add `GroupGameMode` enum (`quiz`, `scriptureBuilder`); add `mode` and `scriptureBuilderConfig` fields to `GroupRoomScope`; default `mode = quiz` so existing rooms deserialize unchanged
   - **New models**:
-    - NEW `lib/models/group_wb_config.dart` — `GroupWbConfig` (chunkDifficulty: `beginner` | `intermediate`, playMode: `roundByRound` | `setOfN`, scriptureIds: `List<String>`, perScriptureTimeoutSeconds: `int?`)
-    - NEW `lib/models/group_wb_finish.dart` — `GroupWbFinish` (id, roomId, playerId, scriptureIndex, elapsedMs, mistakeCount, completedAt, rankInRound) — mirrors `GroupAnswer` shape so the Supabase table is analogous
+    - NEW `lib/models/group_sb_config.dart` — `GroupSbConfig` (chunkDifficulty: `beginner` | `intermediate`, playMode: `roundByRound` | `setOfN`, scriptureIds: `List<String>`, perScriptureTimeoutSeconds: `int?`)
+    - NEW `lib/models/group_sb_finish.dart` — `GroupSbFinish` (id, roomId, playerId, scriptureIndex, elapsedMs, mistakeCount, completedAt, rankInRound) — mirrors `GroupAnswer` shape so the Supabase table is analogous
   - **Schema**:
-    - NEW `supabase/migrations/0005_group_wb_finishes.sql` — `group_wb_finishes` table with RLS (player can insert own, host can read all in room), `room_id` index, `REPLICA IDENTITY FULL` for realtime DELETE delivery
-    - Add `group_wb_finishes` to the realtime publication (same migration or extend `0003_realtime.sql`)
+    - NEW `supabase/migrations/0005_group_sb_finishes.sql` — `group_sb_finishes` table with RLS (player can insert own, host can read all in room), `room_id` index, `REPLICA IDENTITY FULL` for realtime DELETE delivery
+    - Add `group_sb_finishes` to the realtime publication (same migration or extend `0003_realtime.sql`)
   - **Service additions** in `lib/services/group_play_service.dart`:
-    - `submitWbFinish({required GroupRoom room, required GroupPlayer player, required int scriptureIndex, required int elapsedMs, required int mistakeCount})`
-    - `hostAdvanceScripture(GroupRoom room)` — increments `current_question_index` analogously to `advanceQuestion` (the column is already named generically enough to handle both quiz and WB modes)
-    - `watchWbFinishes(String roomId) → Stream<List<GroupWbFinish>>`
+    - `submitSbFinish({required GroupRoom room, required GroupPlayer player, required int scriptureIndex, required int elapsedMs, required int mistakeCount})`
+    - `hostAdvanceScripture(GroupRoom room)` — increments `current_question_index` analogously to `advanceQuestion` (the column is already named generically enough to handle both quiz and SB modes)
+    - `watchSbFinishes(String roomId) → Stream<List<GroupSbFinish>>`
   - **Provider**:
-    - Extend `GroupPlayState` with `wbFinishes: List<GroupWbFinish>` (default empty) and `wbConfig: GroupWbConfig?` (resolved from `room.scope.wordBuilderConfig` at room load time)
-    - Extend `GroupPlayNotifier` with `submitWbFinish(...)`, `hostAdvanceScripture()`, `_wbFinishesSub` stream subscription
+    - Extend `GroupPlayState` with `sbFinishes: List<GroupSbFinish>` (default empty) and `sbConfig: GroupSbConfig?` (resolved from `room.scope.scriptureBuilderConfig` at room load time)
+    - Extend `GroupPlayNotifier` with `submitSbFinish(...)`, `hostAdvanceScripture()`, `_sbFinishesSub` stream subscription
   - **Screens**:
-    - NEW `lib/screens/group_play/group_word_builder_screen.dart` — the live race screen (host view + player view)
-    - NEW `lib/screens/group_play/widgets/wb_race_board.dart` — chunk-tap board widget (forked / copied from solo `word_builder_screen.dart`, NOT shared — see notes)
-    - NEW `lib/screens/group_play/widgets/wb_host_progress_dashboard.dart` — host's view of who has finished / who is still racing
-    - NEW `lib/screens/group_play/widgets/wb_finish_banner.dart` — per-player "✓ Finished — 8.2s, 1 mistake" banner
+    - NEW `lib/screens/group_play/group_scripture_builder_screen.dart` — the live race screen (host view + player view)
+    - NEW `lib/screens/group_play/widgets/sb_race_board.dart` — chunk-tap board widget (forked / copied from solo `scripture_builder_screen.dart`, NOT shared — see notes)
+    - NEW `lib/screens/group_play/widgets/sb_host_progress_dashboard.dart` — host's view of who has finished / who is still racing
+    - NEW `lib/screens/group_play/widgets/sb_finish_banner.dart` — per-player "✓ Finished — 8.2s, 1 mistake" banner
   - **Host lobby updates**:
-    - `lib/screens/group_play/host_lobby_screen.dart` — add a game-mode selector at the top of the setup view (Quiz / Word Builder Race). Conditional reveal of mode-specific settings (chunk-tap difficulty + play mode + set size for WB; existing question count + difficulty for Quiz). Wires `GroupGameMode` and `GroupWbConfig` into the `GroupRoomScope` passed to `hostCreateRoom`
+    - `lib/screens/group_play/host_lobby_screen.dart` — add a game-mode selector at the top of the setup view (Quiz / Scripture Builder Race). Conditional reveal of mode-specific settings (chunk-tap difficulty + play mode + set size for SB; existing question count + difficulty for Quiz). Wires `GroupGameMode` and `GroupSbConfig` into the `GroupRoomScope` passed to `hostCreateRoom`
   - **Routing**:
-    - `lib/app.dart` — add `/group-play/word-builder/:code` route → `GroupWordBuilderScreen`
-    - Host lobby + join lobby auto-route on `phase == inQuiz`: branch on `room.scope.mode` — `quiz` → `/group-play/quiz/:code` (existing), `wordBuilder` → `/group-play/word-builder/:code`
-  - **Results screen** (`lib/screens/group_play/group_results_screen.dart`) — extend to render Word-Builder-flavored results when `room.scope.mode == wordBuilder`. Reuses podium + leaderboard but pulls per-player stats from `state.wbFinishes` instead of `state.answers`
+    - `lib/app.dart` — add `/group-play/word-builder/:code` route → `GroupScriptureBuilderScreen`
+    - Host lobby + join lobby auto-route on `phase == inQuiz`: branch on `room.scope.mode` — `quiz` → `/group-play/quiz/:code` (existing), `scriptureBuilder` → `/group-play/word-builder/:code`
+  - **Results screen** (`lib/screens/group_play/group_results_screen.dart`) — extend to render Word-Builder-flavored results when `room.scope.mode == scriptureBuilder`. Reuses podium + leaderboard but pulls per-player stats from `state.sbFinishes` instead of `state.answers`
   - **Tests**:
-    - NEW `test/models/group_wb_config_test.dart` — JSON round-trip, backward compat (a `GroupRoomScope` JSON without a `mode` key still parses as `mode = quiz`)
-    - NEW `test/models/group_wb_finish_test.dart` — JSON round-trip, equality
-    - NEW `test/providers/group_play_provider_wb_test.dart` — covers `submitWbFinish` updating state correctly, host advance flow, "all players finished" detection
+    - NEW `test/models/group_sb_config_test.dart` — JSON round-trip, backward compat (a `GroupRoomScope` JSON without a `mode` key still parses as `mode = quiz`)
+    - NEW `test/models/group_sb_finish_test.dart` — JSON round-trip, equality
+    - NEW `test/providers/group_play_provider_sb_test.dart` — covers `submitSbFinish` updating state correctly, host advance flow, "all players finished" detection
 
-- **description**: Add Word Builder as a second group-play game type — a multiplayer race where players reassemble scripture text via chunk-tap (Beginner: 3-word chunks; Intermediate: 2-word chunks + distractors). Two host-selected play modes: **Round-by-Round** (host advances one scripture at a time, per-scripture fastest wins the round, cumulative score across rounds) and **Set-of-N** (host picks N scriptures, players race through all N in order, first to finish the set wins). Completely decoupled from personal mastery — group finishes never write to `progress_provider`. Host can pick the exact scripture list using the TASK-047 shared scope picker.
+- **description**: Add Scripture Builder as a second group-play game type — a multiplayer race where players reassemble scripture text via chunk-tap (Beginner: 3-word chunks; Intermediate: 2-word chunks + distractors). Two host-selected play modes: **Round-by-Round** (host advances one scripture at a time, per-scripture fastest wins the round, cumulative score across rounds) and **Set-of-N** (host picks N scriptures, players race through all N in order, first to finish the set wins). Completely decoupled from personal mastery — group finishes never write to `progress_provider`. Host can pick the exact scripture list using the TASK-047 shared scope picker.
 
 - **agent_context_block** (read first):
   - **Templates to copy from**:
     - `lib/screens/group_play/group_quiz_screen.dart` — the canonical pattern for live group play screens: host view vs player view branching, `ref.listen<GroupPlayPhase>` for navigation, local-UI-phase enum for between-question (here: between-scripture) leaderboard reveals.
     - `lib/screens/group_play/host_lobby_screen.dart` and `join_lobby_screen.dart` — theme usage, `_ErrorBanner` style, dark-mode handling, leave-confirm flow.
-    - `lib/screens/games/word_builder/word_builder_screen.dart` — the solo chunk-tap board. **Copy what's needed into `wb_race_board.dart`; do NOT share.** Reason: solo Word Builder is tied to personal mastery and progress recording; group race must NEVER touch `progress_provider`. Sharing the screen invites accidental cross-contamination during future edits. Forking is cheap insurance.
-  - **Solo Word Builder chunk logic to mirror** (see `lib/providers/word_builder_provider.dart`):
+    - `lib/screens/games/scripture_builder/scripture_builder_screen.dart` — the solo chunk-tap board. **Copy what's needed into `sb_race_board.dart`; do NOT share.** Reason: solo Scripture Builder is tied to personal mastery and progress recording; group race must NEVER touch `progress_provider`. Sharing the screen invites accidental cross-contamination during future edits. Forking is cheap insurance.
+  - **Solo Scripture Builder chunk logic to mirror** (see `lib/providers/scripture_builder_provider.dart`):
     - Beginner: `chunkSize = 3`, no distractors
     - Intermediate: `chunkSize = 2`, distractors from other scriptures (use `quiz_question_factory.dart` distractor-pool pattern; respect the in-scope filter rule established in the recent TASK-055 follow-up — distractors must come from in-scope scriptures only)
     - On wrong chunk tap: increment local `mistakeCount`, visual shake, no scoring penalty in v1 (just tracked for results). Owner can decide later whether mistakes subtract from score.
   - **Provider state surface** (after this task lands):
-    - `groupPlayProvider.state.wbConfig` → `GroupWbConfig?` (null if mode == quiz)
-    - `groupPlayProvider.state.wbFinishes` → `List<GroupWbFinish>` — full list of finishes for the room across all scriptures in the set
-    - For Round-by-Round: filter `wbFinishes` by `scriptureIndex == room.currentQuestionIndex` to get current-round leaderboard
-    - For Set-of-N: group `wbFinishes` by `playerId`; a player has finished the set when their finish count == `wbConfig.scriptureIds.length`
+    - `groupPlayProvider.state.sbConfig` → `GroupSbConfig?` (null if mode == quiz)
+    - `groupPlayProvider.state.sbFinishes` → `List<GroupSbFinish>` — full list of finishes for the room across all scriptures in the set
+    - For Round-by-Round: filter `sbFinishes` by `scriptureIndex == room.currentQuestionIndex` to get current-round leaderboard
+    - For Set-of-N: group `sbFinishes` by `playerId`; a player has finished the set when their finish count == `sbConfig.scriptureIds.length`
   - **Scoring**:
     - **Round-by-Round**: same speed-weighted formula as quiz (`computeSpeedWeightedPoints` in `group_answer.dart`), applied per round. Wrong-chunk mistakes do NOT subtract points in v1 (display-only). Cumulative score determines overall winner.
     - **Set-of-N**: rank is by total elapsed time across the set, ascending (faster = better). Tie-breaker: fewer mistakes. Display each player's running total during the race.
   - **Realtime delivery**:
-    - `wb_finishes` subscription via Postgres Changes with `room_id` filter (mirrors `watchAnswers` pattern)
+    - `sb_finishes` subscription via Postgres Changes with `room_id` filter (mirrors `watchAnswers` pattern)
     - Host pushes "next scripture" via the existing `rooms.current_question_index` update (no new broadcast channel needed)
-    - For set-of-N mode, `current_question_index` is irrelevant after start — players advance independently on their own device. Host's dashboard reads `wbFinishes` count per player to show progress.
-  - **Per-scripture timeout** (`wbConfig.perScriptureTimeoutSeconds`): optional. Default null (no timeout). When set, on expiry a `GroupWbFinish` row is inserted server-side or client-side with `mistakeCount = -1` to indicate DNF. **Defer the server-side enforcement to v2** — client-side timer + auto-DNF insert is sufficient for v1.
+    - For set-of-N mode, `current_question_index` is irrelevant after start — players advance independently on their own device. Host's dashboard reads `sbFinishes` count per player to show progress.
+  - **Per-scripture timeout** (`sbConfig.perScriptureTimeoutSeconds`): optional. Default null (no timeout). When set, on expiry a `GroupSbFinish` row is inserted server-side or client-side with `mistakeCount = -1` to indicate DNF. **Defer the server-side enforcement to v2** — client-side timer + auto-DNF insert is sufficient for v1.
   - **Host advances on "all finished" or manual**: in Round-by-Round, host sees a "Next Scripture" button that lights up when all live players have finished (or earlier if the host wants to move on). In Set-of-N, host's only controls are "End Game" and a live progress dashboard.
 
 - **acceptance_criteria**:
 
   ### Model + schema
-  - [ ] `GroupGameMode` enum added to `group_room.dart` with `quiz` and `wordBuilder` variants. `GroupRoomScope` gains a `mode: GroupGameMode` field (default `quiz`) and a `wordBuilderConfig: GroupWbConfig?` field. JSON round-trip preserves backward compat: a scope JSON without a `mode` key still parses as `quiz`.
-  - [ ] `GroupWbConfig` model with `copyWith`, `fromJson`/`toJson`, equality.
-  - [ ] `GroupWbFinish` model with same shape as `GroupAnswer` (id, roomId, playerId, scriptureIndex, elapsedMs, mistakeCount, completedAt). `copyWith`, `fromJson`/`toJson`, equality.
-  - [ ] `0005_group_wb_finishes.sql` migration creates the table with RLS:
+  - [ ] `GroupGameMode` enum added to `group_room.dart` with `quiz` and `scriptureBuilder` variants. `GroupRoomScope` gains a `mode: GroupGameMode` field (default `quiz`) and a `scriptureBuilderConfig: GroupSbConfig?` field. JSON round-trip preserves backward compat: a scope JSON without a `mode` key still parses as `quiz`.
+  - [ ] `GroupSbConfig` model with `copyWith`, `fromJson`/`toJson`, equality.
+  - [ ] `GroupSbFinish` model with same shape as `GroupAnswer` (id, roomId, playerId, scriptureIndex, elapsedMs, mistakeCount, completedAt). `copyWith`, `fromJson`/`toJson`, equality.
+  - [ ] `0005_group_sb_finishes.sql` migration creates the table with RLS:
     - SELECT: players in the room can read (host needs to see all; players see all for live leaderboard)
     - INSERT: only the authenticated player whose `player_id` matches `players.user_id` for that row in this room
     - No UPDATE / DELETE policies (finishes are immutable)
@@ -446,50 +446,50 @@
   - [ ] Owner runs `supabase db push` and the migration applies cleanly to the existing project (no destructive changes to shipped tables).
 
   ### Service + provider
-  - [ ] `GroupPlayService.submitWbFinish(...)` inserts a row, returns the inserted `GroupWbFinish`. Throws `GroupPlayException` on RLS rejection or network failure (mirrors `submitAnswer` error handling).
-  - [ ] `GroupPlayService.watchWbFinishes(roomId)` returns a stream of `List<GroupWbFinish>` ordered by `completed_at` ascending. Mirrors `watchAnswers` exactly.
-  - [ ] `GroupPlayService.hostAdvanceScripture(room)` — increments `current_question_index`, ends the room when past the last scripture in `wbConfig.scriptureIds`. Mirrors `advanceQuestion`. (Alternatively: just reuse `advanceQuestion` and let the index column do double duty — explicit alias method is fine if it makes call sites read better.)
+  - [ ] `GroupPlayService.submitSbFinish(...)` inserts a row, returns the inserted `GroupSbFinish`. Throws `GroupPlayException` on RLS rejection or network failure (mirrors `submitAnswer` error handling).
+  - [ ] `GroupPlayService.watchSbFinishes(roomId)` returns a stream of `List<GroupSbFinish>` ordered by `completed_at` ascending. Mirrors `watchAnswers` exactly.
+  - [ ] `GroupPlayService.hostAdvanceScripture(room)` — increments `current_question_index`, ends the room when past the last scripture in `sbConfig.scriptureIds`. Mirrors `advanceQuestion`. (Alternatively: just reuse `advanceQuestion` and let the index column do double duty — explicit alias method is fine if it makes call sites read better.)
   - [ ] `GroupPlayNotifier`:
-    - Subscribes to `watchWbFinishes` when entering a WB room; cancels in `_disposeStreams`
-    - Exposes `submitWbFinish({scriptureIndex, elapsedMs, mistakeCount})` and `hostAdvanceScripture()`
-    - `state.wbFinishes` updates in real-time
+    - Subscribes to `watchSbFinishes` when entering a SB room; cancels in `_disposeStreams`
+    - Exposes `submitSbFinish({scriptureIndex, elapsedMs, mistakeCount})` and `hostAdvanceScripture()`
+    - `state.sbFinishes` updates in real-time
     - For Round-by-Round, the existing `room.currentQuestionIndex` advancement reuses `_localPhase` reset on index change (same pattern as quiz)
 
   ### Screens
-  - [ ] `GroupWordBuilderScreen` renders:
-    - **Player view**: `WbRaceBoard` widget with chunk-tap UI. Live "race position" indicator at the top ("You: 2nd · Sarah finished 6.4s ago"). On completion, finish banner with elapsed time + mistake count. Set-of-N mode: also shows "Scripture 3 of 10" pill and a running total elapsed time.
-    - **Host view**: chunk-tap board hidden; instead shows `WbHostProgressDashboard` — list of all players with their current state (still racing / finished — Xs / DNF). In Round-by-Round: "Next Scripture" button enabled once all live players have finished (or "Skip ahead" available immediately). In Set-of-N: "End Game" button + live progress bars per player ("Sarah: 7 of 10").
-  - [ ] `WbRaceBoard` widget is a forked clone of the solo board — **does NOT import `word_builder_provider.dart`**. It owns its own local chunk state via `ConsumerStatefulWidget`. On completion, it calls back via a `onFinish(elapsedMs, mistakeCount)` callback, NOT into `progress_provider`.
-  - [ ] `WbHostProgressDashboard` and `WbFinishBanner` extracted as widgets, dark-mode aware.
-  - [ ] **Host lobby setup view** has a game-mode segmented control at the top (Quiz / Word Builder Race). Selecting Word Builder Race reveals:
+  - [ ] `GroupScriptureBuilderScreen` renders:
+    - **Player view**: `SbRaceBoard` widget with chunk-tap UI. Live "race position" indicator at the top ("You: 2nd · Sarah finished 6.4s ago"). On completion, finish banner with elapsed time + mistake count. Set-of-N mode: also shows "Scripture 3 of 10" pill and a running total elapsed time.
+    - **Host view**: chunk-tap board hidden; instead shows `SbHostProgressDashboard` — list of all players with their current state (still racing / finished — Xs / DNF). In Round-by-Round: "Next Scripture" button enabled once all live players have finished (or "Skip ahead" available immediately). In Set-of-N: "End Game" button + live progress bars per player ("Sarah: 7 of 10").
+  - [ ] `SbRaceBoard` widget is a forked clone of the solo board — **does NOT import `scripture_builder_provider.dart`**. It owns its own local chunk state via `ConsumerStatefulWidget`. On completion, it calls back via a `onFinish(elapsedMs, mistakeCount)` callback, NOT into `progress_provider`.
+  - [ ] `SbHostProgressDashboard` and `SbFinishBanner` extracted as widgets, dark-mode aware.
+  - [ ] **Host lobby setup view** has a game-mode segmented control at the top (Quiz / Scripture Builder Race). Selecting Scripture Builder Race reveals:
     - Chunk-tap difficulty selector (Beginner / Intermediate)
     - Play mode selector (Round-by-Round / Set-of-N)
     - Scope picker (`ScriptureScopePicker` from TASK-047)
     - For Set-of-N: a numeric "Set size" field, capped at 30
     - For Round-by-Round: no extra field (host advances manually)
-  - [ ] On "Create Room", the host lobby builds the `GroupRoomScope` with `mode = wordBuilder` and the resolved `GroupWbConfig`. `hostCreateRoom` ships unchanged — it just passes the scope through.
+  - [ ] On "Create Room", the host lobby builds the `GroupRoomScope` with `mode = scriptureBuilder` and the resolved `GroupSbConfig`. `hostCreateRoom` ships unchanged — it just passes the scope through.
   - [ ] Auto-navigation: when `phase == inQuiz`, both host and player branch on `room.scope.mode`:
     - `quiz` → `/group-play/quiz/:code` (existing)
-    - `wordBuilder` → `/group-play/word-builder/:code`
+    - `scriptureBuilder` → `/group-play/word-builder/:code`
     `ref.listen<GroupPlayPhase>` lives in both the host lobby and the join lobby — both need this branching.
 
   ### Results
-  - [ ] Group results screen renders WB-flavored results when `room.scope.mode == wordBuilder`:
+  - [ ] Group results screen renders SB-flavored results when `room.scope.mode == scriptureBuilder`:
     - Podium top 3 (rank determined by mode: Round-by-Round → cumulative round wins or cumulative speed-weighted points; Set-of-N → total elapsed time ascending, mistakes as tiebreaker)
     - Leaderboard rows show per-mode stats: round-by-round → "X round wins · Ys total time", set-of-N → "Finished in Xs · Y mistakes"
-    - "Play Again" reuses the same `GroupRoomScope` (including `wbConfig`) — owner explicitly wants the same set repeatable for a "best of 3" feel
+    - "Play Again" reuses the same `GroupRoomScope` (including `sbConfig`) — owner explicitly wants the same set repeatable for a "best of 3" feel
 
   ### Tests + verification
   - [ ] `flutter analyze` clean across all new files
   - [ ] All new unit tests pass; existing 500+ test suite remains green
-  - [ ] **Manual smoke test** (owner step, two-instance setup — iOS Simulator + Chrome): host creates a Word Builder room with 3 scriptures in Round-by-Round mode, joins from second instance, races through, sees per-round leaderboard, ends game, sees correct results.
-  - [ ] **Decoupling sanity check**: after a Group WB race, verify in the second instance's solo Word Builder + Stats that NO mastery / streak / progress changed. This is the critical correctness invariant.
+  - [ ] **Manual smoke test** (owner step, two-instance setup — iOS Simulator + Chrome): host creates a Scripture Builder room with 3 scriptures in Round-by-Round mode, joins from second instance, races through, sees per-round leaderboard, ends game, sees correct results.
+  - [ ] **Decoupling sanity check**: after a Group SB race, verify in the second instance's solo Scripture Builder + Stats that NO mastery / streak / progress changed. This is the critical correctness invariant.
 
 - **depends_on**:
-  - **Strongly recommended sequencing**: land TASK-047 first. WB host setup uses the shared scope picker; building it twice is a waste. If TASK-047 is still open when an agent claims TASK-062, the agent should pause and land TASK-047 first, then resume.
-  - TASK-052 — done. WB rides on the foundation laid for Quiz.
-  - TASK-055 — done. WB screen patterns the live quiz screen architecture.
-  - TASK-056 — done. WB results extends the existing results screen.
+  - **Strongly recommended sequencing**: land TASK-047 first. SB host setup uses the shared scope picker; building it twice is a waste. If TASK-047 is still open when an agent claims TASK-062, the agent should pause and land TASK-047 first, then resume.
+  - TASK-052 — done. SB rides on the foundation laid for Quiz.
+  - TASK-055 — done. SB screen patterns the live quiz screen architecture.
+  - TASK-056 — done. SB results extends the existing results screen.
 
 - **notes**:
   - **NOT v1 — leave room in the data model but do not build**:
@@ -497,12 +497,12 @@
     - "Finals round" of top 4 with the same scripture set
     - Per-mistake score penalties (currently display-only)
     - Server-side timeout enforcement (client-side auto-DNF is fine for v1)
-    - Mixed-mode rooms (Quiz round → WB round → Quiz round). The mode is frozen at room creation in v1.
-  - **Why a separate WB board widget instead of sharing the solo one**: solo Word Builder is tightly coupled to `WordBuilderNotifier` which records to `progress_provider`. The risk of a future refactor accidentally importing progress recording into the group race is real. Forking the widget is one of those "10 minutes of duplication saves 10 hours of debugging" decisions.
+    - Mixed-mode rooms (Quiz round → SB round → Quiz round). The mode is frozen at room creation in v1.
+  - **Why a separate SB board widget instead of sharing the solo one**: solo Scripture Builder is tightly coupled to `ScriptureBuilderNotifier` which records to `progress_provider`. The risk of a future refactor accidentally importing progress recording into the group race is real. Forking the widget is one of those "10 minutes of duplication saves 10 hours of debugging" decisions.
   - **Distractor scope for Intermediate**: pull from in-scope scriptures only (same rule that landed for Quiz distractors in the TASK-055 follow-up). If the host picks 1 scripture, Intermediate has no distractors and visually degrades to Beginner-ish — that's fine, document it.
   - **Set-of-N upper bound**: cap at 30 to match the premium room player cap. A 30-scripture race is already extreme; defer "all 100 race" as v2.
   - **Confetti budget**: fire confetti when the local player finishes (700ms, ~14 particles), NOT on every player's finish — a class of 30 finishing in a 10-second window would overlap badly.
-  - **Premium gating**: Word Builder race respects the same hosting tier from TASK-058 — free hosts can run it within their 1 game/week + 6 player cap; premium hosts get unlimited + 30 cap. No new premium gate needed beyond the existing hosting gate.
+  - **Premium gating**: Scripture Builder race respects the same hosting tier from TASK-058 — free hosts can run it within their 1 game/week + 6 player cap; premium hosts get unlimited + 30 cap. No new premium gate needed beyond the existing hosting gate.
 
 ---
 

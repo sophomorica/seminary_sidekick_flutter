@@ -72,12 +72,12 @@ enum MasteryLevel {
   final IconData icon;
 }
 
-/// Practice types: Word Builder is the mastery tool; matching and quiz are supplementary practice quizzes.
+/// Practice types: Scripture Builder is the mastery tool; matching and quiz are supplementary practice quizzes.
 enum GameType {
   matching('Scripture Match', 'Practice matching passages to their references',
       Icons.swap_horiz),
-  wordOrder(
-      'Word Builder', 'Reproduce scripture text from memory', Icons.sort_by_alpha),
+  scriptureBuilder(
+      'Scripture Builder', 'Reproduce scripture text from memory', Icons.sort_by_alpha),
   quiz('Quick Quiz', 'Test your recall of key phrases and references', Icons.quiz);
 
   const GameType(this.displayName, this.description, this.icon);
@@ -180,7 +180,7 @@ enum DifficultyLevel {
           case DifficultyLevel.master:
             return 'Match ALL passages — timed, no retries';
         }
-      case GameType.wordOrder:
+      case GameType.scriptureBuilder:
         switch (this) {
           case DifficultyLevel.beginner:
             return 'Tap 3-word chunks in order';

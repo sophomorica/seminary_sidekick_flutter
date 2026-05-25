@@ -23,7 +23,7 @@ import 'screens/upgrade_screen.dart';
 import 'screens/group_play/_placeholder_screens.dart';
 import 'screens/group_play/group_quiz_screen.dart';
 import 'screens/group_play/group_results_screen.dart';
-import 'screens/group_play/group_word_builder_screen.dart';
+import 'screens/group_play/group_scripture_builder_screen.dart';
 import 'screens/group_play/host_lobby_screen.dart';
 import 'screens/group_play/join_lobby_screen.dart';
 
@@ -170,7 +170,7 @@ class _SeminarySidekickAppState extends ConsumerState<SeminarySidekickApp> {
         ),
         GoRoute(
           path: '/group-play/word-builder/:code',
-          builder: (context, state) => GroupWordBuilderScreen(
+          builder: (context, state) => GroupScriptureBuilderScreen(
             code: state.pathParameters['code']!,
           ),
         ),

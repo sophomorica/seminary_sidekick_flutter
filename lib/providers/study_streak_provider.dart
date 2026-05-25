@@ -3,7 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 /// Tracks consecutive days of study activity.
 ///
-/// A "study day" is any day where the user interacts with Word Builder,
+/// A "study day" is any day where the user interacts with Scripture Builder,
 /// a practice quiz, or the memorize tool. The streak resets if a full
 /// calendar day is missed.
 class StudyStreakState {
@@ -94,7 +94,7 @@ class StudyStreakNotifier extends StateNotifier<StudyStreakState> {
   }
 
   /// Call this whenever the user completes a study activity
-  /// (Word Builder attempt, quiz, memorize session).
+  /// (Scripture Builder attempt, quiz, memorize session).
   void recordStudyActivity() {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);

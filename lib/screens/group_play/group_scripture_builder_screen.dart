@@ -11,15 +11,15 @@ import '../../data/scriptures_data.dart';
 import '../../models/group_play_state.dart';
 import '../../models/group_player.dart';
 import '../../models/group_room.dart';
-import '../../models/group_wb_config.dart';
-import '../../models/group_wb_finish.dart';
+import '../../models/group_sb_config.dart';
+import '../../models/group_sb_finish.dart';
 import '../../models/scripture.dart';
 import '../../providers/group_play_provider.dart';
 import '../../services/haptic_service.dart';
 import '../../theme/app_theme.dart';
-import 'widgets/wb_finish_banner.dart';
-import 'widgets/wb_host_progress_dashboard.dart';
-import 'widgets/wb_race_board.dart';
+import 'widgets/sb_finish_banner.dart';
+import 'widgets/sb_host_progress_dashboard.dart';
+import 'widgets/sb_race_board.dart';
 
 /// Live Word-Builder race screen.
 ///
@@ -30,18 +30,18 @@ import 'widgets/wb_race_board.dart';
 /// Round-by-Round: scripture advances when host taps "Next Scripture".
 /// Set-of-N: each player advances independently on their own device. Host
 /// only ever taps "End Game".
-class GroupWordBuilderScreen extends ConsumerStatefulWidget {
+class GroupScriptureBuilderScreen extends ConsumerStatefulWidget {
   final String code;
 
-  const GroupWordBuilderScreen({super.key, required this.code});
+  const GroupScriptureBuilderScreen({super.key, required this.code});
 
   @override
-  ConsumerState<GroupWordBuilderScreen> createState() =>
-      _GroupWordBuilderScreenState();
+  ConsumerState<GroupScriptureBuilderScreen> createState() =>
+      _GroupScriptureBuilderScreenState();
 }
 
-class _GroupWordBuilderScreenState
-    extends ConsumerState<GroupWordBuilderScreen> {
+class _GroupScriptureBuilderScreenState
+    extends ConsumerState<GroupScriptureBuilderScreen> {
   late final ConfettiController _confettiController;
 
   // Set-of-N: which scripture the local player is currently on. Advances
@@ -86,16 +86,16 @@ class _GroupWordBuilderScreenState
     final state = ref.watch(groupPlayProvider);
     final room = state.room;
     final me = state.me;
-    final wbConfig = state.wbConfig;
+    final sbConfig = state.sbConfig;
 
-    if (room == null || me == null || wbConfig == null) {
+    if (room == null || me == null || sbConfig == null) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
     // Round-by-Round: detect host advancing so we can reset the local board.
-    if (wbConfig.playMode == GroupWbPlayMode.roundByRound) {
+    if (sbConfig.playMode == GroupSbPlayMode.roundByRound) {
       final hostIdx = room.currentQuestionIndex;
       if (_trackedHostIndex != hostIdx) {
         _trackedHostIndex = hostIdx;
@@ -105,22 +105,22 @@ class _GroupWordBuilderScreenState
             _firedLocalFinishConfetti = false;
             _scriptureStartedAt = DateTime.now();
           });
-          _restartTimeoutTimer(wbConfig);
+          _restartTimeoutTimer(sbConfig);
         });
       }
     } else {
-      // Set-of-N: keep the local index in sync with `wbFinishes` so a refresh
+      // Set-of-N: keep the local index in sync with `sbFinishes` so a refresh
       // (e.g. coming back to the screen after a backgrounded race) shows the
       // next scripture instead of the one we just finished.
       final myFinishCount =
-          state.wbFinishes.where((f) => f.playerId == me.id).length;
+          state.sbFinishes.where((f) => f.playerId == me.id).length;
       if (myFinishCount > _myLocalIndex &&
-          myFinishCount < wbConfig.scriptureIds.length) {
+          myFinishCount < sbConfig.scriptureIds.length) {
         _myLocalIndex = myFinishCount;
       }
       if (_scriptureStartedAt == null) {
         _scriptureStartedAt = DateTime.now();
-        _restartTimeoutTimer(wbConfig);
+        _restartTimeoutTimer(sbConfig);
       }
     }
 
@@ -132,10 +132,10 @@ class _GroupWordBuilderScreenState
         ),
         title: _AppBarTitle(
           state: state,
-          wbConfig: wbConfig,
+          sbConfig: sbConfig,
           localScriptureIndex: _localIndexForPlayer(
             state: state,
-            wbConfig: wbConfig,
+            sbConfig: sbConfig,
             room: room,
             me: me,
           ),
@@ -148,16 +148,16 @@ class _GroupWordBuilderScreenState
             child: state.isHost
                 ? _HostView(
                     state: state,
-                    wbConfig: wbConfig,
+                    sbConfig: sbConfig,
                     onAdvance: _handleAdvance,
                     onEnd: _handleEnd,
                   )
                 : _PlayerView(
                     state: state,
-                    wbConfig: wbConfig,
+                    sbConfig: sbConfig,
                     myLocalIndex: _localIndexForPlayer(
                       state: state,
-                      wbConfig: wbConfig,
+                      sbConfig: sbConfig,
                       room: room,
                       me: me,
                     ),
@@ -199,25 +199,25 @@ class _GroupWordBuilderScreenState
 
   int _localIndexForPlayer({
     required GroupPlayState state,
-    required GroupWbConfig wbConfig,
+    required GroupSbConfig sbConfig,
     required GroupRoom room,
     required GroupPlayer me,
   }) {
-    if (wbConfig.playMode == GroupWbPlayMode.roundByRound) {
+    if (sbConfig.playMode == GroupSbPlayMode.roundByRound) {
       return room.currentQuestionIndex
-          .clamp(0, math.max(0, wbConfig.scriptureIds.length - 1));
+          .clamp(0, math.max(0, sbConfig.scriptureIds.length - 1));
     }
     return _myLocalIndex
-        .clamp(0, math.max(0, wbConfig.scriptureIds.length - 1));
+        .clamp(0, math.max(0, sbConfig.scriptureIds.length - 1));
   }
 
-  void _restartTimeoutTimer(GroupWbConfig wbConfig) {
+  void _restartTimeoutTimer(GroupSbConfig sbConfig) {
     _timeoutTimer?.cancel();
-    final timeout = wbConfig.perScriptureTimeoutSeconds;
+    final timeout = sbConfig.perScriptureTimeoutSeconds;
     if (timeout == null) return;
     _timeoutTimer = Timer(Duration(seconds: timeout), () {
       if (!mounted) return;
-      _handleLocalFinish(elapsedMs: timeout * 1000, mistakeCount: GroupWbFinish.dnfMistakeCount);
+      _handleLocalFinish(elapsedMs: timeout * 1000, mistakeCount: GroupSbFinish.dnfMistakeCount);
     });
   }
 
@@ -226,14 +226,14 @@ class _GroupWordBuilderScreenState
     required int mistakeCount,
   }) async {
     final state = ref.read(groupPlayProvider);
-    final wbConfig = state.wbConfig;
+    final sbConfig = state.sbConfig;
     final room = state.room;
     final me = state.me;
-    if (state.isHost || wbConfig == null || room == null || me == null) return;
+    if (state.isHost || sbConfig == null || room == null || me == null) return;
 
     final scriptureIndex = _localIndexForPlayer(
       state: state,
-      wbConfig: wbConfig,
+      sbConfig: sbConfig,
       room: room,
       me: me,
     );
@@ -244,12 +244,12 @@ class _GroupWordBuilderScreenState
     if (!_firedLocalFinishConfetti) {
       _firedLocalFinishConfetti = true;
       ref.read(hapticProvider).heavy();
-      if (mistakeCount != GroupWbFinish.dnfMistakeCount) {
+      if (mistakeCount != GroupSbFinish.dnfMistakeCount) {
         _confettiController.play();
       }
     }
 
-    await ref.read(groupPlayProvider.notifier).submitWbFinish(
+    await ref.read(groupPlayProvider.notifier).submitSbFinish(
           scriptureIndex: scriptureIndex,
           elapsedMs: elapsedMs,
           mistakeCount: mistakeCount,
@@ -259,9 +259,9 @@ class _GroupWordBuilderScreenState
 
     // Set-of-N: advance to the next scripture locally; if we just finished
     // the last one, sit on the finish banner and wait for the room to end.
-    if (wbConfig.playMode == GroupWbPlayMode.setOfN) {
+    if (sbConfig.playMode == GroupSbPlayMode.setOfN) {
       final nextIndex = scriptureIndex + 1;
-      if (nextIndex < wbConfig.scriptureIds.length) {
+      if (nextIndex < sbConfig.scriptureIds.length) {
         // Wait a beat so the banner / confetti are visible before re-load.
         Future.delayed(const Duration(milliseconds: 900), () {
           if (!mounted) return;
@@ -270,7 +270,7 @@ class _GroupWordBuilderScreenState
             _firedLocalFinishConfetti = false;
             _scriptureStartedAt = DateTime.now();
           });
-          _restartTimeoutTimer(wbConfig);
+          _restartTimeoutTimer(sbConfig);
         });
       }
     }
@@ -279,11 +279,11 @@ class _GroupWordBuilderScreenState
 
   Future<void> _handleAdvance() async {
     final state = ref.read(groupPlayProvider);
-    final wbConfig = state.wbConfig;
+    final sbConfig = state.sbConfig;
     final room = state.room;
-    if (wbConfig == null || room == null) return;
+    if (sbConfig == null || room == null) return;
     final isLast = room.currentQuestionIndex >=
-        wbConfig.scriptureIds.length - 1;
+        sbConfig.scriptureIds.length - 1;
     ref.read(hapticProvider).medium();
     if (isLast) {
       await ref.read(groupPlayProvider.notifier).hostEndGame();
@@ -332,7 +332,7 @@ class _GroupWordBuilderScreenState
 
 class _AppBarTitle extends StatelessWidget {
   final GroupPlayState state;
-  final GroupWbConfig wbConfig;
+  final GroupSbConfig sbConfig;
 
   /// Scripture index the local viewer should see referenced — for the host
   /// this tracks `room.currentQuestionIndex`; for players in Set-of-N it
@@ -341,26 +341,26 @@ class _AppBarTitle extends StatelessWidget {
 
   const _AppBarTitle({
     required this.state,
-    required this.wbConfig,
+    required this.sbConfig,
     required this.localScriptureIndex,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final total = wbConfig.scriptureIds.length;
-    final isRound = wbConfig.playMode == GroupWbPlayMode.roundByRound;
-    final scripture = _resolveScripture(wbConfig.scriptureIds, localScriptureIndex);
+    final total = sbConfig.scriptureIds.length;
+    final isRound = sbConfig.playMode == GroupSbPlayMode.roundByRound;
+    final scripture = _resolveScripture(sbConfig.scriptureIds, localScriptureIndex);
     final subtitle = isRound
         ? 'Round ${localScriptureIndex + 1} of $total'
-        : 'Scripture ${localScriptureIndex + 1} of $total · Word Builder';
+        : 'Scripture ${localScriptureIndex + 1} of $total · Scripture Builder';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          scripture?.reference ?? 'Word Builder Race',
+          scripture?.reference ?? 'Scripture Builder Race',
           style: theme.textTheme.titleMedium?.copyWith(
             fontFamily: 'Merriweather',
             fontWeight: FontWeight.w700,
@@ -386,13 +386,13 @@ class _AppBarTitle extends StatelessWidget {
 
 class _HostView extends StatelessWidget {
   final GroupPlayState state;
-  final GroupWbConfig wbConfig;
+  final GroupSbConfig sbConfig;
   final Future<void> Function() onAdvance;
   final Future<void> Function() onEnd;
 
   const _HostView({
     required this.state,
-    required this.wbConfig,
+    required this.sbConfig,
     required this.onAdvance,
     required this.onEnd,
   });
@@ -401,27 +401,27 @@ class _HostView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final room = state.room!;
-    final wbFinishes = state.wbFinishes;
+    final sbFinishes = state.sbFinishes;
     final racers = state.players
         .where((p) => !p.isHost)
         .toList(growable: false);
 
-    final isRound = wbConfig.playMode == GroupWbPlayMode.roundByRound;
+    final isRound = sbConfig.playMode == GroupSbPlayMode.roundByRound;
     final scriptureIndex = room.currentQuestionIndex;
     final scripture = _resolveScripture(
-      wbConfig.scriptureIds,
+      sbConfig.scriptureIds,
       isRound ? scriptureIndex : 0,
     );
 
     // Round-by-Round "everyone finished" check
-    final finishedThisRound = wbFinishes
+    final finishedThisRound = sbFinishes
         .where((f) => f.scriptureIndex == scriptureIndex)
         .map((f) => f.playerId)
         .toSet();
     final allFinished = racers.isNotEmpty &&
         racers.every((p) => finishedThisRound.contains(p.id));
 
-    final isLast = scriptureIndex >= wbConfig.scriptureIds.length - 1;
+    final isLast = scriptureIndex >= sbConfig.scriptureIds.length - 1;
 
     return Column(
       children: [
@@ -463,12 +463,12 @@ class _HostView extends StatelessWidget {
                 ),
                 const SizedBox(height: AppTheme.spacingLg),
               ],
-              WbHostProgressDashboard(
-                mode: wbConfig.playMode,
+              SbHostProgressDashboard(
+                mode: sbConfig.playMode,
                 players: state.players,
-                finishes: wbFinishes,
+                finishes: sbFinishes,
                 currentScriptureIndex: scriptureIndex,
-                totalScriptures: wbConfig.scriptureIds.length,
+                totalScriptures: sbConfig.scriptureIds.length,
                 hostPlayerId: state.me?.id,
               ),
             ],
@@ -566,7 +566,7 @@ class _HostView extends StatelessWidget {
 
 class _PlayerView extends ConsumerWidget {
   final GroupPlayState state;
-  final GroupWbConfig wbConfig;
+  final GroupSbConfig sbConfig;
   final int myLocalIndex;
   final Future<void> Function({required int elapsedMs, required int mistakeCount})
       onFinish;
@@ -574,7 +574,7 @@ class _PlayerView extends ConsumerWidget {
 
   const _PlayerView({
     required this.state,
-    required this.wbConfig,
+    required this.sbConfig,
     required this.myLocalIndex,
     required this.onFinish,
     required this.firedConfetti,
@@ -584,7 +584,7 @@ class _PlayerView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final me = state.me!;
     final scripture = _resolveScripture(
-      wbConfig.scriptureIds,
+      sbConfig.scriptureIds,
       myLocalIndex,
     );
 
@@ -593,35 +593,35 @@ class _PlayerView extends ConsumerWidget {
     }
 
     // Did I already finish this scripture?
-    final myFinishForThis = state.wbFinishes.firstWhereOrNull(
+    final myFinishForThis = state.sbFinishes.firstWhereOrNull(
       (f) => f.playerId == me.id && f.scriptureIndex == myLocalIndex,
     );
 
     if (myFinishForThis != null) {
       return _FinishedView(
         state: state,
-        wbConfig: wbConfig,
+        sbConfig: sbConfig,
         myFinish: myFinishForThis,
         scriptureIndex: myLocalIndex,
       );
     }
 
-    final distractors = wbConfig.chunkDifficulty.hasDistractors
+    final distractors = sbConfig.chunkDifficulty.hasDistractors
         ? distractorPoolFor(
-            scopeIds: wbConfig.scriptureIds,
+            scopeIds: sbConfig.scriptureIds,
             excludeId: scripture.id,
           )
         : const <Scripture>[];
 
     return Column(
       children: [
-        _RaceStatusStrip(state: state, myLocalIndex: myLocalIndex, wbConfig: wbConfig),
+        _RaceStatusStrip(state: state, myLocalIndex: myLocalIndex, sbConfig: sbConfig),
         Expanded(
-          child: WbRaceBoard(
+          child: SbRaceBoard(
             // Reset the board when the local scripture index changes.
-            key: ValueKey('wb-race-${scripture.id}-$myLocalIndex'),
+            key: ValueKey('sb-race-${scripture.id}-$myLocalIndex'),
             scripture: scripture,
-            chunkDifficulty: wbConfig.chunkDifficulty,
+            chunkDifficulty: sbConfig.chunkDifficulty,
             distractorPool: distractors,
             onFinish: (elapsedMs, mistakeCount) =>
                 onFinish(elapsedMs: elapsedMs, mistakeCount: mistakeCount),
@@ -635,12 +635,12 @@ class _PlayerView extends ConsumerWidget {
 class _RaceStatusStrip extends StatelessWidget {
   final GroupPlayState state;
   final int myLocalIndex;
-  final GroupWbConfig wbConfig;
+  final GroupSbConfig sbConfig;
 
   const _RaceStatusStrip({
     required this.state,
     required this.myLocalIndex,
-    required this.wbConfig,
+    required this.sbConfig,
   });
 
   @override
@@ -649,13 +649,13 @@ class _RaceStatusStrip extends StatelessWidget {
     final me = state.me;
     if (me == null) return const SizedBox.shrink();
 
-    final isRound = wbConfig.playMode == GroupWbPlayMode.roundByRound;
+    final isRound = sbConfig.playMode == GroupSbPlayMode.roundByRound;
 
     // For round-by-round: how many people have already finished this round?
     // For set-of-N: how many scriptures has the leader finished?
     String detail;
     if (isRound) {
-      final finishedCount = state.wbFinishes
+      final finishedCount = state.sbFinishes
           .where((f) => f.scriptureIndex == myLocalIndex)
           .map((f) => f.playerId)
           .toSet()
@@ -666,7 +666,7 @@ class _RaceStatusStrip extends StatelessWidget {
           : '$finishedCount finished · ${math.max(0, racerCount - finishedCount)} still racing';
     } else {
       // Set-of-N: show set position
-      detail = 'Scripture ${myLocalIndex + 1} of ${wbConfig.scriptureIds.length}';
+      detail = 'Scripture ${myLocalIndex + 1} of ${sbConfig.scriptureIds.length}';
     }
 
     return Container(
@@ -701,13 +701,13 @@ class _RaceStatusStrip extends StatelessWidget {
 
 class _FinishedView extends StatelessWidget {
   final GroupPlayState state;
-  final GroupWbConfig wbConfig;
-  final GroupWbFinish myFinish;
+  final GroupSbConfig sbConfig;
+  final GroupSbFinish myFinish;
   final int scriptureIndex;
 
   const _FinishedView({
     required this.state,
-    required this.wbConfig,
+    required this.sbConfig,
     required this.myFinish,
     required this.scriptureIndex,
   });
@@ -715,12 +715,12 @@ class _FinishedView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isRound = wbConfig.playMode == GroupWbPlayMode.roundByRound;
+    final isRound = sbConfig.playMode == GroupSbPlayMode.roundByRound;
 
     // Compute rank-in-this-round if applicable.
     int? rankInRound;
     if (isRound) {
-      final finishesThisRound = state.wbFinishes
+      final finishesThisRound = state.sbFinishes
           .where((f) => f.scriptureIndex == scriptureIndex)
           .toList()
         ..sort((a, b) => a.completedAt.compareTo(b.completedAt));
@@ -732,9 +732,9 @@ class _FinishedView extends StatelessWidget {
     final me = state.me;
     final myFinishCount = me == null
         ? 0
-        : state.wbFinishes.where((f) => f.playerId == me.id).length;
+        : state.sbFinishes.where((f) => f.playerId == me.id).length;
     final isSetDone = !isRound &&
-        myFinishCount >= wbConfig.scriptureIds.length;
+        myFinishCount >= sbConfig.scriptureIds.length;
 
     final waitingCopy = isRound
         ? 'Waiting for the host to advance…'
@@ -751,7 +751,7 @@ class _FinishedView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            WbFinishBanner(
+            SbFinishBanner(
               elapsedMs: myFinish.elapsedMs,
               mistakeCount: myFinish.mistakeCount,
               isDnf: myFinish.isDnf,

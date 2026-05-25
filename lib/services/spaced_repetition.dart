@@ -17,7 +17,7 @@
 ///
 /// Adaptation for this app:
 /// - Quality is derived from accuracy, time, and difficulty level.
-/// - Word Builder performance carries more weight (it's the mastery tool).
+/// - Scripture Builder performance carries more weight (it's the mastery tool).
 /// - Each scripture has ONE spaced repetition schedule (not per-game).
 library;
 
@@ -120,7 +120,7 @@ class SpacedRepetition {
   /// Factors:
   /// - [correct]: Did they get it right?
   /// - [accuracy]: Overall accuracy percentage (0–100)
-  /// - [gameType]: Word Builder weighs more heavily
+  /// - [gameType]: Scripture Builder weighs more heavily
   /// - [difficulty]: Higher difficulty = more credit for correct answers
   /// - [timeSeconds]: How long it took (optional, for bonus credit)
   static int computeQuality({
@@ -147,8 +147,8 @@ class SpacedRepetition {
       quality = 4;
     }
 
-    // Word Builder at higher difficulties deserves more credit
-    if (gameType == GameType.wordOrder) {
+    // Scripture Builder at higher difficulties deserves more credit
+    if (gameType == GameType.scriptureBuilder) {
       if (difficulty == DifficultyLevel.master && accuracy >= 90) {
         quality = 5;
       } else if (difficulty == DifficultyLevel.advanced && accuracy >= 90) {

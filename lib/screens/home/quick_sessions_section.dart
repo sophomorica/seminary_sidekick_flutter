@@ -49,7 +49,7 @@ class _QuickSessionTile extends ConsumerWidget {
 
   IconData _iconForAction(String actionType) {
     switch (actionType) {
-      case 'wordBuilder':
+      case 'scriptureBuilder':
         return Icons.sort_by_alpha;
       case 'review':
         return Icons.refresh;
@@ -64,7 +64,7 @@ class _QuickSessionTile extends ConsumerWidget {
 
   Color _colorForAction(BuildContext context, String actionType) {
     switch (actionType) {
-      case 'wordBuilder':
+      case 'scriptureBuilder':
         return AppTheme.primary;
       case 'review':
         return AppTheme.warning;

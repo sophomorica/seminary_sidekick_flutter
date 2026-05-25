@@ -139,7 +139,7 @@ class QuickWin {
   /// The scripture ID to act on, if applicable.
   final String? scriptureId;
 
-  /// The action type: 'review', 'practice', 'wordBuilder', 'reflect'.
+  /// The action type: 'review', 'practice', 'scriptureBuilder', 'reflect'.
   final String? actionType;
 
   const QuickWin({

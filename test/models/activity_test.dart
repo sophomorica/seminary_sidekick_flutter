@@ -56,7 +56,7 @@ void main() {
     group('JSON serialization', () {
       test('toJson includes all fields', () {
         final json = makeActivity(
-          metadata: {'gameType': 'Word Builder', 'difficulty': 'Beginner'},
+          metadata: {'gameType': 'Scripture Builder', 'difficulty': 'Beginner'},
         ).toJson();
 
         expect(json['id'], 'act-1');
@@ -64,7 +64,7 @@ void main() {
         expect(json['timestamp'], ts.toIso8601String());
         expect(json['scriptureId'], '1');
         expect(json['scriptureReference'], '1 Nephi 3:7');
-        expect(json['metadata']['gameType'], 'Word Builder');
+        expect(json['metadata']['gameType'], 'Scripture Builder');
       });
 
       test('fromJson parses all fields', () {
@@ -115,10 +115,10 @@ void main() {
       test('gameCompleted description', () {
         final activity = makeActivity(
           type: ActivityType.gameCompleted,
-          metadata: {'gameType': 'Word Builder', 'difficulty': 'Advanced'},
+          metadata: {'gameType': 'Scripture Builder', 'difficulty': 'Advanced'},
         );
         expect(activity.description,
-            'Completed Word Builder at Advanced difficulty');
+            'Completed Scripture Builder at Advanced difficulty');
       });
 
       test('masteryLevelUp description', () {

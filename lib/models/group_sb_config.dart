@@ -1,26 +1,26 @@
-/// Chunk-tap difficulty for the Group Word Builder race.
+/// Chunk-tap difficulty for the Group Scripture Builder race.
 ///
 /// Mirrors the solo `DifficultyLevel.beginner` / `intermediate` chunk-tap
 /// tiers. Typing-based tiers (Advanced / Master) are intentionally NOT
 /// supported in v1 — owner's seminary-teaching feedback: "most kids won't
 /// be able to type the answers very well."
-enum GroupWbChunkDifficulty {
+enum GroupSbChunkDifficulty {
   beginner,
   intermediate;
 
-  static GroupWbChunkDifficulty fromName(String name) =>
-      GroupWbChunkDifficulty.values.firstWhere(
+  static GroupSbChunkDifficulty fromName(String name) =>
+      GroupSbChunkDifficulty.values.firstWhere(
         (v) => v.name == name,
-        orElse: () => GroupWbChunkDifficulty.beginner,
+        orElse: () => GroupSbChunkDifficulty.beginner,
       );
 
   /// Number of consecutive words in a single chunk tile.
   int get chunkSize =>
-      this == GroupWbChunkDifficulty.beginner ? 3 : 2;
+      this == GroupSbChunkDifficulty.beginner ? 3 : 2;
 
   /// Whether the chunk pool includes distractor tiles drawn from
   /// other in-scope scriptures.
-  bool get hasDistractors => this == GroupWbChunkDifficulty.intermediate;
+  bool get hasDistractors => this == GroupSbChunkDifficulty.intermediate;
 }
 
 /// How the race progresses across the set of scriptures.
@@ -32,19 +32,19 @@ enum GroupWbChunkDifficulty {
 /// `setOfN`: host picks N scriptures. Queue starts simultaneously; each player
 /// works through all N in order. First to finish the set wins; cumulative
 /// elapsed time orders runners-up.
-enum GroupWbPlayMode {
+enum GroupSbPlayMode {
   roundByRound,
   setOfN;
 
-  static GroupWbPlayMode fromName(String name) =>
-      GroupWbPlayMode.values.firstWhere(
+  static GroupSbPlayMode fromName(String name) =>
+      GroupSbPlayMode.values.firstWhere(
         (v) => v.name == name,
-        orElse: () => GroupWbPlayMode.roundByRound,
+        orElse: () => GroupSbPlayMode.roundByRound,
       );
 }
 
 /// Frozen Word-Builder-race configuration that travels inside a
-/// [GroupRoomScope] when `mode == GroupGameMode.wordBuilder`.
+/// [GroupRoomScope] when `mode == GroupGameMode.scriptureBuilder`.
 ///
 /// `scriptureIds` is the explicit, ordered list of scripture ids the host
 /// selected for this race. Order matters in Set-of-N (players race through
@@ -53,27 +53,27 @@ enum GroupWbPlayMode {
 /// `perScriptureTimeoutSeconds` is optional. When set, a client-side timer
 /// auto-files a DNF finish on expiry. Server-side enforcement is deferred
 /// to v2.
-class GroupWbConfig {
-  final GroupWbChunkDifficulty chunkDifficulty;
-  final GroupWbPlayMode playMode;
+class GroupSbConfig {
+  final GroupSbChunkDifficulty chunkDifficulty;
+  final GroupSbPlayMode playMode;
   final List<String> scriptureIds;
   final int? perScriptureTimeoutSeconds;
 
-  const GroupWbConfig({
+  const GroupSbConfig({
     required this.chunkDifficulty,
     required this.playMode,
     required this.scriptureIds,
     this.perScriptureTimeoutSeconds,
   });
 
-  GroupWbConfig copyWith({
-    GroupWbChunkDifficulty? chunkDifficulty,
-    GroupWbPlayMode? playMode,
+  GroupSbConfig copyWith({
+    GroupSbChunkDifficulty? chunkDifficulty,
+    GroupSbPlayMode? playMode,
     List<String>? scriptureIds,
     int? perScriptureTimeoutSeconds,
     bool clearTimeout = false,
   }) {
-    return GroupWbConfig(
+    return GroupSbConfig(
       chunkDifficulty: chunkDifficulty ?? this.chunkDifficulty,
       playMode: playMode ?? this.playMode,
       scriptureIds: scriptureIds ?? this.scriptureIds,
@@ -91,12 +91,12 @@ class GroupWbConfig {
           'perScriptureTimeoutSeconds': perScriptureTimeoutSeconds,
       };
 
-  factory GroupWbConfig.fromJson(Map<String, dynamic> json) {
-    return GroupWbConfig(
-      chunkDifficulty: GroupWbChunkDifficulty.fromName(
+  factory GroupSbConfig.fromJson(Map<String, dynamic> json) {
+    return GroupSbConfig(
+      chunkDifficulty: GroupSbChunkDifficulty.fromName(
         json['chunkDifficulty'] as String? ?? 'beginner',
       ),
-      playMode: GroupWbPlayMode.fromName(
+      playMode: GroupSbPlayMode.fromName(
         json['playMode'] as String? ?? 'roundByRound',
       ),
       scriptureIds: (json['scriptureIds'] as List<dynamic>?)
@@ -110,7 +110,7 @@ class GroupWbConfig {
 
   @override
   bool operator ==(Object other) {
-    if (other is! GroupWbConfig) return false;
+    if (other is! GroupSbConfig) return false;
     if (other.chunkDifficulty != chunkDifficulty) return false;
     if (other.playMode != playMode) return false;
     if (other.perScriptureTimeoutSeconds != perScriptureTimeoutSeconds) {

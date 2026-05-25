@@ -9,10 +9,10 @@ import '../../providers/subscription_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/mastery_badge.dart';
 import '../../widgets/premium_teaser.dart';
-import '../games/word_builder/word_builder_screen.dart';
+import '../games/scripture_builder/scripture_builder_screen.dart';
 
-/// Displays the mastery level with a clear linear path driven by Word Builder
-/// progression, a prominent CTA to launch Word Builder, and a checklist of
+/// Displays the mastery level with a clear linear path driven by Scripture Builder
+/// progression, a prominent CTA to launch Scripture Builder, and a checklist of
 /// requirements for the next level.
 class HolisticMasterySection extends ConsumerWidget {
   final String scriptureId;
@@ -24,11 +24,11 @@ class HolisticMasterySection extends ConsumerWidget {
     required this.scripture,
   });
 
-  /// Determine the next Word Builder difficulty to launch based on current mastery.
-  DifficultyLevel _nextWbDifficulty(ScriptureMastery mastery) {
-    final wbDifficulty = mastery.highestDifficultyPerGame[GameType.wordOrder];
-    if (wbDifficulty == null) return DifficultyLevel.beginner;
-    switch (wbDifficulty) {
+  /// Determine the next Scripture Builder difficulty to launch based on current mastery.
+  DifficultyLevel _nextSbDifficulty(ScriptureMastery mastery) {
+    final sbDifficulty = mastery.highestDifficultyPerGame[GameType.scriptureBuilder];
+    if (sbDifficulty == null) return DifficultyLevel.beginner;
+    switch (sbDifficulty) {
       case DifficultyLevel.beginner:
         return DifficultyLevel.intermediate;
       case DifficultyLevel.intermediate:
@@ -58,13 +58,13 @@ class HolisticMasterySection extends ConsumerWidget {
   /// Get a subtitle describing what the CTA does.
   String _ctaSubtitle(
       ScriptureMastery mastery, DifficultyLevel nextDifficulty) {
-    return 'Word Builder — ${nextDifficulty.descriptionForGame(GameType.wordOrder)}';
+    return 'Scripture Builder — ${nextDifficulty.descriptionForGame(GameType.scriptureBuilder)}';
   }
 
-  void _launchWordBuilder(BuildContext context, DifficultyLevel difficulty) {
+  void _launchScriptureBuilder(BuildContext context, DifficultyLevel difficulty) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => WordBuilderScreen(
+        builder: (_) => ScriptureBuilderScreen(
           difficulty: difficulty,
           scriptures: [scripture],
         ),
@@ -75,7 +75,7 @@ class HolisticMasterySection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final mastery = ref.watch(scriptureMasteryProvider(scriptureId));
-    final nextDifficulty = _nextWbDifficulty(mastery);
+    final nextDifficulty = _nextSbDifficulty(mastery);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,12 +192,12 @@ class HolisticMasterySection extends ConsumerWidget {
           ),
         ),
 
-        // ── Prominent CTA: Launch Word Builder ──
+        // ── Prominent CTA: Launch Scripture Builder ──
         const SizedBox(height: 12),
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: () => _launchWordBuilder(context, nextDifficulty),
+            onPressed: () => _launchScriptureBuilder(context, nextDifficulty),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primary,
               padding: const EdgeInsets.symmetric(vertical: 18),
@@ -235,7 +235,7 @@ class HolisticMasterySection extends ConsumerWidget {
           ),
         ),
 
-        // ── Word Builder Journey timeline (tappable steps) ──
+        // ── Scripture Builder Journey timeline (tappable steps) ──
         const SizedBox(height: 12),
         Card(
           child: Padding(
@@ -244,7 +244,7 @@ class HolisticMasterySection extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Word Builder Journey',
+                  'Scripture Builder Journey',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -265,7 +265,7 @@ class HolisticMasterySection extends ConsumerWidget {
                   wasSkipped:
                       mastery.wasDifficultySkipped(DifficultyLevel.beginner),
                   onTap: () =>
-                      _launchWordBuilder(context, DifficultyLevel.beginner),
+                      _launchScriptureBuilder(context, DifficultyLevel.beginner),
                 ),
                 MasteryPathStep(
                   level: MasteryLevel.familiar,
@@ -275,7 +275,7 @@ class HolisticMasterySection extends ConsumerWidget {
                   wasSkipped: mastery
                       .wasDifficultySkipped(DifficultyLevel.intermediate),
                   onTap: () =>
-                      _launchWordBuilder(context, DifficultyLevel.intermediate),
+                      _launchScriptureBuilder(context, DifficultyLevel.intermediate),
                 ),
                 MasteryPathStep(
                   level: MasteryLevel.memorized,
@@ -285,7 +285,7 @@ class HolisticMasterySection extends ConsumerWidget {
                   wasSkipped:
                       mastery.wasDifficultySkipped(DifficultyLevel.advanced),
                   onTap: () =>
-                      _launchWordBuilder(context, DifficultyLevel.advanced),
+                      _launchScriptureBuilder(context, DifficultyLevel.advanced),
                 ),
                 MasteryPathStep(
                   level: MasteryLevel.mastered,
@@ -296,7 +296,7 @@ class HolisticMasterySection extends ConsumerWidget {
                   isLast: mastery.level != MasteryLevel.mastered &&
                       mastery.level != MasteryLevel.eternal,
                   onTap: () =>
-                      _launchWordBuilder(context, DifficultyLevel.master),
+                      _launchScriptureBuilder(context, DifficultyLevel.master),
                 ),
                 if (mastery.level == MasteryLevel.mastered ||
                     mastery.level == MasteryLevel.eternal)
@@ -426,7 +426,7 @@ class HolisticMasterySection extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   ...GameType.values
-                      .where((gt) => gt != GameType.wordOrder)
+                      .where((gt) => gt != GameType.scriptureBuilder)
                       .map((gameType) {
                     final difficulty =
                         mastery.highestDifficultyPerGame[gameType];
@@ -493,7 +493,7 @@ class HolisticMasterySection extends ConsumerWidget {
 }
 
 /// A single step on the linear mastery path visualization.
-/// Tappable to launch Word Builder at the corresponding difficulty.
+/// Tappable to launch Scripture Builder at the corresponding difficulty.
 class MasteryPathStep extends StatelessWidget {
   final MasteryLevel level;
   final String label;

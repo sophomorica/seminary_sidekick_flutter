@@ -56,7 +56,7 @@ void main() {
       notifier.logGameCompleted(
         scriptureId: '1',
         scriptureReference: '1 Nephi 3:7',
-        gameType: GameType.wordOrder,
+        gameType: GameType.scriptureBuilder,
         difficulty: DifficultyLevel.advanced,
         score: 95,
         timeSeconds: 120,
@@ -67,7 +67,7 @@ void main() {
       expect(activity.type, ActivityType.gameCompleted);
       expect(activity.scriptureId, '1');
       expect(activity.scriptureReference, '1 Nephi 3:7');
-      expect(activity.metadata['gameType'], GameType.wordOrder.displayName);
+      expect(activity.metadata['gameType'], GameType.scriptureBuilder.displayName);
       expect(activity.metadata['difficulty'], DifficultyLevel.advanced.label);
       expect(activity.metadata['score'], 95);
       expect(activity.metadata['time'], 120);
@@ -130,7 +130,7 @@ void main() {
       notifier.logPerfectRun(
         scriptureId: '1',
         scriptureReference: '1 Nephi 3:7',
-        gameType: GameType.wordOrder,
+        gameType: GameType.scriptureBuilder,
         difficulty: DifficultyLevel.master,
       );
 

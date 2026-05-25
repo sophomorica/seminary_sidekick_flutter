@@ -56,7 +56,7 @@ class _JoinLobbyScreenState extends ConsumerState<JoinLobbyScreen> {
       if (next == GroupPlayPhase.inQuiz) {
         final room = ref.read(currentGroupRoomProvider);
         if (room == null || !mounted) return;
-        final path = room.scope.mode == GroupGameMode.wordBuilder
+        final path = room.scope.mode == GroupGameMode.scriptureBuilder
             ? '/group-play/word-builder/${room.code}'
             : '/group-play/quiz/${room.code}';
         context.go(path);

@@ -16,7 +16,7 @@ import '../widgets/mastery_badge.dart';
 import '../widgets/scripture_scope_picker.dart';
 import 'games/matching_game_screen.dart';
 import 'games/quiz_game_screen.dart';
-import 'games/word_builder/word_builder_screen.dart';
+import 'games/scripture_builder/scripture_builder_screen.dart';
 
 class PracticeHubScreen extends ConsumerStatefulWidget {
   const PracticeHubScreen({super.key});
@@ -70,8 +70,8 @@ class _PracticeHubScreenState extends ConsumerState<PracticeHubScreen> {
               ),
               const SizedBox(height: 32.0),
 
-              // Hero Word Builder Card
-              _WordBuilderHeroCard(difficulty: _selectedDifficulty),
+              // Hero Scripture Builder Card
+              _ScriptureBuilderHeroCard(difficulty: _selectedDifficulty),
               const SizedBox(height: 32.0),
 
               // Scripture Match & Quick Quiz cards
@@ -92,15 +92,15 @@ class _PracticeHubScreenState extends ConsumerState<PracticeHubScreen> {
   }
 }
 
-/// Hero card for Word Builder — the primary mastery tool
-class _WordBuilderHeroCard extends ConsumerWidget {
+/// Hero card for Scripture Builder — the primary mastery tool
+class _ScriptureBuilderHeroCard extends ConsumerWidget {
   final DifficultyLevel difficulty;
 
-  const _WordBuilderHeroCard({required this.difficulty});
+  const _ScriptureBuilderHeroCard({required this.difficulty});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final lastScriptureId = ref.watch(lastWordBuilderScriptureIdProvider);
+    final lastScriptureId = ref.watch(lastScriptureBuilderScriptureIdProvider);
     final lastScripture = lastScriptureId != null
         ? ref.watch(scriptureByIdProvider(lastScriptureId))
         : null;
@@ -179,7 +179,7 @@ class _WordBuilderHeroCard extends ConsumerWidget {
                       ),
                       const SizedBox(height: 16.0),
                       Text(
-                        'Word Builder',
+                        'Scripture Builder',
                         style: Theme.of(context)
                             .textTheme
                             .headlineMedium
@@ -323,7 +323,7 @@ class _WordBuilderHeroCard extends ConsumerWidget {
   void _launchWithScripture(BuildContext context, Scripture scripture) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => WordBuilderScreen(
+        builder: (_) => ScriptureBuilderScreen(
           difficulty: difficulty,
           scriptures: [scripture],
         ),
@@ -343,7 +343,7 @@ class _WordBuilderHeroCard extends ConsumerWidget {
   }
 }
 
-/// Bottom sheet that lets the user pick a scripture for Word Builder.
+/// Bottom sheet that lets the user pick a scripture for Scripture Builder.
 /// Groups scriptures by book with mastery badges.
 class _ScripturePickerSheet extends ConsumerStatefulWidget {
   final DifficultyLevel difficulty;
@@ -500,7 +500,7 @@ class _ScripturePickerSheetState extends ConsumerState<_ScripturePickerSheet> {
                               Navigator.pop(context); // Close bottom sheet
                               Navigator.of(context).push(
                                 MaterialPageRoute(
-                                  builder: (_) => WordBuilderScreen(
+                                  builder: (_) => ScriptureBuilderScreen(
                                     difficulty: widget.difficulty,
                                     scriptures: [scripture],
                                   ),

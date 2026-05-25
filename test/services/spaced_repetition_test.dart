@@ -180,21 +180,21 @@ void main() {
         expect(q, 5);
       });
 
-      test('Word Builder Master with 90%+ accuracy returns 5', () {
+      test('Scripture Builder Master with 90%+ accuracy returns 5', () {
         final q = SpacedRepetition.computeQuality(
           correct: true,
           accuracy: 92.0,
-          gameType: GameType.wordOrder,
+          gameType: GameType.scriptureBuilder,
           difficulty: DifficultyLevel.master,
         );
         expect(q, 5);
       });
 
-      test('Word Builder Advanced with 90%+ accuracy returns at least 4', () {
+      test('Scripture Builder Advanced with 90%+ accuracy returns at least 4', () {
         final q = SpacedRepetition.computeQuality(
           correct: true,
           accuracy: 91.0,
-          gameType: GameType.wordOrder,
+          gameType: GameType.scriptureBuilder,
           difficulty: DifficultyLevel.advanced,
         );
         expect(q, greaterThanOrEqualTo(4));
@@ -205,7 +205,7 @@ void main() {
         final high = SpacedRepetition.computeQuality(
           correct: true,
           accuracy: 100.0,
-          gameType: GameType.wordOrder,
+          gameType: GameType.scriptureBuilder,
           difficulty: DifficultyLevel.master,
         );
         expect(high, lessThanOrEqualTo(5));

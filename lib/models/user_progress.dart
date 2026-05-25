@@ -19,7 +19,7 @@ class UserProgress {
   final bool needsReview;
 
   /// Consecutive perfect completions at Master difficulty.
-  /// Only meaningful for wordOrder (Word Builder) game type.
+  /// Only meaningful for scriptureBuilder (Scripture Builder) game type.
   /// Resets to 0 on any failure at Master difficulty.
   final int consecutivePerfectMaster;
 

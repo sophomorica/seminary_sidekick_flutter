@@ -6,8 +6,8 @@ import 'package:seminary_sidekick/models/group_answer.dart';
 import 'package:seminary_sidekick/models/group_play_state.dart';
 import 'package:seminary_sidekick/models/group_player.dart';
 import 'package:seminary_sidekick/models/group_room.dart';
-import 'package:seminary_sidekick/models/group_wb_config.dart';
-import 'package:seminary_sidekick/models/group_wb_finish.dart';
+import 'package:seminary_sidekick/models/group_sb_config.dart';
+import 'package:seminary_sidekick/models/group_sb_finish.dart';
 import 'package:seminary_sidekick/providers/group_play_provider.dart';
 import 'package:seminary_sidekick/providers/subscription_provider.dart';
 import 'package:seminary_sidekick/services/group_play_service.dart';
@@ -34,20 +34,20 @@ class _FakeGroupPlayService extends GroupPlayService {
   List<GroupPlayer> players = const [];
   GroupPlayer? selfHost;
   GroupPlayer? selfJoin;
-  List<GroupWbFinish> finishes = const [];
+  List<GroupSbFinish> finishes = const [];
 
   final _roomController = StreamController<GroupRoom?>.broadcast();
   final _playersController = StreamController<List<GroupPlayer>>.broadcast();
   final _answersController =
       StreamController<List<GroupAnswer>>.broadcast();
-  final _wbFinishesController =
-      StreamController<List<GroupWbFinish>>.broadcast();
+  final _sbFinishesController =
+      StreamController<List<GroupSbFinish>>.broadcast();
   final _eventsController =
       StreamController<({String event, Map<String, dynamic> payload})>
           .broadcast();
 
   final List<({int scriptureIndex, int elapsedMs, int mistakeCount})>
-      submittedWbFinishes = [];
+      submittedSbFinishes = [];
   int advanceCalls = 0;
   int endCalls = 0;
 
@@ -100,7 +100,7 @@ class _FakeGroupPlayService extends GroupPlayService {
   @override
   Future<GroupRoom> advanceQuestion(GroupRoom room) async {
     advanceCalls++;
-    final wb = room.scope.wordBuilderConfig;
+    final wb = room.scope.scriptureBuilderConfig;
     final total = wb?.scriptureIds.length ?? 0;
     final next = room.currentQuestionIndex + 1;
     if (next >= total) {
@@ -121,20 +121,20 @@ class _FakeGroupPlayService extends GroupPlayService {
   }
 
   @override
-  Future<GroupWbFinish> submitWbFinish({
+  Future<GroupSbFinish> submitSbFinish({
     required GroupRoom room,
     required GroupPlayer player,
     required int scriptureIndex,
     required int elapsedMs,
     required int mistakeCount,
   }) async {
-    submittedWbFinishes.add((
+    submittedSbFinishes.add((
       scriptureIndex: scriptureIndex,
       elapsedMs: elapsedMs,
       mistakeCount: mistakeCount,
     ));
-    final finish = GroupWbFinish(
-      id: 'fin-${submittedWbFinishes.length}',
+    final finish = GroupSbFinish(
+      id: 'fin-${submittedSbFinishes.length}',
       roomId: room.id,
       playerId: player.id,
       scriptureIndex: scriptureIndex,
@@ -143,7 +143,7 @@ class _FakeGroupPlayService extends GroupPlayService {
       completedAt: DateTime.now(),
     );
     finishes = [...finishes, finish];
-    _wbFinishesController.add(finishes);
+    _sbFinishesController.add(finishes);
     return finish;
   }
 
@@ -167,9 +167,9 @@ class _FakeGroupPlayService extends GroupPlayService {
   }
 
   @override
-  Stream<List<GroupWbFinish>> watchWbFinishes(String roomId) {
-    Future.microtask(() => _wbFinishesController.add(finishes));
-    return _wbFinishesController.stream;
+  Stream<List<GroupSbFinish>> watchSbFinishes(String roomId) {
+    Future.microtask(() => _sbFinishesController.add(finishes));
+    return _sbFinishesController.stream;
   }
 
   @override
@@ -180,14 +180,14 @@ class _FakeGroupPlayService extends GroupPlayService {
   }
 }
 
-GroupRoomScope _wbScope({GroupWbPlayMode mode = GroupWbPlayMode.roundByRound}) {
+GroupRoomScope _sbScope({GroupSbPlayMode mode = GroupSbPlayMode.roundByRound}) {
   return GroupRoomScope(
-    mode: GroupGameMode.wordBuilder,
+    mode: GroupGameMode.scriptureBuilder,
     difficultyName: 'beginner',
     scriptureIds: ['1', '2', '3'],
     questionCount: 3,
-    wordBuilderConfig: GroupWbConfig(
-      chunkDifficulty: GroupWbChunkDifficulty.beginner,
+    scriptureBuilderConfig: GroupSbConfig(
+      chunkDifficulty: GroupSbChunkDifficulty.beginner,
       playMode: mode,
       scriptureIds: const ['1', '2', '3'],
     ),
@@ -210,16 +210,16 @@ void main() {
 
   tearDown(() => container.dispose());
 
-  group('GroupPlayState wbFinishes / wbConfig defaults', () {
-    test('initial state has empty wbFinishes + null wbConfig', () {
+  group('GroupPlayState sbFinishes / sbConfig defaults', () {
+    test('initial state has empty sbFinishes + null sbConfig', () {
       final s = container.read(groupPlayProvider);
-      expect(s.wbFinishes, isEmpty);
-      expect(s.wbConfig, isNull);
+      expect(s.sbFinishes, isEmpty);
+      expect(s.sbConfig, isNull);
     });
   });
 
-  group('hostCreateRoom resolves wbConfig and primes wbFinishes', () {
-    test('quiz mode leaves wbConfig null', () async {
+  group('hostCreateRoom resolves sbConfig and primes sbFinishes', () {
+    test('quiz mode leaves sbConfig null', () async {
       await container.read(groupPlayProvider.notifier).hostCreateRoom(
             scope: const GroupRoomScope(
               difficultyName: 'beginner',
@@ -228,80 +228,80 @@ void main() {
             hostNickname: 'Coach',
           );
       final s = container.read(groupPlayProvider);
-      expect(s.wbConfig, isNull);
-      expect(s.wbFinishes, isEmpty);
+      expect(s.sbConfig, isNull);
+      expect(s.sbFinishes, isEmpty);
     });
 
-    test('wordBuilder mode populates wbConfig from scope', () async {
+    test('scriptureBuilder mode populates sbConfig from scope', () async {
       await container.read(groupPlayProvider.notifier).hostCreateRoom(
-            scope: _wbScope(),
+            scope: _sbScope(),
             hostNickname: 'Coach',
           );
       final s = container.read(groupPlayProvider);
-      expect(s.wbConfig, isNotNull);
-      expect(s.wbConfig!.scriptureIds, ['1', '2', '3']);
-      expect(s.wbConfig!.playMode, GroupWbPlayMode.roundByRound);
+      expect(s.sbConfig, isNotNull);
+      expect(s.sbConfig!.scriptureIds, ['1', '2', '3']);
+      expect(s.sbConfig!.playMode, GroupSbPlayMode.roundByRound);
     });
   });
 
-  group('submitWbFinish', () {
+  group('submitSbFinish', () {
     test('forwards arguments to service', () async {
-      // Bootstrap a WB room + simulate the host as the local player.
+      // Bootstrap a SB room + simulate the host as the local player.
       final notifier = container.read(groupPlayProvider.notifier);
       await notifier.hostCreateRoom(
-        scope: _wbScope(),
+        scope: _sbScope(),
         hostNickname: 'Coach',
       );
-      await notifier.submitWbFinish(
+      await notifier.submitSbFinish(
         scriptureIndex: 0,
         elapsedMs: 6200,
         mistakeCount: 1,
       );
-      expect(fake.submittedWbFinishes, hasLength(1));
-      expect(fake.submittedWbFinishes.first.scriptureIndex, 0);
-      expect(fake.submittedWbFinishes.first.elapsedMs, 6200);
-      expect(fake.submittedWbFinishes.first.mistakeCount, 1);
+      expect(fake.submittedSbFinishes, hasLength(1));
+      expect(fake.submittedSbFinishes.first.scriptureIndex, 0);
+      expect(fake.submittedSbFinishes.first.elapsedMs, 6200);
+      expect(fake.submittedSbFinishes.first.mistakeCount, 1);
     });
 
     test('dedup: same (player, scriptureIndex) does not re-submit', () async {
       final notifier = container.read(groupPlayProvider.notifier);
       await notifier.hostCreateRoom(
-        scope: _wbScope(),
+        scope: _sbScope(),
         hostNickname: 'Coach',
       );
-      await notifier.submitWbFinish(
+      await notifier.submitSbFinish(
         scriptureIndex: 0,
         elapsedMs: 6200,
         mistakeCount: 0,
       );
-      // Drain microtasks so the watchWbFinishes stream delivers the row.
+      // Drain microtasks so the watchSbFinishes stream delivers the row.
       await Future<void>.delayed(Duration.zero);
-      await notifier.submitWbFinish(
+      await notifier.submitSbFinish(
         scriptureIndex: 0,
         elapsedMs: 7100,
         mistakeCount: 2,
       );
-      expect(fake.submittedWbFinishes, hasLength(1));
+      expect(fake.submittedSbFinishes, hasLength(1));
     });
 
     test('different scripture indices both submit', () async {
       final notifier = container.read(groupPlayProvider.notifier);
       await notifier.hostCreateRoom(
-        scope: _wbScope(),
+        scope: _sbScope(),
         hostNickname: 'Coach',
       );
-      await notifier.submitWbFinish(
+      await notifier.submitSbFinish(
         scriptureIndex: 0,
         elapsedMs: 6200,
         mistakeCount: 0,
       );
       await Future<void>.delayed(Duration.zero);
-      await notifier.submitWbFinish(
+      await notifier.submitSbFinish(
         scriptureIndex: 1,
         elapsedMs: 8100,
         mistakeCount: 1,
       );
-      expect(fake.submittedWbFinishes, hasLength(2));
+      expect(fake.submittedSbFinishes, hasLength(2));
     });
   });
 
@@ -309,7 +309,7 @@ void main() {
     test('aliases hostAdvanceQuestion — increments index', () async {
       final notifier = container.read(groupPlayProvider.notifier);
       await notifier.hostCreateRoom(
-        scope: _wbScope(),
+        scope: _sbScope(),
         hostNickname: 'Coach',
       );
       // Start so the room enters active with index 0.
@@ -324,7 +324,7 @@ void main() {
     test('past the last scripture transitions to viewingResults', () async {
       final notifier = container.read(groupPlayProvider.notifier);
       await notifier.hostCreateRoom(
-        scope: _wbScope(),
+        scope: _sbScope(),
         hostNickname: 'Coach',
       );
       await notifier.hostStartGame();
@@ -338,15 +338,15 @@ void main() {
     });
   });
 
-  group('wbFinishes stream propagates to state', () {
-    test('watchWbFinishes updates state.wbFinishes', () async {
+  group('sbFinishes stream propagates to state', () {
+    test('watchSbFinishes updates state.sbFinishes', () async {
       final notifier = container.read(groupPlayProvider.notifier);
       await notifier.hostCreateRoom(
-        scope: _wbScope(),
+        scope: _sbScope(),
         hostNickname: 'Coach',
       );
       // Submit one finish via the fake (mimics another player finishing).
-      final dummy = GroupWbFinish(
+      final dummy = GroupSbFinish(
         id: 'fin-x',
         roomId: 'room-1',
         playerId: 'other-player',
@@ -356,11 +356,11 @@ void main() {
         completedAt: DateTime.now(),
       );
       fake.finishes = [dummy];
-      fake._wbFinishesController.add(fake.finishes);
+      fake._sbFinishesController.add(fake.finishes);
       // Let the stream listener run.
       await Future<void>.delayed(Duration.zero);
-      expect(container.read(groupPlayProvider).wbFinishes, hasLength(1));
-      expect(container.read(groupPlayProvider).wbFinishes.first.id, 'fin-x');
+      expect(container.read(groupPlayProvider).sbFinishes, hasLength(1));
+      expect(container.read(groupPlayProvider).sbFinishes.first.id, 'fin-x');
     });
   });
 }

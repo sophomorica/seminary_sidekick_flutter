@@ -218,7 +218,7 @@ You will receive a JSON snapshot of the student's current progress. Based on thi
   "quickWin": {
     "suggestion": "A specific, do-it-right-now action (1 sentence)",
     "scriptureId": "42",
-    "actionType": "review|practice|wordBuilder|reflect"
+    "actionType": "review|practice|scriptureBuilder|reflect"
   },
   "timelineInsight": "An observation about their progress trajectory (1-2 sentences)",
   "reminder": "A gentle nudge about something they might be neglecting",
@@ -264,7 +264,7 @@ Guidelines:
 - Keep responses concise (2-4 paragraphs max unless they ask for more).
 - When discussing a scripture, help them understand its context, doctrine, and personal application.
 - If they ask about a scripture's meaning, use Socratic questions before giving direct answers.
-- You can suggest specific study actions (e.g., "Try Word Builder on this passage").
+- You can suggest specific study actions (e.g., "Try Scripture Builder on this passage").
 - Be honest if you're unsure about something.
 - Stay focused on the Doctrinal Mastery scriptures and related gospel topics.
 ''';

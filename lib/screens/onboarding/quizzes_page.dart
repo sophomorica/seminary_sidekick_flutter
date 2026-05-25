@@ -37,7 +37,7 @@ class PracticeQuizzesPage extends StatelessWidget {
           const SizedBox(height: AppTheme.spacingMd),
           Text(
             'Two supplementary quizzes help sharpen your recognition '
-            'and comprehension — but Word Builder is where mastery is earned.',
+            'and comprehension — but Scripture Builder is where mastery is earned.',
             style: theme.textTheme.bodyLarge?.copyWith(
               color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.7),
             ),

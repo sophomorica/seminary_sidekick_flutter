@@ -9,11 +9,11 @@
 
 A focused scripture mastery tool for the 100 Doctrinal Mastery scriptures of The Church of Jesus Christ of Latter-day Saints.
 
-The core loop is **Study → Build → Prove → Master**. Users study the text, then use **Word Builder** (the primary mastery tool) to progressively prove they can reproduce it from memory. Supplementary practice tools (Scripture Match, Quick Quiz) help with recognition and comprehension but do not gate mastery.
+The core loop is **Study → Build → Prove → Master**. Users study the text, then use **Scripture Builder** (the primary mastery tool) to progressively prove they can reproduce it from memory. Supplementary practice tools (Scripture Match, Quick Quiz) help with recognition and comprehension but do not gate mastery.
 
-**Key UX principle**: The path to mastery must be obvious. When a user opens a scripture, they should immediately see where they are on the mastery path, what to do next, and what “mastered” means. Word Builder lives directly under each scripture as the central mastery tool.
+**Key UX principle**: The path to mastery must be obvious. When a user opens a scripture, they should immediately see where they are on the mastery path, what to do next, and what “mastered” means. Scripture Builder lives directly under each scripture as the central mastery tool.
 
-**Landing principle**: The app should open to **"Let's Learn / Let's Play"** — not a dashboard. Home is the jumping-off point to study and practice. Stats, progress rings, and long descriptions belong on the Stats tab, not on the first thing a kid sees. Keep Home punchy: pick up where you left off, start a quick quiz, launch Word Builder. The dashboard view is reachable via the Stats tab for users who want it.
+**Landing principle**: The app should open to **"Let's Learn / Let's Play"** — not a dashboard. Home is the jumping-off point to study and practice. Stats, progress rings, and long descriptions belong on the Stats tab, not on the first thing a kid sees. Keep Home punchy: pick up where you left off, start a quick quiz, launch Scripture Builder. The dashboard view is reachable via the Stats tab for users who want it.
 
 **Design philosophy**: Fun first with warm, satisfying feedback (animations, haptics, confetti, progressive difficulty). The experience is reverent and purposeful while remaining engaging for seminary students. The primary success metrics are **engagement with friends and mastery retention** — we want kids to come back on their own AND invite their seminary group to play together.
 
@@ -22,7 +22,7 @@ Premium features focus on deeper understanding and application through AI-genera
 
 **Business model**: Freemium.
 
-- **Free tier** = Full mastery loop (Word Builder, Practice tools, spaced repetition, progress tracking, activity feed).
+- **Free tier** = Full mastery loop (Scripture Builder, Practice tools, spaced repetition, progress tracking, activity feed).
 - **Premium tier** = Seminary Sidekick AI (JSON snapshot → structured response), journal with dynamic prompts, curriculum awareness, gentle reminders, and light engagement layers.
 
 ---
@@ -64,7 +64,7 @@ lib/
 │ ├── scripture_mastery_provider.dart
 │ ├── mastery_dates_provider.dart
 │ ├── matching_game_provider.dart
-│ ├── word_builder_provider.dart
+│ ├── scripture_builder_provider.dart
 │ ├── quiz_game_provider.dart
 │ ├── notes_provider.dart
 │ ├── sidekick_provider.dart # Main AI orchestration
@@ -103,15 +103,15 @@ lib/
 │ ├── onboarding/
 │ │ ├── onboarding_screen.dart # PageView orchestrator with skip/dots
 │ │ ├── welcome_page.dart # Welcome page
-│ │ ├── word_builder_page.dart # Word Builder intro + tier rows
+│ │ ├── scripture_builder_page.dart # Scripture Builder intro + tier rows
 │ │ ├── mastery_page.dart # Mastery path explanation
 │ │ └── quizzes_page.dart # Practice quizzes intro + quiz cards
 │ ├── games/
 │ │ ├── matching_game_screen.dart
 │ │ ├── quiz_game_screen.dart
 │ │ ├── game_results_screen.dart
-│ │ └── word_builder/
-│ │ └── word_builder_screen.dart # Primary mastery tool (all 4 difficulties)
+│ │ └── scripture_builder/
+│ │ └── scripture_builder_screen.dart # Primary mastery tool (all 4 difficulties)
 │ ├── scripture_list_screen.dart
 │ ├── memorize_screen.dart
 │ ├── practice_hub_screen.dart
@@ -158,31 +158,31 @@ Storage key format: `{scriptureId}_{gameType.name}`
 
 - **ScriptureBook**: 4 values with `displayName` and `abbreviation`
 - **MasteryLevel**: newScripture → learning → familiar → memorized → mastered → eternal (with color, icon, minAccuracy)
-- **GameType**: matching, wordOrder, quiz (with displayName, description, icon) — note: "GameType" is a legacy name in code; conceptually wordOrder=mastery tool, matching/quiz=practice quizzes
+- **GameType**: matching, scriptureBuilder, quiz (with displayName, description, icon) — note: "GameType" is a legacy name in code; conceptually scriptureBuilder=mastery tool, matching/quiz=practice quizzes
 - **DifficultyLevel**: beginner → intermediate → advanced → master (with scriptureCount, hasTimer, allowRetry, extraDistractors)
 
 ### Mastery System
 
-Mastery is driven entirely by Word Builder progression:
+Mastery is driven entirely by Scripture Builder progression:
 
-- **New** (gray): Haven't started Word Builder
-- **Learning** (orange): Completed WB Beginner
-- **Familiar** (yellow): Completed WB Intermediate
-- **Memorized** (green): Completed WB Advanced
-- **Mastered** (blue): 3 consecutive perfect WB Master completions
+- **New** (gray): Haven't started Scripture Builder
+- **Learning** (orange): Completed SB Beginner
+- **Familiar** (yellow): Completed SB Intermediate
+- **Memorized** (green): Completed SB Advanced
+- **Mastered** (blue): 3 consecutive perfect SB Master completions
 - **Eternal** (gold): Sustained Mastered for 6 months (permanent, never decays)
 
 **Shortcut**: If you can nail Master difficulty without doing lower tiers, you've proven it. (Planned — TASK-031.)
 
 **Gentle decay**: 14+ days → "Needs Review" flag. 30+ days → drops one tier. Floor at Familiar. Eternal never decays.
 
-**Why only Word Builder?** It's the only tool that tests _production_ — can you produce the words from memory? Match/Quiz test recognition (different cognitive skill). You haven't "mastered" a scripture until you can type it cold.
+**Why only Scripture Builder?** It's the only tool that tests _production_ — can you produce the words from memory? Match/Quiz test recognition (different cognitive skill). You haven't "mastered" a scripture until you can type it cold.
 
 ---
 
-## Mastery Tool: Word Builder
+## Mastery Tool: Scripture Builder
 
-Word Builder is the PRIMARY mastery tool. It lives under each scripture (accessed from scripture detail), not in the quizzes/games hub. It's how you prove you know a scripture. The four difficulty tiers map directly to mastery levels:
+Scripture Builder is the PRIMARY mastery tool. It lives under each scripture (accessed from scripture detail), not in the quizzes/games hub. It's how you prove you know a scripture. The four difficulty tiers map directly to mastery levels:
 
 - **Beginner** (chunk-tap): 3-word chunks, tap in order → earns **Learning** mastery
 - **Intermediate** (chunk-tap): 2-word chunks + distractors from other scriptures → earns **Familiar** mastery
@@ -228,9 +228,9 @@ The user will manually source/record the real audio and drop it in next to the `
 | ------------- | ------------------- | --------------------------- |
 | Files         | `snake_case.dart`   | `matching_game_screen.dart` |
 | Classes       | `PascalCase`        | `MatchingGameScreen`        |
-| Providers     | `camelCaseProvider` | `wordBuilderProvider`       |
-| Notifiers     | `[Feature]Notifier` | `WordBuilderNotifier`       |
-| State classes | `[Feature]State`    | `WordBuilderState`          |
+| Providers     | `camelCaseProvider` | `scriptureBuilderProvider`       |
+| Notifiers     | `[Feature]Notifier` | `ScriptureBuilderNotifier`       |
+| State classes | `[Feature]State`    | `ScriptureBuilderState`          |
 
 ### Theme — Never Hardcode Colors or Text Styles
 
@@ -291,7 +291,7 @@ Read-only providers use `Provider` or `Provider.family`.
 
 `ConsumerStatefulWidget` with `TickerProviderStateMixin`. Start game in `postFrameCallback`. Use `ref.listen()` for state transitions. Timer + shake/pulse animation controllers + haptic feedback on every action. Exit confirmation dialog. Navigate to shared `GameResultsScreen` via `Navigator.pushReplacement`.
 
-Word Builder follows this same pattern but is launched from scripture detail, not the practice hub.
+Scripture Builder follows this same pattern but is launched from scripture detail, not the practice hub.
 
 ### Navigation
 
@@ -322,7 +322,7 @@ ref.watch(scripturesProvider)                          // All scriptures
 ref.watch(scripturesByBookProvider('oldTestament'))     // By book
 ref.watch(scriptureByIdProvider('42'))                  // By ID
 ref.watch(searchScripturesProvider('nephi'))            // Search
-ref.watch(scriptureMasteryProvider('42'))               // Holistic mastery (Word Builder-driven)
+ref.watch(scriptureMasteryProvider('42'))               // Holistic mastery (Scripture Builder-driven)
 ref.watch(holisticStatsProvider)                        // Aggregate mastery stats
 ref.watch(masteryLevelProvider(('42', GameType.matching)))  // Per-game mastery (legacy, still used by game screens)
 ref.watch(userStatsProvider)                            // Overall stats
@@ -357,7 +357,7 @@ ref.read(sidekickProvider.notifier).sendMessage(text)  // Chat message
 4. Update `TODO.md`
 5. Ensure `GameType` enum entry exists in `enums.dart`
 
-**Note**: Word Builder is NOT a quiz — it's the mastery tool and lives under scripture detail. Only supplementary practice tools go in the practice hub.
+**Note**: Scripture Builder is NOT a quiz — it's the mastery tool and lives under scripture detail. Only supplementary practice tools go in the practice hub.
 
 ## Adding a New Provider — Checklist
 
@@ -435,7 +435,7 @@ test/
 │   ├── scripture_provider_test.dart
 │   ├── progress_provider_test.dart  # Includes consecutivePerfectMaster tracking tests
 │   ├── matching_game_provider_test.dart
-│   └── word_builder_provider_test.dart
+│   └── scripture_builder_provider_test.dart
 ├── screens/
 │   └── (widget tests — lower priority)
 └── helpers/
@@ -445,7 +445,7 @@ test/
 ### Test Priorities
 
 1. **Models** (fast, no deps): word splitting, verse stripping, difficulty tiers, copyWith, equality, enum values
-2. **Scripture mastery model** (core mastery logic): linear path levels, Word Builder-driven computation, gentle decay, Eternal tier, sub-progress, requirements generation
+2. **Scripture mastery model** (core mastery logic): linear path levels, Scripture Builder-driven computation, gentle decay, Eternal tier, sub-progress, requirements generation
 3. **Progress provider** (core business logic): recordAttempt, accuracy, streaks, mastery thresholds, game type isolation, consecutivePerfectMaster tracking
 4. **Scripture provider** (read-only queries): all 100 scriptures, by book, by ID, search
 5. **Matching game provider**: game init, selection, matching, completion, star rating
@@ -530,7 +530,7 @@ flutter run              # Run app
 **Free-tier MVP** (completed 2026-04-06):
 
 - All core tasks done.
-- UX restructure complete: Word Builder is the hero on scripture detail.
+- UX restructure complete: Scripture Builder is the hero on scripture detail.
 
 **Freemium infrastructure** (completed 2026-04-06):
 
