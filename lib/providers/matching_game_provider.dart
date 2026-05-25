@@ -119,16 +119,26 @@ class MatchingGameNotifier extends StateNotifier<MatchingGameState> {
   ///
   /// [bookFilters] is the preferred multi-select filter (empty = all books).
   /// [bookFilter] is the legacy single-select filter kept for backward compat.
+  ///
+  /// [targetPairCount] overrides the per-difficulty default
+  /// (`difficulty.matchingScriptureCount`). Used by the shared scope picker
+  /// when the user opts into "Every scripture in scope". When [scriptures]
+  /// is supplied directly, the explicit list always wins.
   void startGame({
     required DifficultyLevel difficulty,
     ScriptureBook? bookFilter,
     List<ScriptureBook> bookFilters = const [],
     List<Scripture>? scriptures,
+    int? targetPairCount,
   }) {
     // Use provided scriptures or select from pool
     List<Scripture> selected;
     if (scriptures != null && scriptures.isNotEmpty) {
       selected = List.from(scriptures);
+      if (targetPairCount != null && targetPairCount < selected.length) {
+        selected.shuffle(_random);
+        selected = selected.take(targetPairCount).toList();
+      }
     } else {
       List<Scripture> available = List.from(allScriptures);
 
@@ -144,9 +154,12 @@ class MatchingGameNotifier extends StateNotifier<MatchingGameState> {
 
       // Use matching-specific counts (null = all available)
       final matchCount = difficulty.matchingScriptureCount;
-      final count = matchCount == null
+      final defaultCount = matchCount == null
           ? available.length
           : min(matchCount, available.length);
+      final count = targetPairCount == null
+          ? defaultCount
+          : min(targetPairCount, available.length);
       selected = available.take(count).toList();
     }
 

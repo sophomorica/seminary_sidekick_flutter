@@ -8,7 +8,9 @@
 
 ---
 
-## Completed — Free-Tier MVP (2026-03-19 → 2026-04-06)
+## Completed Tasks (summary — see git history for details)
+
+### Free-Tier MVP (2026-03-19 → 2026-04-06)
 
 | Task | What | Completed |
 |------|------|-----------|
@@ -18,14 +20,14 @@
 | TASK-004 | Per-scripture notes (Hive-backed) | 2026-03-23 |
 | TASK-005 | Sound effects & audio feedback | 2026-03-30 |
 | TASK-006 | Confetti celebrations | 2026-03-23 |
-| TASK-007 | Practice from scripture detail (single-scripture sessions) | 2026-03-30 |
+| TASK-007 | Practice from scripture detail | 2026-03-30 |
 | TASK-008 | Speech-to-text for Master typing | 2026-03-30 |
 | TASK-009 | Spaced repetition (SM-2) | 2026-04-06 |
 | TASK-010 | Recent activity feed | 2026-04-06 |
 | TASK-011 | Game-specific difficulty descriptions | 2026-03-28 |
 | TASK-012 | Dark mode | 2026-03-30 |
 | TASK-013 | Onboarding — mastery path tutorial | 2026-04-06 |
-| TASK-020 | Test infrastructure (mockito, fake_async, helpers) | 2026-03-28 |
+| TASK-020 | Test infrastructure | 2026-03-28 |
 | TASK-021 | Model unit tests | 2026-03-30 |
 | TASK-022 | Progress provider tests | 2026-03-30 |
 | TASK-023 | Scripture provider tests | 2026-03-30 |
@@ -39,315 +41,84 @@
 | TASK-031 | Mastery shortcut — prove it at Master, skip the ladder | 2026-04-06 |
 | TASK-032 | Rename Games Hub → Practice/Quizzes | 2026-04-06 |
 
----
+### Premium Tier / Seminary Sidekick AI (2026-04-06 → 2026-04-07)
 
-## Premium Tier — Paid Features (Freemium Model)
+| Task | What | Completed |
+|------|------|-----------|
+| TASK-033 | Freemium infrastructure (SubscriptionProvider, UpgradeScreen, PremiumTeaser, RevenueCat wiring) | 2026-04-06 |
+| TASK-034 | Sidekick AI core service — Grok integration, snapshot/response models, chat, offline fallback | 2026-04-06 |
+| TASK-035 | AI-powered journal & dynamic reflection prompts | 2026-04-07 |
+| TASK-036 | AI-driven goals, timeline & gentle reminders | 2026-04-07 |
+| TASK-037 | "Ask Your Sidekick" chat screen | 2026-04-07 |
+| TASK-038 | Premium polish — voice-to-journal, export, family sharing | 2026-04-07 |
+| TASK-039 | Premium teaser placements (home, scripture detail, onboarding) | 2026-04-06 |
+| TASK-040 | Subtle engagement enhancements (quick wins, nearly-mastered nudges) | 2026-04-07 |
 
-> **Vision**: The free tier delivers the complete Word Builder-centric mastery journey with engaging feedback loops.  
-> The **Premium tier** unlocks the **Seminary Sidekick** — an AI companion powered by Grok that helps students move from memorization to true mastery (find, understand, and apply).  
-> On app open, Premium users send a JSON snapshot of their progress to the Sidekick. The Sidekick responds with structured JSON that triggers personalized prompts, goals, timeline updates, and gentle reminders — making diligent effort feel natural and rewarding.
+### Deployment Readiness (2026-04-11)
 
-### TASK-033: Freemium Infrastructure & Subscription Basics
+| Task | What | Completed |
+|------|------|-----------|
+| TASK-041 | Settings screen, UserPreferences provider, study streak, dynamic greeting | 2026-04-11 |
+| TASK-042 | Wire theme toggle (reads from `themeProvider`) | 2026-04-11 |
+| TASK-043 | Wire text size / font scale via `MaterialApp.builder` + `MediaQuery` | 2026-04-11 |
+| TASK-044 | HapticService routes all haptics through preference toggle | 2026-04-11 |
 
-- **status**: `done`
-- **priority**: P0
-- **estimated_effort**: Medium
-- **claimed_by**: claude-opus-agent
-- **started**: 2026-04-06T00:00:00Z
-- **completed**: 2026-04-06T00:30:00Z
-- **files_to_touch**: NEW `lib/providers/subscription_provider.dart`, `lib/app.dart`, `lib/main.dart`, `lib/screens/upgrade_screen.dart`, `lib/widgets/premium_teaser.dart`, `lib/theme/app_theme.dart`, pubspec.yaml
-- **description**: Clean freemium model. All existing mastery tools remain completely free. Premium unlocks the Seminary Sidekick features.
-- **acceptance_criteria**:
-  - [x] Subscription state managed via Riverpod with graceful free-tier fallbacks
-  - [x] RevenueCat integration for monthly/yearly plans
-  - [x] Tasteful upgrade prompts at natural moments
-  - [x] Free tier remains generous and untouched
-- **depends_on**: —
-- **notes**:
-  - `SubscriptionNotifier` follows the same pattern as `ThemeNotifier` / `OnboardingNotifier` (Hive-backed StateNotifier with `init()`)
-  - RevenueCat `purchases_flutter: ^8.1.0` added to pubspec; integration points are marked with TODO comments for when API keys are configured
-  - Upgrade prompts are rate-limited: max 1/day, backs off after 3 dismissals
-  - Three widget options for upgrade prompts: `PremiumTeaser` (card), `PremiumInlineLink` (subtle text), `PremiumGate` (swap premium content vs teaser)
-  - `/upgrade` route added to GoRouter for full-screen upgrade experience
-  - Premium colors added to AppTheme (premiumGold, premiumGoldLight, gradient pair)
-  - Free tier is completely untouched — all premium checks default to free gracefully
+### Post-MVP Home Reorientation (2026-05-05)
 
-### TASK-034: Seminary Sidekick AI Core Service (Grok Integration)
+| Task | What | Completed |
+|------|------|-----------|
+| TASK-046 | Reorient Home to "Let's Learn / Let's Play" — dashboard moved to Stats tab, resume hero card with mastery pip indicator (new `lib/providers/resume_target_provider.dart`). Stale section files (`book_collections_section.dart`, `nearly_mastered_section.dart`, `quick_sessions_section.dart`, `premium_home_section.dart`, `stats_section.dart`) left untouched — future cleanup. | 2026-05-05 |
 
-- **status**: `done`
-- **claimed_by**: claude-opus-agent
-- **started**: 2026-04-06T01:00:00Z
-- **completed**: 2026-04-06T02:00:00Z
-- **priority**: P0
-- **estimated_effort**: Large
-- **files_to_touch**: NEW `lib/services/sidekick_service.dart`, NEW `lib/providers/sidekick_provider.dart`, NEW `lib/models/sidekick_snapshot.dart`, NEW `lib/models/sidekick_response.dart`, `lib/main.dart`
-- **description**: Core service that connects to Grok (xAI API). On app open (for premium users), it sends a JSON snapshot of user data and receives structured JSON to trigger app behavior.
-- **acceptance_criteria**:
-  - [x] On premium app launch: automatically create and send JSON snapshot (mastery progress, current scriptures, goals, seminary curriculum week, recent activity)
-  - [x] AI responds with structured JSON that the app can parse (daily prompt, suggested goal, timeline insight, reminder, quick-win suggestion, etc.)
-  - [x] System prompt trains the Sidekick to act as a thoughtful seminary tutor (reverent, Socratic, focused on understand + apply + ACT principles)
-  - [x] Chat interface can send direct messages to the same Sidekick
-  - [x] Backend proxy recommended for API key safety and prompt control
-  - [x] Graceful offline fallback with cached responses
-- **depends_on**: TASK-033
-- **notes**:
-  - SidekickService uses dart:io HttpClient → xAI API (grok-3-mini). API key via --dart-define; production uses backend proxy.
-  - SidekickNotifier builds snapshot from existing providers, sends to Grok, caches in Hive.
-  - Chat: conversation history + snapshot context, last 20 messages.
-  - Offline fallback: cached response + hardcoded SidekickResponse.offlineFallback().
-  - Non-blocking init in main.dart.
-  - Convenience providers: dailyPromptProvider, quickWinProvider, reflectionPromptsProvider, chatHistoryProvider, isChatLoadingProvider.
+### Group Play Phase 1–3 (2026-05-07 → 2026-05-25)
 
-### TASK-035: AI-Powered Journal & Dynamic Reflection Prompts
+| Task | What | Completed |
+|------|------|-----------|
+| TASK-051 (code) | Supabase migrations + RLS + realtime + SUPABASE_SETUP.md — **dashboard verification step still open, see Active** | code 2026-05-07 |
+| TASK-052 | Group play foundation — models, GroupPlayService, GroupPlayNotifier, route stubs, Supabase init in `main.dart`, `quiz_question_factory.dart` extraction | 2026-05-07 |
+| TASK-053 | Host lobby screen (setup view + lobby view, 4-letter code, QR, live roster, kick, start) | 2026-05-07 |
+| TASK-054 | Join lobby screen (code+nickname entry, error banner, waiting view, auto-nav on phase) | 2026-05-07 |
+| TASK-055 | Live group quiz screen (host/player views, countdown, leaderboard with rank deltas, confetti) | 2026-05-07 |
+| TASK-056 | Group results screen (podium, leaderboard, share, Play Again reuses scope) | 2026-05-07 |
+| TASK-057 | Practice Hub & Home entry points for group play | 2026-05-07 |
+| TASK-060 | Nickname profanity filter (`NicknameValidator`, l33t normalization, 51-word seed list, 20 unit tests) | 2026-05-07 |
 
-- **status**: `done`
-- **priority**: P1
-- **estimated_effort**: Medium
-- **claimed_by**: claude-opus-agent
-- **started**: 2026-04-07T00:00:00Z
-- **completed**: 2026-04-07T01:00:00Z
-- **files_to_touch**: NEW `lib/screens/journal_screen.dart`, NEW `lib/providers/journal_provider.dart`, NEW `lib/models/journal_entry.dart`, `lib/app.dart`, `lib/main.dart`, `lib/screens/home_screen.dart`, `lib/screens/scripture_detail_screen.dart`
-- **description**: Premium journal where the Sidekick generates prompts and can pre-seed entries.
-- **acceptance_criteria**:
-  - [x] Sidekick suggests 1–3 thoughtful reflection prompts based on the user's snapshot
-  - [x] Prompts encourage personal application, teaching others, cause-and-effect, etc.
-  - [x] Easy “Reflect Now” buttons throughout the app
-  - [x] Rich-text entries with scripture tagging
-- **depends_on**: TASK-034
-- **notes**:
-  - JournalEntry model: id, title, content, scriptureIds, scriptureReferences, prompt, createdAt, updatedAt, isFavorite. Factory `create()` for new entries, `fromJson`/`toJson` for Hive.
-  - JournalNotifier: Hive-backed CRUD with `init()`, `createEntry()`, `editEntry()`, `saveEntry()`, `toggleFavorite()`, `deleteEntry()`, `closeEditor()`. Auto-generates titles from content or prompt.
-  - JournalScreen: List view with AI reflection prompt cards + entry cards. Editor view with title/content fields, scripture tag picker (bottom sheet), and AI prompt display. Free users see premium teaser; premium users get full experience.
-  - Reflection prompts: Consumed from `reflectionPromptsProvider` (sidekick_provider), displayed as gold-tinted cards with “Reflect Now” buttons.
-  - “Reflect Now” entry points: Home screen card (first reflection prompt → opens journal editor), scripture detail inline link (“Reflect on this verse in your journal” → opens journal with scripture pre-tagged).
-  - Journal tab added to bottom nav (4th tab, between Practice and Progress).
-  - Convenience providers: journalEntriesProvider, activeJournalEntryProvider, journalEntriesByScriptureProvider, favoriteJournalEntriesProvider, journalEntryCountProvider, currentReflectionPromptsProvider.
+### Phase 5a — Shared scope picker (2026-05-25)
 
-### TASK-036: AI-Driven Goals, Timeline & Gentle Reminders
+| Task | What | Completed |
+|------|------|-----------|
+| TASK-047 | Shared `ScriptureScope` model + Hive-backed `scriptureScopeProvider` + `ScriptureScopePicker` widget. Wired into Practice Hub (Quick Quiz / Scripture Match open a setup sheet with difficulty + scope + question-count override) and group play host lobby (replaces the minimal book chips). `QuizGameNotifier.startGame` and `MatchingGameNotifier.startGame` now accept optional `targetQuestionCount` / `targetPairCount` for "Every scripture in scope". | 2026-05-25 |
+| TASK-049 | Dead `_selectedBooks` / `_selectedDifficulty` fields on Practice Hub quiz/match cards removed (absorbed by TASK-047). | 2026-05-25 |
 
-- **status**: `done`
-- **priority**: P1
-- **estimated_effort**: Medium
-- **claimed_by**: claude-opus-agent
-- **started**: 2026-04-07T00:00:00Z
-- **completed**: 2026-04-07T00:30:00Z
-- **files_to_touch**: NEW `lib/providers/goals_provider.dart`, extend `home_screen.dart`, `progress_screen.dart`, `sidekick_provider.dart`, `main.dart`
-- **description**: Goals, mastery timeline, and reminders are generated or influenced by the Sidekick based on the user's snapshot.
-- **acceptance_criteria**:
-  - [x] Sidekick can suggest realistic goals and timeline projections
-  - [x] Visual mastery timeline updated with AI insights
-  - [x] Gentle, encouraging reminders triggered from Sidekick responses
-- **depends_on**: TASK-034
-- **notes**:
-  - `GoalsNotifier` (Hive-backed StateNotifier) manages user goals with full CRUD: add, accept AI suggestion, complete, remove, dismiss reminder
-  - `Goal` model supports both user-created and AI-suggested goals (via `Goal.fromSidekickGoal()`)
-  - AI goal suggestions are rate-limited to 1/day and deduplicated against existing active goals
-  - `masteryProjectionProvider` computes timeline: prefers AI `timelineInsight` from Sidekick response, falls back to local pace-based projection
-  - Home screen (premium): Reminder banner (dismissable), Suggested Goal card (accept/dismiss), Active Goals list (tap circle to complete), Timeline Insight card
-  - Progress screen (premium): Full Goals & Timeline section with mastery timeline projection, active goals with completion, and recent completed goals history
-  - Goals are wired into `SidekickSnapshot.goals` so Grok sees the user's active goals and can suggest relevant next goals
-  - GoalsNotifier initialized in `main.dart` before Sidekick init so goals are available for snapshot building
-  - All widgets gracefully hidden for free-tier users (guarded by `isPremiumProvider`)
+### Phase 5b — Word Builder Race (2026-05-25)
 
-### TASK-037: “Ask Your Sidekick” Chat
-
-- **status**: `done`
-- **priority**: P1
-- **estimated_effort**: Medium
-- **claimed_by**: claude-opus-agent
-- **started**: 2026-04-07T00:00:00Z
-- **completed**: 2026-04-07T00:30:00Z
-- **files_to_touch**: NEW `lib/screens/sidekick_chat_screen.dart`, `lib/app.dart`, `lib/screens/scripture_detail_screen.dart`
-- **description**: Direct chat interface with the Seminary Sidekick.
-- **acceptance_criteria**:
-  - [x] Users can ask questions about any scripture or their progress
-  - [x] Chat sends messages to the same Grok-powered Sidekick (same system prompt)
-  - [x] Scripture references in responses are tappable
-  - [x] Entry point from scripture detail (“Ask Your Sidekick about this verse”)
-- **depends_on**: TASK-034
-- **notes**:
-  - Full chat screen with message bubbles (user right-aligned warm rust, sidekick left-aligned with gold avatar)
-  - Scripture references in AI responses are detected via regex and rendered as tappable links (accent blue, underlined) that navigate to scripture detail via GoRouter
-  - Empty state with suggestion chips (“Try asking...”) for onboarding
-  - Typing indicator with animated dots while waiting for AI response
-  - Error banner with dismissable error state
-  - Clear conversation option in app bar overflow menu
-  - Auto-sends initial context message when opened from scripture detail with `initialScriptureId`
-  - Auto-scroll on new messages via `ref.listen`
-  - Dark mode support throughout
-  - Route: `/sidekick-chat?scriptureId=X` added to GoRouter
-  - Premium users see functional “Ask your Sidekick about this verse” link on scripture detail; free users see PremiumInlineLink teaser (unchanged)
-
-### TASK-038: Premium Polish & Optional Enhancements
-
-- **status**: `done`
-- **priority**: P2
-- **estimated_effort**: Medium
-- **claimed_by**: claude-opus-agent
-- **started**: 2026-04-07T12:00:00Z
-- **completed**: 2026-04-07T12:30:00Z
-- **files_to_touch**: `lib/screens/journal_screen.dart`, `lib/services/journal_export_service.dart` (NEW), `pubspec.yaml`
-- **description**: Additional small enhancements.
-- **acceptance_criteria**:
-  - [x] Voice-to-journal (extend existing speech service)
-  - [x] Export journal entries
-  - [x] Optional safe family sharing of selected entries
-- **depends_on**: TASK-035
-- **notes**:
-  - **Voice-to-journal**: Mic FAB on journal editor uses existing `SpeechService`. Inserts dictated text at cursor position. Listening indicator bar with live partial text. Auto-stops after 30s timeout. Properly cleans up on dispose/back.
-  - **Export**: `JournalExportService` singleton formats entries as readable plain text. Single entry share via system share sheet. Bulk export as `.txt` file via `share_plus` + `path_provider`. Export button in editor app bar + "Export all" in list view menu.
-  - **Family sharing**: Safe sharing mode strips AI prompt metadata for privacy. Selection mode (long-press or menu) for multi-entry sharing. Personal note dialog before sharing. Family icon (family_restroom) in selection bar and per-entry context menu.
-  - Per-entry context menu (three-dot) replaces bare delete icon — now has Export, Share with Family, and Delete options.
-  - `share_plus: ^7.2.2` and `path_provider: ^2.1.2` added to pubspec.yaml.
-
-### TASK-039: Premium Teaser & Upgrade Experience
-
-- **status**: `done`
-- **priority**: P1
-- **estimated_effort**: Small
-- **claimed_by**: claude-opus-agent
-- **started**: 2026-04-06T01:00:00Z
-- **completed**: 2026-04-06T01:30:00Z
-- **files_to_touch**: `lib/screens/onboarding_screen.dart`, `lib/screens/home_screen.dart`, `lib/screens/scripture_detail_screen.dart`, `lib/widgets/premium_teaser.dart`
-- **description**: Natural introduction to the Seminary Sidekick.
-- **acceptance_criteria**:
-  - [x] Subtle upgrade moments after mastery wins or when opening journal
-  - [x] Clear value proposition focused on deeper understanding and application
-  - [x] Teasers are limited and dismissible
-- **depends_on**: TASK-033, TASK-013
-- **notes**:
-  - Home screen: PremiumTeaser card appears after stats when user has memorized/mastered scriptures (rate-limited via canShowUpgradePromptProvider)
-  - Scripture detail: PremiumInlineLink ("Ask your Sidekick about this verse") below notes; PremiumTeaser card in mastery section when user reaches Memorized+ level
-  - Onboarding: Subtle Seminary Sidekick AI mention on the final (Practice Quizzes) page — gold-bordered card with brief value prop
-  - All teasers respect existing rate-limiting (max 1/day, backs off after 3 dismissals) and hide for premium users
-
-### TASK-040: Subtle Engagement Enhancements
-
-- **status**: `done`
-- **priority**: P2
-- **estimated_effort**: Small-Medium
-- **claimed_by**: claude-opus-agent
-- **started**: 2026-04-07T00:00:00Z
-- **completed**: 2026-04-07T01:00:00Z
-- **files_to_touch**: extend `home_screen.dart`, `scripture_detail_screen.dart`, `sidekick_provider.dart`
-- **description**: Light layers on top of existing gamification that make spare-moment usage feel rewarding.
-- **acceptance_criteria**:
-  - [x] Sidekick suggests quick “next best win” sessions based on the snapshot
-  - [x] Gentle nudges for nearly-mastered scriptures
-  - [x] “Time-to-kill” style prompts on home screen
-  - [x] Everything ties back to reflection and the journal
-- **depends_on**: TASK-034, TASK-035
-- **notes**:
-  - `nextBestWinProvider`: Checks AI quick win first, falls back to locally computed nearly-mastered scriptures
-  - `nearlyMasteredScripturesProvider`: Finds scriptures with subProgress >= 0.6, sorted closest-to-leveling-up first
-  - `quickSessionPromptsProvider`: Up to 3 prompts combining AI quick win, nearly-mastered nudge, reflection prompt, and due reviews
-  - Home screen: “Got a minute?” section (premium) with quick session tiles + “Almost there” section (all users) with progress rings
-  - Scripture detail: Encouragement card + Scripture Connections card (premium)
-  - All new widgets tap through to scripture detail, Word Builder, or journal — tying back to reflection
+| Task | What | Completed |
+|------|------|-----------|
+| TASK-062 | Group Word Builder race (second group-play game type). `GroupGameMode.wordBuilder` + `GroupWbConfig` + `GroupWbFinish` models with backward-compat JSON; supabase migration `0005_group_wb_finishes.sql` with RLS + realtime; `GroupPlayService.submitWbFinish/watchWbFinishes/hostAdvanceScripture`; notifier wbFinishes subscription + wbConfig + submit dedup; forked chunk-tap board (`WbRaceBoard`) decoupled from progress_provider; `GroupWordBuilderScreen` with host dashboard + player race view + DNF timer + per-mode finish flow (Round-by-Round vs Set-of-N); host-lobby game-mode selector; conditional auto-nav on phase transition; WB-flavored results with per-mode ranking. Added mounted-guards to all GroupPlayNotifier stream listeners. 34 new tests (594 total, all green). | 2026-05-25 |
 
 ---
 
-## Deployment Readiness — Settings & Polish
+## Active Tasks
 
-### TASK-041: User Preferences & Settings Screen (Scaffolding)
+> **Group Play status (2026-05-25)**: Quiz-mode v1 SHIPPED end-to-end. Phase 4 polish (TASK-058/059/061) is queued. Phase 5 expands to a second game type: Word Builder Race (TASK-062), which requires the shared scope picker (TASK-047) to land first.
+>
+> | Phase | Tasks | Status | Parallel? |
+> |---|---|---|---|
+> | 4 | TASK-058 (premium gating), TASK-059 (saved rosters), TASK-061 (analytics) | open | TASK-058/059 serial — both edit service + host_lobby |
+> | 5a | TASK-047 (shared scope picker) | **DONE 2026-05-25** | — |
+> | 5b | **TASK-062 (Word Builder Race)** | **DONE 2026-05-25** — pending owner: `supabase db push` for `0005_group_wb_finishes.sql` + two-instance smoke test | — |
 
-- **status**: `done`
-- **priority**: P0
-- **estimated_effort**: Medium
-- **claimed_by**: claude-opus-agent
-- **started**: 2026-04-11T00:00:00Z
-- **completed**: 2026-04-11T00:30:00Z
-- **files_to_touch**: NEW `lib/providers/user_preferences_provider.dart`, NEW `lib/providers/study_streak_provider.dart`, NEW `lib/screens/settings/settings_screen.dart`, `lib/app.dart`, `lib/main.dart`, `lib/screens/home/home_screen.dart`, `lib/providers/progress_provider.dart`
-- **description**: Settings screen scaffolding, user preferences provider, daily study streak, dynamic greeting, dynamic mastery description, tappable profile icon → settings.
-- **acceptance_criteria**:
-  - [x] UserPreferences provider (Hive-backed) with name, sound, haptics, font scale, notifications
-  - [x] Study streak provider tracking consecutive days of activity
-  - [x] Settings screen with Profile, Appearance, Sound & Feedback, Study Stats, Subscription, Data & Privacy, About sections
-  - [x] Profile icon in header navigates to settings
-  - [x] Hardcoded `'7🔥'` replaced with live streak badge from provider
-  - [x] Hardcoded greeting replaced with time-based + user name (free) / AI prompt (premium)
-  - [x] Hardcoded mastery description replaced with progress-aware text
-  - [x] Study streak auto-records on any `recordAttempt()` call
-- **depends_on**: —
-- **notes**:
-  - Settings UI is built but several toggles aren't wired through to the app yet (see TASK-042, TASK-043, TASK-044)
-  - Sound toggle works (already wired to `AudioNotifier.setMuted()`)
-  - Name field works (wired to `greetingNameProvider`)
-  - Streak display works in both header and settings
-
-### TASK-042: Wire Theme Toggle in Settings
-
-- **status**: `done`
-- **priority**: P0
-- **estimated_effort**: Small
-- **claimed_by**: claude-opus-agent
-- **started**: 2026-04-11T01:00:00Z
-- **completed**: 2026-04-11T01:05:00Z
-- **files_to_touch**: `lib/app.dart`
-- **description**: The theme dropdown in settings writes to `themeProvider` but `MaterialApp.router` ignores it — `themeMode` is hardcoded to `ThemeMode.system`. Wire it up.
-- **acceptance_criteria**:
-  - [x] `MaterialApp.router` reads `themeMode` from `ref.watch(themeProvider)` instead of `ThemeMode.system`
-  - [x] Changing the theme dropdown in settings immediately switches light/dark/system
-- **depends_on**: TASK-041
-- **notes**:
-  - Added `import 'providers/theme_provider.dart'` and `import 'providers/user_preferences_provider.dart'` to app.dart
-  - Changed `themeMode: ThemeMode.system` → `themeMode: ref.watch(themeProvider)`
-
-### TASK-043: Wire Text Size / Font Scale Setting
-
-- **status**: `done`
-- **priority**: P1
-- **estimated_effort**: Small
-- **claimed_by**: claude-opus-agent
-- **started**: 2026-04-11T01:05:00Z
-- **completed**: 2026-04-11T01:10:00Z
-- **files_to_touch**: `lib/app.dart`
-- **description**: The font scale dropdown in settings writes to `userPreferencesProvider.fontScale` but nothing applies it. Wrap the app in a `MediaQuery` override that scales text.
-- **acceptance_criteria**:
-  - [x] Changing text size in settings visibly changes text throughout the app
-  - [x] Font scale persists across restarts
-- **depends_on**: TASK-041
-- **notes**:
-  - Used `MaterialApp.builder` to inject a `MediaQuery` with `textScaler: TextScaler.linear(fontScale)`
-  - Reads `fontScale` from `ref.watch(userPreferencesProvider).fontScale`
-
-### TASK-044: Wire Haptic Feedback Toggle
-
-- **status**: `done`
-- **priority**: P1
-- **estimated_effort**: Small-Medium
-- **claimed_by**: claude-opus-agent
-- **started**: 2026-04-11T01:10:00Z
-- **completed**: 2026-04-11T01:30:00Z
-- **files_to_touch**: NEW `lib/services/haptic_service.dart`, `word_builder_screen.dart`, `matching_game_screen.dart`, `quiz_game_screen.dart`, `game_results_screen.dart`, `memorize_screen.dart`, `chat_bubble.dart`, `journal_list_view.dart`, `journal_editor_view.dart`
-- **description**: Created central HapticService that checks user preference before firing. Replaced all 29 direct HapticFeedback.* calls across 8 files.
-- **acceptance_criteria**:
-  - [x] `HapticService` checks `userPreferencesProvider.hapticsEnabled` before calling `HapticFeedback.*`
-  - [x] All 29 direct `HapticFeedback.*` calls in 8 screen files replaced with the service
-  - [x] Toggling haptics off in settings immediately stops vibration feedback
-- **depends_on**: TASK-041
-- **notes**:
-  - `HapticService` is a simple immutable class with `light()`, `medium()`, `heavy()`, `selection()` methods
-  - Exposed via `hapticProvider` (Riverpod `Provider<HapticService>`) that rebuilds when the pref changes
-  - `memorize_screen.dart` converted from StatefulWidget → ConsumerStatefulWidget for ref access
-  - `chat_bubble.dart` widgets converted from StatelessWidget → ConsumerWidget for ref access
-  - Zero direct `HapticFeedback.*` calls remain in the screens directory
-
----
-
-## Active — Post-MVP Direction (owner-reviewed 2026-04-21)
-
-> **Bottom line from the owner**: the core is good. What's left is re-orienting the app
-> toward "learn + play immediately" and shipping the social angle that makes kids
-> want to use this with their seminary group. Three clear themes: fix the sounds,
-> move the landing into action, and turn Quick Quiz into something you can play
-> alone on the whole library OR together Kahoot-style.
+> **Scope guardrail for group play**: NONE of the existing solo features are being modified. Word Builder, solo Quick Quiz, solo Scripture Match, mastery tracking, journal, Sidekick AI all remain exactly as they are. Touch only:
+> - `pubspec.yaml`, `lib/main.dart`, `lib/app.dart`
+> - `lib/screens/practice_hub_screen.dart` (entry-point card)
+> - `lib/screens/home/home_screen.dart` (Play with Friends CTA)
+>
+> Everything else is NEW files under `lib/screens/group_play/`, `lib/services/group_play_service.dart`, `lib/providers/group_play_provider.dart`, `lib/models/group_*.dart`.
 
 ### TASK-045: Replace agent-generated sound effects with real audio
 
 - **status**: `open`
 - **priority**: P0
-- **estimated_effort**: Small (the agent work is just placeholders; user ships the real audio)
+- **estimated_effort**: Small (agent work is just placeholders; user ships the real audio)
 - **claimed_by**: —
 - **files_to_touch**: `assets/audio/correct.wav`, `assets/audio/incorrect.wav`, `assets/audio/complete.wav`, `assets/audio/levelup.wav`, NEW `.txt` placeholders in `assets/audio/`, `CLAUDE.md` (already updated)
 - **description**: The four `.wav` files under `assets/audio/` were generated by a prior agent (Python/TTS) and sound terrible. Owner will replace them manually. Mirrors the existing image-asset convention.
@@ -362,79 +133,384 @@
   - The new audio convention is documented in `CLAUDE.md` under "Conventions → Audio Assets"
   - Candidate additional sounds to scope while we're here: `streak_milestone`, `group_join`, `countdown_tick` (only if we proceed with Group Play — TASK-048)
 
-### TASK-046: Reorient Home to "Let's Learn / Let's Play"
+### TASK-047: Shared scripture-scope picker (Quick Quiz, Match, Group Play)
+
+- **status**: `done` — see Completed table above
+- **completed**: 2026-05-25
+- **priority**: P0 — **blocks TASK-062 (Word Builder Race) and should land first**
+- **estimated_effort**: Medium-Large
+- **claimed_by**: claude-opus-4-7
+- **started**: 2026-05-25
+- **scope_pivot** (2026-05-25): Originally a Quick-Quiz-only setup sheet. Promoted to a **shared picker component** consumed by every game that needs to choose "what's in scope." Group play needs the same UX (host picks scope before starting a room) and so does the upcoming Word Builder race mode (TASK-062). Doing this once, well, beats reimplementing it three times.
+- **files_to_touch**:
+  - NEW `lib/models/scripture_scope.dart` — value type representing a selection
+  - NEW `lib/providers/scripture_scope_provider.dart` — Hive-backed last-used scope per game type
+  - NEW `lib/widgets/scripture_scope_picker.dart` — reusable widget (modal sheet + inline variant)
+  - `lib/screens/practice_hub_screen.dart` — wire setup sheet into Quick Quiz + Match cards, kill dead `_selectedBooks` / `_selectedDifficulty` fields
+  - `lib/providers/quiz_game_provider.dart` — accept `ScriptureScope` + optional `targetQuestionCount` override
+  - `lib/providers/matching_game_provider.dart` — accept `ScriptureScope`
+  - `lib/screens/group_play/host_lobby_screen.dart` — swap minimal v1 picker for the shared widget
+  - `lib/screens/group_play/widgets/group_play_scope_picker.dart` — DELETE or replace with thin wrapper around shared widget
+  - NEW `test/models/scripture_scope_test.dart`, `test/providers/scripture_scope_provider_test.dart`
+- **description**: Build a single scripture-scope picker used everywhere a user (or host) needs to choose "which scriptures are eligible for this session." Used by solo Quick Quiz, solo Scripture Match, group Quiz (replacing minimal v1 picker), and group Word Builder race (TASK-062). The provider layer already accepts `bookFilters: List<ScriptureBook>`, but the UI hard-codes `_selectedBooks = {}` and `_selectedDifficulty = beginner` in both `_QuizGameCard` and `_MatchingGameCardState` — so the user has no way to choose. Even with books selected, question count is capped at `difficulty.quizQuestionCount` (10–40), so you can't actually quiz on every scripture in a book at once. Owner's vision: "I want to quiz on all the scriptures eventually." Per-scripture selection is also required for the group Word Builder race mode where teachers want to assemble a custom set ("the 10 we've done so far this term").
+
+- **agent_context_block** (read first):
+  - **Why this exists as one widget**: three different game setups (Quick Quiz, group Quiz host lobby, group Word Builder host lobby) all need the user to answer the same question: "which scriptures count?" Building three pickers diverges UX and triples maintenance. Build one and let each call site supply its own callbacks + persisted-state slot.
+  - **Existing data layer to lean on**:
+    - `lib/data/scriptures_data.dart` exposes all 100 `Scripture` records.
+    - `lib/providers/scripture_provider.dart` already has `scripturesByBookProvider(String)` and `searchScripturesProvider(String)` — use them inside the picker rather than re-querying.
+    - `ScriptureBook` enum with `displayName` and `abbreviation` is in `lib/models/enums.dart`.
+    - `ScriptureMastery` exposes `needsReview` and `subProgress` per scripture so the "Needs Review" / "Nearly Mastered" presets just filter the existing list.
+  - **Solo provider entry points already accept book filters**:
+    - `QuizGameNotifier.startGame({required DifficultyLevel difficulty, List<ScriptureBook> bookFilters = const []})` — line ~80 of `quiz_game_provider.dart`
+    - `MatchingGameNotifier.startGame(...)` — same shape
+    - Only thing missing is per-scripture selection and "every scripture in scope" question-count override.
+  - **Group play already takes a scope**: `GroupRoomScope` (in `lib/models/group_room.dart`) has `difficultyName`, `bookNames`, `scriptureIds`, `questionCount`, `questionTimeoutSeconds`. The shared picker's output should map cleanly to it.
+  - **Persistence**: `ScriptureScope` should serialize to JSON for Hive. Store one record per `ScopeUsageContext` (`quickQuiz`, `scriptureMatch`, `groupQuiz`, `groupWordBuilder`) so each game remembers its own last-used scope.
+  - **Don't make this a wizard**: two taps from Practice Hub to "in a quiz" is the target. Defaults to last-used; advanced controls live behind a "Customize" disclosure.
+
+- **acceptance_criteria**:
+  - [ ] **NEW model** `lib/models/scripture_scope.dart` — a value type with:
+    ```dart
+    sealed class ScriptureScope {
+      const ScriptureScope();
+      Map<String, dynamic> toJson();
+      List<Scripture> resolve(List<Scripture> allScriptures, /* optional masteryRef */);
+    }
+    class ScopeAll extends ScriptureScope { ... }
+    class ScopeBooks extends ScriptureScope { final Set<ScriptureBook> books; ... }
+    class ScopeScriptureIds extends ScriptureScope { final List<String> ids; ... }
+    class ScopeNeedsReview extends ScriptureScope { ... }
+    class ScopeNearlyMastered extends ScriptureScope { ... }
+    ```
+    Plus a `factory ScriptureScope.fromJson(Map)` that dispatches on a `type` discriminator.
+  - [ ] **NEW widget** `lib/widgets/scripture_scope_picker.dart`:
+    - Three-section sheet (top to bottom): **Quick presets** (chips: "All 100", "Old Testament", "Book of Mormon", "Needs Review", "Nearly Mastered"), **By book** (multi-select chip row across the 4 volumes), **Individual scriptures** (searchable scrollable list with checkboxes — collapsed by default behind a "Pick specific scriptures" disclosure).
+    - Search bar at the top of the individual-scriptures section. Filters live as the user types.
+    - Selected count + sample preview ("1 Nephi 3:7 + 9 more") always visible at the bottom above the "Use this scope" CTA.
+    - "Clear" and "Restore last used" buttons in the sheet header.
+    - Renders both as a `showModalBottomSheet` and as an inline form (for use inside the host-lobby setup view). Provide a `ScriptureScopePicker` widget API + `showScriptureScopePicker(...)` helper.
+  - [ ] **NEW provider** `lib/providers/scripture_scope_provider.dart` (Hive-backed, follows the same pattern as `UserPreferencesNotifier`):
+    - `lastUsedScope(ScopeUsageContext context) → ScriptureScope?`
+    - `saveScope(ScopeUsageContext context, ScriptureScope scope)`
+    - Survives app restart.
+  - [ ] **`QuizGameNotifier.startGame` accepts an optional `targetQuestionCount` param** so the cap can be bypassed for "every scripture in scope". Default behavior unchanged (uses `difficulty.quizQuestionCount`).
+  - [ ] **`MatchingGameNotifier.startGame` accepts the same `ScriptureScope`** — Master already signals "use all"; extend it for explicit per-book / per-scripture scopes.
+  - [ ] **Practice Hub Quick Quiz card and Scripture Match card** each open a setup sheet on tap with:
+    - Difficulty selector (same as Word Builder selector at top of Practice Hub)
+    - `ScriptureScopePicker` widget for scope
+    - "Question count" segmented control with default (per difficulty) + "Every scripture in scope" option that pipes `targetQuestionCount = resolved.length` to the notifier
+    - "Start" CTA at the bottom
+  - [ ] **Host lobby setup view** (`host_lobby_screen.dart`) swaps its inline `_BookChips` minimal picker for the shared widget. `_handleCreate` builds `GroupRoomScope` from the picker output: `ScopeAll` → empty `bookNames` + empty `scriptureIds`, `ScopeBooks` → `bookNames = books.map((b) => b.name)`, `ScopeScriptureIds` → `scriptureIds`, etc.
+  - [ ] **Dead state removed**: `_selectedBooks` and `_selectedDifficulty` fields in `_QuizGameCardState` and `_MatchingGameCardState` are gone (closes TASK-049 inside this PR).
+  - [ ] **Tests**:
+    - `scripture_scope_test.dart` — JSON round-trip for each variant; `resolve()` returns the right scripture list against a fixture of 5 scriptures across 2 books
+    - `scripture_scope_provider_test.dart` — save + load per-context, scopes don't bleed between contexts
+  - [ ] `flutter analyze` clean. Existing solo Quick Quiz / Match flows still work end-to-end (manual smoke test: launch app, start Quick Quiz with default scope, confirm a 10-question game runs as before).
+
+- **depends_on**: —
+
+- **notes**:
+  - **TASK-049 closes inside this PR** — killing the dead `_selectedBooks` / `_selectedDifficulty` fields is part of "Practice Hub Quick Quiz card and Match card open a setup sheet." Mark TASK-049 done in the same commit.
+  - `QuizGameNotifier._selectProportionally` already handles arbitrary book lists correctly, so most of the data layer is done.
+  - For the picker UX, model the "Pick specific scriptures" section after how email apps let you pick recipients — search at top, scrollable list, checkboxes, running tally at the bottom. Don't overload the user with all 100 visible at once before they search/filter.
+  - **`MatchingGameNotifier` watch-out**: `MatchPair` list gets long when scope is "all 100". Confirm `matching_game_screen.dart` handles 100-pair sessions (pagination, scroll, or sub-rounds) — if it breaks, file a follow-up but don't block this task on it.
+  - **Don't introduce `ScopeUsageContext` as a Hive enum** — use a `String` key (`'quickQuiz'`, `'groupQuiz'`, etc.) so we can add new contexts without migrations.
+  - **Group-play host-lobby fallback**: if a host has no last-used scope for `groupQuiz`, default to `ScopeAll` (matches current minimal-picker behavior). Same for `groupWordBuilder` once TASK-062 lands.
+
+### TASK-048: Seminary Group Play (Kahoot-style multiplayer) — UMBRELLA, decomposed
+
+- **status**: `decomposed` — DO NOT CLAIM. See TASK-051 through TASK-062.
+- **priority**: P1
+- **decisions_made** (owner-reviewed 2026-05-05):
+  - **Backend: Supabase** (Realtime + Postgres + Anonymous Auth). Owner already runs Supabase for another project so the platform skill is in-house. A new dedicated Supabase project will be created for this app to isolate quotas/billing.
+  - **Architecture: cloud-relay**, host as a *logical* role (not a websocket server on the host's device). All participants are clients of Supabase; the host is just the player whose actions advance the quiz.
+  - **No accounts for students.** Anonymous auth + nickname + 4-letter code.
+  - **Free vs. Premium split**:
+    - JOINING is always free. No exceptions, no caps, no signup.
+    - HOSTING tiered: free hosts can run a *Casual* room (cap 6 players, 1 game/week). Premium hosts get *Class* rooms (cap 30, unlimited games, saved rosters, post-game analytics).
+    - Premium price unchanged ($2.99/mo or $1.67/mo yearly). Group hosting becomes one more reason to subscribe alongside the existing Sidekick AI bundle.
+  - **V1 scope limited to Quick Quiz only.** Scripture Match in group form is a v2 question — drag-and-drop multiplayer is awkward. Word Builder (race-mode) added to v1.5 as TASK-062 (2026-05-25 decision).
+  - **Cost ceiling at the worst credible adoption** (~100K MAU, ~10K concurrent peak): roughly $2K–5K/mo on Supabase Realtime. Premium revenue at that scale ($15K–25K/mo at 5% conversion) covers it comfortably. We do NOT need to architect against this scale on day one — Pro tier ($25/mo, 500 concurrent) is fine for a long time.
+  - **Future cost optimization** (NOT v1): WebRTC peer-to-peer with Supabase as signaling, or migrating the Realtime layer to Cloudflare Durable Objects. Both are v2 levers, mentioned here so the data model doesn't paint itself into a corner.
+
+### TASK-051: Supabase dashboard verification (smoke test only)
+
+- **status**: `partial` — migrations + setup doc shipped; smoke test still pending
+- **priority**: P0
+- **estimated_effort**: Small
+- **claimed_by**: —
+- **description**: Code is done (migrations in `supabase/migrations/`, runbook in `SUPABASE_SETUP.md`, owner has run the dashboard steps). Only remaining acceptance criterion:
+  - [ ] **Verifying agent step**: smoke test in SUPABASE_SETUP.md passes — anonymous user can create a room and a second device can see it via realtime
+- **notes**:
+  - Service-role key stays out of the Flutter app forever. anon key is safe to ship.
+  - Default free-tier limits (200 concurrent connections, 5GB DB) are way more than this app needs in dev or even early adoption.
+
+### TASK-058: Premium gating for group hosting
 
 - **status**: `open`
-- **priority**: P0
+- **priority**: P1
+- **estimated_effort**: Small-Medium
+- **claimed_by**: —
+- **files_to_touch**: `lib/services/group_play_service.dart`, `lib/providers/group_play_provider.dart`, `lib/screens/group_play/host_lobby_screen.dart`
+- **description**: Enforce the free/premium hosting split. Free hosts: cap 6, 1 game/week. Premium hosts: cap 30, unlimited games.
+- **agent_context_block** (read first):
+  - **Most of this is already implemented in `lib/services/group_play_service.dart`** — TASK-052 wired up the foundation. Audit before adding:
+    - `freeHostCap = 6`, `premiumHostCap = 30`, `freeHostWeeklyLimit = 1` constants are defined
+    - `createRoom` already reads `isPremiumHost` from the caller, calls `bump_host_usage` RPC, throws `FreeTierLimitException` if exceeded
+    - `joinRoom` already throws `RoomFullException` if `players.length >= room.playerCap`
+    - `host_lobby_screen.dart` already has a basic "Up to 30 with Premium →" inline link when at cap
+  - **What's actually left**:
+    - Verify the cap enforcement works end-to-end with a free user creating 2 rooms in a week (currently only manually testable by toggling `forcePremium` in `app_config.dart`)
+    - Polish the upgrade prompts: the current host lobby link only shows AT cap. Add a "approaching cap" prompt when `players.length >= cap - 1`
+    - The "1 game/week" limit's UX needs work — when `FreeTierLimitException` fires, the host gets the raw error message. Replace with a tasteful upgrade dialog
+- **acceptance_criteria**:
+  - [x] On `createRoom`, service writes `player_cap` (6 or 30) + `is_premium_host` to the row — DONE in TASK-052
+  - [x] On `createRoom`, service calls `bump_host_usage` RPC, throws `FreeTierLimitException` if exceeded — DONE in TASK-052
+  - [x] On `joinAsPlayer`, service rejects with `RoomFullException` when at cap — DONE in TASK-052
+  - [ ] Host lobby shows tasteful upgrade dialog (not raw exception) when free host hits weekly limit
+  - [ ] Host lobby renders inline "Upgrade for class size" link both AT cap AND one-below-cap (rate-limited via `canShowUpgradePromptProvider`)
+  - [ ] Manual verification: with `forcePremium: false` in `app_config.dart`, can create exactly 1 room/week; second attempt this week shows the upgrade dialog
+- **depends_on**: TASK-053 — done
+- **notes**:
+  - **Most of this task is already done** by TASK-052's foundation. Treat this as polish + UX layer only.
+  - Server-side enforcement is the source of truth; client-side checks are UX nice-to-haves
+  - If a host upgrades mid-room, the cap doesn't auto-raise on the active room — they'd have to start a new one. Document this behavior in code comments.
+  - **Phase 4 scheduling**: this task and TASK-059 both modify `host_lobby_screen.dart` and `group_play_service.dart`. Land them serially.
+
+### TASK-059: Saved class rosters (premium feature)
+
+- **status**: `open`
+- **priority**: P1
 - **estimated_effort**: Medium
 - **claimed_by**: —
-- **files_to_touch**: `lib/screens/home/home_screen.dart`, potentially new `lib/screens/home/jump_in_card.dart`, `lib/screens/home/play_now_card.dart`
-- **description**: The current Home is a dashboard — greeting, mastery ring, long progress description, then tiny "Practice Games" CTA buried below. Kids should land on a screen that says "do something now." Move the dashboard feel (ring, numbers, long text) to the Stats tab and keep Home action-first.
+- **files_to_touch**: NEW `lib/screens/group_play/saved_rosters_screen.dart`, NEW `lib/providers/saved_rosters_provider.dart`, `lib/services/group_play_service.dart` (add saved-roster CRUD methods), `lib/screens/group_play/host_lobby_screen.dart` (add "Load saved class" button), `lib/screens/group_play/group_results_screen.dart` (add "Save as Class" button), `lib/app.dart` (add `/group-play/saved-rosters` route)
+- **description**: The killer paywall feature for teachers. Premium hosts can name + save the current room's roster, then start a new game pre-populated with that class. Expected players light up green when they actually join.
+- **agent_context_block** (read first):
+  - **Schema is ready**: `saved_rosters` table already exists from `supabase/migrations/0001_group_play_init.sql` with RLS scoped to host. No migration changes needed.
+  - **Service additions needed** in `lib/services/group_play_service.dart`:
+    ```dart
+    Future<List<SavedRoster>> listSavedRosters() async { ... }       // SELECT all where host_id = me
+    Future<SavedRoster> saveRoster(String name, List<String> nicknames) async { ... }  // INSERT
+    Future<void> renameRoster(String id, String name) async { ... }  // UPDATE
+    Future<void> deleteRoster(String id) async { ... }               // DELETE
+    ```
+  - **NEW model**: `lib/models/saved_roster.dart` — mirror the `saved_rosters` table (id, hostId, name, playerNicknames List<String>, createdAt, updatedAt, fromJson/toJson, copyWith).
+  - **NEW provider**: `savedRostersProvider` — StateNotifierProvider with init() that loads on demand. Premium-only; free users get an empty list + teaser.
+  - **Provider state for "ghosted" expected players**: extend `GroupPlayState` with an `expectedNicknames: List<String>` field. The host lobby renders ghosted entries for nicknames in this list that haven't joined yet, solid+green when they do.
+  - **PremiumTeaser pattern**: see `lib/widgets/premium_teaser.dart` for the existing teaser widget — use `PremiumGate` to swap real UI vs teaser based on `isPremiumProvider`.
 - **acceptance_criteria**:
-  - [ ] First viewport of Home has at most a one-line greeting + two big action CTAs: **"Keep Learning"** (last-touched scripture or daily review) and **"Play a Quick Quiz"** (launches Quick Quiz on a sensible default set)
-  - [ ] A third lightweight row for "Word Builder on [scripture]" or "Scripture Match" as secondary actions
-  - [ ] Remove the 160px mastery ring + "Overall Mastery" paragraph from Home (keep it on Stats tab — already lives there)
-  - [ ] Premium "Quick Win" card stays but demoted below the primary CTAs, not above them
-  - [ ] Streak badge stays in the shell header
-  - [ ] Nearly-mastered nudges, book collections, and the quick-session premium section can live further down the scroll OR move to Stats
-  - [ ] Brand new users (no activity) see a welcoming "Start here →" that opens the first scripture or Library, not a giant zero-state ring
-- **depends_on**: —
+  - [ ] After a game ends on the results screen, premium host sees "Save as Class" button → opens name dialog → calls `service.saveRoster(name, currentNicknames)` → success snackbar
+  - [ ] Host lobby setup view has "Load saved class" button (premium only) → bottom sheet listing saved rosters from `savedRostersProvider` → tapping one prefills the lobby with expected nicknames as ghosted entries
+  - [ ] Ghosted entries turn solid + green when that nickname actually joins (compare `state.players.map((p) => p.nickname)` against `state.expectedNicknames`)
+  - [ ] `/group-play/saved-rosters` route — full screen list with rename / delete actions
+  - [ ] Free users tapping "Load saved class" see a `PremiumTeaser` instead of the bottom sheet
+- **depends_on**: TASK-058 (don't claim until 058 is done — both modify the service)
 - **notes**:
-  - Current Home is at `lib/screens/home/home_screen.dart` lines 44–220; most sections already exist as separate files under `lib/screens/home/` but are NOT used by the current orchestrator — there's stale extraction work to reconcile
-  - Keep Stats tab (`/progress`) as the full dashboard — we're not deleting any of that, just relocating the entrance
-  - Consider a `lastPracticedScriptureIdProvider` aggregated across all game types (today we have `lastWordBuilderScriptureIdProvider` but not for all tools)
+  - Roster size inherently respects the 30-player premium cap (the cap is on `players` table, not on saved roster size)
+  - "View history" (linking past `rooms` rows to a roster) is deferred to v2 — leave a TODO comment
+  - The bottom sheet should default-sort by most-recent first, max 10 visible at a time
 
-### TASK-047: Multi-scripture quiz — pick a whole book (or all 100)
+### TASK-061: Post-game class breakdown analytics (premium)
 
 - **status**: `open`
-- **priority**: P0
+- **priority**: P2
 - **estimated_effort**: Medium
 - **claimed_by**: —
-- **files_to_touch**: `lib/screens/practice_hub_screen.dart`, `lib/providers/quiz_game_provider.dart`, `lib/providers/matching_game_provider.dart`, `lib/models/enums.dart` (maybe), possibly NEW `lib/screens/games/quiz_setup_sheet.dart`
-- **description**: The provider layer already accepts `bookFilters: List<ScriptureBook>`, but the UI hard-codes `_selectedBooks = {}` and `_selectedDifficulty = beginner` in both `_QuizGameCard` and `_MatchingGameCardState` — so the user has no way to choose. Also, even with books selected, the question count is capped at `difficulty.quizQuestionCount` (10–40), so you can't actually quiz on every scripture in a book at once. Owner's vision: "I want to quiz on all the scriptures eventually."
+- **files_to_touch**: `lib/screens/group_play/group_results_screen.dart`, NEW `lib/screens/group_play/widgets/class_breakdown_view.dart`
+- **description**: Teachers want to know which scriptures their class struggled on. Tally per-question accuracy across the session.
+- **agent_context_block** (read first):
+  - **Data is already available** on `GroupPlayState.answers` and `GroupPlayState.questions`. No new service calls or schema changes.
+  - **Aggregation pseudocode**:
+    ```dart
+    final questions = state.questions;
+    final answers = state.answers;
+    final breakdown = questions.map((q) {
+      final qAnswers = answers.where((a) => a.questionIndex == q.index).toList();
+      final correctPct = qAnswers.isEmpty ? 0.0 : qAnswers.where((a) => a.isCorrect).length / qAnswers.length;
+      // Most common wrong choice
+      final wrongCounts = <int, int>{};
+      for (final a in qAnswers.where((a) => !a.isCorrect)) {
+        wrongCounts[a.selectedChoice] = (wrongCounts[a.selectedChoice] ?? 0) + 1;
+      }
+      final mostWrong = wrongCounts.entries.fold<MapEntry<int, int>?>(null, (acc, e) =>
+        acc == null || e.value > acc.value ? e : acc);
+      return (question: q, correctPct: correctPct, mostWrongChoice: mostWrong?.key);
+    }).toList()..sort((a, b) => a.correctPct.compareTo(b.correctPct));  // hardest first
+    ```
+  - **PremiumGate pattern**: see `lib/widgets/premium_teaser.dart` for `PremiumGate` which swaps real content for a teaser.
+  - **TabBar**: results screen needs a TabController. Convert to ConsumerStatefulWidget with SingleTickerProviderStateMixin if it isn't already.
 - **acceptance_criteria**:
-  - [ ] Practice Hub Quick Quiz card and Scripture Match card open a setup sheet (bottom sheet or dedicated screen) with:
-    - Difficulty selector (Beginner / Intermediate / Master, same as Word Builder selector at the top of Practice Hub)
-    - Scope selector: **All 100**, **One or more books** (multi-select chips), **Needs-review only**, **Nearly-mastered only**
-    - Question count: default per difficulty, plus a **"Every scripture in scope"** option that overrides the cap
-  - [ ] `QuizGameNotifier.startGame` accepts an optional `targetQuestionCount` param so the cap can be bypassed for "quiz everything"
-  - [ ] Same treatment for `MatchingGameNotifier` — Master already signals "use all", extend this to explicit book scopes
-  - [ ] Selected scope is remembered between sessions (Hive, per-game-type) so power users don't re-select every time
-  - [ ] UX: the setup sheet is fast — two taps and you're in a quiz. Don't make it a wizard.
-- **depends_on**: —
+  - [ ] Results screen has a second tab "Class breakdown" (premium only)
+  - [ ] Per-question rows: scripture reference, correct %, hardest answer (most common wrong choice text)
+  - [ ] Sort by hardest → easiest by default
+  - [ ] Tap a row → `context.push('/scripture/${q.scriptureId}')` opens the scripture detail
+  - [ ] Free hosts see a `PremiumTeaser` in place of the tab content
+- **depends_on**: TASK-056
 - **notes**:
-  - The dead `_selectedBooks` / `_selectedDifficulty` fields in `practice_hub_screen.dart` (lines 675–676, 786–787) are the smoking gun that this was half-wired
-  - `QuizGameNotifier._selectProportionally` already handles arbitrary book lists correctly, so most of the data layer is done
-  - Consider exposing a `quizGameSetupProvider` (Hive-backed) to hold the last-used difficulty + scope
-  - Think carefully about `matching_game_provider.dart` — `MatchPair` list gets long when scope is "all 100"; confirm the game screen handles 100-pair sessions or paginates
+  - This is a polish task — don't claim until TASK-056 lands so the results screen exists to extend
 
-### TASK-048: Seminary Group Play (Kahoot-style multiplayer)
+---
 
-- **status**: `open`
-- **priority**: P1 (this is the big social lever — but it's also the biggest scope)
-- **estimated_effort**: XL
-- **claimed_by**: —
-- **files_to_touch**: NEW `lib/providers/group_play_provider.dart`, NEW `lib/services/group_play_service.dart`, NEW `lib/screens/group_play/` (host_lobby_screen, join_lobby_screen, group_quiz_screen, group_results_screen), `lib/screens/practice_hub_screen.dart`, `lib/screens/home/home_screen.dart`, `pubspec.yaml` (backend SDK), probably new backend/cloud function
-- **description**: Owner called it Kahoot-style — one host (the seminary teacher or a student) starts a room, students join with a code, everyone answers the same questions simultaneously, live leaderboard at the end. Nothing meaningful has been built yet; this task is the scaffold.
+## Active — Group Play Phase 5: Word Builder Race Mode (owner-decided 2026-05-25)
+
+> **Why this is its own phase**: TASK-051..TASK-061 shipped a Quiz-only v1 of group play. Owner has now decided that Word Builder belongs in group play too — but as a **race mode**, fully decoupled from personal mastery. Personal solo Word Builder is untouched. Don't refactor or "share" the solo Word Builder screen — copy what's useful, fork what isn't, and keep group play in `lib/screens/group_play/` and `lib/services/group_play_service.dart`.
+>
+> **Owner decisions baked into the design**:
+> - **Decoupled from personal mastery.** Group Word Builder finishes are NOT written to `progress_provider`. No streak, no mastery level change, no spaced-repetition bump. The classroom race is purely social.
+> - **Chunk-tap difficulties only for v1.** Beginner (3-word chunks) and Intermediate (2-word chunks + distractors). Typing-based Advanced/Master are deferred — owner's seminary teaching experience: "most kids won't be able to type the answers very well."
+> - **Two play modes, host-selected at room creation**:
+>   1. **Round-by-Round** — host advances one scripture at a time. Per-scripture race: fastest correct completion wins the round. Cumulative score determines overall winner.
+>   2. **Set-of-N** — host picks N scriptures. Queue starts simultaneously; each player works through all N in order. First player to finish all N wins. Cumulative elapsed time determines runners-up.
+> - **Per-scripture host selection is a hard requirement.** Teachers want to assemble a custom set ("the 10 we've done so far this term"). This is why TASK-047 promotes the scope picker into a shared component.
+> - **Future, not v1**: bracketed finals, head-to-head 1v1 round, "finals round" of top 4. Mentioned in `notes` of TASK-062 so the data model leaves room.
+
+### TASK-062: Word Builder Race Mode (group play — second game type)
+
+- **status**: `done` — code complete 2026-05-25; owner still needs to run `supabase db push` for `0005_group_wb_finishes.sql` and the two-instance smoke test before marking the dashboard step closed
+- **priority**: P1
+- **estimated_effort**: Large
+- **claimed_by**: claude-opus-4-7
+- **started**: 2026-05-25
+- **completed**: 2026-05-25
+- **files_to_touch**:
+  - **Model extensions** (additive only, backward-compatible with shipped Quiz rooms):
+    - `lib/models/group_room.dart` — add `GroupGameMode` enum (`quiz`, `wordBuilder`); add `mode` and `wordBuilderConfig` fields to `GroupRoomScope`; default `mode = quiz` so existing rooms deserialize unchanged
+  - **New models**:
+    - NEW `lib/models/group_wb_config.dart` — `GroupWbConfig` (chunkDifficulty: `beginner` | `intermediate`, playMode: `roundByRound` | `setOfN`, scriptureIds: `List<String>`, perScriptureTimeoutSeconds: `int?`)
+    - NEW `lib/models/group_wb_finish.dart` — `GroupWbFinish` (id, roomId, playerId, scriptureIndex, elapsedMs, mistakeCount, completedAt, rankInRound) — mirrors `GroupAnswer` shape so the Supabase table is analogous
+  - **Schema**:
+    - NEW `supabase/migrations/0005_group_wb_finishes.sql` — `group_wb_finishes` table with RLS (player can insert own, host can read all in room), `room_id` index, `REPLICA IDENTITY FULL` for realtime DELETE delivery
+    - Add `group_wb_finishes` to the realtime publication (same migration or extend `0003_realtime.sql`)
+  - **Service additions** in `lib/services/group_play_service.dart`:
+    - `submitWbFinish({required GroupRoom room, required GroupPlayer player, required int scriptureIndex, required int elapsedMs, required int mistakeCount})`
+    - `hostAdvanceScripture(GroupRoom room)` — increments `current_question_index` analogously to `advanceQuestion` (the column is already named generically enough to handle both quiz and WB modes)
+    - `watchWbFinishes(String roomId) → Stream<List<GroupWbFinish>>`
+  - **Provider**:
+    - Extend `GroupPlayState` with `wbFinishes: List<GroupWbFinish>` (default empty) and `wbConfig: GroupWbConfig?` (resolved from `room.scope.wordBuilderConfig` at room load time)
+    - Extend `GroupPlayNotifier` with `submitWbFinish(...)`, `hostAdvanceScripture()`, `_wbFinishesSub` stream subscription
+  - **Screens**:
+    - NEW `lib/screens/group_play/group_word_builder_screen.dart` — the live race screen (host view + player view)
+    - NEW `lib/screens/group_play/widgets/wb_race_board.dart` — chunk-tap board widget (forked / copied from solo `word_builder_screen.dart`, NOT shared — see notes)
+    - NEW `lib/screens/group_play/widgets/wb_host_progress_dashboard.dart` — host's view of who has finished / who is still racing
+    - NEW `lib/screens/group_play/widgets/wb_finish_banner.dart` — per-player "✓ Finished — 8.2s, 1 mistake" banner
+  - **Host lobby updates**:
+    - `lib/screens/group_play/host_lobby_screen.dart` — add a game-mode selector at the top of the setup view (Quiz / Word Builder Race). Conditional reveal of mode-specific settings (chunk-tap difficulty + play mode + set size for WB; existing question count + difficulty for Quiz). Wires `GroupGameMode` and `GroupWbConfig` into the `GroupRoomScope` passed to `hostCreateRoom`
+  - **Routing**:
+    - `lib/app.dart` — add `/group-play/word-builder/:code` route → `GroupWordBuilderScreen`
+    - Host lobby + join lobby auto-route on `phase == inQuiz`: branch on `room.scope.mode` — `quiz` → `/group-play/quiz/:code` (existing), `wordBuilder` → `/group-play/word-builder/:code`
+  - **Results screen** (`lib/screens/group_play/group_results_screen.dart`) — extend to render Word-Builder-flavored results when `room.scope.mode == wordBuilder`. Reuses podium + leaderboard but pulls per-player stats from `state.wbFinishes` instead of `state.answers`
+  - **Tests**:
+    - NEW `test/models/group_wb_config_test.dart` — JSON round-trip, backward compat (a `GroupRoomScope` JSON without a `mode` key still parses as `mode = quiz`)
+    - NEW `test/models/group_wb_finish_test.dart` — JSON round-trip, equality
+    - NEW `test/providers/group_play_provider_wb_test.dart` — covers `submitWbFinish` updating state correctly, host advance flow, "all players finished" detection
+
+- **description**: Add Word Builder as a second group-play game type — a multiplayer race where players reassemble scripture text via chunk-tap (Beginner: 3-word chunks; Intermediate: 2-word chunks + distractors). Two host-selected play modes: **Round-by-Round** (host advances one scripture at a time, per-scripture fastest wins the round, cumulative score across rounds) and **Set-of-N** (host picks N scriptures, players race through all N in order, first to finish the set wins). Completely decoupled from personal mastery — group finishes never write to `progress_provider`. Host can pick the exact scripture list using the TASK-047 shared scope picker.
+
+- **agent_context_block** (read first):
+  - **Templates to copy from**:
+    - `lib/screens/group_play/group_quiz_screen.dart` — the canonical pattern for live group play screens: host view vs player view branching, `ref.listen<GroupPlayPhase>` for navigation, local-UI-phase enum for between-question (here: between-scripture) leaderboard reveals.
+    - `lib/screens/group_play/host_lobby_screen.dart` and `join_lobby_screen.dart` — theme usage, `_ErrorBanner` style, dark-mode handling, leave-confirm flow.
+    - `lib/screens/games/word_builder/word_builder_screen.dart` — the solo chunk-tap board. **Copy what's needed into `wb_race_board.dart`; do NOT share.** Reason: solo Word Builder is tied to personal mastery and progress recording; group race must NEVER touch `progress_provider`. Sharing the screen invites accidental cross-contamination during future edits. Forking is cheap insurance.
+  - **Solo Word Builder chunk logic to mirror** (see `lib/providers/word_builder_provider.dart`):
+    - Beginner: `chunkSize = 3`, no distractors
+    - Intermediate: `chunkSize = 2`, distractors from other scriptures (use `quiz_question_factory.dart` distractor-pool pattern; respect the in-scope filter rule established in the recent TASK-055 follow-up — distractors must come from in-scope scriptures only)
+    - On wrong chunk tap: increment local `mistakeCount`, visual shake, no scoring penalty in v1 (just tracked for results). Owner can decide later whether mistakes subtract from score.
+  - **Provider state surface** (after this task lands):
+    - `groupPlayProvider.state.wbConfig` → `GroupWbConfig?` (null if mode == quiz)
+    - `groupPlayProvider.state.wbFinishes` → `List<GroupWbFinish>` — full list of finishes for the room across all scriptures in the set
+    - For Round-by-Round: filter `wbFinishes` by `scriptureIndex == room.currentQuestionIndex` to get current-round leaderboard
+    - For Set-of-N: group `wbFinishes` by `playerId`; a player has finished the set when their finish count == `wbConfig.scriptureIds.length`
+  - **Scoring**:
+    - **Round-by-Round**: same speed-weighted formula as quiz (`computeSpeedWeightedPoints` in `group_answer.dart`), applied per round. Wrong-chunk mistakes do NOT subtract points in v1 (display-only). Cumulative score determines overall winner.
+    - **Set-of-N**: rank is by total elapsed time across the set, ascending (faster = better). Tie-breaker: fewer mistakes. Display each player's running total during the race.
+  - **Realtime delivery**:
+    - `wb_finishes` subscription via Postgres Changes with `room_id` filter (mirrors `watchAnswers` pattern)
+    - Host pushes "next scripture" via the existing `rooms.current_question_index` update (no new broadcast channel needed)
+    - For set-of-N mode, `current_question_index` is irrelevant after start — players advance independently on their own device. Host's dashboard reads `wbFinishes` count per player to show progress.
+  - **Per-scripture timeout** (`wbConfig.perScriptureTimeoutSeconds`): optional. Default null (no timeout). When set, on expiry a `GroupWbFinish` row is inserted server-side or client-side with `mistakeCount = -1` to indicate DNF. **Defer the server-side enforcement to v2** — client-side timer + auto-DNF insert is sufficient for v1.
+  - **Host advances on "all finished" or manual**: in Round-by-Round, host sees a "Next Scripture" button that lights up when all live players have finished (or earlier if the host wants to move on). In Set-of-N, host's only controls are "End Game" and a live progress dashboard.
+
 - **acceptance_criteria**:
-  - [ ] **Decision doc first** (before code): one-pager picking the backend. Candidates: Firebase Realtime DB + Firestore, Supabase (Realtime + Postgres), a thin custom WebSocket server. Criteria: cost at ~50 concurrent rooms of 30 kids, account requirements for kids (ideally none — just a name + code), offline fallback for spotty seminary wifi
-  - [ ] **Lobby flow**: host taps "Start Group Play" → gets a 4-letter room code + QR → students tap "Join Group" → enter code + nickname → show list of joined students to the host → host taps "Start"
-  - [ ] **Quiz flow**: re-uses the existing `QuizGameNotifier` question generation so we don't fork it — the host picks scope+difficulty (reuses TASK-047 setup sheet) → questions pushed to all clients → each student answers → scoring factors in correctness AND speed (Kahoot model)
-  - [ ] **Leaderboard**: live after each question (top 5) + final podium after the quiz
-  - [ ] **Teacher controls**: host can kick, skip, end early
-  - [ ] **No accounts required** for students — just nickname + room code. Host might need a light-touch account eventually, but MVP can be anonymous.
-  - [ ] **Free tier question**: decide whether group play is free (likely yes — this is the viral loop) or gated to Premium for hosts (possible — teachers/parents pay, kids join free)
-  - [ ] **Analytics**: log session completion + answer distribution so teachers can see which scriptures the group struggled on (nice-to-have, could be TASK-050)
-- **depends_on**: TASK-047 (question scope selection is shared)
+
+  ### Model + schema
+  - [ ] `GroupGameMode` enum added to `group_room.dart` with `quiz` and `wordBuilder` variants. `GroupRoomScope` gains a `mode: GroupGameMode` field (default `quiz`) and a `wordBuilderConfig: GroupWbConfig?` field. JSON round-trip preserves backward compat: a scope JSON without a `mode` key still parses as `quiz`.
+  - [ ] `GroupWbConfig` model with `copyWith`, `fromJson`/`toJson`, equality.
+  - [ ] `GroupWbFinish` model with same shape as `GroupAnswer` (id, roomId, playerId, scriptureIndex, elapsedMs, mistakeCount, completedAt). `copyWith`, `fromJson`/`toJson`, equality.
+  - [ ] `0005_group_wb_finishes.sql` migration creates the table with RLS:
+    - SELECT: players in the room can read (host needs to see all; players see all for live leaderboard)
+    - INSERT: only the authenticated player whose `player_id` matches `players.user_id` for that row in this room
+    - No UPDATE / DELETE policies (finishes are immutable)
+    - `REPLICA IDENTITY FULL`
+    - Added to `supabase_realtime` publication
+  - [ ] Owner runs `supabase db push` and the migration applies cleanly to the existing project (no destructive changes to shipped tables).
+
+  ### Service + provider
+  - [ ] `GroupPlayService.submitWbFinish(...)` inserts a row, returns the inserted `GroupWbFinish`. Throws `GroupPlayException` on RLS rejection or network failure (mirrors `submitAnswer` error handling).
+  - [ ] `GroupPlayService.watchWbFinishes(roomId)` returns a stream of `List<GroupWbFinish>` ordered by `completed_at` ascending. Mirrors `watchAnswers` exactly.
+  - [ ] `GroupPlayService.hostAdvanceScripture(room)` — increments `current_question_index`, ends the room when past the last scripture in `wbConfig.scriptureIds`. Mirrors `advanceQuestion`. (Alternatively: just reuse `advanceQuestion` and let the index column do double duty — explicit alias method is fine if it makes call sites read better.)
+  - [ ] `GroupPlayNotifier`:
+    - Subscribes to `watchWbFinishes` when entering a WB room; cancels in `_disposeStreams`
+    - Exposes `submitWbFinish({scriptureIndex, elapsedMs, mistakeCount})` and `hostAdvanceScripture()`
+    - `state.wbFinishes` updates in real-time
+    - For Round-by-Round, the existing `room.currentQuestionIndex` advancement reuses `_localPhase` reset on index change (same pattern as quiz)
+
+  ### Screens
+  - [ ] `GroupWordBuilderScreen` renders:
+    - **Player view**: `WbRaceBoard` widget with chunk-tap UI. Live "race position" indicator at the top ("You: 2nd · Sarah finished 6.4s ago"). On completion, finish banner with elapsed time + mistake count. Set-of-N mode: also shows "Scripture 3 of 10" pill and a running total elapsed time.
+    - **Host view**: chunk-tap board hidden; instead shows `WbHostProgressDashboard` — list of all players with their current state (still racing / finished — Xs / DNF). In Round-by-Round: "Next Scripture" button enabled once all live players have finished (or "Skip ahead" available immediately). In Set-of-N: "End Game" button + live progress bars per player ("Sarah: 7 of 10").
+  - [ ] `WbRaceBoard` widget is a forked clone of the solo board — **does NOT import `word_builder_provider.dart`**. It owns its own local chunk state via `ConsumerStatefulWidget`. On completion, it calls back via a `onFinish(elapsedMs, mistakeCount)` callback, NOT into `progress_provider`.
+  - [ ] `WbHostProgressDashboard` and `WbFinishBanner` extracted as widgets, dark-mode aware.
+  - [ ] **Host lobby setup view** has a game-mode segmented control at the top (Quiz / Word Builder Race). Selecting Word Builder Race reveals:
+    - Chunk-tap difficulty selector (Beginner / Intermediate)
+    - Play mode selector (Round-by-Round / Set-of-N)
+    - Scope picker (`ScriptureScopePicker` from TASK-047)
+    - For Set-of-N: a numeric "Set size" field, capped at 30
+    - For Round-by-Round: no extra field (host advances manually)
+  - [ ] On "Create Room", the host lobby builds the `GroupRoomScope` with `mode = wordBuilder` and the resolved `GroupWbConfig`. `hostCreateRoom` ships unchanged — it just passes the scope through.
+  - [ ] Auto-navigation: when `phase == inQuiz`, both host and player branch on `room.scope.mode`:
+    - `quiz` → `/group-play/quiz/:code` (existing)
+    - `wordBuilder` → `/group-play/word-builder/:code`
+    `ref.listen<GroupPlayPhase>` lives in both the host lobby and the join lobby — both need this branching.
+
+  ### Results
+  - [ ] Group results screen renders WB-flavored results when `room.scope.mode == wordBuilder`:
+    - Podium top 3 (rank determined by mode: Round-by-Round → cumulative round wins or cumulative speed-weighted points; Set-of-N → total elapsed time ascending, mistakes as tiebreaker)
+    - Leaderboard rows show per-mode stats: round-by-round → "X round wins · Ys total time", set-of-N → "Finished in Xs · Y mistakes"
+    - "Play Again" reuses the same `GroupRoomScope` (including `wbConfig`) — owner explicitly wants the same set repeatable for a "best of 3" feel
+
+  ### Tests + verification
+  - [ ] `flutter analyze` clean across all new files
+  - [ ] All new unit tests pass; existing 500+ test suite remains green
+  - [ ] **Manual smoke test** (owner step, two-instance setup — iOS Simulator + Chrome): host creates a Word Builder room with 3 scriptures in Round-by-Round mode, joins from second instance, races through, sees per-round leaderboard, ends game, sees correct results.
+  - [ ] **Decoupling sanity check**: after a Group WB race, verify in the second instance's solo Word Builder + Stats that NO mastery / streak / progress changed. This is the critical correctness invariant.
+
+- **depends_on**:
+  - **Strongly recommended sequencing**: land TASK-047 first. WB host setup uses the shared scope picker; building it twice is a waste. If TASK-047 is still open when an agent claims TASK-062, the agent should pause and land TASK-047 first, then resume.
+  - TASK-052 — done. WB rides on the foundation laid for Quiz.
+  - TASK-055 — done. WB screen patterns the live quiz screen architecture.
+  - TASK-056 — done. WB results extends the existing results screen.
+
 - **notes**:
-  - Current codebase has ZERO multiplayer infrastructure — `grep -i 'multiplayer|kahoot|lobby|firebase|websocket|supabase'` returns only unrelated matches in scripture text and `Icons.family_restroom`
-  - Word Builder is NOT part of group play in V1 (it's a solo mastery tool) — group play is Quick Quiz + maybe Scripture Match
-  - Think about abuse: nicknames need a light profanity filter so kids don't name themselves something dumb on the projector
-  - Consider persistent "Seminary classes" later so teachers can run the same group week to week with saved rosters — out of scope for V1 but worth designing the data model with that future in mind
+  - **NOT v1 — leave room in the data model but do not build**:
+    - Bracketed finals / head-to-head 1v1 elimination round
+    - "Finals round" of top 4 with the same scripture set
+    - Per-mistake score penalties (currently display-only)
+    - Server-side timeout enforcement (client-side auto-DNF is fine for v1)
+    - Mixed-mode rooms (Quiz round → WB round → Quiz round). The mode is frozen at room creation in v1.
+  - **Why a separate WB board widget instead of sharing the solo one**: solo Word Builder is tightly coupled to `WordBuilderNotifier` which records to `progress_provider`. The risk of a future refactor accidentally importing progress recording into the group race is real. Forking the widget is one of those "10 minutes of duplication saves 10 hours of debugging" decisions.
+  - **Distractor scope for Intermediate**: pull from in-scope scriptures only (same rule that landed for Quiz distractors in the TASK-055 follow-up). If the host picks 1 scripture, Intermediate has no distractors and visually degrades to Beginner-ish — that's fine, document it.
+  - **Set-of-N upper bound**: cap at 30 to match the premium room player cap. A 30-scripture race is already extreme; defer "all 100 race" as v2.
+  - **Confetti budget**: fire confetti when the local player finishes (700ms, ~14 particles), NOT on every player's finish — a class of 30 finishing in a 10-second window would overlap badly.
+  - **Premium gating**: Word Builder race respects the same hosting tier from TASK-058 — free hosts can run it within their 1 game/week + 6 player cap; premium hosts get unlimited + 30 cap. No new premium gate needed beyond the existing hosting gate.
+
+---
+
+## Cleanup & Parking Lot
 
 ### TASK-049: Kill the dead difficulty/book state on Quick Quiz & Match cards
 
-- **status**: `open`
+- **status**: `done` — closed as part of TASK-047 (2026-05-25)
 - **priority**: P1 (small cleanup, will naturally fall out of TASK-047)
 - **estimated_effort**: Small
 - **files_to_touch**: `lib/screens/practice_hub_screen.dart`

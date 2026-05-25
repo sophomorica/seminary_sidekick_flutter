@@ -1,7 +1,10 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 import 'providers/activity_provider.dart';
@@ -11,6 +14,7 @@ import 'providers/mastery_dates_provider.dart';
 import 'providers/notes_provider.dart';
 import 'providers/onboarding_provider.dart';
 import 'providers/progress_provider.dart';
+import 'providers/scripture_scope_provider.dart';
 import 'providers/spaced_repetition_provider.dart';
 import 'providers/sidekick_provider.dart';
 import 'providers/subscription_provider.dart';
@@ -18,6 +22,7 @@ import 'providers/study_streak_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/user_preferences_provider.dart';
 import 'services/audio_service.dart';
+import 'services/nickname_validator.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -53,6 +58,7 @@ void main() async {
   await container.read(audioProvider.notifier).init();
   await container.read(userPreferencesProvider.notifier).init();
   await container.read(studyStreakProvider.notifier).init();
+  await container.read(scriptureScopeProvider.notifier).init();
 
   // Initialize Goals (loads persisted goals from Hive).
   await container.read(goalsProvider.notifier).init();
@@ -61,10 +67,122 @@ void main() async {
   // Non-blocking — the app starts immediately, sidekick loads in background.
   container.read(sidekickProvider.notifier).init();
 
+  // Preload the nickname profanity wordlist. Fire-and-forget — the validator
+  // fails open until the asset finishes loading, so the only consequence of
+  // skipping the await is a missed profanity hit on the first lobby visit.
+  NicknameValidator.preload();
+
+  // Initialize Supabase for Group Play multiplayer.
+  // Credentials come from --dart-define at build/run time:
+  //   --dart-define=SUPABASE_URL=...
+  //   --dart-define=SUPABASE_ANON_KEY=...
+  // If either is missing, group play is gracefully unavailable but the rest
+  // of the app still works (solo mastery loop has no Supabase dependency).
+  await _maybeInitSupabase();
+
   runApp(
     UncontrolledProviderScope(
       container: container,
       child: const SeminarySidekickApp(),
     ),
   );
+}
+
+/// Read Supabase credentials from --dart-define and initialize the client.
+/// Also performs an anonymous sign-in if there's no existing session, so the
+/// rest of the app can assume `Supabase.instance.client.auth.currentUser`
+/// is non-null when group play is reachable.
+///
+/// Failures are logged but do not crash the app — solo features have no
+/// Supabase dependency. Group play screens check session validity at the
+/// service layer before issuing any DB calls.
+Future<void> _maybeInitSupabase() async {
+  const url = String.fromEnvironment('SUPABASE_URL', defaultValue: '');
+  const anonKey = String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
+
+  if (url.isEmpty || anonKey.isEmpty) {
+    developer.log(
+      'Supabase not configured — set --dart-define=SUPABASE_URL and '
+      '--dart-define=SUPABASE_ANON_KEY to enable Group Play.',
+      name: 'main',
+    );
+    return;
+  }
+
+  try {
+    await Supabase.initialize(
+      url: url,
+      anonKey: anonKey,
+      // Realtime is on by default; explicit no-op kept here for clarity.
+      realtimeClientOptions: const RealtimeClientOptions(
+        logLevel: RealtimeLogLevel.warn,
+      ),
+    );
+
+    final auth = Supabase.instance.client.auth;
+
+    // If a stale session was restored from local storage, force-refresh it
+    // synchronously so we discover a bad refresh token NOW (rather than
+    // asynchronously after init returns — that race used to leave us
+    // "signed in" until the first DB call rejected us).
+    if (auth.currentSession != null) {
+      try {
+        await auth.refreshSession();
+      } on AuthException catch (e) {
+        developer.log(
+          'Cached Supabase session was unusable (${e.code}); wiping.',
+          name: 'main',
+        );
+        try {
+          await auth.signOut();
+        } catch (_) {
+          // signOut may fail if the refresh token is already invalidated
+          // server-side. Either way, the local session is gone.
+        }
+      }
+    }
+
+    if (auth.currentUser == null) {
+      await auth.signInAnonymously();
+      developer.log(
+        'Anonymous Supabase session created: ${auth.currentUser?.id}',
+        name: 'main',
+      );
+    } else {
+      developer.log(
+        'Reusing Supabase session: ${auth.currentUser!.id}',
+        name: 'main',
+      );
+    }
+
+    // Safety net: if the session gets cleared later (e.g. another tab
+    // invalidated the refresh token, or background refresh failed), sign
+    // back in anonymously so group play doesn't quietly stop working.
+    auth.onAuthStateChange.listen((data) {
+      final event = data.event;
+      if (event == AuthChangeEvent.signedOut ||
+          event == AuthChangeEvent.tokenRefreshed && auth.currentUser == null) {
+        developer.log(
+          'Supabase session cleared (${event.name}); re-signing in anonymously.',
+          name: 'main',
+        );
+        auth.signInAnonymously().catchError((e) {
+          developer.log(
+            'Anonymous re-sign-in failed: $e',
+            name: 'main',
+          );
+          // Return a placeholder AuthResponse to satisfy the type system —
+          // callers don't observe the future from this listener.
+          throw e;
+        });
+      }
+    });
+  } catch (e, st) {
+    developer.log(
+      'Supabase init failed; group play will be unavailable.',
+      name: 'main',
+      error: e,
+      stackTrace: st,
+    );
+  }
 }

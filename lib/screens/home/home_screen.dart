@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../models/enums.dart';
 import '../../models/sidekick_response.dart';
+import '../../providers/resume_target_provider.dart';
 import '../../providers/scripture_mastery_provider.dart';
 import '../../providers/sidekick_provider.dart';
 import '../../providers/spaced_repetition_provider.dart';
@@ -21,33 +23,25 @@ class HomeScreen extends ConsumerWidget {
     return 'Good evening,';
   }
 
-  /// Dynamic mastery description based on actual progress.
-  static String _masteryDescription(HolisticStats stats) {
-    final pct = stats.mastered;
-    if (pct == 0) {
-      return 'Your journey begins here. Pick a scripture and start building mastery one verse at a time.';
-    } else if (pct < 10) {
-      return 'You\'ve taken the first steps. Keep practicing daily and you\'ll see your mastery grow.';
-    } else if (pct < 25) {
-      return 'Great momentum. You\'re building a strong foundation of scripture knowledge.';
-    } else if (pct < 50) {
-      return 'Impressive progress. Continue with daily practice to unlock deeper insights.';
-    } else if (pct < 75) {
-      return 'You\'re well past the halfway mark. Your dedication is paying off beautifully.';
-    } else if (pct < 100) {
-      return 'Almost there. You\'re approaching full mastery of the doctrinal scriptures.';
-    } else {
-      return 'Remarkable. You have mastered all 100 doctrinal mastery scriptures.';
-    }
+  /// Friendly relative-time label for "X days/hours ago".
+  static String _timeAgoLabel(DateTime then) {
+    final delta = DateTime.now().difference(then);
+    if (delta.inMinutes < 1) return 'Just now';
+    if (delta.inHours < 1) return '${delta.inMinutes}m ago';
+    if (delta.inHours < 24) return '${delta.inHours}h ago';
+    if (delta.inDays == 1) return 'Yesterday';
+    if (delta.inDays < 7) return '${delta.inDays} days ago';
+    return '${(delta.inDays / 7).floor()}w ago';
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final stats = ref.watch(holisticStatsProvider);
     final isPremium = ref.watch(isPremiumProvider);
     final sidekickResponse = ref.watch(sidekickResponseProvider);
     final greetingName = ref.watch(greetingNameProvider);
-    ref.watch(dueCountProvider);
+    final resumeTarget = ref.watch(resumeTargetProvider);
+    final stats = ref.watch(holisticStatsProvider);
+    ref.watch(dueCountProvider); // warm cache for badges elsewhere
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -62,8 +56,6 @@ class HomeScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ─── Dynamic Greeting ─────────────────────────────────────
-              // Premium: AI-generated daily prompt (if available)
-              // Free: Time-based greeting + user name
               if (isPremium && sidekickResponse?.dailyPrompt != null) ...[
                 Text(
                   sidekickResponse!.dailyPrompt!,
@@ -86,95 +78,51 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ],
 
-              const SizedBox(height: 48.0),
+              const SizedBox(height: AppTheme.spacingXl),
 
-              // ─── Overall Mastery Section ───────────────────────────────
-              Text(
-                'Overall Mastery',
-                style: Theme.of(context).textTheme.headlineMedium,
+              // ─── Resume card OR all-caught-up nudge ───────────────────
+              if (resumeTarget != null) ...[
+                _ResumeEyebrow(isReviewNudge: resumeTarget.isReviewNudge),
+                const SizedBox(height: AppTheme.spacingSm),
+                _buildResumeCard(context, ref, resumeTarget),
+                const SizedBox(height: AppTheme.spacingXl),
+                const _SectionDivider(label: 'Or start fresh'),
+                const SizedBox(height: AppTheme.spacingMd),
+              ] else if (stats.attempted > 0) ...[
+                _buildAllCaughtUpCard(context),
+                const SizedBox(height: AppTheme.spacingXl),
+              ],
+
+              // ─── "Let's Learn / Let's Play" tiles ─────────────────────
+              _buildImageNavigationCard(
+                context,
+                title: "Let's Learn",
+                description: 'Study scripture and build mastery.',
+                overlayColor: AppTheme.secondary,
+                icon: Icons.menu_book,
+                imagePath: 'assets/images/browse_scriptures.jpg',
+                onTap: () => context.go('/library'),
               ),
-              const SizedBox(height: AppTheme.spacingSm),
-              Text(
-                _masteryDescription(stats),
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyLarge
-                    ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              const SizedBox(height: AppTheme.spacingMd),
+              _buildImageNavigationCard(
+                context,
+                title: "Let's Play",
+                description: 'Quizzes, scripture match, and Word Builder.',
+                overlayColor: AppTheme.primary,
+                icon: Icons.extension,
+                imagePath: 'assets/images/practice_games.jpg',
+                onTap: () => context.go('/practice'),
               ),
-              const SizedBox(height: AppTheme.spacingLg),
+              const SizedBox(height: AppTheme.spacingMd),
+              // Group Play entry — host or join with friends.
+              // Tapping defaults to Join (the most common student flow:
+              // "my friend just sent me a code"). Hosts go through the
+              // Practice Hub's Group Play card instead.
+              _buildPlayWithFriendsTile(context),
 
-              // ─── Mastery Ring (160px) with Stats ───────────────────────
-              Row(
-                children: [
-                  // Circular progress ring (custom painted, 160px)
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      SizedBox(
-                        width: 160,
-                        height: 160,
-                        child: CustomPaint(
-                          painter: _MasteryRingPainter(
-                            progress: stats.mastered / 100,
-                          ),
-                        ),
-                      ),
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            '${stats.mastered}',
-                            style: Theme.of(context)
-                                .textTheme
-                                .displayLarge
-                                ?.copyWith(
-                                  fontFamily: 'Merriweather',
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '/ 100 MASTERED',
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                  letterSpacing: 0.5,
-                                ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 24.0),
-                  // Stats tiles
-                  Expanded(
-                    child: Column(
-                      children: [
-                        _buildStatTile(
-                          context,
-                          label: 'Scriptures Started',
-                          value: '${stats.attempted}',
-                          valueColor: AppTheme.secondary,
-                        ),
-                        const SizedBox(height: AppTheme.spacingMd),
-                        _buildStatTile(
-                          context,
-                          label: 'Needs Review',
-                          value: '${stats.needsReview}',
-                          valueColor: const Color(0xFF735C00),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 48.0),
-
-              // ─── Quick Win Card (Premium Only) ─────────────────────────
-              if (isPremium && sidekickResponse?.quickWin != null)
+              // ─── Premium Quick Win — demoted below primary CTAs ───────
+              if (isPremium && sidekickResponse?.quickWin != null) ...[
+                const SizedBox(height: AppTheme.spacingXl),
                 _buildQuickWinCard(
                   context,
                   sidekickResponse!.quickWin!,
@@ -186,30 +134,7 @@ class HomeScreen extends ConsumerWidget {
                     }
                   },
                 ),
-
-              if (isPremium && sidekickResponse?.quickWin != null)
-                const SizedBox(height: 48.0),
-
-              // ─── Full-Width Navigation Cards (stacked) ────────────────
-              _buildImageNavigationCard(
-                context,
-                title: 'Browse Scriptures',
-                description: 'Explore the sacred library at your own pace.',
-                overlayColor: AppTheme.secondary,
-                icon: Icons.menu_book,
-                imagePath: 'assets/images/browse_scriptures.jpg',
-                onTap: () => context.go('/library'),
-              ),
-              const SizedBox(height: AppTheme.spacingMd),
-              _buildImageNavigationCard(
-                context,
-                title: 'Practice Games',
-                description: 'Strengthen your memory through guided play.',
-                overlayColor: AppTheme.primary,
-                icon: Icons.extension,
-                imagePath: 'assets/images/practice_games.jpg',
-                onTap: () => context.go('/practice'),
-              ),
+              ],
 
               const SizedBox(height: 120.0),
             ],
@@ -219,46 +144,253 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  /// Stat tile (Practiced Today, Day Streak)
-  Widget _buildStatTile(
-    BuildContext context, {
-    required String label,
-    required String value,
-    required Color valueColor,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-      ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacingMd,
-        vertical: AppTheme.spacingMd,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label.toUpperCase(),
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  letterSpacing: 0.5,
-                ),
+  /// Resume card — the "Pick up where you left off" hero.
+  ///
+  /// Surfaces the most relevant non-mastered scripture (needs-review first,
+  /// then most-recently-practiced).
+  Widget _buildResumeCard(
+    BuildContext context,
+    WidgetRef ref,
+    ResumeTarget target,
+  ) {
+    final scripture = target.scripture;
+    final mastery = ref.watch(scriptureMasteryProvider(scripture.id));
+    final bookColor = AppTheme.bookColor(scripture.book.displayName);
+
+    return GestureDetector(
+      onTap: () => context.push('/scripture/${scripture.id}'),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+            width: 0.5,
           ),
-          const SizedBox(height: AppTheme.spacingSm),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: valueColor,
-                  fontStyle: FontStyle.italic,
+          boxShadow: AppTheme.editorialShadow,
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Book-color stripe
+                Container(width: 5.0, color: bookColor),
+                // Body
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppTheme.spacingMd,
+                      AppTheme.spacingMd,
+                      AppTheme.spacingMd,
+                      AppTheme.spacingMd,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Volume / book label
+                        Row(
+                          children: [
+                            Text(
+                              scripture.book.displayName.toUpperCase(),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
+                                    color: bookColor,
+                                    letterSpacing: 0.8,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                            if (target.lastPracticed != null) ...[
+                              Text(
+                                '  ·  ',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                              ),
+                              Text(
+                                _timeAgoLabel(target.lastPracticed!)
+                                    .toUpperCase(),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                      letterSpacing: 0.8,
+                                    ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 6.0),
+                        // Reference
+                        Text(
+                          scripture.reference,
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                fontFamily: 'Merriweather',
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                        const SizedBox(height: 6.0),
+                        // Key phrase
+                        Text(
+                          '"${scripture.keyPhrase}"',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(
+                                fontFamily: 'Merriweather',
+                                fontStyle: FontStyle.italic,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                                height: 1.5,
+                              ),
+                        ),
+                        const SizedBox(height: AppTheme.spacingMd),
+                        // Mastery pips + level label
+                        Row(
+                          children: [
+                            _MasteryPips(level: mastery.level),
+                            const SizedBox(width: AppTheme.spacingSm),
+                            Expanded(
+                              child: Text(
+                                _masteryHintFor(mastery.level,
+                                    target.isReviewNudge),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                      letterSpacing: 0.3,
+                                    ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppTheme.spacingMd),
+                        // Continue button
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () =>
+                                context.push('/scripture/${scripture.id}'),
+                            icon: const Icon(Icons.play_arrow_rounded,
+                                size: 18.0),
+                            label: Text(
+                              target.isReviewNudge
+                                  ? 'Refresh this scripture'
+                                  : 'Continue practice',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelLarge
+                                  ?.copyWith(color: Colors.white),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primary,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                    AppTheme.radiusRound),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 12.0,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// "All caught up" celebration shown when the user has practiced something
+  /// but every touched scripture has reached Mastered or Eternal.
+  Widget _buildAllCaughtUpCard(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppTheme.spacingMd),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant,
+          width: 0.5,
+        ),
+        boxShadow: AppTheme.editorialShadow,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44.0,
+            height: 44.0,
+            decoration: BoxDecoration(
+              color: AppTheme.premiumGoldLight,
+              borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+            ),
+            child: const Icon(
+              Icons.auto_awesome,
+              color: AppTheme.premiumGold,
+              size: 24.0,
+            ),
+          ),
+          const SizedBox(width: AppTheme.spacingMd),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Everything you've started is mastered.",
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontFamily: 'Merriweather',
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                const SizedBox(height: 2.0),
+                Text(
+                  'Pick a new scripture or jump into a quick practice round.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color:
+                            Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  /// Quick Win card (tertiary-tinted, from Sidekick AI)
+  /// Quick Win card — AI-generated nudge from the Sidekick. Premium-only.
+  ///
+  /// Uses the brand accent blue (#5B8ABF) — the same color already used for
+  /// tappable scripture references in chat. Reads as "smart / Sidekick" and
+  /// stays visually distinct from the rust + sage tiles directly above.
   Widget _buildQuickWinCard(
     BuildContext context,
     QuickWin quickWin, {
@@ -267,10 +399,11 @@ class HomeScreen extends ConsumerWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xFF735C00).withValues(alpha: 0.20),
+        color: AppTheme.accent.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(AppTheme.radiusXl),
         border: Border.all(
-          color: const Color(0xFF735C00).withValues(alpha: 0.10),
+          color: AppTheme.accent.withValues(alpha: 0.32),
+          width: 0.5,
         ),
         boxShadow: AppTheme.editorialShadow,
       ),
@@ -282,7 +415,7 @@ class HomeScreen extends ConsumerWidget {
             children: [
               const Icon(
                 Icons.smart_toy,
-                color: Color(0xFF735C00),
+                color: AppTheme.accent,
                 size: 20,
               ),
               const SizedBox(width: AppTheme.spacingMd),
@@ -290,8 +423,9 @@ class HomeScreen extends ConsumerWidget {
                 child: Text(
                   "TODAY'S QUICK WIN",
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: const Color(0xFF735C00),
+                        color: AppTheme.accent,
                         letterSpacing: 0.5,
+                        fontWeight: FontWeight.w600,
                       ),
                 ),
               ),
@@ -303,7 +437,7 @@ class HomeScreen extends ConsumerWidget {
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontStyle: FontStyle.italic,
                   fontFamily: 'Merriweather',
-                  color: const Color(0xFF4E3D00),
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
           ),
           const SizedBox(height: AppTheme.spacingSm),
@@ -319,10 +453,12 @@ class HomeScreen extends ConsumerWidget {
             child: ElevatedButton(
               onPressed: onTap,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF735C00),
+                backgroundColor: AppTheme.accent,
+                foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusRound),
                 ),
+                padding: const EdgeInsets.symmetric(vertical: 12.0),
               ),
               child: Text(
                 'Practice Now',
@@ -337,7 +473,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  /// Full-width navigation card with background image and color overlay.
+  /// Image-overlay navigation card for the two primary "Let's Learn / Let's Play" tiles.
   Widget _buildImageNavigationCard(
     BuildContext context, {
     required String title,
@@ -350,7 +486,7 @@ class HomeScreen extends ConsumerWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 240,
+        height: 168, // reduced from 240 so resume card has visual primacy
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppTheme.radiusXl),
@@ -365,18 +501,13 @@ class HomeScreen extends ConsumerWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Background image
             Image.asset(
               imagePath,
               fit: BoxFit.cover,
             ),
-            // Color overlay (mix-blend-multiply effect)
-            Container(
-              color: overlayColor.withValues(alpha: 0.80),
-            ),
-            // Content
+            Container(color: overlayColor.withValues(alpha: 0.80)),
             Padding(
-              padding: const EdgeInsets.all(AppTheme.spacingLg + 8),
+              padding: const EdgeInsets.all(AppTheme.spacingLg),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -384,7 +515,7 @@ class HomeScreen extends ConsumerWidget {
                   Icon(
                     icon,
                     color: Colors.white,
-                    size: 32,
+                    size: 28,
                   ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -393,19 +524,19 @@ class HomeScreen extends ConsumerWidget {
                         title,
                         style: Theme.of(context)
                             .textTheme
-                            .headlineMedium
+                            .headlineSmall
                             ?.copyWith(
                               color: Colors.white,
                               fontFamily: 'Merriweather',
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w600,
                             ),
                       ),
-                      const SizedBox(height: AppTheme.spacingSm),
+                      const SizedBox(height: 2.0),
                       Text(
                         description,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.white.withValues(alpha: 0.80),
-                              letterSpacing: 0.3,
+                              color: Colors.white.withValues(alpha: 0.85),
+                              letterSpacing: 0.2,
                             ),
                       ),
                     ],
@@ -418,51 +549,193 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
   }
-}
 
-/// Custom painter for the mastery ring (160px, primary color)
-class _MasteryRingPainter extends CustomPainter {
-  final double progress;
-
-  _MasteryRingPainter({required this.progress});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const strokeWidth = 10.0;
-    final rect = Rect.fromLTWH(
-      strokeWidth / 2,
-      strokeWidth / 2,
-      size.width - strokeWidth,
-      size.height - strokeWidth,
-    );
-
-    // Background track
-    final backgroundPaint = Paint()
-      ..color = AppTheme.surfaceVariant
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-
-    canvas.drawOval(rect, backgroundPaint);
-
-    // Progress arc
-    final progressPaint = Paint()
-      ..color = AppTheme.primary
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-
-    canvas.drawArc(
-      rect,
-      -90 * 3.14159 / 180, // Start at top
-      progress * 360 * 3.14159 / 180, // Progress to degrees
-      false,
-      progressPaint,
+  /// "Play with Friends" tile — entry to Group Play.
+  ///
+  /// Defaults to the Join screen because the most common student flow is
+  /// "my friend texted me a code." Hosts launch new rooms from the Practice
+  /// Hub's Group Play card, which has both Host and Join buttons.
+  ///
+  /// Uses a gradient (not an image) so we don't need a new asset to ship —
+  /// the kid-attractive icon + warm gradient carries the visual weight.
+  Widget _buildPlayWithFriendsTile(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push('/group-play/join'),
+      child: Container(
+        height: 168,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppTheme.tertiary, AppTheme.secondary],
+          ),
+          borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x33221A17),
+              blurRadius: 16,
+              offset: Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(AppTheme.spacingLg),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Icon(Icons.groups, color: Colors.white, size: 28),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.20),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'NEW',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.5,
+                            fontSize: 10,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Play with Friends',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          color: Colors.white,
+                          fontFamily: 'Merriweather',
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Join a class quiz with a 4-letter code.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.85),
+                          letterSpacing: 0.2,
+                        ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
+  /// Short hint string for the resume card mastery row.
+  String _masteryHintFor(MasteryLevel level, bool isReviewNudge) {
+    if (isReviewNudge) {
+      return 'Time for a refresher';
+    }
+    switch (level) {
+      case MasteryLevel.newScripture:
+        return 'Just getting started';
+      case MasteryLevel.learning:
+        return 'Learning · pushing for Familiar';
+      case MasteryLevel.familiar:
+        return 'Familiar · pushing for Memorized';
+      case MasteryLevel.memorized:
+        return 'Memorized · pushing for Mastered';
+      case MasteryLevel.mastered:
+      case MasteryLevel.eternal:
+        return ''; // never reached — filtered upstream
+    }
+  }
+}
+
+/// Small uppercase eyebrow above the resume card.
+class _ResumeEyebrow extends StatelessWidget {
+  final bool isReviewNudge;
+  const _ResumeEyebrow({required this.isReviewNudge});
+
   @override
-  bool shouldRepaint(_MasteryRingPainter oldDelegate) {
-    return oldDelegate.progress != progress;
+  Widget build(BuildContext context) {
+    return Text(
+      isReviewNudge
+          ? 'Time for a refresher'
+          : 'Pick up where you left off',
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            letterSpacing: 0.8,
+            fontWeight: FontWeight.w600,
+          ),
+    );
+  }
+}
+
+/// "Or start fresh" / similar quiet section divider.
+class _SectionDivider extends StatelessWidget {
+  final String label;
+  const _SectionDivider({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label.toUpperCase(),
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            letterSpacing: 0.8,
+            fontWeight: FontWeight.w600,
+          ),
+    );
+  }
+}
+
+/// Six-dot mastery path indicator.
+///
+/// Shows the user's position on the linear mastery path:
+///   newScripture → learning → familiar → memorized → mastered → eternal
+/// Filled dots: levels already reached.
+/// Highlighted dot: the next level to push for.
+class _MasteryPips extends StatelessWidget {
+  final MasteryLevel level;
+  const _MasteryPips({required this.level});
+
+  @override
+  Widget build(BuildContext context) {
+    const total = 6;
+    final reached = level.index; // 0..5 — number of filled pips
+    final next = reached < total ? reached : -1;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(total, (i) {
+        final Color color;
+        if (i < reached) {
+          color = AppTheme.secondary;
+        } else if (i == next) {
+          color = AppTheme.primary;
+        } else {
+          color = Theme.of(context).colorScheme.surfaceContainerHighest;
+        }
+        return Padding(
+          padding: const EdgeInsets.only(right: 4.0),
+          child: Container(
+            width: 8.0,
+            height: 8.0,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+            ),
+          ),
+        );
+      }),
+    );
   }
 }

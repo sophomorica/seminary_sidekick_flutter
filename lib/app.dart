@@ -20,6 +20,12 @@ import 'screens/progress/progress_screen.dart';
 import 'screens/settings/settings_screen.dart';
 import 'screens/sidekick_chat/sidekick_chat_screen.dart';
 import 'screens/upgrade_screen.dart';
+import 'screens/group_play/_placeholder_screens.dart';
+import 'screens/group_play/group_quiz_screen.dart';
+import 'screens/group_play/group_results_screen.dart';
+import 'screens/group_play/group_word_builder_screen.dart';
+import 'screens/group_play/host_lobby_screen.dart';
+import 'screens/group_play/join_lobby_screen.dart';
 
 class SeminarySidekickApp extends ConsumerStatefulWidget {
   const SeminarySidekickApp({super.key});
@@ -137,6 +143,42 @@ class _SeminarySidekickAppState extends ConsumerState<SeminarySidekickApp> {
             final scriptureId = state.uri.queryParameters['scriptureId'];
             return SidekickChatScreen(initialScriptureId: scriptureId);
           },
+        ),
+        // ─── Group Play (TASK-052..TASK-061) ────────────────────────────
+        // Each route currently renders a placeholder. Phase-3 agents
+        // (TASK-053..TASK-056) replace each `*PlaceholderScreen` import
+        // and reference below with the real screen.
+        GoRoute(
+          path: '/group-play/host',
+          builder: (context, state) => const HostLobbyScreen(),
+        ),
+        GoRoute(
+          path: '/group-play/join',
+          builder: (context, state) => const JoinLobbyScreen(),
+        ),
+        GoRoute(
+          path: '/group-play/lobby/:code',
+          builder: (context, state) => GroupLobbyPlaceholderScreen(
+            code: state.pathParameters['code']!,
+          ),
+        ),
+        GoRoute(
+          path: '/group-play/quiz/:code',
+          builder: (context, state) => GroupQuizScreen(
+            code: state.pathParameters['code']!,
+          ),
+        ),
+        GoRoute(
+          path: '/group-play/word-builder/:code',
+          builder: (context, state) => GroupWordBuilderScreen(
+            code: state.pathParameters['code']!,
+          ),
+        ),
+        GoRoute(
+          path: '/group-play/results/:code',
+          builder: (context, state) => GroupResultsScreen(
+            code: state.pathParameters['code']!,
+          ),
         ),
       ],
     );

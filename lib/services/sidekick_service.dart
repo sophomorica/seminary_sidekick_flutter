@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 import '../models/sidekick_response.dart';
 import '../models/sidekick_snapshot.dart';
 
@@ -23,13 +25,33 @@ class SidekickService {
   /// shipped app bundle. This constant is a placeholder for development.
   ///
   /// Set via environment variable or secure config before building:
-  ///   --dart-define=GROK_API_KEY=xai-...
+  ///   --dart-define=XAI_API_KEY=xai-...
+  /// Or via `--dart-define-from-file=.env` reading XAI_API_KEY=... from .env.
   static const String _apiKey = String.fromEnvironment(
-    'GROK_API_KEY',
+    'XAI_API_KEY',
     defaultValue: '',
   );
 
-  final HttpClient _client = HttpClient();
+  // Lazy-initialized so the constructor never touches `dart:io` directly.
+  // On Flutter web `dart:io HttpClient` throws `Unsupported operation:
+  // Platform._version` the moment it's instantiated. Keeping this lazy lets
+  // SidekickService be constructed on web (used during dev/multi-target
+  // testing) without crashing the whole app on boot. Actual API calls on
+  // web are gated by [_assertNotWeb] below.
+  HttpClient? _clientField;
+  HttpClient get _client => _clientField ??= HttpClient();
+
+  /// Calls into `dart:io` HttpClient must be guarded — web has no `dart:io`.
+  /// On web we throw a clean exception that the provider can catch and fall
+  /// back to its cached / offline response, instead of crashing.
+  void _assertNotWeb() {
+    if (kIsWeb) {
+      throw const SidekickServiceException(
+        'Sidekick AI is not available on web. Use the iOS / Android / macOS '
+        'build to talk to Grok.',
+      );
+    }
+  }
 
   /// Send the user's snapshot to the Sidekick and get a structured response.
   ///
@@ -85,14 +107,15 @@ class SidekickService {
   Future<Map<String, dynamic>> _chatCompletion(
     List<Map<String, dynamic>> messages,
   ) async {
+    _assertNotWeb();
     if (_apiKey.isEmpty) {
       throw const SidekickServiceException(
-        'API key not configured. Set GROK_API_KEY via --dart-define.',
+        'API key not configured. Set XAI_API_KEY via --dart-define-from-file=.env.',
       );
     }
 
     final request = await _client.postUrl(Uri.parse(_baseUrl));
-    request.headers.set('Content-Type', 'application/json');
+    request.headers.set('Content-Type', 'application/json; charset=utf-8');
     request.headers.set('Authorization', 'Bearer $_apiKey');
 
     final payload = jsonEncode({
@@ -102,7 +125,9 @@ class SidekickService {
       'max_tokens': 1500,
     });
 
-    request.write(payload);
+    // Write UTF-8 bytes directly. HttpClientRequest.write() defaults to
+    // latin-1, which fails on em-dashes and curly quotes in our prompts.
+    request.add(utf8.encode(payload));
     final response = await request.close();
     final responseBody = await response.transform(utf8.decoder).join();
 

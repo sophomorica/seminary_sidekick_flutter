@@ -41,6 +41,12 @@ dependencies:
   # In-App Purchases (RevenueCat)
   purchases_flutter: ^8.1.0
 
+  # Backend (Group Play multiplayer — Supabase Realtime + Postgres + Anonymous Auth)
+  supabase_flutter: ^2.5.0
+
+  # QR codes (host lobby join code → scannable)
+  qr_flutter: ^4.1.0
+
   # Sharing
   share_plus: ^7.2.2
   path_provider: ^2.1.2

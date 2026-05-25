@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -114,7 +115,13 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
       );
 
       await _cacheResponse(response);
-    } catch (e) {
+    } catch (e, stack) {
+      developer.log(
+        'Sidekick session refresh failed',
+        name: 'sidekick',
+        error: e,
+        stackTrace: stack,
+      );
       // On failure, keep cached response and set error
       state = state.copyWith(
         isLoadingSession: false,
@@ -169,10 +176,16 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
       );
 
       await _cacheChatHistory();
-    } catch (e) {
+    } catch (e, stack) {
+      developer.log(
+        'Sidekick chat failed',
+        name: 'sidekick',
+        error: e,
+        stackTrace: stack,
+      );
       state = state.copyWith(
         isLoadingChat: false,
-        error: 'Could not send message. Check your connection.',
+        error: 'Could not send message: $e',
       );
     }
   }

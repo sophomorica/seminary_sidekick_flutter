@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../models/enums.dart';
 import '../models/scripture.dart';
+import '../models/scripture_mastery.dart';
+import '../models/scripture_scope.dart';
 import '../providers/progress_provider.dart';
 import '../providers/scripture_provider.dart';
 import '../providers/scripture_mastery_provider.dart';
+import '../providers/scripture_scope_provider.dart';
+import '../providers/subscription_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/mastery_badge.dart';
+import '../widgets/scripture_scope_picker.dart';
 import 'games/matching_game_screen.dart';
 import 'games/quiz_game_screen.dart';
 import 'games/word_builder/word_builder_screen.dart';
@@ -52,6 +58,10 @@ class _PracticeHubScreenState extends ConsumerState<PracticeHubScreen> {
               ),
               const SizedBox(height: 32.0),
 
+              // Group Play card — host or join a multiplayer quiz
+              const _GroupPlayCard(),
+              const SizedBox(height: 32.0),
+
               // Path Selector
               _PathSelector(
                 selectedDifficulty: _selectedDifficulty,
@@ -65,9 +75,9 @@ class _PracticeHubScreenState extends ConsumerState<PracticeHubScreen> {
               const SizedBox(height: 32.0),
 
               // Scripture Match & Quick Quiz cards
-              _MatchingGameCard(),
+              const _MatchingGameCard(),
               const SizedBox(height: 16.0),
-              _QuizGameCard(),
+              const _QuizGameCard(),
               const SizedBox(height: 32.0),
 
               // Sacred Achievement section
@@ -665,18 +675,12 @@ class _PathButton extends StatelessWidget {
   }
 }
 
-/// Scripture Match card
-class _MatchingGameCard extends StatefulWidget {
-  @override
-  State<_MatchingGameCard> createState() => _MatchingGameCardState();
-}
-
-class _MatchingGameCardState extends State<_MatchingGameCard> {
-  final DifficultyLevel _selectedDifficulty = DifficultyLevel.beginner;
-  final Set<ScriptureBook> _selectedBooks = {};
+/// Scripture Match card — taps open the shared setup sheet.
+class _MatchingGameCard extends ConsumerWidget {
+  const _MatchingGameCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
@@ -696,7 +700,6 @@ class _MatchingGameCardState extends State<_MatchingGameCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Icon + Title + Description
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -711,7 +714,9 @@ class _MatchingGameCardState extends State<_MatchingGameCard> {
                   ),
                   child: Icon(
                     Icons.layers,
-                    color: isDark ? AppTheme.secondaryFixedDim : AppTheme.secondary,
+                    color: isDark
+                        ? AppTheme.secondaryFixedDim
+                        : AppTheme.secondary,
                     size: 24,
                   ),
                 ),
@@ -722,20 +727,26 @@ class _MatchingGameCardState extends State<_MatchingGameCard> {
                     children: [
                       Text(
                         'Scripture Match',
-                        style:
-                            Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  fontFamily: 'Merriweather',
-                                  fontWeight: FontWeight.bold,
-                                  fontStyle: FontStyle.italic,
-                                  color: Theme.of(context).colorScheme.onSurface,
-                                ),
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineSmall
+                            ?.copyWith(
+                              fontFamily: 'Merriweather',
+                              fontWeight: FontWeight.bold,
+                              fontStyle: FontStyle.italic,
+                              color:
+                                  Theme.of(context).colorScheme.onSurface,
+                            ),
                       ),
                       const SizedBox(height: 8.0),
                       Text(
                         'Match key phrases with their scripture references. Tests your recognition and familiarity.',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
                       ),
                     ],
                   ),
@@ -743,18 +754,21 @@ class _MatchingGameCardState extends State<_MatchingGameCard> {
               ],
             ),
             const SizedBox(height: 20.0),
-            // "Begin Session" button
             TextButton.icon(
-              onPressed: () => _launchMatching(context),
+              onPressed: () => _openSetup(context, ref),
               label: Text(
                 'Begin Session',
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: isDark ? AppTheme.secondaryFixedDim : AppTheme.secondaryDark,
+                      color: isDark
+                          ? AppTheme.secondaryFixedDim
+                          : AppTheme.secondaryDark,
                     ),
               ),
               icon: Icon(
                 Icons.arrow_forward,
-                color: isDark ? AppTheme.secondaryFixedDim : AppTheme.secondaryDark,
+                color: isDark
+                    ? AppTheme.secondaryFixedDim
+                    : AppTheme.secondaryDark,
                 size: 18,
               ),
             ),
@@ -764,30 +778,25 @@ class _MatchingGameCardState extends State<_MatchingGameCard> {
     );
   }
 
-  void _launchMatching(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => MatchingGameScreen(
-          difficulty: _selectedDifficulty,
-          bookFilters: _selectedBooks.toList(),
-        ),
+  void _openSetup(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _GameSetupSheet(
+        gameType: GameType.matching,
+        usageContext: ScopeUsageContext.scriptureMatch,
       ),
     );
   }
 }
 
-/// Quick Quiz card
-class _QuizGameCard extends StatefulWidget {
-  @override
-  State<_QuizGameCard> createState() => _QuizGameCardState();
-}
-
-class _QuizGameCardState extends State<_QuizGameCard> {
-  final DifficultyLevel _selectedDifficulty = DifficultyLevel.beginner;
-  final Set<ScriptureBook> _selectedBooks = {};
+/// Quick Quiz card — taps open the shared setup sheet.
+class _QuizGameCard extends ConsumerWidget {
+  const _QuizGameCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
@@ -807,7 +816,6 @@ class _QuizGameCardState extends State<_QuizGameCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Icon + Title + Description
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -817,12 +825,15 @@ class _QuizGameCardState extends State<_QuizGameCard> {
                   decoration: BoxDecoration(
                     color: isDark
                         ? AppTheme.tertiary.withValues(alpha: 0.3)
-                        : AppTheme.tertiaryFixedDim.withValues(alpha: 0.35),
+                        : AppTheme.tertiaryFixedDim
+                            .withValues(alpha: 0.35),
                     borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                   ),
                   child: Icon(
                     Icons.quiz,
-                    color: isDark ? AppTheme.tertiaryFixedDim : AppTheme.tertiary,
+                    color: isDark
+                        ? AppTheme.tertiaryFixedDim
+                        : AppTheme.tertiary,
                     size: 24,
                   ),
                 ),
@@ -833,20 +844,26 @@ class _QuizGameCardState extends State<_QuizGameCard> {
                     children: [
                       Text(
                         'Quick Quiz',
-                        style:
-                            Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  fontFamily: 'Merriweather',
-                                  fontWeight: FontWeight.bold,
-                                  fontStyle: FontStyle.italic,
-                                  color: Theme.of(context).colorScheme.onSurface,
-                                ),
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineSmall
+                            ?.copyWith(
+                              fontFamily: 'Merriweather',
+                              fontWeight: FontWeight.bold,
+                              fontStyle: FontStyle.italic,
+                              color:
+                                  Theme.of(context).colorScheme.onSurface,
+                            ),
                       ),
                       const SizedBox(height: 8.0),
                       Text(
                         'Answer questions about scripture passages. Tests your comprehension and understanding.',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
                       ),
                     ],
                   ),
@@ -854,18 +871,21 @@ class _QuizGameCardState extends State<_QuizGameCard> {
               ],
             ),
             const SizedBox(height: 20.0),
-            // "Take Quiz" button
             TextButton.icon(
-              onPressed: () => _launchQuiz(context),
+              onPressed: () => _openSetup(context, ref),
               label: Text(
                 'Take Quiz',
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: isDark ? AppTheme.tertiaryFixedDim : AppTheme.onTertiaryFixed,
+                      color: isDark
+                          ? AppTheme.tertiaryFixedDim
+                          : AppTheme.onTertiaryFixed,
                     ),
               ),
               icon: Icon(
                 Icons.arrow_forward,
-                color: isDark ? AppTheme.tertiaryFixedDim : AppTheme.onTertiaryFixed,
+                color: isDark
+                    ? AppTheme.tertiaryFixedDim
+                    : AppTheme.onTertiaryFixed,
                 size: 18,
               ),
             ),
@@ -875,14 +895,324 @@ class _QuizGameCardState extends State<_QuizGameCard> {
     );
   }
 
-  void _launchQuiz(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => QuizGameScreen(
-          difficulty: _selectedDifficulty,
-          bookFilters: _selectedBooks.toList(),
-        ),
+  void _openSetup(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _GameSetupSheet(
+        gameType: GameType.quiz,
+        usageContext: ScopeUsageContext.quickQuiz,
       ),
+    );
+  }
+}
+
+/// Reusable setup sheet for Quick Quiz and Scripture Match. Combines:
+///   * Difficulty selector (Beginner / Intermediate / Advanced / Master)
+///   * Shared [ScriptureScopePicker]
+///   * "Question count" / "Pair count" segmented control with an
+///     "Every scripture in scope" option that pipes
+///     `targetQuestionCount = resolved.length` to the notifier.
+class _GameSetupSheet extends ConsumerStatefulWidget {
+  final GameType gameType;
+  final String usageContext;
+
+  const _GameSetupSheet({
+    required this.gameType,
+    required this.usageContext,
+  });
+
+  @override
+  ConsumerState<_GameSetupSheet> createState() => _GameSetupSheetState();
+}
+
+class _GameSetupSheetState extends ConsumerState<_GameSetupSheet> {
+  late DifficultyLevel _difficulty;
+  late ScriptureScope _scope;
+  bool _everyScripture = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _difficulty = DifficultyLevel.beginner;
+    _scope = ref
+            .read(scriptureScopeProvider.notifier)
+            .lastUsedScope(widget.usageContext) ??
+        const ScopeAll();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final all = ref.watch(scripturesProvider);
+    ScriptureMastery? lookup(String id) =>
+        ref.read(scriptureMasteryProvider(id));
+    final resolved = _scope.resolve(all, masteryLookup: lookup);
+    final isQuiz = widget.gameType == GameType.quiz;
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.92,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (ctx, scrollController) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(ctx).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(24),
+            ),
+          ),
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              controller: scrollController,
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(ctx)
+                            .colorScheme
+                            .onSurfaceVariant
+                            .withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          isQuiz ? 'Set up Quick Quiz' : 'Set up Scripture Match',
+                          style: Theme.of(ctx)
+                              .textTheme
+                              .titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const _SectionLabel('DIFFICULTY'),
+                  const SizedBox(height: 6),
+                  _DifficultyChips(
+                    selected: _difficulty,
+                    onChanged: (d) =>
+                        setState(() => _difficulty = d),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _difficulty.descriptionForGame(widget.gameType),
+                    style:
+                        Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(ctx)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                  ),
+                  const SizedBox(height: 20),
+                  ScriptureScopePicker(
+                    initial: _scope,
+                    usageContext: widget.usageContext,
+                    onChanged: (s) => setState(() => _scope = s),
+                  ),
+                  const SizedBox(height: 20),
+                  _SectionLabel(
+                      isQuiz ? 'QUESTION COUNT' : 'PAIR COUNT'),
+                  const SizedBox(height: 6),
+                  _CountSegmented(
+                    everyScripture: _everyScripture,
+                    defaultLabel: _defaultCountLabel(isQuiz),
+                    everyLabel: 'Every scripture (${resolved.length})',
+                    onChanged: (v) =>
+                        setState(() => _everyScripture = v),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: resolved.isEmpty
+                          ? null
+                          : () => _start(ctx, resolved),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: AppTheme.onPrimary,
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(50),
+                        ),
+                      ),
+                      child: Text(
+                        isQuiz ? 'Start Quiz' : 'Start Match',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _defaultCountLabel(bool isQuiz) {
+    if (isQuiz) {
+      return '${_difficulty.quizQuestionCount} questions';
+    }
+    final c = _difficulty.matchingScriptureCount;
+    return c == null ? 'All available' : '$c pairs';
+  }
+
+  Future<void> _start(BuildContext ctx, List<Scripture> resolved) async {
+    final scriptures = _scope is ScopeAll ? null : resolved;
+    final bookFilters = _scope is ScopeBooks
+        ? (_scope as ScopeBooks).books.toList()
+        : const <ScriptureBook>[];
+
+    // Persist scope, then close the sheet and push the game screen via the
+    // root Navigator so we don't fight with the sheet's own context.
+    final rootNavigator = Navigator.of(context, rootNavigator: true);
+    final isQuiz = widget.gameType == GameType.quiz;
+    final everyScripture = _everyScripture;
+    final difficulty = _difficulty;
+
+    await ref
+        .read(scriptureScopeProvider.notifier)
+        .saveScope(widget.usageContext, _scope);
+
+    if (!mounted) return;
+    if (ctx.mounted) Navigator.of(ctx).pop();
+
+    rootNavigator.push(
+      MaterialPageRoute(
+        builder: (_) => isQuiz
+            ? QuizGameScreen(
+                difficulty: difficulty,
+                bookFilters: bookFilters,
+                scriptures: scriptures,
+                targetQuestionCount:
+                    everyScripture ? resolved.length : null,
+              )
+            : MatchingGameScreen(
+                difficulty: difficulty,
+                bookFilters: bookFilters,
+                scriptures: scriptures,
+                targetPairCount:
+                    everyScripture ? resolved.length : null,
+              ),
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            letterSpacing: 1.5,
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+    );
+  }
+}
+
+class _DifficultyChips extends StatelessWidget {
+  final DifficultyLevel selected;
+  final ValueChanged<DifficultyLevel> onChanged;
+
+  const _DifficultyChips({
+    required this.selected,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: DifficultyLevel.values.map((d) {
+        final isSelected = d == selected;
+        return ChoiceChip(
+          label: Text(d.label),
+          selected: isSelected,
+          onSelected: (_) => onChanged(d),
+          labelStyle: TextStyle(
+            color: isSelected ? AppTheme.onPrimary : null,
+            fontWeight:
+                isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+          selectedColor: AppTheme.primary,
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _CountSegmented extends StatelessWidget {
+  final bool everyScripture;
+  final String defaultLabel;
+  final String everyLabel;
+  final ValueChanged<bool> onChanged;
+
+  const _CountSegmented({
+    required this.everyScripture,
+    required this.defaultLabel,
+    required this.everyLabel,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        ChoiceChip(
+          label: Text('Default · $defaultLabel'),
+          selected: !everyScripture,
+          onSelected: (_) => onChanged(false),
+          labelStyle: TextStyle(
+            color: !everyScripture ? AppTheme.onPrimary : null,
+            fontWeight:
+                !everyScripture ? FontWeight.bold : FontWeight.normal,
+          ),
+          selectedColor: AppTheme.primary,
+        ),
+        ChoiceChip(
+          label: Text(everyLabel),
+          selected: everyScripture,
+          onSelected: (_) => onChanged(true),
+          labelStyle: TextStyle(
+            color: everyScripture ? AppTheme.onPrimary : null,
+            fontWeight:
+                everyScripture ? FontWeight.bold : FontWeight.normal,
+          ),
+          selectedColor: AppTheme.primary,
+        ),
+      ],
     );
   }
 }
@@ -972,6 +1302,145 @@ class _MedalIcon extends StatelessWidget {
         Icons.emoji_events,
         color: AppTheme.tertiary,
         size: 28.0,
+      ),
+    );
+  }
+}
+
+// ─── Group Play Card ────────────────────────────────────────────────────────
+//
+// New for the Group Play feature (TASK-057). Lives at the top of the Practice
+// Hub so kids can either host a class quiz or join one a friend started.
+// Free hosts see a "Up to 6 players free" subtitle; premium hosts see the
+// 30-player class subtitle. JOINING is always free.
+
+class _GroupPlayCard extends ConsumerWidget {
+  const _GroupPlayCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isPremium = ref.watch(isPremiumProvider);
+    final hostSubtitle = isPremium
+        ? 'Up to 30 players · Save your class roster'
+        : 'Up to 6 players free · Premium for class size';
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppTheme.secondary, AppTheme.tertiary],
+        ),
+        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+        boxShadow: AppTheme.editorialShadow,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10.0),
+                  decoration: BoxDecoration(
+                    color: AppTheme.onPrimary.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                  ),
+                  child: const Icon(
+                    Icons.groups,
+                    color: AppTheme.onPrimary,
+                    size: 28.0,
+                  ),
+                ),
+                const SizedBox(width: 14.0),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Group Play',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleLarge
+                            ?.copyWith(
+                              fontFamily: 'Merriweather',
+                              fontStyle: FontStyle.italic,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.onPrimary,
+                            ),
+                      ),
+                      const SizedBox(height: 2.0),
+                      Text(
+                        'Quiz the whole seminary class together',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(
+                              color: AppTheme.onPrimary.withValues(alpha: 0.85),
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20.0),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.onPrimary,
+                      foregroundColor: AppTheme.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 14.0),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(50.0),
+                      ),
+                      elevation: 0,
+                    ),
+                    onPressed: () => context.push('/group-play/host'),
+                    icon: const Icon(Icons.add_circle_outline, size: 20),
+                    label: const Text(
+                      'Host a Game',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12.0),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.onPrimary,
+                      side: BorderSide(
+                        color: AppTheme.onPrimary.withValues(alpha: 0.6),
+                        width: 1.5,
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14.0),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(50.0),
+                      ),
+                    ),
+                    onPressed: () => context.push('/group-play/join'),
+                    icon: const Icon(Icons.login, size: 20),
+                    label: const Text(
+                      'Join a Game',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12.0),
+            Text(
+              hostSubtitle,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.onPrimary.withValues(alpha: 0.75),
+                    fontSize: 11.5,
+                  ),
+            ),
+          ],
+        ),
       ),
     );
   }
