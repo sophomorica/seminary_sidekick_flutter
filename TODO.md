@@ -99,7 +99,7 @@
 > |---|---|---|---|
 > | 4 | TASK-058 (premium gating), TASK-059 (saved rosters), TASK-061 (analytics) | open | TASK-058/059 serial — both edit service + host_lobby |
 > | 5a | TASK-047 (shared scope picker) | **DONE 2026-05-25** | — |
-> | 5b | **TASK-062 (Word Builder Race)** | **OPEN — picker dependency now satisfied** | — |
+> | 5b | **TASK-062 (Word Builder Race)** | **IN PROGRESS — claude-opus-4-7 (started 2026-05-25)** | — |
 
 > **Scope guardrail for group play**: NONE of the existing solo features are being modified. Word Builder, solo Quick Quiz, solo Scripture Match, mastery tracking, journal, Sidekick AI all remain exactly as they are. Touch only:
 > - `pubspec.yaml`, `lib/main.dart`, `lib/app.dart`
@@ -361,10 +361,11 @@
 
 ### TASK-062: Word Builder Race Mode (group play — second game type)
 
-- **status**: `open`
+- **status**: `in_progress`
 - **priority**: P1
 - **estimated_effort**: Large
-- **claimed_by**: —
+- **claimed_by**: claude-opus-4-7
+- **started**: 2026-05-25
 - **files_to_touch**:
   - **Model extensions** (additive only, backward-compatible with shipped Quiz rooms):
     - `lib/models/group_room.dart` — add `GroupGameMode` enum (`quiz`, `wordBuilder`); add `mode` and `wordBuilderConfig` fields to `GroupRoomScope`; default `mode = quiz` so existing rooms deserialize unchanged
