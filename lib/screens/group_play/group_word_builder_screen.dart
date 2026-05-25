@@ -130,7 +130,17 @@ class _GroupWordBuilderScreenState
           icon: const Icon(Icons.close),
           onPressed: _confirmExit,
         ),
-        title: _AppBarTitle(state: state, wbConfig: wbConfig),
+        title: _AppBarTitle(
+          state: state,
+          wbConfig: wbConfig,
+          localScriptureIndex: _localIndexForPlayer(
+            state: state,
+            wbConfig: wbConfig,
+            room: room,
+            me: me,
+          ),
+        ),
+        toolbarHeight: 64,
       ),
       body: Stack(
         children: [
@@ -324,16 +334,51 @@ class _AppBarTitle extends StatelessWidget {
   final GroupPlayState state;
   final GroupWbConfig wbConfig;
 
-  const _AppBarTitle({required this.state, required this.wbConfig});
+  /// Scripture index the local viewer should see referenced — for the host
+  /// this tracks `room.currentQuestionIndex`; for players in Set-of-N it
+  /// tracks their own local position, which can be ahead of the host.
+  final int localScriptureIndex;
+
+  const _AppBarTitle({
+    required this.state,
+    required this.wbConfig,
+    required this.localScriptureIndex,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final total = wbConfig.scriptureIds.length;
     final isRound = wbConfig.playMode == GroupWbPlayMode.roundByRound;
-    final label = isRound
-        ? 'Round ${(state.room?.currentQuestionIndex ?? 0) + 1} of $total'
-        : 'Set of $total · Word Builder';
-    return Text(label);
+    final scripture = _resolveScripture(wbConfig.scriptureIds, localScriptureIndex);
+    final subtitle = isRound
+        ? 'Round ${localScriptureIndex + 1} of $total'
+        : 'Scripture ${localScriptureIndex + 1} of $total · Word Builder';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          scripture?.reference ?? 'Word Builder Race',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontFamily: 'Merriweather',
+            fontWeight: FontWeight.w700,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        Text(
+          subtitle,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            letterSpacing: 0.5,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
   }
 }
 
