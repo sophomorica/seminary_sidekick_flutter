@@ -120,6 +120,28 @@ Future<void> _maybeInitSupabase() async {
     );
 
     final auth = Supabase.instance.client.auth;
+
+    // If a stale session was restored from local storage, force-refresh it
+    // synchronously so we discover a bad refresh token NOW (rather than
+    // asynchronously after init returns — that race used to leave us
+    // "signed in" until the first DB call rejected us).
+    if (auth.currentSession != null) {
+      try {
+        await auth.refreshSession();
+      } on AuthException catch (e) {
+        developer.log(
+          'Cached Supabase session was unusable (${e.code}); wiping.',
+          name: 'main',
+        );
+        try {
+          await auth.signOut();
+        } catch (_) {
+          // signOut may fail if the refresh token is already invalidated
+          // server-side. Either way, the local session is gone.
+        }
+      }
+    }
+
     if (auth.currentUser == null) {
       await auth.signInAnonymously();
       developer.log(
@@ -132,6 +154,29 @@ Future<void> _maybeInitSupabase() async {
         name: 'main',
       );
     }
+
+    // Safety net: if the session gets cleared later (e.g. another tab
+    // invalidated the refresh token, or background refresh failed), sign
+    // back in anonymously so group play doesn't quietly stop working.
+    auth.onAuthStateChange.listen((data) {
+      final event = data.event;
+      if (event == AuthChangeEvent.signedOut ||
+          event == AuthChangeEvent.tokenRefreshed && auth.currentUser == null) {
+        developer.log(
+          'Supabase session cleared (${event.name}); re-signing in anonymously.',
+          name: 'main',
+        );
+        auth.signInAnonymously().catchError((e) {
+          developer.log(
+            'Anonymous re-sign-in failed: $e',
+            name: 'main',
+          );
+          // Return a placeholder AuthResponse to satisfy the type system —
+          // callers don't observe the future from this listener.
+          throw e;
+        });
+      }
+    });
   } catch (e, st) {
     developer.log(
       'Supabase init failed; group play will be unavailable.',
