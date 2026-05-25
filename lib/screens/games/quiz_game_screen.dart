@@ -15,12 +15,14 @@ class QuizGameScreen extends ConsumerStatefulWidget {
   final DifficultyLevel difficulty;
   final List<ScriptureBook> bookFilters;
   final List<Scripture>? scriptures;
+  final int? targetQuestionCount;
 
   const QuizGameScreen({
     super.key,
     required this.difficulty,
     this.bookFilters = const [],
     this.scriptures,
+    this.targetQuestionCount,
   });
 
   @override
@@ -39,6 +41,7 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
             difficulty: widget.difficulty,
             bookFilters: widget.bookFilters,
             scriptures: widget.scriptures,
+            targetQuestionCount: widget.targetQuestionCount,
           );
       _startTimer();
     });

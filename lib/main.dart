@@ -14,6 +14,7 @@ import 'providers/mastery_dates_provider.dart';
 import 'providers/notes_provider.dart';
 import 'providers/onboarding_provider.dart';
 import 'providers/progress_provider.dart';
+import 'providers/scripture_scope_provider.dart';
 import 'providers/spaced_repetition_provider.dart';
 import 'providers/sidekick_provider.dart';
 import 'providers/subscription_provider.dart';
@@ -57,6 +58,7 @@ void main() async {
   await container.read(audioProvider.notifier).init();
   await container.read(userPreferencesProvider.notifier).init();
   await container.read(studyStreakProvider.notifier).init();
+  await container.read(scriptureScopeProvider.notifier).init();
 
   // Initialize Goals (loads persisted goals from Hive).
   await container.read(goalsProvider.notifier).init();

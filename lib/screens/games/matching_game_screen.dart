@@ -16,6 +16,7 @@ class MatchingGameScreen extends ConsumerStatefulWidget {
   final ScriptureBook? bookFilter;
   final List<ScriptureBook> bookFilters;
   final List<Scripture>? scriptures;
+  final int? targetPairCount;
 
   const MatchingGameScreen({
     super.key,
@@ -23,6 +24,7 @@ class MatchingGameScreen extends ConsumerStatefulWidget {
     this.bookFilter,
     this.bookFilters = const [],
     this.scriptures,
+    this.targetPairCount,
   });
 
   @override
@@ -70,6 +72,7 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
             bookFilter: widget.bookFilter,
             bookFilters: widget.bookFilters,
             scriptures: widget.scriptures,
+            targetPairCount: widget.targetPairCount,
           );
       _startTimer();
     });

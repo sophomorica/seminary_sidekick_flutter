@@ -82,6 +82,13 @@
 | TASK-057 | Practice Hub & Home entry points for group play | 2026-05-07 |
 | TASK-060 | Nickname profanity filter (`NicknameValidator`, l33t normalization, 51-word seed list, 20 unit tests) | 2026-05-07 |
 
+### Phase 5a — Shared scope picker (2026-05-25)
+
+| Task | What | Completed |
+|------|------|-----------|
+| TASK-047 | Shared `ScriptureScope` model + Hive-backed `scriptureScopeProvider` + `ScriptureScopePicker` widget. Wired into Practice Hub (Quick Quiz / Scripture Match open a setup sheet with difficulty + scope + question-count override) and group play host lobby (replaces the minimal book chips). `QuizGameNotifier.startGame` and `MatchingGameNotifier.startGame` now accept optional `targetQuestionCount` / `targetPairCount` for "Every scripture in scope". | 2026-05-25 |
+| TASK-049 | Dead `_selectedBooks` / `_selectedDifficulty` fields on Practice Hub quiz/match cards removed (absorbed by TASK-047). | 2026-05-25 |
+
 ---
 
 ## Active Tasks
@@ -91,8 +98,8 @@
 > | Phase | Tasks | Status | Parallel? |
 > |---|---|---|---|
 > | 4 | TASK-058 (premium gating), TASK-059 (saved rosters), TASK-061 (analytics) | open | TASK-058/059 serial — both edit service + host_lobby |
-> | 5a | **TASK-047 (shared scope picker)** | **OPEN — claim first** | — |
-> | 5b | **TASK-062 (Word Builder Race)** | **OPEN — claim after 5a** | — |
+> | 5a | TASK-047 (shared scope picker) | **DONE 2026-05-25** | — |
+> | 5b | **TASK-062 (Word Builder Race)** | **OPEN — picker dependency now satisfied** | — |
 
 > **Scope guardrail for group play**: NONE of the existing solo features are being modified. Word Builder, solo Quick Quiz, solo Scripture Match, mastery tracking, journal, Sidekick AI all remain exactly as they are. Touch only:
 > - `pubspec.yaml`, `lib/main.dart`, `lib/app.dart`
@@ -122,7 +129,8 @@
 
 ### TASK-047: Shared scripture-scope picker (Quick Quiz, Match, Group Play)
 
-- **status**: `in_progress`
+- **status**: `done` — see Completed table above
+- **completed**: 2026-05-25
 - **priority**: P0 — **blocks TASK-062 (Word Builder Race) and should land first**
 - **estimated_effort**: Medium-Large
 - **claimed_by**: claude-opus-4-7
@@ -494,7 +502,7 @@
 
 ### TASK-049: Kill the dead difficulty/book state on Quick Quiz & Match cards
 
-- **status**: `open`
+- **status**: `done` — closed as part of TASK-047 (2026-05-25)
 - **priority**: P1 (small cleanup, will naturally fall out of TASK-047)
 - **estimated_effort**: Small
 - **files_to_touch**: `lib/screens/practice_hub_screen.dart`

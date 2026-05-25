@@ -7,11 +7,14 @@ import '../../models/enums.dart';
 import '../../models/group_play_state.dart';
 import '../../models/group_player.dart';
 import '../../models/group_room.dart';
+import '../../models/scripture_scope.dart';
 import '../../providers/group_play_provider.dart';
+import '../../providers/scripture_scope_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../providers/user_preferences_provider.dart';
 import '../../services/nickname_validator.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/scripture_scope_picker.dart';
 
 /// Host screen — pick a difficulty + book scope, create a room, watch
 /// players join, tap Start when you're ready.
@@ -29,8 +32,7 @@ class HostLobbyScreen extends ConsumerStatefulWidget {
 
 class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
   DifficultyLevel _difficulty = DifficultyLevel.beginner;
-  // null == "All Books"; otherwise a specific volume.
-  ScriptureBook? _book;
+  ScriptureScope _scope = const ScopeAll();
   late TextEditingController _nicknameController;
 
   @override
@@ -43,6 +45,13 @@ class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
       final defaultName = ref.read(greetingNameProvider);
       if (_nicknameController.text.isEmpty && defaultName.isNotEmpty) {
         _nicknameController.text = defaultName;
+      }
+      // Restore last-used group quiz scope if the host has one.
+      final last = ref
+          .read(scriptureScopeProvider.notifier)
+          .lastUsedScope(ScopeUsageContext.groupQuiz);
+      if (last != null) {
+        setState(() => _scope = last);
       }
     });
   }
@@ -91,11 +100,11 @@ class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
               : _SetupView(
                   state: state,
                   difficulty: _difficulty,
-                  book: _book,
+                  scope: _scope,
                   nicknameController: _nicknameController,
                   onDifficultyChanged: (d) =>
                       setState(() => _difficulty = d),
-                  onBookChanged: (b) => setState(() => _book = b),
+                  onScopeChanged: (s) => setState(() => _scope = s),
                   onCreate: _handleCreate,
                 ),
         ),
@@ -121,9 +130,29 @@ class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
     }
     FocusManager.instance.primaryFocus?.unfocus();
 
+    // Persist the chosen scope for next time this host opens the setup.
+    await ref
+        .read(scriptureScopeProvider.notifier)
+        .saveScope(ScopeUsageContext.groupQuiz, _scope);
+
+    // Translate the picker scope into the wire-format used by the room row.
+    // `ScopeAll` and the dynamic presets (`needsReview`, `nearlyMastered`)
+    // map to empty book/id lists — the question factory then draws from all
+    // scriptures, matching the original minimal-picker default. Explicit
+    // book or scripture-id selections become bookNames or scriptureIds.
+    List<String> bookNames = const [];
+    List<String> scriptureIds = const [];
+    if (_scope is ScopeBooks) {
+      bookNames =
+          (_scope as ScopeBooks).books.map((b) => b.name).toList();
+    } else if (_scope is ScopeScriptureIds) {
+      scriptureIds = (_scope as ScopeScriptureIds).ids;
+    }
+
     final scope = GroupRoomScope(
       difficultyName: _difficulty.name,
-      bookNames: _book == null ? const [] : [_book!.name],
+      bookNames: bookNames,
+      scriptureIds: scriptureIds,
       questionCount: _difficulty.quizQuestionCount,
     );
 
@@ -223,19 +252,19 @@ class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
 class _SetupView extends StatelessWidget {
   final GroupPlayState state;
   final DifficultyLevel difficulty;
-  final ScriptureBook? book;
+  final ScriptureScope scope;
   final TextEditingController nicknameController;
   final ValueChanged<DifficultyLevel> onDifficultyChanged;
-  final ValueChanged<ScriptureBook?> onBookChanged;
+  final ValueChanged<ScriptureScope> onScopeChanged;
   final Future<void> Function() onCreate;
 
   const _SetupView({
     required this.state,
     required this.difficulty,
-    required this.book,
+    required this.scope,
     required this.nicknameController,
     required this.onDifficultyChanged,
-    required this.onBookChanged,
+    required this.onScopeChanged,
     required this.onCreate,
   });
 
@@ -256,7 +285,7 @@ class _SetupView extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Pick a difficulty and a book. Players will join with a 4-letter code.',
+          'Pick a difficulty and a scope. Players will join with a 4-letter code.',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -282,9 +311,10 @@ class _SetupView extends StatelessWidget {
 
         const _SectionLabel('SCOPE'),
         const SizedBox(height: AppTheme.spacingSm),
-        _BookChips(
-          selected: book,
-          onChanged: onBookChanged,
+        ScriptureScopePicker(
+          initial: scope,
+          usageContext: ScopeUsageContext.groupQuiz,
+          onChanged: onScopeChanged,
         ),
 
         const SizedBox(height: AppTheme.spacingXl),
@@ -562,50 +592,6 @@ class _DifficultyChips extends StatelessWidget {
           selectedColor: AppTheme.primary,
         );
       }).toList(),
-    );
-  }
-}
-
-class _BookChips extends StatelessWidget {
-  final ScriptureBook? selected;
-  final ValueChanged<ScriptureBook?> onChanged;
-
-  const _BookChips({required this.selected, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        // "All 100" chip — null means no filter.
-        ChoiceChip(
-          label: const Text('All 100'),
-          selected: selected == null,
-          onSelected: (_) => onChanged(null),
-          labelStyle: TextStyle(
-            color: selected == null ? AppTheme.onPrimary : null,
-            fontWeight:
-                selected == null ? FontWeight.bold : FontWeight.normal,
-          ),
-          selectedColor: AppTheme.primary,
-        ),
-        ...ScriptureBook.values.map((b) {
-          final isSelected = b == selected;
-          return ChoiceChip(
-            label: Text(b.abbreviation),
-            selected: isSelected,
-            onSelected: (_) => onChanged(b),
-            labelStyle: TextStyle(
-              color: isSelected ? AppTheme.onPrimary : null,
-              fontWeight:
-                  isSelected ? FontWeight.bold : FontWeight.normal,
-            ),
-            selectedColor: AppTheme.primary,
-            tooltip: b.displayName,
-          );
-        }),
-      ],
     );
   }
 }

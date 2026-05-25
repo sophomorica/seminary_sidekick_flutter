@@ -131,13 +131,19 @@ class QuizGameNotifier extends StateNotifier<QuizGameState> {
   ///
   /// [bookFilters] — empty list means all books. Questions are distributed
   /// proportionally to the number of scriptures each selected book has.
+  ///
+  /// [targetQuestionCount] overrides the per-difficulty default
+  /// (`difficulty.quizQuestionCount`). Used by the shared scope picker when
+  /// the user opts into "Every scripture in scope".
   void startGame({
     required DifficultyLevel difficulty,
     List<ScriptureBook> bookFilters = const [],
     List<Scripture>? scriptures,
+    int? targetQuestionCount,
   }) {
+    final count = targetQuestionCount ?? difficulty.quizQuestionCount;
     final generated = _factory.buildQuestions(
-      count: difficulty.quizQuestionCount,
+      count: count,
       bookFilters: bookFilters,
       scriptures: scriptures,
     );
