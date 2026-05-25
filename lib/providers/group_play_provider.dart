@@ -9,6 +9,7 @@ import '../models/group_play_state.dart';
 import '../models/group_player.dart';
 import '../models/group_question.dart';
 import '../models/group_room.dart';
+import '../models/group_wb_finish.dart';
 import '../services/group_play_service.dart';
 import 'subscription_provider.dart';
 
@@ -36,6 +37,7 @@ class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
   StreamSubscription<GroupRoom?>? _roomSub;
   StreamSubscription<List<GroupPlayer>>? _playersSub;
   StreamSubscription<List<GroupAnswer>>? _answersSub;
+  StreamSubscription<List<GroupWbFinish>>? _wbFinishesSub;
   StreamSubscription<({String event, Map<String, dynamic> payload})>?
       _eventsSub;
 
@@ -100,6 +102,45 @@ class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
         room: updated,
         currentQuestionAnswered: false,
         clearMySelection: true,
+      );
+    } catch (e) {
+      _handleError(e);
+    }
+  }
+
+  /// Word-Builder-flavored alias for [hostAdvanceQuestion]. Round-by-Round
+  /// hosts call this to advance the room to the next scripture in the set.
+  /// Set-of-N never calls this — players advance independently and the host
+  /// only ever calls [hostEndGame].
+  Future<void> hostAdvanceScripture() => hostAdvanceQuestion();
+
+  /// Player submits a Word Builder finish for the current scripture.
+  /// Records (elapsedMs, mistakeCount) for the local player; the realtime
+  /// stream then fans out to every other client.
+  ///
+  /// Pass `mistakeCount = GroupWbFinish.dnfMistakeCount` for a timeout DNF.
+  Future<void> submitWbFinish({
+    required int scriptureIndex,
+    required int elapsedMs,
+    required int mistakeCount,
+  }) async {
+    final room = state.room;
+    final me = state.me;
+    if (room == null || me == null) return;
+    // Don't double-submit. Anyone re-tapping a finish button after their
+    // row already exists in `wbFinishes` is a no-op.
+    final already = state.wbFinishes.any(
+      (f) => f.playerId == me.id && f.scriptureIndex == scriptureIndex,
+    );
+    if (already) return;
+
+    try {
+      await _service.submitWbFinish(
+        room: room,
+        player: me,
+        scriptureIndex: scriptureIndex,
+        elapsedMs: elapsedMs,
+        mistakeCount: mistakeCount,
       );
     } catch (e) {
       _handleError(e);
@@ -234,6 +275,8 @@ class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
         .map(GroupQuestion.fromJson)
         .toList();
 
+    final wbConfig = room.scope.wordBuilderConfig;
+    final clearWb = wbConfig == null;
     state = state.copyWith(
       phase: GroupPlayPhase.inLobby,
       room: room,
@@ -241,6 +284,9 @@ class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
       players: [self],
       questions: questions,
       answers: const [],
+      wbFinishes: const [],
+      wbConfig: wbConfig,
+      clearWbConfig: clearWb,
       currentQuestionAnswered: false,
       clearMySelection: true,
     );
@@ -252,9 +298,11 @@ class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
     _roomSub?.cancel();
     _playersSub?.cancel();
     _answersSub?.cancel();
+    _wbFinishesSub?.cancel();
     _eventsSub?.cancel();
 
     _roomSub = _service.watchRoom(room.id).listen((updated) {
+      if (!mounted) return;
       if (updated == null) {
         // Room was deleted — treat like it ended.
         state = state.copyWith(phase: GroupPlayPhase.viewingResults);
@@ -281,6 +329,7 @@ class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
     });
 
     _playersSub = _service.watchPlayers(room.id).listen((players) {
+      if (!mounted) return;
       // Refresh "me" with the latest score.
       final myUserId = _service.currentUserId;
       final me = myUserId == null
@@ -293,8 +342,19 @@ class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
     });
 
     _answersSub = _service.watchAnswers(room.id).listen((answers) {
+      if (!mounted) return;
       state = state.copyWith(answers: answers);
     });
+
+    // Only subscribe to WB finishes for WB-mode rooms — saves a channel for
+    // every quiz room.
+    if (room.scope.mode == GroupGameMode.wordBuilder) {
+      _wbFinishesSub =
+          _service.watchWbFinishes(room.id).listen((finishes) {
+        if (!mounted) return;
+        state = state.copyWith(wbFinishes: finishes);
+      });
+    }
 
     _eventsSub = _service.listenForEvents(room.code).listen((event) {
       // Ephemeral broadcast events; the durable state already came through
@@ -307,10 +367,12 @@ class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
     await _roomSub?.cancel();
     await _playersSub?.cancel();
     await _answersSub?.cancel();
+    await _wbFinishesSub?.cancel();
     await _eventsSub?.cancel();
     _roomSub = null;
     _playersSub = null;
     _answersSub = null;
+    _wbFinishesSub = null;
     _eventsSub = null;
   }
 

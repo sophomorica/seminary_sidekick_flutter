@@ -89,6 +89,12 @@
 | TASK-047 | Shared `ScriptureScope` model + Hive-backed `scriptureScopeProvider` + `ScriptureScopePicker` widget. Wired into Practice Hub (Quick Quiz / Scripture Match open a setup sheet with difficulty + scope + question-count override) and group play host lobby (replaces the minimal book chips). `QuizGameNotifier.startGame` and `MatchingGameNotifier.startGame` now accept optional `targetQuestionCount` / `targetPairCount` for "Every scripture in scope". | 2026-05-25 |
 | TASK-049 | Dead `_selectedBooks` / `_selectedDifficulty` fields on Practice Hub quiz/match cards removed (absorbed by TASK-047). | 2026-05-25 |
 
+### Phase 5b — Word Builder Race (2026-05-25)
+
+| Task | What | Completed |
+|------|------|-----------|
+| TASK-062 | Group Word Builder race (second group-play game type). `GroupGameMode.wordBuilder` + `GroupWbConfig` + `GroupWbFinish` models with backward-compat JSON; supabase migration `0005_group_wb_finishes.sql` with RLS + realtime; `GroupPlayService.submitWbFinish/watchWbFinishes/hostAdvanceScripture`; notifier wbFinishes subscription + wbConfig + submit dedup; forked chunk-tap board (`WbRaceBoard`) decoupled from progress_provider; `GroupWordBuilderScreen` with host dashboard + player race view + DNF timer + per-mode finish flow (Round-by-Round vs Set-of-N); host-lobby game-mode selector; conditional auto-nav on phase transition; WB-flavored results with per-mode ranking. Added mounted-guards to all GroupPlayNotifier stream listeners. 34 new tests (594 total, all green). | 2026-05-25 |
+
 ---
 
 ## Active Tasks
@@ -99,7 +105,7 @@
 > |---|---|---|---|
 > | 4 | TASK-058 (premium gating), TASK-059 (saved rosters), TASK-061 (analytics) | open | TASK-058/059 serial — both edit service + host_lobby |
 > | 5a | TASK-047 (shared scope picker) | **DONE 2026-05-25** | — |
-> | 5b | **TASK-062 (Word Builder Race)** | **IN PROGRESS — claude-opus-4-7 (started 2026-05-25)** | — |
+> | 5b | **TASK-062 (Word Builder Race)** | **DONE 2026-05-25** — pending owner: `supabase db push` for `0005_group_wb_finishes.sql` + two-instance smoke test | — |
 
 > **Scope guardrail for group play**: NONE of the existing solo features are being modified. Word Builder, solo Quick Quiz, solo Scripture Match, mastery tracking, journal, Sidekick AI all remain exactly as they are. Touch only:
 > - `pubspec.yaml`, `lib/main.dart`, `lib/app.dart`
@@ -361,11 +367,12 @@
 
 ### TASK-062: Word Builder Race Mode (group play — second game type)
 
-- **status**: `in_progress`
+- **status**: `done` — code complete 2026-05-25; owner still needs to run `supabase db push` for `0005_group_wb_finishes.sql` and the two-instance smoke test before marking the dashboard step closed
 - **priority**: P1
 - **estimated_effort**: Large
 - **claimed_by**: claude-opus-4-7
 - **started**: 2026-05-25
+- **completed**: 2026-05-25
 - **files_to_touch**:
   - **Model extensions** (additive only, backward-compatible with shipped Quiz rooms):
     - `lib/models/group_room.dart` — add `GroupGameMode` enum (`quiz`, `wordBuilder`); add `mode` and `wordBuilderConfig` fields to `GroupRoomScope`; default `mode = quiz` so existing rooms deserialize unchanged

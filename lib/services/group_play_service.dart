@@ -10,6 +10,7 @@ import '../models/group_answer.dart';
 import '../models/group_player.dart';
 import '../models/group_question.dart';
 import '../models/group_room.dart';
+import '../models/group_wb_finish.dart';
 import '../models/scripture.dart';
 import 'quiz_question_factory.dart';
 
@@ -129,24 +130,33 @@ class GroupPlayService {
     return (room: room, hostPlayer: GroupPlayer.fromJson(hostRow));
   }
 
-  /// Start the room: generate the question set, push it onto the row, and
-  /// flip status to 'active'. Only callable by the host (RLS enforces this).
+  /// Start the room: generate the question set (for quiz mode), push it onto
+  /// the row, and flip status to 'active'. Only callable by the host (RLS
+  /// enforces this).
+  ///
+  /// Word Builder rooms don't have a question set — the scripture list lives
+  /// in `scope.wordBuilderConfig.scriptureIds`. The `current_question_index`
+  /// column is reused as the "current scripture index" in Round-by-Round mode;
+  /// in Set-of-N it stays at 0 and isn't read by anyone.
   Future<GroupRoom> startRoom(GroupRoom room) async {
     if (!room.isLobby) {
       throw const GroupPlayException('Room is not in lobby state');
     }
 
-    final questions = _generateQuestions(room.scope);
-    final questionSetJson = questions.map((q) => q.toJson()).toList();
+    final update = <String, dynamic>{
+      'status': GroupRoomStatus.active.name,
+      'current_question_index': 0,
+      'started_at': DateTime.now().toIso8601String(),
+    };
+
+    if (room.scope.mode == GroupGameMode.quiz) {
+      final questions = _generateQuestions(room.scope);
+      update['question_set'] = questions.map((q) => q.toJson()).toList();
+    }
 
     final updated = await _client
         .from('rooms')
-        .update({
-          'status': GroupRoomStatus.active.name,
-          'question_set': questionSetJson,
-          'current_question_index': 0,
-          'started_at': DateTime.now().toIso8601String(),
-        })
+        .update(update)
         .eq('id', room.id)
         .select()
         .single();
@@ -162,11 +172,22 @@ class GroupPlayService {
     return GroupRoom.fromJson(updated);
   }
 
+  /// Total advanceable units in a room — questions for quiz mode, scriptures
+  /// for Word Builder Round-by-Round. Set-of-N never advances via the host,
+  /// so this returns 1 (the index is irrelevant after start).
+  int _advanceableTotal(GroupRoom room) {
+    if (room.scope.mode == GroupGameMode.quiz) {
+      return room.questionSet?.length ?? 0;
+    }
+    final wb = room.scope.wordBuilderConfig;
+    return wb?.scriptureIds.length ?? 0;
+  }
+
   /// Advance to the next question. Pushes Broadcast + updates the row.
   /// If we're past the last question, calls [endRoom] instead.
   Future<GroupRoom> advanceQuestion(GroupRoom room) async {
     final nextIndex = room.currentQuestionIndex + 1;
-    final total = room.questionSet?.length ?? 0;
+    final total = _advanceableTotal(room);
 
     if (nextIndex >= total) {
       return endRoom(room);
@@ -187,6 +208,12 @@ class GroupPlayService {
 
     return GroupRoom.fromJson(updated);
   }
+
+  /// Word-Builder-flavored alias of [advanceQuestion]. The on-the-wire column
+  /// is shared (`current_question_index`); this method exists so call sites in
+  /// the WB screen read clearly.
+  Future<GroupRoom> hostAdvanceScripture(GroupRoom room) =>
+      advanceQuestion(room);
 
   /// End the room. All clients see the status flip via Postgres Changes
   /// and via the broadcast event.
@@ -344,6 +371,78 @@ class GroupPlayService {
     }
 
     return GroupAnswer.fromJson(row);
+  }
+
+  // ─── Word Builder race: submit + watch finishes ────────────────────────
+
+  /// Insert a finish event for the local player. Mirrors [submitAnswer]'s
+  /// error-handling shape. Pass `mistakeCount = GroupWbFinish.dnfMistakeCount`
+  /// to record a timeout DNF.
+  ///
+  /// Intentionally does NOT update `players.score` — Word Builder race scoring
+  /// is computed in the UI from the full finish stream. Group WB also never
+  /// touches the personal mastery / progress pipeline.
+  Future<GroupWbFinish> submitWbFinish({
+    required GroupRoom room,
+    required GroupPlayer player,
+    required int scriptureIndex,
+    required int elapsedMs,
+    required int mistakeCount,
+  }) async {
+    final row = await _client
+        .from('group_wb_finishes')
+        .insert({
+          'room_id': room.id,
+          'player_id': player.id,
+          'scripture_index': scriptureIndex,
+          'elapsed_ms': elapsedMs,
+          'mistake_count': mistakeCount,
+        })
+        .select()
+        .single();
+    return GroupWbFinish.fromJson(row);
+  }
+
+  /// Watch the finish stream for a room. Yields the full list ordered by
+  /// `completed_at` ascending (so per-scripture leaderboard ranking is just
+  /// "first row first"). Mirrors [watchAnswers].
+  Stream<List<GroupWbFinish>> watchWbFinishes(String roomId) {
+    final controller = StreamController<List<GroupWbFinish>>();
+
+    Future<void> refetch() async {
+      try {
+        final rows = await _client
+            .from('group_wb_finishes')
+            .select()
+            .eq('room_id', roomId)
+            .order('completed_at');
+        controller.add(rows.map(GroupWbFinish.fromJson).toList());
+      } catch (e) {
+        developer.log('watchWbFinishes refetch failed', error: e);
+      }
+    }
+
+    final channel = _client
+        .channel('public:group_wb_finishes:room_id=$roomId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'group_wb_finishes',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'room_id',
+            value: roomId,
+          ),
+          callback: (_) => refetch(),
+        )
+        .subscribe();
+
+    controller.onCancel = () {
+      _client.removeChannel(channel);
+    };
+
+    refetch();
+    return controller.stream;
   }
 
   // ─── Realtime streams ──────────────────────────────────────────────────

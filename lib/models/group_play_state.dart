@@ -2,6 +2,8 @@ import 'group_answer.dart';
 import 'group_player.dart';
 import 'group_question.dart';
 import 'group_room.dart';
+import 'group_wb_config.dart';
+import 'group_wb_finish.dart';
 
 /// High-level phase of the group play flow. Used by the UI to decide what
 /// screen to show and what controls to expose.
@@ -57,6 +59,15 @@ class GroupPlayState {
   /// The choice the local player just selected, if any.
   final int? mySelectedChoice;
 
+  /// Word Builder race finishes (one row per player per scripture).
+  /// Empty for quiz-mode rooms.
+  final List<GroupWbFinish> wbFinishes;
+
+  /// Resolved Word Builder config for the current room, or null for quiz
+  /// rooms. Pulled out of `room.scope.wordBuilderConfig` once on entry so
+  /// consumers don't have to keep unwrapping the optional.
+  final GroupWbConfig? wbConfig;
+
   /// Last error message, surfaced to the UI.
   final String? error;
 
@@ -72,6 +83,8 @@ class GroupPlayState {
     this.answers = const [],
     this.currentQuestionAnswered = false,
     this.mySelectedChoice,
+    this.wbFinishes = const [],
+    this.wbConfig,
     this.error,
     this.isLoading = false,
   });
@@ -104,11 +117,14 @@ class GroupPlayState {
     List<GroupAnswer>? answers,
     bool? currentQuestionAnswered,
     int? mySelectedChoice,
+    List<GroupWbFinish>? wbFinishes,
+    GroupWbConfig? wbConfig,
     String? error,
     bool? isLoading,
     bool clearError = false,
     bool clearMySelection = false,
     bool clearRoom = false,
+    bool clearWbConfig = false,
   }) {
     return GroupPlayState(
       phase: phase ?? this.phase,
@@ -121,6 +137,8 @@ class GroupPlayState {
           currentQuestionAnswered ?? this.currentQuestionAnswered,
       mySelectedChoice:
           clearMySelection ? null : (mySelectedChoice ?? this.mySelectedChoice),
+      wbFinishes: wbFinishes ?? this.wbFinishes,
+      wbConfig: clearWbConfig ? null : (wbConfig ?? this.wbConfig),
       error: clearError ? null : (error ?? this.error),
       isLoading: isLoading ?? this.isLoading,
     );

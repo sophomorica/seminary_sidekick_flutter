@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../models/group_play_state.dart';
 import '../../models/group_player.dart';
+import '../../models/group_room.dart';
 import '../../providers/group_play_provider.dart';
 import '../../services/nickname_validator.dart';
 import '../../theme/app_theme.dart';
@@ -49,12 +50,16 @@ class _JoinLobbyScreenState extends ConsumerState<JoinLobbyScreen> {
   @override
   Widget build(BuildContext context) {
     // Listen for phase transitions so we can navigate when the host starts.
+    // Branch on the room's game mode so Word-Builder rooms route to the
+    // race screen instead of the quiz screen.
     ref.listen<GroupPlayPhase>(groupPlayPhaseProvider, (prev, next) {
       if (next == GroupPlayPhase.inQuiz) {
-        final code = ref.read(currentGroupRoomProvider)?.code;
-        if (code != null && mounted) {
-          context.go('/group-play/quiz/$code');
-        }
+        final room = ref.read(currentGroupRoomProvider);
+        if (room == null || !mounted) return;
+        final path = room.scope.mode == GroupGameMode.wordBuilder
+            ? '/group-play/word-builder/${room.code}'
+            : '/group-play/quiz/${room.code}';
+        context.go(path);
       } else if (next == GroupPlayPhase.viewingResults && mounted) {
         // Host ended the room without starting (or kicked us). Pop back home.
         ScaffoldMessenger.of(context).showSnackBar(

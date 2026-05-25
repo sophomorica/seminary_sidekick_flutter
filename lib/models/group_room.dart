@@ -1,3 +1,18 @@
+import 'group_wb_config.dart';
+
+/// Game type for a group play room. Defaults to `quiz` so any room JSON
+/// written before this enum existed continues to deserialize correctly.
+enum GroupGameMode {
+  quiz,
+  wordBuilder;
+
+  static GroupGameMode fromName(String name) =>
+      GroupGameMode.values.firstWhere(
+        (v) => v.name == name,
+        orElse: () => GroupGameMode.quiz,
+      );
+}
+
 /// Status of a group play room.
 enum GroupRoomStatus {
   /// Host has created the room; players can join. Game has not started.
@@ -16,35 +31,52 @@ enum GroupRoomStatus {
       );
 }
 
-/// Frozen scope of a group play session: which difficulty, which books,
-/// which scriptures, how many questions, how long per question.
+/// Frozen scope of a group play session: which game mode, difficulty, which
+/// books, which scriptures, how many questions, how long per question.
 ///
 /// Lives in `rooms.scope` as JSONB and is set once at room creation.
+///
+/// `mode` defaults to [GroupGameMode.quiz] so scope JSON written before the
+/// mode field existed (any room shipped before TASK-062) still parses with
+/// no migration. `wordBuilderConfig` is only meaningful when
+/// `mode == GroupGameMode.wordBuilder`.
 class GroupRoomScope {
+  final GroupGameMode mode;
   final String difficultyName; // matches DifficultyLevel.name
   final List<String> bookNames; // matches ScriptureBook.name
   final List<String> scriptureIds; // optional explicit list (e.g. saved roster)
   final int questionCount;
   final int questionTimeoutSeconds;
+  final GroupWbConfig? wordBuilderConfig;
 
   const GroupRoomScope({
+    this.mode = GroupGameMode.quiz,
     required this.difficultyName,
     this.bookNames = const [],
     this.scriptureIds = const [],
     required this.questionCount,
     this.questionTimeoutSeconds = 20,
+    this.wordBuilderConfig,
   });
 
   Map<String, dynamic> toJson() => {
+        // Omit `mode` when it's the default — keeps the JSON identical to what
+        // was written before the field existed, so any deep-equality tests on
+        // older quiz fixtures keep passing.
+        if (mode != GroupGameMode.quiz) 'mode': mode.name,
         'difficulty': difficultyName,
         'bookNames': bookNames,
         'scriptureIds': scriptureIds,
         'questionCount': questionCount,
         'questionTimeoutSeconds': questionTimeoutSeconds,
+        if (wordBuilderConfig != null)
+          'wordBuilderConfig': wordBuilderConfig!.toJson(),
       };
 
   factory GroupRoomScope.fromJson(Map<String, dynamic> json) {
+    final wbJson = json['wordBuilderConfig'];
     return GroupRoomScope(
+      mode: GroupGameMode.fromName(json['mode'] as String? ?? 'quiz'),
       difficultyName: json['difficulty'] as String? ?? 'beginner',
       bookNames: (json['bookNames'] as List<dynamic>?)
               ?.map((e) => e as String)
@@ -56,6 +88,9 @@ class GroupRoomScope {
           const [],
       questionCount: json['questionCount'] as int? ?? 10,
       questionTimeoutSeconds: json['questionTimeoutSeconds'] as int? ?? 20,
+      wordBuilderConfig: wbJson is Map
+          ? GroupWbConfig.fromJson(wbJson.cast<String, dynamic>())
+          : null,
     );
   }
 }
