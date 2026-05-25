@@ -248,10 +248,11 @@
 
 ### TASK-058: Premium gating for group hosting
 
-- **status**: `open`
+- **status**: `in_progress`
 - **priority**: P1
 - **estimated_effort**: Small-Medium
-- **claimed_by**: —
+- **claimed_by**: claude-opus-4-7
+- **started**: 2026-05-25
 - **files_to_touch**: `lib/services/group_play_service.dart`, `lib/providers/group_play_provider.dart`, `lib/screens/group_play/host_lobby_screen.dart`
 - **description**: Enforce the free/premium hosting split. Free hosts: cap 6, 1 game/week. Premium hosts: cap 30, unlimited games.
 - **agent_context_block** (read first):
