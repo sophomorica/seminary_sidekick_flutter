@@ -58,8 +58,8 @@ class WbRaceBoard extends ConsumerStatefulWidget {
 class _WbRaceBoardState extends ConsumerState<WbRaceBoard>
     with TickerProviderStateMixin {
   late final DateTime _startedAt;
-  late final List<_RaceChunk> _targetChunks;
-  late final List<_RaceChunk> _pool;
+  final List<_RaceChunk> _targetChunks = [];
+  final List<_RaceChunk> _pool = [];
   final Set<int> _usedPoolIndices = {};
   final List<_RaceChunk?> _placedChunks = [];
   int _nextSlot = 0;
