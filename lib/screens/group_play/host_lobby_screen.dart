@@ -95,6 +95,16 @@ class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
       }
     });
 
+    // Free hosts who hit the 1-room-per-week ceiling get a tasteful upgrade
+    // dialog instead of the raw exception text. Provider exposes a one-shot
+    // flag we listen on, then clear once shown.
+    ref.listen<bool>(
+      groupPlayProvider.select((s) => s.freeHostWeeklyLimitHit),
+      (prev, next) {
+        if (next && mounted) _showFreeTierLimitDialog();
+      },
+    );
+
     final state = ref.watch(groupPlayProvider);
     final inLobby = state.phase == GroupPlayPhase.inLobby && state.room != null;
 
@@ -291,6 +301,35 @@ class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
           duration: const Duration(seconds: 2),
         ),
       );
+    }
+  }
+
+  Future<void> _showFreeTierLimitDialog() async {
+    // Clear the flag immediately so it can re-fire later in the same session.
+    ref.read(groupPlayProvider.notifier).clearFreeHostWeeklyLimitHit();
+
+    final upgrade = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('You’ve hosted this week'),
+        content: const Text(
+          'Free hosts can run one game per week. Upgrade to Premium for '
+          'unlimited hosting, class-size rooms (up to 30), and saved rosters.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Maybe later'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('See Premium'),
+          ),
+        ],
+      ),
+    );
+    if (upgrade == true && mounted) {
+      context.push('/upgrade');
     }
   }
 
@@ -681,7 +720,12 @@ class _LobbyView extends ConsumerWidget {
     final room = state.room!;
     final players = state.players;
     final nonHostCount = players.where((p) => !p.isHost).length;
-    final atCap = players.length >= room.playerCap;
+    // Show the inline upgrade nudge at cap and one-below — the host needs the
+    // pointer just as the lobby fills, not after they're locked out. Rate-
+    // limited so dismissals across sessions stick.
+    final nearOrAtCap = players.length >= room.playerCap - 1;
+    final canPrompt = ref.watch(canShowUpgradePromptProvider);
+    final showCapUpgrade = !isPremium && nearOrAtCap && canPrompt;
 
     // Layout: scrollable code + QR + roster on top, Start button pinned to the
     // bottom so it's always reachable regardless of how big the code renders or
@@ -760,10 +804,14 @@ class _LobbyView extends ConsumerWidget {
           children: [
             _SectionLabel('PLAYERS  ${players.length}/${room.playerCap}'),
             const Spacer(),
-            if (!isPremium && atCap)
+            if (showCapUpgrade)
               TextButton(
                 onPressed: () => context.push('/upgrade'),
-                child: const Text('Up to 30 with Premium →'),
+                child: Text(
+                  players.length >= room.playerCap
+                      ? 'Room full — go to 30 with Premium →'
+                      : 'Up to 30 with Premium →',
+                ),
               ),
           ],
         ),

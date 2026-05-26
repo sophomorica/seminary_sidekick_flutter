@@ -74,6 +74,12 @@ class GroupPlayState {
   /// True while a network call is in flight that the UI should show feedback for.
   final bool isLoading;
 
+  /// One-shot flag: free host tried to create a second room this week. UI
+  /// listens for this and shows a tasteful upgrade dialog instead of the
+  /// generic error banner. Cleared by `clearFreeHostWeeklyLimitHit()` once
+  /// the UI has reacted.
+  final bool freeHostWeeklyLimitHit;
+
   const GroupPlayState({
     this.phase = GroupPlayPhase.idle,
     this.room,
@@ -87,6 +93,7 @@ class GroupPlayState {
     this.sbConfig,
     this.error,
     this.isLoading = false,
+    this.freeHostWeeklyLimitHit = false,
   });
 
   bool get isHost => me?.isHost ?? false;
@@ -121,6 +128,7 @@ class GroupPlayState {
     GroupSbConfig? sbConfig,
     String? error,
     bool? isLoading,
+    bool? freeHostWeeklyLimitHit,
     bool clearError = false,
     bool clearMySelection = false,
     bool clearRoom = false,
@@ -141,6 +149,8 @@ class GroupPlayState {
       sbConfig: clearSbConfig ? null : (sbConfig ?? this.sbConfig),
       error: clearError ? null : (error ?? this.error),
       isLoading: isLoading ?? this.isLoading,
+      freeHostWeeklyLimitHit:
+          freeHostWeeklyLimitHit ?? this.freeHostWeeklyLimitHit,
     );
   }
 }

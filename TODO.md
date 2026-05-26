@@ -99,11 +99,11 @@
 
 ## Active Tasks
 
-> **Group Play status (2026-05-25)**: Quiz-mode v1 SHIPPED end-to-end. Phase 4 polish (TASK-058/059/061) is queued. Phase 5 expands to a second game type: Scripture Builder Race (TASK-062), which requires the shared scope picker (TASK-047) to land first.
+> **Group Play status (2026-05-25)**: Quiz-mode v1 SHIPPED end-to-end. Phase 4 polish in progress (TASK-058 done, TASK-059/061 queued). Phase 5 expands to a second game type: Scripture Builder Race (TASK-062), which requires the shared scope picker (TASK-047) to land first.
 >
 > | Phase | Tasks | Status | Parallel? |
 > |---|---|---|---|
-> | 4 | TASK-058 (premium gating), TASK-059 (saved rosters), TASK-061 (analytics) | open | TASK-058/059 serial — both edit service + host_lobby |
+> | 4 | TASK-058 (premium gating) **DONE**, TASK-059 (saved rosters), TASK-061 (analytics) | partial | TASK-059 unblocked — only one editor at a time on service + host_lobby |
 > | 5a | TASK-047 (shared scope picker) | **DONE 2026-05-25** | — |
 > | 5b | **TASK-062 (Scripture Builder Race)** | **DONE 2026-05-25** — pending owner: `supabase db push` for `0005_group_sb_finishes.sql` + two-instance smoke test | — |
 
@@ -248,11 +248,12 @@
 
 ### TASK-058: Premium gating for group hosting
 
-- **status**: `in_progress`
+- **status**: `done`
 - **priority**: P1
 - **estimated_effort**: Small-Medium
 - **claimed_by**: claude-opus-4-7
 - **started**: 2026-05-25
+- **completed**: 2026-05-25
 - **files_to_touch**: `lib/services/group_play_service.dart`, `lib/providers/group_play_provider.dart`, `lib/screens/group_play/host_lobby_screen.dart`
 - **description**: Enforce the free/premium hosting split. Free hosts: cap 6, 1 game/week. Premium hosts: cap 30, unlimited games.
 - **agent_context_block** (read first):
@@ -269,9 +270,9 @@
   - [x] On `createRoom`, service writes `player_cap` (6 or 30) + `is_premium_host` to the row — DONE in TASK-052
   - [x] On `createRoom`, service calls `bump_host_usage` RPC, throws `FreeTierLimitException` if exceeded — DONE in TASK-052
   - [x] On `joinAsPlayer`, service rejects with `RoomFullException` when at cap — DONE in TASK-052
-  - [ ] Host lobby shows tasteful upgrade dialog (not raw exception) when free host hits weekly limit
-  - [ ] Host lobby renders inline "Upgrade for class size" link both AT cap AND one-below-cap (rate-limited via `canShowUpgradePromptProvider`)
-  - [ ] Manual verification: with `forcePremium: false` in `app_config.dart`, can create exactly 1 room/week; second attempt this week shows the upgrade dialog
+  - [x] Host lobby shows tasteful upgrade dialog (not raw exception) when free host hits weekly limit — added `freeHostWeeklyLimitHit` one-shot flag on `GroupPlayState`; `hostCreateRoom` catches `FreeTierLimitException` separately and sets the flag instead of flipping phase to error; host lobby `ref.listen`s and shows an AlertDialog with "Maybe later" / "See Premium" actions, then clears the flag
+  - [x] Host lobby renders inline "Upgrade for class size" link both AT cap AND one-below-cap (rate-limited via `canShowUpgradePromptProvider`) — lobby view changed from `atCap` to `nearOrAtCap` (cap-1), gated by `canShowUpgradePromptProvider`; copy adapts to AT-cap vs one-below
+  - [ ] Manual verification: with `forcePremium: false` in `app_config.dart`, can create exactly 1 room/week; second attempt this week shows the upgrade dialog — **owner step**
 - **depends_on**: TASK-053 — done
 - **notes**:
   - **Most of this task is already done** by TASK-052's foundation. Treat this as polish + UX layer only.

@@ -48,7 +48,11 @@ class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
     required GroupRoomScope scope,
     required String hostNickname,
   }) async {
-    state = state.copyWith(isLoading: true, clearError: true);
+    state = state.copyWith(
+      isLoading: true,
+      clearError: true,
+      freeHostWeeklyLimitHit: false,
+    );
     try {
       final result = await _service.createRoom(
         scope: scope,
@@ -56,10 +60,22 @@ class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
         isPremiumHost: _readIsPremium(),
       );
       _enterRoom(room: result.room, self: result.hostPlayer);
+    } on FreeTierLimitException catch (e) {
+      // Don't flip phase to error — the host stays on the setup view and
+      // sees a tasteful upgrade dialog driven by [freeHostWeeklyLimitHit].
+      developer.log('Free host weekly limit: ${e.message}', name: 'group_play');
+      state = state.copyWith(freeHostWeeklyLimitHit: true);
     } catch (e) {
       _handleError(e);
     } finally {
       state = state.copyWith(isLoading: false);
+    }
+  }
+
+  /// Acknowledge the free-tier-limit flag once the UI has shown its dialog.
+  void clearFreeHostWeeklyLimitHit() {
+    if (state.freeHostWeeklyLimitHit) {
+      state = state.copyWith(freeHostWeeklyLimitHit: false);
     }
   }
 
