@@ -12,6 +12,8 @@ A focused scripture mastery tool for the 100 Doctrinal Mastery scriptures of The
 
 The core loop is **Study → Build → Prove → Master**. Users study the text, then use **Scripture Builder** (the primary mastery tool) to progressively prove they can reproduce it from memory. Supplementary practice tools (Scripture Match, Quick Quiz) help with recognition and comprehension but do not gate mastery.
 
+The viral mechanic is **Class Play** — Kahoot-style live multiplayer rounds for the whole seminary class. One teacher running a live round = 20-30 students opening the app at once; it's the highest-leverage growth lever the brand has and the feature that turns "great scripture mastery app" into "the defacto seminary app." Ships in a later Flutter update (TASK-048); the marketing site already leads with it and captures a teacher waitlist.
+
 **Key UX principle**: The path to mastery must be obvious. When a user opens a scripture, they should immediately see where they are on the mastery path, what to do next, and what “mastered” means. Scripture Builder lives directly under each scripture as the central mastery tool.
 
 **Landing principle**: The app should open to **"Let's Learn / Let's Play"** — not a dashboard. Home is the jumping-off point to study and practice. Stats, progress rings, and long descriptions belong on the Stats tab, not on the first thing a kid sees. Keep Home punchy: pick up where you left off, start a quick quiz, launch Scripture Builder. The dashboard view is reachable via the Stats tab for users who want it.
