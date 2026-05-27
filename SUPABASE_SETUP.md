@@ -80,13 +80,16 @@ It will prompt for the database password from Step 1.
 
 ## Step 4 — Push the migrations to the cloud project
 
-The three migration files committed to `supabase/migrations/` are:
+The migration files committed to `supabase/migrations/` are:
 
 | File | What it does |
 |---|---|
 | `0001_group_play_init.sql` | Creates `rooms`, `players`, `answers`, `saved_rosters`, `host_usage` tables + indexes + the `bump_host_usage()` helper function |
 | `0002_rls_policies.sql` | Row-level security: anyone authenticated can read; writes are scoped to the row owner |
 | `0003_realtime.sql` | Adds `rooms`, `players`, `answers` to the `supabase_realtime` publication |
+| `0004_replica_identity_full.sql` | `REPLICA IDENTITY FULL` on `rooms` / `players` / `answers` so Realtime can evaluate filters on DELETE events (e.g. host kicking a player) |
+| `0005_group_sb_finishes.sql` | Adds `group_sb_finishes` table + RLS + realtime for the Scripture Builder race mode (TASK-062) |
+| `0006_lock_bump_host_usage.sql` | **MAINT-001**: revokes the implicit `PUBLIC` execute grant on `bump_host_usage()` and adds an internal `auth.uid()` guard so callers can only bump their own row |
 
 Push them:
 

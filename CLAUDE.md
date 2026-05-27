@@ -1,7 +1,8 @@
 # CLAUDE.md — Seminary Sidekick
 
 > **Single entry point for AI agents.** Read this file before touching any code.
-> For the task board, see `TODO.md`.
+> For the launch/feature task board, see `TODO.md`.
+> For ongoing maintenance work (security hygiene, dependency bumps, infra audits, tech-debt cleanups), see `MAINTENANCE.md`.
 
 ---
 
@@ -375,11 +376,13 @@ ref.read(sidekickProvider.notifier).sendMessage(text)  // Chat message
 
 ```
 1. Read this file (CLAUDE.md)      → Understand everything
-2. Read TODO.md                    → Find an open task
-3. Claim the task                  → Write your agent ID into TODO.md, commit
+2. Read TODO.md or MAINTENANCE.md  → Find an open task (TODO = features/launch, MAINTENANCE = hygiene/security/deps)
+3. Claim the task                  → Write your agent ID into the relevant file, commit
 4. Do the work                     → Follow the conventions above
-5. Mark task done                  → Update TODO.md, commit
+5. Mark task done                  → Update the relevant file, commit
 ```
+
+Same claim/complete ritual applies to both boards. Task IDs are namespaced: `TASK-XXX` lives in `TODO.md`, `MAINT-XXX` lives in `MAINTENANCE.md`.
 
 ### Claiming a Task
 
@@ -514,7 +517,8 @@ flutter run              # Run app
 | File                         | Purpose                                                                                            |
 | ---------------------------- | -------------------------------------------------------------------------------------------------- |
 | `CLAUDE.md`                  | This file — single agent entry point (mastery spec is inline here)                                 |
-| `TODO.md`                    | Task board (claim/complete tasks here)                                                             |
+| `TODO.md`                    | Feature/launch task board (claim/complete `TASK-XXX` items here)                                   |
+| `MAINTENANCE.md`             | Maintenance log — security hygiene, deps, infra audits, tech-debt (`MAINT-XXX` items)              |
 | `app_theme.dart`             | Single source of truth for colors and spacing                                                      |
 | `scriptures_data.dart`       | All 100 scripture entries                                                                          |
 | `subscription_provider.dart` | Freemium state, RevenueCat integration, prompt rate-limiting                                       |
