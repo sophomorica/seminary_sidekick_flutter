@@ -506,6 +506,31 @@
   - **Confetti budget**: fire confetti when the local player finishes (700ms, ~14 particles), NOT on every player's finish — a class of 30 finishing in a 10-second window would overlap badly.
   - **Premium gating**: Scripture Builder race respects the same hosting tier from TASK-058 — free hosts can run it within their 1 game/week + 6 player cap; premium hosts get unlimited + 30 cap. No new premium gate needed beyond the existing hosting gate.
 
+### TASK-063: Crash reporting & error analytics (launch readiness)
+
+- **status**: `in_progress`
+- **priority**: P0 (launch blocker — currently zero visibility into user-side crashes)
+- **estimated_effort**: Medium
+- **claimed_by**: claude-fable-5
+- **started**: 2026-06-10
+- **files_to_touch**:
+  - `pubspec.yaml` — add `sentry_flutter`
+  - NEW `lib/services/crash_reporting_service.dart` — centralized Sentry wrapper (init gate, breadcrumbs, tags, manual capture)
+  - `lib/main.dart` — wrap bootstrap in `CrashReportingService.init()` so all uncaught Flutter/Dart/native errors are captured; premium tag wiring
+  - `lib/app.dart` — `SentryNavigatorObserver` on GoRouter, tab-switch breadcrumbs in `_AppShell`
+  - NEW `test/services/crash_reporting_service_test.dart`
+  - `CLAUDE.md` — tech stack, key files, build instructions
+- **description**: Add Sentry crash reporting so we can diagnose crashes in the field at launch. DSN comes from `--dart-define=SENTRY_DSN=...` (same pattern as Supabase); when absent the service is a silent no-op so dev/test runs send nothing.
+- **acceptance_criteria**:
+  - [ ] Uncaught Flutter framework errors, async Dart errors, and native (Java/Kotlin/ObjC/Swift) crashes are reported
+  - [ ] No DSN configured → app behaves exactly as before (no-op, no network calls)
+  - [ ] Privacy: `sendDefaultPii = false`, no screenshots/view hierarchy attached, no journal/notes/chat content ever in breadcrumbs or context
+  - [ ] Light context: premium status tag, current tab/route breadcrumbs, app environment (release vs dev)
+  - [ ] `flutter analyze` clean, tests pass
+- **notes**:
+  - Sentry chosen over Firebase Crashlytics: single Dart package, no google-services config files or Gradle/Xcode changes, matches the existing `--dart-define` credential pattern.
+  - For full native symbolication, owner should follow https://docs.sentry.io/platforms/flutter/upload-debug/ when setting up release CI (not required for Dart stack traces).
+
 ---
 
 ## Cleanup & Parking Lot
