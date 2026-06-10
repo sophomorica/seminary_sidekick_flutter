@@ -55,6 +55,8 @@ class CrashReportingService {
         // screen can contain journal entries and scripture notes.
         options.sendDefaultPii = false;
         options.attachScreenshot = false;
+        // ignore: experimental_member_use — intentionally disabling an experimental
+        // Sentry option for privacy; the screen can contain journal/scripture text.
         options.attachViewHierarchy = false;
         // Crash analytics only — no performance tracing for now.
         options.tracesSampleRate = null;
