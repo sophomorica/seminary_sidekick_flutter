@@ -74,6 +74,11 @@ class GroupPlayState {
   /// True while a network call is in flight that the UI should show feedback for.
   final bool isLoading;
 
+  /// True while one or more realtime channels are down and auto-retrying.
+  /// The UI shows a slim "reconnecting" banner; no user action is needed —
+  /// the service resubscribes with backoff and refetches whatever was missed.
+  final bool isReconnecting;
+
   /// One-shot flag: free host tried to create a second room this week. UI
   /// listens for this and shows a tasteful upgrade dialog instead of the
   /// generic error banner. Cleared by `clearFreeHostWeeklyLimitHit()` once
@@ -93,6 +98,7 @@ class GroupPlayState {
     this.sbConfig,
     this.error,
     this.isLoading = false,
+    this.isReconnecting = false,
     this.freeHostWeeklyLimitHit = false,
   });
 
@@ -128,6 +134,7 @@ class GroupPlayState {
     GroupSbConfig? sbConfig,
     String? error,
     bool? isLoading,
+    bool? isReconnecting,
     bool? freeHostWeeklyLimitHit,
     bool clearError = false,
     bool clearMySelection = false,
@@ -149,6 +156,7 @@ class GroupPlayState {
       sbConfig: clearSbConfig ? null : (sbConfig ?? this.sbConfig),
       error: clearError ? null : (error ?? this.error),
       isLoading: isLoading ?? this.isLoading,
+      isReconnecting: isReconnecting ?? this.isReconnecting,
       freeHostWeeklyLimitHit:
           freeHostWeeklyLimitHit ?? this.freeHostWeeklyLimitHit,
     );

@@ -38,7 +38,9 @@ class _GroupResultsScreenState extends ConsumerState<GroupResultsScreen> {
     super.initState();
     _confettiController =
         ConfettiController(duration: const Duration(seconds: 3));
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Hold the confetti until the podium's gold column rises into place —
+    // the burst should hit as the winner appears, not on a bare screen.
+    Future.delayed(PodiumView.goldRevealDelay, () {
       if (mounted) _confettiController.play();
     });
   }

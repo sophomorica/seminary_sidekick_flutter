@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../models/group_player.dart';
 import '../../../theme/app_theme.dart';
@@ -49,13 +50,21 @@ class LiveLeaderboard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppTheme.spacingSm),
+        // Staggered reveal, bottom-up — 5th place lands first, 1st place
+        // last, for a beat of suspense before the leader appears.
         for (var i = 0; i < visible.length; i++)
           _LeaderboardRow(
             rank: i + 1,
             player: visible[i],
             previousRank: previousRanks[visible[i].id],
             isMe: visible[i].id == localPlayerId,
-          ),
+          )
+              .animate()
+              .fadeIn(
+                duration: 280.ms,
+                delay: (120 * (visible.length - 1 - i)).ms,
+              )
+              .slideY(begin: 0.2, curve: Curves.easeOutCubic),
       ],
     );
   }

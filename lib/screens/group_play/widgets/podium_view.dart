@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../models/group_player.dart';
 import '../../../theme/app_theme.dart';
@@ -8,9 +9,17 @@ import '../../../theme/app_theme.dart';
 /// Layout: 2nd on the left (medium block), 1st in the middle (tallest, crown),
 /// 3rd on the right (shortest). Missing positions render as empty placeholders
 /// so a 1- or 2-player game still looks intentional.
+///
+/// Columns reveal in award-ceremony order — bronze, then silver, then gold —
+/// each rising into place. Pair the gold reveal with the results-screen
+/// confetti (fires at ~[goldRevealDelay]) for the payoff moment.
 class PodiumView extends StatelessWidget {
   final List<GroupPlayer> topThree;
   final String? myUserId;
+
+  /// When the 1st-place column lands. The results screen times its confetti
+  /// to this so the burst hits as the winner appears.
+  static const Duration goldRevealDelay = Duration(milliseconds: 1000);
 
   const PodiumView({
     super.key,
@@ -23,37 +32,51 @@ class PodiumView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Widget reveal(Widget child, Duration delay) => child
+        .animate()
+        .fadeIn(duration: 350.ms, delay: delay)
+        .slideY(begin: 0.30, curve: Curves.easeOutCubic);
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
           Expanded(
-            child: _PodiumColumn(
-              rank: 2,
-              player: _at(2),
-              myUserId: myUserId,
-              height: 120,
-              color: AppTheme.secondary,
-              onColor: AppTheme.onSecondary,
+            child: reveal(
+              _PodiumColumn(
+                rank: 2,
+                player: _at(2),
+                myUserId: myUserId,
+                height: 120,
+                color: AppTheme.secondary,
+                onColor: AppTheme.onSecondary,
+              ),
+              500.ms,
             ),
           ),
           Expanded(
-            child: _PodiumColumn(
-              rank: 1,
-              player: _at(1),
-              myUserId: myUserId,
-              height: 170,
-              color: AppTheme.tertiary,
-              onColor: AppTheme.onTertiary,
+            child: reveal(
+              _PodiumColumn(
+                rank: 1,
+                player: _at(1),
+                myUserId: myUserId,
+                height: 170,
+                color: AppTheme.tertiary,
+                onColor: AppTheme.onTertiary,
+              ),
+              goldRevealDelay,
             ),
           ),
           Expanded(
-            child: _PodiumColumn(
-              rank: 3,
-              player: _at(3),
-              myUserId: myUserId,
-              height: 90,
-              color: AppTheme.primary,
-              onColor: AppTheme.onPrimary,
+            child: reveal(
+              _PodiumColumn(
+                rank: 3,
+                player: _at(3),
+                myUserId: myUserId,
+                height: 90,
+                color: AppTheme.primary,
+                onColor: AppTheme.onPrimary,
+              ),
+              0.ms,
             ),
           ),
         ],

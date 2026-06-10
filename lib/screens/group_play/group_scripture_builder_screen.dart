@@ -17,6 +17,7 @@ import '../../models/scripture.dart';
 import '../../providers/group_play_provider.dart';
 import '../../services/haptic_service.dart';
 import '../../theme/app_theme.dart';
+import 'widgets/reconnecting_banner.dart';
 import 'widgets/sb_finish_banner.dart';
 import 'widgets/sb_host_progress_dashboard.dart';
 import 'widgets/sb_race_board.dart';
@@ -145,25 +146,32 @@ class _GroupScriptureBuilderScreenState
       body: Stack(
         children: [
           SafeArea(
-            child: state.isHost
-                ? _HostView(
-                    state: state,
-                    sbConfig: sbConfig,
-                    onAdvance: _handleAdvance,
-                    onEnd: _handleEnd,
-                  )
-                : _PlayerView(
-                    state: state,
-                    sbConfig: sbConfig,
-                    myLocalIndex: _localIndexForPlayer(
-                      state: state,
-                      sbConfig: sbConfig,
-                      room: room,
-                      me: me,
-                    ),
-                    onFinish: _handleLocalFinish,
-                    firedConfetti: _firedLocalFinishConfetti,
-                  ),
+            child: Column(
+              children: [
+                if (state.isReconnecting) const ReconnectingBanner(),
+                Expanded(
+                  child: state.isHost
+                      ? _HostView(
+                          state: state,
+                          sbConfig: sbConfig,
+                          onAdvance: _handleAdvance,
+                          onEnd: _handleEnd,
+                        )
+                      : _PlayerView(
+                          state: state,
+                          sbConfig: sbConfig,
+                          myLocalIndex: _localIndexForPlayer(
+                            state: state,
+                            sbConfig: sbConfig,
+                            room: room,
+                            me: me,
+                          ),
+                          onFinish: _handleLocalFinish,
+                          firedConfetti: _firedLocalFinishConfetti,
+                        ),
+                ),
+              ],
+            ),
           ),
           // Confetti when the local player finishes (NOT on every player's
           // finish — a 30-person class would overlap badly).

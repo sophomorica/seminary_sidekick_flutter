@@ -15,9 +15,11 @@ import '../../models/group_room.dart';
 import '../../providers/group_play_provider.dart';
 import '../../services/haptic_service.dart';
 import '../../theme/app_theme.dart';
+import 'widgets/answer_distribution.dart';
 import 'widgets/answers_received_indicator.dart';
 import 'widgets/group_question_card.dart';
 import 'widgets/live_leaderboard.dart';
+import 'widgets/reconnecting_banner.dart';
 
 /// Live multiplayer quiz screen.
 ///
@@ -146,6 +148,7 @@ class _GroupQuizScreenState extends ConsumerState<GroupQuizScreen> {
               children: [
                 Column(
                   children: [
+                    if (state.isReconnecting) const ReconnectingBanner(),
                     _ProgressBar(
                       current: currentIndex + 1,
                       total: state.questions.length,
@@ -493,10 +496,25 @@ class _LeaderboardView extends StatelessWidget {
   Widget build(BuildContext context) {
     final isHost = state.isHost;
     final me = state.me;
+    final room = state.room;
+    final question = state.currentQuestion;
+    final answersForQuestion = (room == null || question == null)
+        ? const <GroupAnswer>[]
+        : state.answers
+            .where((a) => a.questionIndex == room.currentQuestionIndex)
+            .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // ─── The reveal: how the class answered ───
+        if (question != null) ...[
+          AnswerDistribution(
+            question: question,
+            answers: answersForQuestion,
+          ),
+          const SizedBox(height: AppTheme.spacingLg),
+        ],
         Text(
           isLastQuestion ? 'Final Standings' : 'Standings',
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(

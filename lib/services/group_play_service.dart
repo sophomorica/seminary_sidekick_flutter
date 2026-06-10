@@ -43,6 +43,113 @@ class GroupPlayService {
   final QuizQuestionFactory _factory;
   final _random = Random();
 
+  // ─── Connection health ───────────────────────────────────────────────────
+
+  /// Number of realtime channels currently down and retrying.
+  int _degradedChannels = 0;
+
+  final _reconnectingController = StreamController<bool>.broadcast();
+
+  /// Emits `true` when any group-play realtime channel drops and enters its
+  /// retry loop, `false` once every channel is healthy again. The UI uses
+  /// this to show a "reconnecting" banner during live games — classroom
+  /// wifi drops are a when, not an if.
+  Stream<bool> get reconnecting => _reconnectingController.stream;
+
+  void _noteChannelDown() {
+    _degradedChannels++;
+    if (_degradedChannels == 1 && !_reconnectingController.isClosed) {
+      _reconnectingController.add(true);
+    }
+  }
+
+  void _noteChannelUp() {
+    _degradedChannels = max(0, _degradedChannels - 1);
+    if (_degradedChannels == 0 && !_reconnectingController.isClosed) {
+      _reconnectingController.add(false);
+    }
+  }
+
+  /// Exponential backoff: 1s, 2s, 4s, 8s, 8s, …
+  static int _backoffSeconds(int attempt) => min(8, 1 << min(attempt, 3));
+
+  /// Subscribe [buildChannel]'s channel and transparently resubscribe with
+  /// exponential backoff whenever it errors out, times out, or closes
+  /// unexpectedly. Supabase reconnects the underlying socket on its own, but
+  /// errored channels do NOT rejoin automatically — without this, a single
+  /// wifi blip mid-game silently freezes the leaderboard for that device.
+  ///
+  /// Calls [onLive] after every successful (re)subscribe so callers can
+  /// refetch rows that landed while the pipe was down. Returns a dispose
+  /// callback for `StreamController.onCancel`.
+  void Function() _subscribeResilient({
+    required String description,
+    required RealtimeChannel Function() buildChannel,
+    Future<void> Function()? onLive,
+  }) {
+    RealtimeChannel? channel;
+    Timer? retryTimer;
+    var attempt = 0;
+    var generation = 0;
+    var disposed = false;
+    var degraded = false;
+
+    void markDegraded() {
+      if (degraded) return;
+      degraded = true;
+      _noteChannelDown();
+    }
+
+    void markHealthy() {
+      if (!degraded) return;
+      degraded = false;
+      _noteChannelUp();
+    }
+
+    void connect() {
+      if (disposed) return;
+      final myGen = ++generation;
+      final ch = buildChannel();
+      channel = ch;
+      ch.subscribe((status, [error]) {
+        // Stale callbacks from a channel we already replaced are ignored —
+        // removeChannel fires a final `closed` that must not retrigger retry.
+        if (disposed || myGen != generation) return;
+        switch (status) {
+          case RealtimeSubscribeStatus.subscribed:
+            attempt = 0;
+            markHealthy();
+            onLive?.call();
+          case RealtimeSubscribeStatus.channelError:
+          case RealtimeSubscribeStatus.timedOut:
+          case RealtimeSubscribeStatus.closed:
+            markDegraded();
+            final delay = _backoffSeconds(attempt);
+            developer.log(
+              'Realtime channel "$description" dropped ($status); '
+              'retrying in ${delay}s',
+              name: 'group_play',
+              error: error,
+            );
+            _client.removeChannel(ch);
+            retryTimer?.cancel();
+            retryTimer = Timer(Duration(seconds: delay), connect);
+            attempt++;
+        }
+      });
+    }
+
+    connect();
+
+    return () {
+      disposed = true;
+      retryTimer?.cancel();
+      markHealthy();
+      final ch = channel;
+      if (ch != null) _client.removeChannel(ch);
+    };
+  }
+
   /// Player cap for free-tier hosts (joinable count includes the host).
   static const int freeHostCap = 6;
 
@@ -422,24 +529,25 @@ class GroupPlayService {
       }
     }
 
-    final channel = _client
-        .channel('public:group_sb_finishes:room_id=$roomId')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.insert,
-          schema: 'public',
-          table: 'group_sb_finishes',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'room_id',
-            value: roomId,
+    final dispose = _subscribeResilient(
+      description: 'group_sb_finishes:$roomId',
+      buildChannel: () => _client
+          .channel('public:group_sb_finishes:room_id=$roomId')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.insert,
+            schema: 'public',
+            table: 'group_sb_finishes',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'room_id',
+              value: roomId,
+            ),
+            callback: (_) => refetch(),
           ),
-          callback: (_) => refetch(),
-        )
-        .subscribe();
+      onLive: refetch,
+    );
 
-    controller.onCancel = () {
-      _client.removeChannel(channel);
-    };
+    controller.onCancel = dispose;
 
     refetch();
     return controller.stream;
@@ -451,48 +559,54 @@ class GroupPlayService {
   /// Emits null if the room is deleted.
   Stream<GroupRoom?> watchRoom(String roomId) {
     final controller = StreamController<GroupRoom?>();
-    final channel = _client
-        .channel('public:rooms:id=$roomId')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'rooms',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'id',
-            value: roomId,
-          ),
-          callback: (payload) {
-            if (payload.eventType == PostgresChangeEvent.delete) {
-              controller.add(null);
-              return;
-            }
-            final newRow = payload.newRecord;
-            controller.add(GroupRoom.fromJson(newRow));
-          },
-        )
-        .subscribe();
 
-    controller.onCancel = () {
-      _client.removeChannel(channel);
-    };
+    Future<void> refetch() async {
+      try {
+        final row = await _client
+            .from('rooms')
+            .select()
+            .eq('id', roomId)
+            .maybeSingle();
+        if (controller.isClosed) return;
+        controller.add(row == null ? null : GroupRoom.fromJson(row));
+      } catch (e) {
+        developer.log('watchRoom refetch failed', error: e);
+      }
+    }
+
+    final dispose = _subscribeResilient(
+      description: 'rooms:$roomId',
+      buildChannel: () => _client
+          .channel('public:rooms:id=$roomId')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'rooms',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'id',
+              value: roomId,
+            ),
+            callback: (payload) {
+              if (controller.isClosed) return;
+              if (payload.eventType == PostgresChangeEvent.delete) {
+                controller.add(null);
+                return;
+              }
+              final newRow = payload.newRecord;
+              controller.add(GroupRoom.fromJson(newRow));
+            },
+          ),
+      // Refetch on every (re)subscribe — catches a phase flip or question
+      // advance that happened while this device's channel was down.
+      onLive: refetch,
+    );
+
+    controller.onCancel = dispose;
 
     // Emit current state immediately so subscribers don't wait for the
     // first change event.
-    _client
-        .from('rooms')
-        .select()
-        .eq('id', roomId)
-        .maybeSingle()
-        .then((row) {
-      if (row == null) {
-        controller.add(null);
-      } else {
-        controller.add(GroupRoom.fromJson(row));
-      }
-    }).catchError((Object e) {
-      developer.log('watchRoom initial fetch failed', error: e);
-    });
+    refetch();
 
     return controller.stream;
   }
@@ -509,24 +623,25 @@ class GroupPlayService {
       }
     }
 
-    final channel = _client
-        .channel('public:players:room_id=$roomId')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'players',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'room_id',
-            value: roomId,
+    final dispose = _subscribeResilient(
+      description: 'players:$roomId',
+      buildChannel: () => _client
+          .channel('public:players:room_id=$roomId')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'players',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'room_id',
+              value: roomId,
+            ),
+            callback: (_) => refetch(),
           ),
-          callback: (_) => refetch(),
-        )
-        .subscribe();
+      onLive: refetch,
+    );
 
-    controller.onCancel = () {
-      _client.removeChannel(channel);
-    };
+    controller.onCancel = dispose;
 
     refetch();
     return controller.stream;
@@ -550,24 +665,25 @@ class GroupPlayService {
       }
     }
 
-    final channel = _client
-        .channel('public:answers:room_id=$roomId')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.insert,
-          schema: 'public',
-          table: 'answers',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'room_id',
-            value: roomId,
+    final dispose = _subscribeResilient(
+      description: 'answers:$roomId',
+      buildChannel: () => _client
+          .channel('public:answers:room_id=$roomId')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.insert,
+            schema: 'public',
+            table: 'answers',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'room_id',
+              value: roomId,
+            ),
+            callback: (_) => refetch(),
           ),
-          callback: (_) => refetch(),
-        )
-        .subscribe();
+      onLive: refetch,
+    );
 
-    controller.onCancel = () {
-      _client.removeChannel(channel);
-    };
+    controller.onCancel = dispose;
 
     refetch();
     return controller.stream;
@@ -580,26 +696,30 @@ class GroupPlayService {
   ) {
     final controller =
         StreamController<({String event, Map<String, dynamic> payload})>();
-    final channel = _client.channel('room:$roomCode');
 
-    channel.onBroadcast(
-      event: 'question_advanced',
-      callback: (payload) {
-        controller.add((event: 'question_advanced', payload: payload));
+    final dispose = _subscribeResilient(
+      description: 'broadcast:$roomCode',
+      buildChannel: () {
+        final channel = _client.channel('room:$roomCode');
+        channel.onBroadcast(
+          event: 'question_advanced',
+          callback: (payload) {
+            if (controller.isClosed) return;
+            controller.add((event: 'question_advanced', payload: payload));
+          },
+        );
+        channel.onBroadcast(
+          event: 'room_ended',
+          callback: (payload) {
+            if (controller.isClosed) return;
+            controller.add((event: 'room_ended', payload: payload));
+          },
+        );
+        return channel;
       },
     );
-    channel.onBroadcast(
-      event: 'room_ended',
-      callback: (payload) {
-        controller.add((event: 'room_ended', payload: payload));
-      },
-    );
 
-    channel.subscribe();
-
-    controller.onCancel = () {
-      _client.removeChannel(channel);
-    };
+    controller.onCancel = dispose;
 
     return controller.stream;
   }

@@ -95,11 +95,17 @@
 |------|------|-----------|
 | TASK-062 | Group Scripture Builder race (second group-play game type). `GroupGameMode.scriptureBuilder` + `GroupSbConfig` + `GroupSbFinish` models with backward-compat JSON; supabase migration `0005_group_sb_finishes.sql` with RLS + realtime; `GroupPlayService.submitSbFinish/watchSbFinishes/hostAdvanceScripture`; notifier sbFinishes subscription + sbConfig + submit dedup; forked chunk-tap board (`SbRaceBoard`) decoupled from progress_provider; `GroupScriptureBuilderScreen` with host dashboard + player race view + DNF timer + per-mode finish flow (Round-by-Round vs Set-of-N); host-lobby game-mode selector; conditional auto-nav on phase transition; SB-flavored results with per-mode ranking. Added mounted-guards to all GroupPlayNotifier stream listeners. 34 new tests (594 total, all green). | 2026-05-25 |
 
+### Group Play Polish — Phase 4.5 (2026-06-10)
+
+| Task | What | Completed |
+|------|------|-----------|
+| TASK-064 | Group play classroom-reliability + reveal polish (owner-directed after 2026-06-10 audit). **(1) Realtime reconnection**: `GroupPlayService._subscribeResilient` wraps all five realtime channels (rooms, players, answers, sb_finishes, broadcast) — auto-resubscribes with 1/2/4/8s backoff on `channelError`/`timedOut`/`closed`, refetches on every (re)subscribe so rows landed while down are never missed; new `service.reconnecting` stream → `GroupPlayState.isReconnecting` → calm `ReconnectingBanner` in live quiz + SB race screens. **(2) Answer-distribution reveal**: new `AnswerDistribution` widget (Kahoot-style per-choice animated bars, correct choice in success green) on the between-question standings view, visible to host AND players. **(3) Reveal animations**: leaderboard rows stagger in bottom-up (5th→1st, suspense beat); podium columns rise in award order (bronze→silver→gold via `PodiumView.goldRevealDelay`); results confetti now fires WITH the gold reveal instead of on a bare screen. **(4) Audio placeholders**: `countdown_tick.txt`, `group_join.txt`, `streak_milestone.txt` added to `assets/audio/` per the TASK-045 convention (owner sources real audio). CLAUDE.md refreshed to current reality (group play shipped, structure, providers, launch-readiness status). | 2026-06-10 |
+
 ---
 
 ## Active Tasks
 
-> **Group Play status (2026-05-25)**: Quiz-mode v1 SHIPPED end-to-end. Phase 4 polish in progress (TASK-058 done, TASK-059/061 queued). Phase 5 expands to a second game type: Scripture Builder Race (TASK-062), which requires the shared scope picker (TASK-047) to land first.
+> **Group Play status (2026-06-10)**: Quiz-mode v1 + Scripture Builder Race SHIPPED end-to-end, plus Phase 4.5 polish (TASK-064: stream reconnection, answer-distribution reveal, reveal animations). Remaining: TASK-059 (saved rosters), TASK-061 (analytics), TASK-051 owner smoke test, and TASK-045 real audio (now includes group-play sounds: countdown tick, lobby join, plus streak milestone).
 >
 > | Phase | Tasks | Status | Parallel? |
 > |---|---|---|---|
@@ -508,11 +514,12 @@
 
 ### TASK-063: Crash reporting & error analytics (launch readiness)
 
-- **status**: `in_progress`
+- **status**: `done`
 - **priority**: P0 (launch blocker — currently zero visibility into user-side crashes)
 - **estimated_effort**: Medium
 - **claimed_by**: claude-fable-5
 - **started**: 2026-06-10
+- **completed**: 2026-06-10
 - **files_to_touch**:
   - `pubspec.yaml` — add `sentry_flutter`
   - NEW `lib/services/crash_reporting_service.dart` — centralized Sentry wrapper (init gate, breadcrumbs, tags, manual capture)

@@ -40,6 +40,7 @@ class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
   StreamSubscription<List<GroupSbFinish>>? _sbFinishesSub;
   StreamSubscription<({String event, Map<String, dynamic> payload})>?
       _eventsSub;
+  StreamSubscription<bool>? _reconnectSub;
 
   // ─── Host actions ──────────────────────────────────────────────────────
 
@@ -316,6 +317,14 @@ class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
     _answersSub?.cancel();
     _sbFinishesSub?.cancel();
     _eventsSub?.cancel();
+    _reconnectSub?.cancel();
+
+    // Surface realtime channel health so live screens can show a
+    // "reconnecting" banner during classroom wifi blips.
+    _reconnectSub = _service.reconnecting.listen((reconnecting) {
+      if (!mounted) return;
+      state = state.copyWith(isReconnecting: reconnecting);
+    });
 
     _roomSub = _service.watchRoom(room.id).listen((updated) {
       if (!mounted) return;
@@ -385,11 +394,13 @@ class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
     await _answersSub?.cancel();
     await _sbFinishesSub?.cancel();
     await _eventsSub?.cancel();
+    await _reconnectSub?.cancel();
     _roomSub = null;
     _playersSub = null;
     _answersSub = null;
     _sbFinishesSub = null;
     _eventsSub = null;
+    _reconnectSub = null;
   }
 
   void _handleError(Object e) {

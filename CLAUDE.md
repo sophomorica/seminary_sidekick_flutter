@@ -12,7 +12,7 @@ A focused scripture mastery tool for the 100 Doctrinal Mastery scriptures of The
 
 The core loop is **Study → Build → Prove → Master**. Users study the text, then use **Scripture Builder** (the primary mastery tool) to progressively prove they can reproduce it from memory. Supplementary practice tools (Scripture Match, Quick Quiz) help with recognition and comprehension but do not gate mastery.
 
-The viral mechanic is **Class Play** — Kahoot-style live multiplayer rounds for the whole seminary class. One teacher running a live round = 20-30 students opening the app at once; it's the highest-leverage growth lever the brand has and the feature that turns "great scripture mastery app" into "the defacto seminary app." Ships in a later Flutter update (TASK-048); the marketing site already leads with it and captures a teacher waitlist.
+The viral mechanic is **Class Play** (Group Play) — Kahoot-style live multiplayer rounds for the whole seminary class. One teacher running a live round = 20-30 students opening the app at once; it's the highest-leverage growth lever the brand has and the feature that turns "great scripture mastery app" into "the defacto seminary app." **Shipped (v1, 2026-05)**: Supabase-backed (Realtime + anonymous auth), 4-letter join codes + QR, two game modes — live Quick Quiz and Scripture Builder Race — with lobby, countdown, answer-distribution reveal, live leaderboard with rank deltas, podium results, and free/premium host tiers (6-player casual vs 30-player class rooms). See TASK-048's decomposition (TASK-051–062) in `TODO.md` and `SUPABASE_SETUP.md` for the backend runbook. Group play NEVER writes to personal mastery/progress — it's purely social.
 
 **Key UX principle**: The path to mastery must be obvious. When a user opens a scripture, they should immediately see where they are on the mastery path, what to do next, and what “mastered” means. Scripture Builder lives directly under each scripture as the central mastery tool.
 
@@ -20,8 +20,7 @@ The viral mechanic is **Class Play** — Kahoot-style live multiplayer rounds fo
 
 **Design philosophy**: Fun first with warm, satisfying feedback (animations, haptics, confetti, progressive difficulty). The experience is reverent and purposeful while remaining engaging for seminary students. The primary success metrics are **engagement with friends and mastery retention** — we want kids to come back on their own AND invite their seminary group to play together.
 
-**Status**: Free-tier MVP is complete. The app is now moving into the **Premium tier**, which unlocks the **Seminary Sidekick** — an AI companion powered by Grok.  
-Premium features focus on deeper understanding and application through AI-generated journal prompts, reflection questions, smart goals, timeline insights, and subtle engagement enhancements that make diligent study feel natural and rewarding.
+**Status**: Free-tier MVP complete. Premium tier (Seminary Sidekick AI — Grok-powered journal prompts, reflection questions, smart goals, timeline insights, chat) built. Group Play v1 (quiz + Scripture Builder race) shipped end-to-end. Current focus is **launch readiness**: real RevenueCat purchase wiring, crash reporting, store identity (bundle IDs/signing), Sidekick system-prompt safety hardening, real audio assets, and privacy/legal. See "Current Task Status" below and `TODO.md`.
 
 **Business model**: Freemium.
 
@@ -43,6 +42,9 @@ Premium features focus on deeper understanding and application through AI-genera
 | **confetti**                       | Celebration effects                                     |
 | **audioplayers**                   | Sound effects                                           |
 | **purchases_flutter** (RevenueCat) | In-app subscriptions for freemium model                 |
+| **supabase_flutter**               | Group Play backend: Postgres + RLS, Realtime, anon auth |
+| **qr_flutter** / **share_plus**    | Lobby QR join codes / share game results                |
+| **sentry_flutter** (Sentry)        | Crash reporting — no-op unless `SENTRY_DSN` dart-define |
 
 ---
 
@@ -58,7 +60,15 @@ lib/
 │ ├── scripture_mastery.dart
 │ ├── sidekick_snapshot.dart # JSON sent to Grok
 │ ├── sidekick_response.dart # Structured response from Grok
-│ └── journal_entry.dart
+│ ├── journal_entry.dart
+│ ├── scripture_scope.dart # Shared "which scriptures count" value type
+│ ├── group_room.dart # Group play: room + scope + GroupGameMode
+│ ├── group_player.dart # Group play: roster row
+│ ├── group_question.dart # Group play: frozen quiz question
+│ ├── group_answer.dart # Group play: answer + speed-weighted points
+│ ├── group_sb_config.dart # SB race config (difficulty, play mode, set)
+│ ├── group_sb_finish.dart # SB race finish event (incl. DNF)
+│ └── group_play_state.dart # Aggregate state for GroupPlayNotifier
 ├── data/
 │ └── scriptures_data.dart
 ├── providers/
@@ -73,7 +83,9 @@ lib/
 │ ├── sidekick_provider.dart # Main AI orchestration
 │ ├── subscription_provider.dart # Freemium state + RevenueCat
 │ ├── goals_provider.dart
-│ └── journal_provider.dart
+│ ├── journal_provider.dart
+│ ├── group_play_provider.dart # Group play orchestration + realtime subs
+│ └── scripture_scope_provider.dart # Hive-backed last-used scope per game
 ├── screens/
 │ ├── home/
 │ │ ├── home_screen.dart # Orchestrator: stats, books, premium, sessions, nudges
@@ -115,6 +127,14 @@ lib/
 │ │ ├── game_results_screen.dart
 │ │ └── scripture_builder/
 │ │ └── scripture_builder_screen.dart # Primary mastery tool (all 4 difficulties)
+│ ├── group_play/
+│ │ ├── host_lobby_screen.dart # Setup + lobby (code, QR, roster, kick, mode)
+│ │ ├── join_lobby_screen.dart # Code + nickname entry, waiting view
+│ │ ├── group_quiz_screen.dart # Live quiz: question/standings local phases
+│ │ ├── group_scripture_builder_screen.dart # SB race (host dashboard / player board)
+│ │ ├── group_results_screen.dart # Podium + leaderboard + share + Play Again
+│ │ └── widgets/ # leaderboard, podium, answer distribution,
+│ │   # question card, SB race board, reconnecting banner, etc.
 │ ├── scripture_list_screen.dart
 │ ├── memorize_screen.dart
 │ ├── practice_hub_screen.dart
@@ -122,12 +142,18 @@ lib/
 ├── services/
 │ ├── audio_service.dart
 │ ├── speech_service.dart
-│ └── sidekick_service.dart # Grok API calls + snapshot logic
+│ ├── haptic_service.dart # All haptics, gated by user preference
+│ ├── sidekick_service.dart # Grok API calls + snapshot logic
+│ ├── group_play_service.dart # All Supabase calls + resilient realtime streams
+│ ├── quiz_question_factory.dart # Shared question generation (solo + group)
+│ ├── nickname_validator.dart # Group play nickname profanity filter
+│ └── crash_reporting_service.dart # Sentry wrapper: init gate, breadcrumbs, tags
 ├── widgets/
 │ ├── scripture_card.dart
 │ ├── mastery_badge.dart
 │ ├── progress_ring.dart
-│ └── premium_teaser.dart
+│ ├── premium_teaser.dart
+│ └── scripture_scope_picker.dart # Shared scope picker (sheet + inline)
 └── theme/
 └── app_theme.dart
 
@@ -348,6 +374,17 @@ ref.watch(chatHistoryProvider)                         // List<SidekickMessage>
 ref.watch(isChatLoadingProvider)                       // bool — chat in flight?
 ref.read(sidekickProvider.notifier).refreshSession()   // Re-fetch from Grok
 ref.read(sidekickProvider.notifier).sendMessage(text)  // Chat message
+
+// Group Play
+ref.watch(groupPlayProvider)                           // Full GroupPlayState
+ref.watch(groupPlayPhaseProvider)                      // idle/hosting/joining/inLobby/inQuiz/viewingResults/error
+ref.watch(groupPlayLeaderboardProvider)                // Players sorted by score
+ref.watch(isGroupHostProvider)                         // bool — am I the host?
+ref.read(groupPlayProvider.notifier).hostCreateRoom(scope:, hostNickname:)
+ref.read(groupPlayProvider.notifier).joinAsPlayer(code:, nickname:)
+ref.read(groupPlayProvider.notifier).leave()           // Player leaves / host closes
+// GroupPlayState.isReconnecting → show ReconnectingBanner during wifi blips;
+// the service auto-resubscribes with backoff and refetches missed rows.
 ```
 
 ---
@@ -512,6 +549,22 @@ flutter test             # Run all tests
 flutter run              # Run app
 ```
 
+### Crash Reporting (Sentry)
+
+Wired through `lib/services/crash_reporting_service.dart`, enabled only when a DSN is provided at build/run time (same `--dart-define` pattern as Supabase):
+
+```bash
+flutter run --dart-define=SENTRY_DSN=https://...@oXXXX.ingest.sentry.io/XXXX
+# Optional: tag releases for crash grouping
+flutter build ipa --dart-define=SENTRY_DSN=... --dart-define=APP_RELEASE=seminary_sidekick@1.0.0+1
+```
+
+Without `SENTRY_DSN` the service is a silent no-op (dev/CI/tests send nothing).
+
+**Privacy rules** — never put user-generated content in breadcrumbs, tags, or contexts: no journal entries, scripture notes, chat messages, or nicknames. Scripture IDs and tab/route names are fine. `sendDefaultPii`, screenshots, and view hierarchy are disabled in the service; do not turn them on.
+
+For handled exceptions worth field visibility, call `CrashReportingService.recordError(e, st, hint: '...')` in the catch block. Use `CrashReportingService.addBreadcrumb(...)` for notable user actions (categories: `navigation`, `game`, `purchase`, ...).
+
 ---
 
 ## Key Files Reference
@@ -530,6 +583,10 @@ flutter run              # Run app
 | `sidekick_provider.dart`     | AI orchestration: snapshot building, session refresh, chat, caching                                |
 | `sidekick_snapshot.dart`     | JSON payload model sent to Grok (MasteryStats, ScriptureProgressSummary)                           |
 | `sidekick_response.dart`     | Structured response model from Grok (SidekickGoal, QuickWin, ScriptureConnection, SidekickMessage) |
+| `group_play_service.dart`    | All Supabase calls for Group Play + resilient realtime streams (auto-resubscribe w/ backoff)       |
+| `group_play_provider.dart`   | Group Play orchestration: phases, stream subscriptions, host/player actions                        |
+| `SUPABASE_SETUP.md`          | Supabase project runbook: migrations table, dashboard steps, smoke tests                           |
+| `crash_reporting_service.dart` | Sentry wrapper — init gate (`SENTRY_DSN`), breadcrumbs, premium tag, `recordError`               |
 
 ## Current Task Status
 
@@ -558,14 +615,20 @@ flutter run              # Run app
 
 - TASK-041/042/043/044 done — settings screen, theme toggle wiring, font scale, haptics routed through a service.
 
-**Active direction** (post-MVP, owner-reviewed 2026-04-21):
+**Post-MVP feature waves** (completed):
 
-- **P0 TASK-045**: Replace generated `.wav` sound effects with real audio (owner-sourced). New `.txt` placeholder convention mirrors the image-asset rule.
-- **P0 TASK-046**: Reorient Home to "Let's Learn / Let's Play" — move dashboard feel to Stats tab, keep Home action-first.
-- **P0 TASK-047**: Multi-scripture Quick Quiz + Scripture Match setup — pick a whole book, or all 100, with optional "every-scripture" question count override.
-- **P1 TASK-048**: Seminary Group Play (Kahoot-style multiplayer). Backend pick + lobby + live quiz + leaderboard. Nothing in the codebase yet.
-- **P1 TASK-049**: Small cleanup of dead `_selectedBooks` / `_selectedDifficulty` fields on Practice Hub cards (absorbed by TASK-047).
-- **P2 TASK-050**: Async friends & group layer (challenges, weekly class leaderboards) — after TASK-048 lands.
+- TASK-046 Home reorientation ("Let's Learn / Let's Play") — done 2026-05-05.
+- TASK-047 Shared scripture-scope picker + TASK-049 dead-state cleanup — done 2026-05-25.
+- **Group Play (TASK-048 umbrella, decomposed into TASK-051–062)** — Quiz mode v1 shipped 2026-05-07 (Supabase backend, host/join lobbies, live quiz, results, profanity filter); premium hosting gates (TASK-058) and Scripture Builder Race mode (TASK-062) shipped 2026-05-25; group-play polish (TASK-064: stream reconnection, answer-distribution reveal, leaderboard/podium reveal animations) 2026-06-10.
+
+**Active direction — launch readiness** (owner-reviewed 2026-06-10; see `TODO.md` / `MAINTENANCE.md` for full entries):
+
+- **P0 TASK-045**: Replace generated `.wav` sound effects with real audio (owner-sourced). `.txt` placeholders exist in `assets/audio/` (incl. `countdown_tick`, `group_join`, `streak_milestone`).
+- **P0 TASK-063**: Crash reporting & error analytics (Sentry) — done 2026-06-10. Owner setup: create a Sentry project, pass `--dart-define=SENTRY_DSN=...` in release builds.
+- **P0 (untracked, from 2026-06-10 audit)**: real RevenueCat purchase wiring in `subscription_provider.dart` (currently TODO stubs); store identity (`com.example.*` bundle IDs, Android release signing); Sidekick system-prompt safety hardening (teen-safety redirects, off-topic refusals, no-doctrinal-authority disclaimer) + backend proxy for the xAI key; privacy policy / account deletion.
+- **P1 TASK-051 owner steps**: `supabase db push` (0005, 0006) + two-instance smoke test; MAINT-002 RLS audit.
+- **P1 TASK-059**: Saved class rosters (premium). **P2 TASK-061**: post-game class breakdown analytics.
+- **P2 TASK-050**: Async friends & group layer — after group play launch settles.
 
 ---
 

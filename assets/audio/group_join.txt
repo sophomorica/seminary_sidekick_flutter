@@ -1,0 +1,20 @@
+# group_join.txt → will become group_join.wav
+
+## Sound description
+A short, friendly two-note rising "pop-ding" that plays on the HOST's device
+each time a student joins the lobby. Light and bubbly — the lobby filling up
+should feel like the room getting happier. Must stack gracefully: 5 kids
+joining within 2 seconds should sound playful, not cacophonous (short tail,
+no low-end thump).
+
+## Where to source it
+- freesound.org — search "bubble pop ding", "ui join chime", "two note positive blip"
+- Pixabay audio — "pop notification", "player join"
+- Zapsplat — Sound Effects → Multimedia → notifications/positive blips
+
+## Expected duration and format
+~200–350ms, 44.1kHz .wav, mono is fine.
+
+## References
+The Discord voice-channel join "boop" (but brighter), or the Mario Kart
+lobby player-join blip.
