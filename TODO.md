@@ -529,13 +529,15 @@
   - `CLAUDE.md` — tech stack, key files, build instructions
 - **description**: Add Sentry crash reporting so we can diagnose crashes in the field at launch. DSN comes from `--dart-define=SENTRY_DSN=...` (same pattern as Supabase); when absent the service is a silent no-op so dev/test runs send nothing.
 - **acceptance_criteria**:
-  - [ ] Uncaught Flutter framework errors, async Dart errors, and native (Java/Kotlin/ObjC/Swift) crashes are reported
-  - [ ] No DSN configured → app behaves exactly as before (no-op, no network calls)
-  - [ ] Privacy: `sendDefaultPii = false`, no screenshots/view hierarchy attached, no journal/notes/chat content ever in breadcrumbs or context
-  - [ ] Light context: premium status tag, current tab/route breadcrumbs, app environment (release vs dev)
-  - [ ] `flutter analyze` clean, tests pass
+  - [x] Uncaught Flutter framework errors, async Dart errors, and native (Java/Kotlin/ObjC/Swift) crashes are reported (`SentryFlutter.init` wraps the whole bootstrap via `appRunner`)
+  - [x] No DSN configured → app behaves exactly as before (no-op, no network calls)
+  - [x] Privacy: `sendDefaultPii = false`, no screenshots/view hierarchy attached, no journal/notes/chat content ever in breadcrumbs or context
+  - [x] Light context: premium status tag (live via `isPremiumProvider` listener), root-route breadcrumbs (`SentryNavigatorObserver`), tab-switch breadcrumbs (`_AppShell`), environment (release vs dev)
+  - [ ] `flutter analyze` clean, tests pass — **owner**: run `flutter pub get && flutter analyze && flutter test` locally (agent sandbox has no Flutter SDK)
 - **notes**:
   - Sentry chosen over Firebase Crashlytics: single Dart package, no google-services config files or Gradle/Xcode changes, matches the existing `--dart-define` credential pattern.
+  - Supabase init failure in `main.dart` is now also reported as a non-fatal (`recordError`) — a user with broken Group Play was previously invisible.
+  - **Owner setup**: create a project at sentry.io, then pass `--dart-define=SENTRY_DSN=...` (and optionally `--dart-define=APP_RELEASE=seminary_sidekick@1.0.0+1`) in release builds. See "Crash Reporting (Sentry)" in CLAUDE.md.
   - For full native symbolication, owner should follow https://docs.sentry.io/platforms/flutter/upload-debug/ when setting up release CI (not required for Dart stack traces).
 
 ---

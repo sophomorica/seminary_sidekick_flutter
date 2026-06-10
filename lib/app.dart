@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'theme/app_theme.dart';
 import 'providers/onboarding_provider.dart';
@@ -26,6 +27,7 @@ import 'screens/group_play/group_results_screen.dart';
 import 'screens/group_play/group_scripture_builder_screen.dart';
 import 'screens/group_play/host_lobby_screen.dart';
 import 'screens/group_play/join_lobby_screen.dart';
+import 'services/crash_reporting_service.dart';
 
 class SeminarySidekickApp extends ConsumerStatefulWidget {
   const SeminarySidekickApp({super.key});
@@ -45,6 +47,10 @@ class _SeminarySidekickAppState extends ConsumerState<SeminarySidekickApp> {
     super.initState();
     _router = GoRouter(
       initialLocation: '/',
+      // Crash-report breadcrumbs for root-navigator routes (scripture detail,
+      // games, group play, settings...). Tab switches inside the shell are
+      // breadcrumbed manually in _AppShell. No-op without a SENTRY_DSN.
+      observers: [SentryNavigatorObserver()],
       redirect: (context, state) {
         final hasCompleted = ref.read(onboardingProvider);
         final isOnboarding = state.uri.toString() == '/onboarding';
@@ -215,6 +221,9 @@ class _AppShell extends ConsumerWidget {
 
   const _AppShell({required this.navigationShell});
 
+  /// Tab names for crash-report breadcrumbs (index-aligned with destinations).
+  static const _tabNames = ['home', 'library', 'practice', 'stats', 'sidekick'];
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -329,6 +338,10 @@ class _AppShell extends ConsumerWidget {
                   indicatorColor: Colors.transparent,
                   labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
                   onDestinationSelected: (index) {
+                    CrashReportingService.addBreadcrumb(
+                      'tab: ${_tabNames[index]}',
+                      category: 'navigation',
+                    );
                     navigationShell.goBranch(
                       index,
                       initialLocation: index == navigationShell.currentIndex,

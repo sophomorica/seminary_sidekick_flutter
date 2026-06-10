@@ -44,6 +44,9 @@ dependencies:
   # Backend (Group Play multiplayer — Supabase Realtime + Postgres + Anonymous Auth)
   supabase_flutter: ^2.5.0
 
+  # Crash reporting & error analytics (no-op unless SENTRY_DSN is dart-defined)
+  sentry_flutter: ^9.16.0
+
   # QR codes (host lobby join code → scannable)
   qr_flutter: ^4.1.0
 

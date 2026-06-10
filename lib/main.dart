@@ -22,9 +22,17 @@ import 'providers/study_streak_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/user_preferences_provider.dart';
 import 'services/audio_service.dart';
+import 'services/crash_reporting_service.dart';
 import 'services/nickname_validator.dart';
 
 void main() async {
+  // Crash reporting wraps the entire bootstrap so that uncaught Flutter,
+  // async Dart, and native errors are all captured. With no SENTRY_DSN
+  // dart-define, this is a pass-through (no-op, no network).
+  await CrashReportingService.init(_bootstrap);
+}
+
+Future<void> _bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize local storage
@@ -54,6 +62,16 @@ void main() async {
   await container.read(onboardingProvider.notifier).init();
   await container.read(themeProvider.notifier).init();
   await container.read(subscriptionProvider.notifier).init();
+
+  // Tag crash reports with premium status (no-op when reporting is disabled).
+  // fireImmediately covers the initial value; the listener tracks changes
+  // (upgrade, restore, expiry) for the rest of the session.
+  container.listen<bool>(
+    isPremiumProvider,
+    (_, isPremium) => CrashReportingService.setPremiumTag(isPremium),
+    fireImmediately: true,
+  );
+
   await container.read(journalProvider.notifier).init();
   await container.read(audioProvider.notifier).init();
   await container.read(userPreferencesProvider.notifier).init();
@@ -183,6 +201,13 @@ Future<void> _maybeInitSupabase() async {
       name: 'main',
       error: e,
       stackTrace: st,
+    );
+    // Non-fatal, but worth field visibility — a broken Supabase init means
+    // Group Play is silently unavailable for that user.
+    await CrashReportingService.recordError(
+      e,
+      st,
+      hint: 'Supabase init failed; group play unavailable',
     );
   }
 }
