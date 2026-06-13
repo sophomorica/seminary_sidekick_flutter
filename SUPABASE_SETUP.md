@@ -193,3 +193,33 @@ Realtime isn't enabled on the `players` table. Run `supabase db push` again, or 
 ## When TASK-058 (saved rosters) lands, no extra setup needed
 
 The `saved_rosters` table and its RLS policy are already in the v1 schema. Premium gating happens client-side via `isPremiumProvider` in the Flutter app.
+
+---
+
+## Sidekick AI proxy — `sidekick-proxy` Edge Function (added 2026-06-13)
+
+The premium Sidekick (Grok/xAI) no longer ships its API key in the app. Requests
+go through a Supabase Edge Function that holds the key server-side and prepends an
+authoritative safety prompt. Code: `supabase/functions/sidekick-proxy/index.ts`;
+client call site: `lib/services/sidekick_service.dart` (`functions.invoke`).
+
+**Owner deploy steps (one-time + on changes):**
+
+1. Set the Grok key as a function secret (NOT a client dart-define anymore):
+   ```bash
+   supabase secrets set XAI_API_KEY=xai-...your-real-key...
+   ```
+2. Deploy the function:
+   ```bash
+   supabase functions deploy sidekick-proxy
+   ```
+3. Leave JWT verification ON (default). The app's anonymous Supabase session
+   authorizes the call automatically via `functions.invoke`, so Sidekick only
+   works when Supabase is configured (`SUPABASE_URL` / `SUPABASE_ANON_KEY`).
+
+**Smoke test:** open the app as a premium user (or dev-mode premium), trigger a
+Sidekick session/chat, and confirm a response comes back. A 500 "missing
+XAI_API_KEY" means the secret wasn't set; a 401/403 means JWT/anon-session issue.
+
+> Editing the safety prompt: keep the copy in the Edge Function in sync with
+> `_safetyGuardrails` in `lib/services/sidekick_service.dart`.

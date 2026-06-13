@@ -275,7 +275,7 @@ class _UpgradeViewState extends State<_UpgradeView> {
                             ),
                           )
                         : Text(
-                            'Start Free Trial',
+                            'Subscribe',
                             style: Theme.of(context)
                                 .textTheme
                                 .labelLarge

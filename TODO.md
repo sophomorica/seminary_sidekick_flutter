@@ -101,6 +101,32 @@
 |------|------|-----------|
 | TASK-064 | Group play classroom-reliability + reveal polish (owner-directed after 2026-06-10 audit). **(1) Realtime reconnection**: `GroupPlayService._subscribeResilient` wraps all five realtime channels (rooms, players, answers, sb_finishes, broadcast) — auto-resubscribes with 1/2/4/8s backoff on `channelError`/`timedOut`/`closed`, refetches on every (re)subscribe so rows landed while down are never missed; new `service.reconnecting` stream → `GroupPlayState.isReconnecting` → calm `ReconnectingBanner` in live quiz + SB race screens. **(2) Answer-distribution reveal**: new `AnswerDistribution` widget (Kahoot-style per-choice animated bars, correct choice in success green) on the between-question standings view, visible to host AND players. **(3) Reveal animations**: leaderboard rows stagger in bottom-up (5th→1st, suspense beat); podium columns rise in award order (bronze→silver→gold via `PodiumView.goldRevealDelay`); results confetti now fires WITH the gold reveal instead of on a bare screen. **(4) Audio placeholders**: `countdown_tick.txt`, `group_join.txt`, `streak_milestone.txt` added to `assets/audio/` per the TASK-045 convention (owner sources real audio). CLAUDE.md refreshed to current reality (group play shipped, structure, providers, launch-readiness status). | 2026-06-10 |
 
+### RevenueCat / Store Identity Launch Wiring (2026-06-13)
+
+| Task | What | Completed |
+|------|------|-----------|
+| (untracked, owner-paired) | **End-to-end purchase wiring + store setup.** Code: real `purchases_flutter` calls in `subscription_provider.dart` (`purchasePlan`/`restorePurchases`/`_syncWithRevenueCat`/`_loadOfferings`) gated on the `premium` entitlement; `main.dart` `_maybeInitPurchases()` configures the SDK from `REVENUECAT_IOS_KEY`/`REVENUECAT_ANDROID_KEY` dart-defines (free-tier no-op without them); `upgrade_screen.dart` shows live localized prices and the CTA was relabeled **"Start Free Trial" → "Subscribe"** (no intro offer planned). Pricing **$4.99/mo, $34.99/yr ("Save 42%")**. **Bundle ID** `com.seminarysidekick.app` set across `ios/Runner.xcodeproj` (6 entries) + Android `applicationId`. **App Store Connect**: app record created, subscription group "Seminary Sidekick Premium" with monthly (`seminary_sidekick_monthly`, $4.99) + yearly (`seminary_sidekick_yearly`, $34.99) incl. localizations. **RevenueCat dashboard**: App Store app configured (In-App Purchase `.p8` key), `premium` entitlement, both products attached, `default` offering (current) serves the App Store products in its Monthly/Annual packages; iOS public SDK key stored in gitignored `.env`. See `REVENUECAT_SETUP.md`. | 2026-06-13 |
+
+### Launch Safety / Security / Privacy (2026-06-13)
+
+| Task | What | Completed |
+|------|------|-----------|
+| (untracked, owner-paired) | **Sidekick safety + xAI key security + privacy/deletion (iOS launch blockers).** (1) **Safety prompt** — `sidekick_service.dart` prompts share a `_safetyGuardrails` block: age-appropriate/minors, no-doctrinal-authority disclaimer (defer to teacher/parent/bishop), stay-on-topic refusals, crisis→trusted-adult redirect, no disparagement. (2) **xAI key off the client** — new `sidekick-proxy` Supabase Edge Function (`supabase/functions/sidekick-proxy/index.ts`) holds `XAI_API_KEY` server-side + prepends the safety prompt; `sidekick_service.dart` calls it via `functions.invoke` (no more `--dart-define=XAI_API_KEY`). (3) **In-app data deletion** — Settings → "Delete All My Data" (`lib/services/data_reset_service.dart`) clears all Hive boxes + signs out the anon Supabase session + reloads providers. (4) **Privacy policy** — Settings links to `https://seminarysidekick.com/privacy` via new `url_launcher` dep. | 2026-06-13 |
+
+**Remaining owner steps (Sidekick / privacy):**
+
+- Deploy the proxy + set the secret: `supabase secrets set XAI_API_KEY=...` then `supabase functions deploy sidekick-proxy` (see `SUPABASE_SETUP.md`).
+- Confirm the privacy policy is actually live at `https://seminarysidekick.com/privacy` and add that URL to the App Store listing (App Privacy section).
+- `flutter pub get` (new `url_launcher` dependency), then `flutter analyze` + `flutter test`, and smoke-test Sidekick + the delete-data flow on device.
+
+**Remaining owner steps (RevenueCat / store):**
+
+- **Android**: create the two subscriptions in Play Console, add the Play app + service-account JSON in RevenueCat, then put the `goog_…` key in `.env` as `REVENUECAT_ANDROID_KEY`.
+- **App Store Connect API key** (optional): products currently show "Could not check" in RevenueCat — add the App Store Connect API key (or wait for Apple approval) to enable product/price import + sync.
+- **Submit a build** to clear the subscriptions' "Missing Metadata" status (also needs a review screenshot per subscription).
+- **Tidy-up**: delete the leftover sample **"Seminary Sidekick Pro"** entitlement + Test Store products in RevenueCat (left for owner — deletion).
+- Android release signing; privacy policy / account deletion; Sidekick system-prompt safety hardening + xAI key backend proxy (still open).
+
 ---
 
 ## Active Tasks
@@ -122,22 +148,26 @@
 
 ### TASK-045: Replace agent-generated sound effects with real audio
 
-- **status**: `open`
+- **status**: `done`
 - **priority**: P0
 - **estimated_effort**: Small (agent work is just placeholders; user ships the real audio)
-- **claimed_by**: —
-- **files_to_touch**: `assets/audio/correct.wav`, `assets/audio/incorrect.wav`, `assets/audio/complete.wav`, `assets/audio/levelup.wav`, NEW `.txt` placeholders in `assets/audio/`, `CLAUDE.md` (already updated)
-- **description**: The four `.wav` files under `assets/audio/` were generated by a prior agent (Python/TTS) and sound terrible. Owner will replace them manually. Mirrors the existing image-asset convention.
+- **claimed_by**: cowork-agent
+- **completed**: 2026-06-13
+- **files_to_touch**: `assets/audio/*.wav` (all 7), `assets/audio/AUDIO_CREDITS.md` (new), `lib/services/audio_service.dart`, `lib/screens/games/scripture_builder/scripture_builder_screen.dart`, `lib/screens/group_play/group_quiz_screen.dart`, `lib/screens/group_play/host_lobby_screen.dart`
+- **description**: The four `.wav` files under `assets/audio/` were generated by a prior agent (Python/TTS) and sounded terrible. Replaced with real, CC0-licensed audio sourced from Freesound; also sourced + wired the three group-play placeholders.
 - **acceptance_criteria**:
-  - [ ] Delete or rename the four existing `.wav` files so they don't ship
-  - [ ] Create `correct.txt`, `incorrect.txt`, `complete.txt`, `levelup.txt` in `assets/audio/` following the new convention in `CLAUDE.md` (description, sourcing hints, duration/format, reference examples)
-  - [ ] Verify `AudioNotifier.init()` fails gracefully when the real `.wav`s are missing (don't crash the app — log and no-op `play()`)
-  - [ ] Owner drops in the real audio, deletes the `.txt`s, sanity-checks playback in Scripture Builder / Quick Quiz / Match
+  - [x] Replace the four existing `.wav` files with real CC0 audio (`correct`, `incorrect`, `complete`, `levelup`)
+  - [x] Source + add the three placeholder sounds (`countdown_tick`, `group_join`, `streak_milestone`) and remove their `.txt` placeholders
+  - [x] `AudioNotifier.init()` now fails gracefully per-effect (try/catch around preload; `play()` wrapped in try/catch) — missing assets log + no-op, never crash startup
+  - [x] Wire the 3 new sounds into the `SoundEffect` enum + call sites
+  - [ ] **Owner ear-check**: verify playback feels right in Scripture Builder / Quick Quiz / Match / group lobby + quiz countdown; re-trim/re-pick any that don't land (see notes)
 - **depends_on**: —
 - **notes**:
-  - See `lib/services/audio_service.dart` — `SoundEffect` enum paths stay the same; only the underlying files change
-  - The new audio convention is documented in `CLAUDE.md` under "Conventions → Audio Assets"
-  - Candidate additional sounds to scope while we're here: `streak_milestone`, `group_join`, `countdown_tick` (only if we proceed with Group Play — TASK-048)
+  - All 7 sounds are CC0 from Freesound — provenance + source URLs in `assets/audio/AUDIO_CREDITS.md`. All converted to 44.1 kHz / 16-bit WAV, peak-normalized to −1.5 dBFS (tick to −6 dBFS).
+  - **New wiring** (3 sounds): `countdown_tick` → `group_quiz_screen.dart` ticker, plays each of the final 5 seconds of a question (all participants). `group_join` → `host_lobby_screen.dart`, plays on the **host's** device when a non-host joins the roster. `streak_milestone` → `scripture_builder_screen.dart`, plays at the existing answer-streak milestones `[5,10,25,50,100]`.
+  - ⚠️ **Threshold note**: the `streak_milestone.txt` placeholder described *daily study-streak* milestones (7/14/30 days), but the only milestone-detection in code is the per-scripture answer streak `[5,10,25,50,100]` (the `study_streak_provider` has no milestone event). I attached the chime to that existing moment. If you want a true daily-streak chime, that needs new milestone-detection logic in `study_streak_provider` — flag it and I'll add it.
+  - Could not run `flutter analyze` (no Flutter SDK in this environment) — verified symbol references manually (`GroupPlayer.isHost`, `GroupPlayState.players`, `audioProvider`, enum). Please run `flutter analyze` once locally.
+  - `SoundEffect` enum asset paths for the original 4 unchanged; only the underlying files changed.
 
 ### TASK-065: Premium "Missionary Scriptures" pack (curated unlock)
 

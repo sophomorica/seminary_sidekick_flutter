@@ -13,6 +13,7 @@ import '../../models/group_player.dart';
 import '../../models/group_question.dart';
 import '../../models/group_room.dart';
 import '../../providers/group_play_provider.dart';
+import '../../services/audio_service.dart';
 import '../../services/haptic_service.dart';
 import '../../theme/app_theme.dart';
 import 'widgets/answer_distribution.dart';
@@ -243,6 +244,10 @@ class _GroupQuizScreenState extends ConsumerState<GroupQuizScreen> {
       setState(() {
         _remainingSeconds = math.max(0, _remainingSeconds - 1);
       });
+      // Soft woodblock tick over the final 5 seconds to build urgency.
+      if (_remainingSeconds >= 1 && _remainingSeconds <= 5) {
+        ref.read(audioProvider.notifier).play(SoundEffect.countdownTick);
+      }
       if (_remainingSeconds <= 0) {
         t.cancel();
         // Auto-flip to leaderboard so everyone sees the standings.

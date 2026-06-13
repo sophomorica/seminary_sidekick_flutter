@@ -1,57 +1,21 @@
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/sidekick_response.dart';
 import '../models/sidekick_snapshot.dart';
 
-/// Low-level service that talks to the xAI (Grok) API.
+/// Low-level service that talks to the Seminary Sidekick AI.
 ///
-/// In production, requests should go through a backend proxy that holds the
-/// API key and controls the system prompt. For development, the app can call
-/// the xAI API directly with a bundled key (NOT shipped to users).
+/// Requests are routed through the `sidekick-proxy` Supabase Edge Function,
+/// which holds the xAI (Grok) API key server-side and injects an authoritative
+/// safety system prompt. The key is therefore NEVER shipped in the app binary.
+/// See `supabase/functions/sidekick-proxy/index.ts` and `SUPABASE_SETUP.md`.
 ///
-/// The service is stateless — all state lives in [SidekickProvider].
+/// The service is stateless — all state lives in `SidekickProvider`.
 class SidekickService {
-  /// Base URL for the xAI chat completions endpoint.
-  /// Replace with your backend proxy URL in production.
-  static const String _baseUrl = 'https://api.x.ai/v1/chat/completions';
-
-  /// Model to use. grok-3-mini is fast and cheap for structured responses.
-  static const String _model = 'grok-3-mini';
-
-  /// API key — in production this lives on the backend proxy, NEVER in the
-  /// shipped app bundle. This constant is a placeholder for development.
-  ///
-  /// Set via environment variable or secure config before building:
-  ///   --dart-define=XAI_API_KEY=xai-...
-  /// Or via `--dart-define-from-file=.env` reading XAI_API_KEY=... from .env.
-  static const String _apiKey = String.fromEnvironment(
-    'XAI_API_KEY',
-    defaultValue: '',
-  );
-
-  // Lazy-initialized so the constructor never touches `dart:io` directly.
-  // On Flutter web `dart:io HttpClient` throws `Unsupported operation:
-  // Platform._version` the moment it's instantiated. Keeping this lazy lets
-  // SidekickService be constructed on web (used during dev/multi-target
-  // testing) without crashing the whole app on boot. Actual API calls on
-  // web are gated by [_assertNotWeb] below.
-  HttpClient? _clientField;
-  HttpClient get _client => _clientField ??= HttpClient();
-
-  /// Calls into `dart:io` HttpClient must be guarded — web has no `dart:io`.
-  /// On web we throw a clean exception that the provider can catch and fall
-  /// back to its cached / offline response, instead of crashing.
-  void _assertNotWeb() {
-    if (kIsWeb) {
-      throw const SidekickServiceException(
-        'Sidekick AI is not available on web. Use the iOS / Android / macOS '
-        'build to talk to Grok.',
-      );
-    }
-  }
+  /// Name of the deployed Supabase Edge Function that proxies to xAI.
+  static const String _proxyFunction = 'sidekick-proxy';
 
   /// Send the user's snapshot to the Sidekick and get a structured response.
   ///
@@ -103,41 +67,49 @@ class SidekickService {
     return _extractTextContent(body);
   }
 
-  /// Raw chat completion call to the xAI API.
+  /// Forward a chat-completion request to the `sidekick-proxy` Edge Function.
+  ///
+  /// The function injects the xAI key + the authoritative safety system prompt
+  /// server-side and returns the raw xAI/OpenAI-format completion JSON. The
+  /// current (anonymous) Supabase session authorizes the call automatically.
   Future<Map<String, dynamic>> _chatCompletion(
     List<Map<String, dynamic>> messages,
   ) async {
-    _assertNotWeb();
-    if (_apiKey.isEmpty) {
+    final SupabaseClient client;
+    try {
+      client = Supabase.instance.client;
+    } catch (_) {
+      // Supabase was never initialized (no credentials at build time) — the
+      // backend that holds the Grok key is unreachable. Caller falls back to
+      // the cached / offline response.
       throw const SidekickServiceException(
-        'API key not configured. Set XAI_API_KEY via --dart-define-from-file=.env.',
+        'Sidekick is unavailable — backend not configured.',
       );
     }
 
-    final request = await _client.postUrl(Uri.parse(_baseUrl));
-    request.headers.set('Content-Type', 'application/json; charset=utf-8');
-    request.headers.set('Authorization', 'Bearer $_apiKey');
+    try {
+      final res = await client.functions.invoke(
+        _proxyFunction,
+        body: {
+          'messages': messages,
+          'temperature': 0.7,
+          'max_tokens': 1500,
+        },
+      );
 
-    final payload = jsonEncode({
-      'model': _model,
-      'messages': messages,
-      'temperature': 0.7,
-      'max_tokens': 1500,
-    });
-
-    // Write UTF-8 bytes directly. HttpClientRequest.write() defaults to
-    // latin-1, which fails on em-dashes and curly quotes in our prompts.
-    request.add(utf8.encode(payload));
-    final response = await request.close();
-    final responseBody = await response.transform(utf8.decoder).join();
-
-    if (response.statusCode != 200) {
+      final data = res.data;
+      if (data is Map<String, dynamic>) return data;
+      if (data is String && data.isNotEmpty) {
+        return jsonDecode(data) as Map<String, dynamic>;
+      }
+      throw const SidekickServiceException(
+        'Unexpected response from the Sidekick proxy.',
+      );
+    } on FunctionException catch (e) {
       throw SidekickServiceException(
-        'API returned ${response.statusCode}: $responseBody',
+        'Sidekick request failed (status ${e.status}): ${e.details}',
       );
     }
-
-    return jsonDecode(responseBody) as Map<String, dynamic>;
   }
 
   /// Parse a structured SidekickResponse from the API's JSON output.
@@ -189,15 +161,31 @@ class SidekickService {
     return trimmed;
   }
 
-  void dispose() {
-    _client.close();
-  }
+  /// No persistent resources to release (the proxy uses the shared Supabase
+  /// client). Kept for API compatibility with callers that dispose the service.
+  void dispose() {}
 
   // ─── System Prompts ──────────────────────────────────────────────────────
 
+  /// Shared safety + scope guardrails appended to every Sidekick prompt.
+  ///
+  /// Note: the `sidekick-proxy` Edge Function ALSO prepends an authoritative
+  /// copy of these rules server-side, so they hold even if a tampered client
+  /// alters the prompts below. Keep the two in sync when editing.
+  static const String _safetyGuardrails = '''
+SAFETY & SCOPE (these rules always take priority):
+- Your audience is seminary students, and many are minors (roughly ages 14–18). Keep everything strictly age-appropriate. Never produce sexual, violent, graphic, hateful, or otherwise mature content, and never ask for personal identifying information.
+- You are a study aid, NOT an ecclesiastical authority. You do not speak for The Church of Jesus Christ of Latter-day Saints or its leaders, and you do not issue official doctrinal rulings or worthiness judgments. For doctrinal questions, personal spiritual matters, or questions about worthiness, warmly encourage the student to talk with their seminary teacher, a parent, or their bishop.
+- Stay on topic: the 100 Doctrinal Mastery scriptures, scripture study, and closely related gospel learning. If you're asked for unrelated help (homework in other subjects, writing code, general web tasks) or anything inappropriate, gently decline and steer back to scripture study.
+- You are not a counselor or a medical, mental-health, or legal professional. If a student mentions self-harm, abuse, a crisis, or serious distress, respond with warmth and without judgment, gently encourage them to reach out to a trusted adult (parent, teacher, or bishop) or local emergency/crisis services, and do not attempt to provide therapy or any step-by-step guidance.
+- Be respectful of everyone. Do not disparage individuals, groups, or other faiths.
+''';
+
   /// System prompt for the structured session response (app launch).
-  static const String _systemPrompt = '''
+  static String get _systemPrompt => '''
 You are the Seminary Sidekick — a warm, thoughtful AI companion for a seminary student memorizing the 100 Doctrinal Mastery scriptures of The Church of Jesus Christ of Latter-day Saints.
+
+$_safetyGuardrails
 
 Your personality:
 - Reverent but not stiff. You speak like a caring seminary teacher, not a chatbot.
@@ -248,8 +236,10 @@ Guidelines:
 ''';
 
   /// System prompt for direct chat conversations.
-  static const String _chatSystemPrompt = '''
+  static String get _chatSystemPrompt => '''
 You are the Seminary Sidekick — a warm, thoughtful AI companion for a seminary student memorizing the 100 Doctrinal Mastery scriptures of The Church of Jesus Christ of Latter-day Saints.
+
+$_safetyGuardrails
 
 Your personality:
 - Reverent but not stiff. You speak like a caring seminary teacher.

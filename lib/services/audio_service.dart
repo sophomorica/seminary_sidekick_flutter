@@ -1,4 +1,5 @@
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -7,7 +8,10 @@ enum SoundEffect {
   correct('audio/correct.wav'),
   incorrect('audio/incorrect.wav'),
   complete('audio/complete.wav'),
-  levelup('audio/levelup.wav');
+  levelup('audio/levelup.wav'),
+  countdownTick('audio/countdown_tick.wav'),
+  groupJoin('audio/group_join.wav'),
+  streakMilestone('audio/streak_milestone.wav');
 
   const SoundEffect(this.assetPath);
   final String assetPath;
@@ -51,17 +55,28 @@ class AudioNotifier extends StateNotifier<AudioState> {
     final muted = _settingsBox?.get(_muteKey, defaultValue: false) as bool;
     state = AudioState(isMuted: muted);
 
-    // Preload player pools for each sound effect
+    // Preload player pools for each sound effect.
+    //
+    // Each effect is preloaded independently and defensively: if an asset is
+    // missing or fails to decode, we log and skip that effect's pool rather
+    // than letting the whole app startup throw. play() no-ops on an empty pool.
     for (final effect in SoundEffect.values) {
       _playerPool[effect] = [];
       _poolIndex[effect] = 0;
 
       for (int i = 0; i < _poolSize; i++) {
-        final player = AudioPlayer();
-        // Set source so it's ready to play instantly
-        await player.setSource(AssetSource(effect.assetPath));
-        await player.setReleaseMode(ReleaseMode.stop);
-        _playerPool[effect]!.add(player);
+        try {
+          final player = AudioPlayer();
+          // Set source so it's ready to play instantly
+          await player.setSource(AssetSource(effect.assetPath));
+          await player.setReleaseMode(ReleaseMode.stop);
+          _playerPool[effect]!.add(player);
+        } catch (e) {
+          // Missing/invalid asset — leave this effect with a smaller (or empty)
+          // pool. Don't crash init; the corresponding play() simply no-ops.
+          debugPrint('AudioNotifier: failed to preload ${effect.assetPath}: $e');
+          break;
+        }
       }
     }
   }
@@ -78,10 +93,16 @@ class AudioNotifier extends StateNotifier<AudioState> {
     final player = players[index];
     _poolIndex[effect] = (index + 1) % players.length;
 
-    // Stop if currently playing, then play from start
-    await player.stop();
-    await player.setSource(AssetSource(effect.assetPath));
-    await player.resume();
+    // Stop if currently playing, then play from start. Guard against playback
+    // errors (e.g. a missing asset that slipped past preload) so a failed sound
+    // never bubbles up into the UI.
+    try {
+      await player.stop();
+      await player.setSource(AssetSource(effect.assetPath));
+      await player.resume();
+    } catch (e) {
+      debugPrint('AudioNotifier: failed to play ${effect.assetPath}: $e');
+    }
   }
 
   /// Toggle mute on/off.

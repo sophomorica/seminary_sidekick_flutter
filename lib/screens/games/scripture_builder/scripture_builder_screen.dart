@@ -1152,6 +1152,7 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
           streakCount: newStreak,
           gameType: GameType.scriptureBuilder,
         );
+        ref.read(audioProvider.notifier).play(SoundEffect.streakMilestone);
       }
     }
 

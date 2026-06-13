@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../services/data_reset_service.dart';
 import '../../providers/onboarding_provider.dart';
 import '../../providers/study_streak_provider.dart';
 import '../../providers/subscription_provider.dart';
@@ -377,12 +379,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     _buildDivider(context),
                     _buildActionTile(
                       context,
+                      icon: Icons.privacy_tip_outlined,
+                      label: 'Privacy Policy',
+                      subtitle: 'How your data is handled',
+                      onTap: () => _openPrivacyPolicy(context),
+                    ),
+                    _buildDivider(context),
+                    _buildActionTile(
+                      context,
                       icon: Icons.delete_outline,
-                      label: 'Reset All Progress',
-                      subtitle: 'This cannot be undone',
+                      label: 'Delete All My Data',
+                      subtitle: 'Erase everything on this device — cannot be undone',
                       iconColor: AppTheme.error,
                       labelColor: AppTheme.error,
-                      onTap: () => _showResetConfirmation(context),
+                      onTap: () => _showDeleteConfirmation(context),
                     ),
                   ],
                 ),
@@ -680,7 +690,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
-  void _showResetConfirmation(BuildContext context) {
+  Future<void> _openPrivacyPolicy(BuildContext context) async {
+    final uri = Uri.parse('https://seminarysidekick.com/privacy');
+    final opened =
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Could not open the privacy policy.'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          ),
+        ),
+      );
+    }
+  }
+
+  void _showDeleteConfirmation(BuildContext context) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -689,11 +716,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           borderRadius: BorderRadius.circular(AppTheme.radiusLg),
         ),
         title: Text(
-          'Reset All Progress?',
+          'Delete All My Data?',
           style: Theme.of(context).textTheme.headlineSmall,
         ),
         content: Text(
-          'This will erase all your mastery progress, streaks, notes, and journal entries. This action cannot be undone.',
+          'This permanently erases everything stored on this device — your '
+          'mastery progress, streaks, notes, journal entries, goals, and '
+          'preferences — and signs you out of any group-play session. This '
+          'cannot be undone.',
           style: Theme.of(context).textTheme.bodyLarge,
         ),
         actions: [
@@ -705,21 +735,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
           TextButton(
-            onPressed: () {
-              // TODO: Wire full reset across all providers
+            onPressed: () async {
               Navigator.of(ctx).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('Progress reset is not yet implemented.'),
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              try {
+                await DataResetService.deleteAllData(ref);
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('All your data has been deleted.'),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    ),
                   ),
-                ),
-              );
+                );
+                context.go('/onboarding');
+              } catch (_) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text(
+                      'Something went wrong deleting your data. Please try again.',
+                    ),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    ),
+                  ),
+                );
+              }
             },
             child: const Text(
-              'Reset Everything',
+              'Delete Everything',
               style: TextStyle(color: AppTheme.error),
             ),
           ),

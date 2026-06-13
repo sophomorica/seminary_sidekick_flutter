@@ -11,6 +11,23 @@ In-app subscriptions for the premium tier (Seminary Sidekick AI, journal, smart 
 
 The free tier of the app is unaffected. If RevenueCat is not configured (no API key), the app runs entirely on the free tier — every premium gate just stays locked. Nothing crashes.
 
+## Status (updated 2026-06-13)
+
+**iOS is wired end-to-end.** What's already done:
+
+- ✅ **Bundle ID** `com.seminarysidekick.app` registered in the Apple Developer portal and set across `ios/Runner.xcodeproj` (app + RunnerTests) and the Android `applicationId`. The old `com.example.*` placeholders are gone.
+- ✅ **Step 1 — App Store Connect (iOS)**: app record created (SKU `seminarysidekick`), subscription group "Seminary Sidekick Premium" with monthly ($4.99) + yearly ($34.99) subscriptions, each with an English (U.S.) localization.
+- ✅ **Step 3 — RevenueCat dashboard**: App Store app configured with the In-App Purchase `.p8` key; `premium` entitlement created; both products added and attached to `premium`; the `default` (current) offering's Monthly + Annual packages now serve the App Store products.
+- ✅ **Step 4/5 — iOS SDK key**: the `appl_…` public key is stored in the gitignored `.env` as `REVENUECAT_IOS_KEY` (placeholders are in `.env.example`).
+- ✅ **CTA decision**: no free trial planned — the upgrade button is relabeled **"Subscribe"** (see the trial section below).
+
+**Still TODO (owner):**
+
+- ⬜ **Step 2 — Android** (Play Console products) + the `goog_…` key as `REVENUECAT_ANDROID_KEY`, plus the Play app + service-account JSON in RevenueCat.
+- ⬜ **App Store Connect API key** (optional) — products show "Could not check" in RevenueCat until this is added or Apple approves them.
+- ⬜ **Submit a build** to clear the subscriptions' "Missing Metadata" status (also needs a per-subscription review screenshot).
+- ⬜ **Tidy-up**: delete the leftover sample **"Seminary Sidekick Pro"** entitlement + Test Store products that RevenueCat auto-created — harmless (the app only checks `premium`), but cleaner gone.
+
 ## The decisions, locked in
 
 | Thing              | Value                                             | Where it lives in code                                    |
@@ -33,11 +50,13 @@ The displayed prices ($4.99 / $34.99) are a fallback. Once offerings load, the a
 - An Apple Developer account ($99/yr) with the app created in **App Store Connect**, and a **paid apps agreement** signed (App Store Connect → Business → Agreements). **Subscriptions will not appear in the app until this agreement is active** — this trips everyone up.
 - A Google Play Console account ($25 one-time) with the app created and a payments profile set up.
 - A free RevenueCat account: https://app.revenuecat.com
-- The app's real bundle IDs. Note: the repo currently ships placeholder `com.example.*` bundle IDs — those must be replaced with your real reverse-domain IDs before you create store products (this is tracked separately as a launch blocker). Pick your real IDs now, e.g. `com.<yourorg>.seminarysidekick`.
+- The app's real bundle ID: **`com.seminarysidekick.app`** (✅ done — registered with Apple and set in the iOS project + Android `applicationId`).
 
 ---
 
-## Step 1 — App Store Connect (iOS): create the subscriptions
+## Step 1 — App Store Connect (iOS): create the subscriptions  ✅ DONE
+
+> Already completed 2026-06-13: subscription group "Seminary Sidekick Premium" with both products and localizations exists. Steps kept below for reference / if you ever recreate them.
 
 1. Go to https://appstoreconnect.apple.com → your app → **Monetization → Subscriptions**.
 2. Create a **Subscription Group** (e.g. `Seminary Sidekick Premium`). Both plans go in the *same* group so users can upgrade/downgrade between monthly and yearly cleanly.
@@ -54,18 +73,17 @@ The displayed prices ($4.99 / $34.99) are a fallback. Once offerings load, the a
 5. For each, fill in the **localized display name** and **description** (required for review) and attach the required **review screenshot** (you can use a screenshot of the upgrade screen once you have one).
 6. Status will sit at "Ready to Submit" / "Missing Metadata" until you submit them with an app version. That's fine for development — sandbox testing works before approval.
 
-### About the "Start Free Trial" button
+### About the upgrade button  ✅ RESOLVED
 
-The upgrade screen's CTA currently reads **"Start Free Trial."** That copy is only honest if you actually configure an **introductory offer** (free trial) on the subscriptions. Two choices:
+**Decision (2026-06-13): no free trial.** The upgrade-screen CTA has been relabeled from "Start Free Trial" to **"Subscribe"** in `upgrade_screen.dart`, so there's no mismatch for App Review.
 
-- **Add a free trial**: in each subscription → **Introductory Offers** → create a "Free" offer (e.g. 7 days). Do the equivalent on Play (Step 2). RevenueCat will surface it automatically.
-- **Or change the copy**: if you don't want a trial, edit the button text in `upgrade_screen.dart` (the `'Start Free Trial'` string) to `'Subscribe'` or `'Continue'`. Shipping "Start Free Trial" with no trial configured is an App Review rejection risk.
-
-Decide this before submitting for review.
+If you ever decide to offer a trial later: add an **Introductory Offer** ("Free", e.g. 7 days) to each subscription (and the Play equivalent), then change the button copy back — RevenueCat surfaces the intro offer automatically.
 
 ---
 
-## Step 2 — Google Play Console (Android): create the subscriptions
+## Step 2 — Google Play Console (Android): create the subscriptions  ⬜ TODO
+
+> Not done yet — this is the main remaining store task. Do this when you're ready to ship Android.
 
 1. Go to https://play.google.com/console → your app → **Monetize → Products → Subscriptions**.
 2. Create subscription `seminary_sidekick_monthly`:
@@ -79,32 +97,27 @@ Decide this before submitting for review.
 
 ---
 
-## Step 3 — RevenueCat dashboard: project, entitlement, products, offering
+## Step 3 — RevenueCat dashboard: project, entitlement, products, offering  ✅ DONE (iOS)
 
-1. Go to https://app.revenuecat.com → **Create new project** → name it `Seminary Sidekick`.
-2. Add your two app platforms under **Project settings → Apps**:
-   - **App Store**: paste your real iOS bundle ID. Upload the **App Store Connect App-Specific Shared Secret** (App Store Connect → your app → App Information → "App-Specific Shared Secret") and, for server notifications, the App Store Connect API key — RevenueCat walks you through it.
-   - **Play Store**: paste your real Android package name. Upload the **Play service-account credentials JSON** (Play Console → Setup → API access). RevenueCat documents the exact roles to grant.
-3. **Entitlements** → create one:
-   - **Identifier**: `premium`  ← must match the code constant exactly
-   - Description: "Unlocks Seminary Sidekick AI and all premium features."
-4. **Products** → import / add the four store products (two per platform):
-   - `seminary_sidekick_monthly` (iOS + Android)
-   - `seminary_sidekick_yearly` (iOS + Android)
-   - Attach **all four** to the `premium` entitlement.
-5. **Offerings** → make sure there's a **current** offering (the default one named `default` is fine). Add two **packages** to it:
-   - A **Monthly** package → attach the monthly products.
-   - An **Annual** package → attach the yearly products.
-   - Mark this offering as **Current**. The app reads `offerings.current`, so if no offering is current, the upgrade screen will show "plan unavailable."
+> iOS side completed 2026-06-13 in the existing **Seminary Sidekick** project. The Play Store app/products (item 2 Play, and the Android side of items 4–5) are the remaining Android work. Steps kept for reference.
+
+1. Project **Seminary Sidekick** already exists.
+2. Apps under **Project settings → Apps**:
+   - ✅ **App Store**: bundle ID `com.seminarysidekick.app`, In-App Purchase `.p8` key uploaded. (The App Store Connect *API* key — for product import/price-sync — is still optional/TODO; without it products show "Could not check".)
+   - ⬜ **Play Store**: paste the Android package name `com.seminarysidekick.app`. Upload the **Play service-account credentials JSON** (Play Console → Setup → API access). RevenueCat documents the exact roles to grant.
+3. ✅ **Entitlements** → `premium` created (Display Name "Premium").
+   - ⚠️ Note: RevenueCat's onboarding auto-created a sample **"Seminary Sidekick Pro"** entitlement + Test Store products. Harmless (unused by the app), but delete them when convenient.
+4. ✅ **Products** → `seminary_sidekick_monthly` + `seminary_sidekick_yearly` added under the App Store app and attached to `premium`. (Add the Android equivalents in the Play app when you do Step 2.)
+5. ✅ **Offerings** → the `default` offering is **Current**; its **Monthly** and **Annual** packages serve the App Store products. (When Android products exist, add them to the same packages — one product per app per package.)
 
 ---
 
 ## Step 4 — Grab the public SDK API keys
 
-In RevenueCat → **Project settings → API keys → Public app-specific keys**:
+In RevenueCat → **API keys → SDK API keys** (public, per app):
 
-- iOS key starts with `appl_…`
-- Android key starts with `goog_…`
+- ✅ iOS key (`appl_…`) — already captured and stored in `.env` as `REVENUECAT_IOS_KEY`.
+- ⬜ Android key (`goog_…`) — grab once the Play app exists (Step 2) and add it to `.env` as `REVENUECAT_ANDROID_KEY`.
 
 These are *public* SDK keys — safe to ship in the app binary (that's their design). They are **not** the secret key; never put the secret key in the app.
 
@@ -112,32 +125,32 @@ These are *public* SDK keys — safe to ship in the app binary (that's their des
 
 ## Step 5 — Run the app with the keys
 
-The app reads the keys from `--dart-define` at build/run time (same pattern as Supabase and Sentry). No key = free tier, no crash.
+The app reads the keys from `--dart-define` at build/run time (same pattern as Supabase and Sentry). No key = free tier, no crash. All values live in the gitignored `.env` (`REVENUECAT_IOS_KEY` is already there).
 
 ```bash
-# Local run (iOS simulator / device)
-flutter run \
-  --dart-define=REVENUECAT_IOS_KEY=appl_xxxxxxxxxxxxxxxx
+# Local run (iOS) — sources .env and passes everything through
+export $(grep -v '^#' .env | xargs) && flutter run \
+  --dart-define=REVENUECAT_IOS_KEY=$REVENUECAT_IOS_KEY \
+  --dart-define=SUPABASE_URL=$SUPABASE_URL \
+  --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
+  --dart-define=XAI_API_KEY=$XAI_API_KEY
 
-# Local run (Android)
-flutter run \
-  --dart-define=REVENUECAT_ANDROID_KEY=goog_xxxxxxxxxxxxxxxx
+# Release build (iOS) — add SENTRY_DSN if you use it
+export $(grep -v '^#' .env | xargs) && flutter build ipa \
+  --dart-define=REVENUECAT_IOS_KEY=$REVENUECAT_IOS_KEY \
+  --dart-define=SUPABASE_URL=$SUPABASE_URL \
+  --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
+  --dart-define=XAI_API_KEY=$XAI_API_KEY
 
-# Release build — pass everything you use together
-flutter build ipa \
-  --dart-define=REVENUECAT_IOS_KEY=appl_xxx \
-  --dart-define=SUPABASE_URL=... \
-  --dart-define=SUPABASE_ANON_KEY=... \
-  --dart-define=SENTRY_DSN=...
-
-flutter build appbundle \
-  --dart-define=REVENUECAT_ANDROID_KEY=goog_xxx \
-  --dart-define=SUPABASE_URL=... \
-  --dart-define=SUPABASE_ANON_KEY=... \
-  --dart-define=SENTRY_DSN=...
+# Android — once REVENUECAT_ANDROID_KEY is in .env (Step 2)
+export $(grep -v '^#' .env | xargs) && flutter build appbundle \
+  --dart-define=REVENUECAT_ANDROID_KEY=$REVENUECAT_ANDROID_KEY \
+  --dart-define=SUPABASE_URL=$SUPABASE_URL \
+  --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
+  --dart-define=XAI_API_KEY=$XAI_API_KEY
 ```
 
-A `--dart-define-from-file=config.json` (gitignored) is a tidy way to keep all of these together rather than a giant command line. Don't commit the keys.
+A `--dart-define-from-file=config.json` (gitignored) is an alternative tidy way to keep these together. Don't commit the keys.
 
 ---
 

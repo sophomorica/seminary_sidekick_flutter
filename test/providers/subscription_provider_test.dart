@@ -165,27 +165,18 @@ void main() {
       expect(notifier.state.isPremium, false);
     });
 
-    test('purchasePlan transitions to premium', () async {
+    test('purchasePlan fails gracefully when RevenueCat is unavailable',
+        () async {
+      // A pure unit-test VM has no RevenueCat SDK, so the SDK guard
+      // short-circuits: premium is NOT granted, loading is cleared, and an
+      // error is surfaced instead of crashing. Real purchase + expiry behavior
+      // (now driven by the store's CustomerInfo, not computed in-app) is
+      // covered by on-device sandbox testing — see REVENUECAT_SETUP.md.
       final success = await notifier.purchasePlan(PremiumPlan.monthly);
-      expect(success, true);
-      expect(notifier.state.isPremium, true);
-      expect(notifier.state.activePlan, PremiumPlan.monthly);
-      expect(notifier.state.expiresAt, isNotNull);
-    });
-
-    test('purchasePlan sets correct expiry for monthly', () async {
-      await notifier.purchasePlan(PremiumPlan.monthly);
-      final expiry = notifier.state.expiresAt!;
-      final diff = expiry.difference(DateTime.now());
-      // Should be about 30 days (allow 29-31 range for timing)
-      expect(diff.inDays, closeTo(30, 1));
-    });
-
-    test('purchasePlan sets correct expiry for yearly', () async {
-      await notifier.purchasePlan(PremiumPlan.yearly);
-      final expiry = notifier.state.expiresAt!;
-      final diff = expiry.difference(DateTime.now());
-      expect(diff.inDays, closeTo(365, 1));
+      expect(success, false);
+      expect(notifier.state.isPremium, false);
+      expect(notifier.state.isLoading, false);
+      expect(notifier.state.error, isNotNull);
     });
 
     test('dismissUpgradePrompt increments dismissals', () {
@@ -215,13 +206,17 @@ void main() {
       expect(notifier.state.error, isNull);
     });
 
-    test('persists and restores subscription state', () async {
-      await notifier.purchasePlan(PremiumPlan.yearly);
-      notifier.dismissUpgradePrompt();
-      // dismissUpgradePrompt calls _persist() without await — wait for it
-      await Future.delayed(const Duration(milliseconds: 50));
+    test('restores persisted subscription state on init', () async {
+      // Seed the Hive box as if a premium purchase had previously been
+      // persisted. (purchasePlan itself needs the RevenueCat SDK, which is
+      // unavailable in a unit-test VM.) init() should rehydrate this state;
+      // the background RevenueCat sync is a no-op without the SDK.
+      final box = await Hive.openBox('subscription');
+      await box.put('tier', SubscriptionTier.premium.index);
+      await box.put('plan', PremiumPlan.yearly.index);
+      await box.put('dismissals', 1);
 
-      // Create a new notifier (simulating app restart)
+      // New notifier simulates an app restart restoring from storage.
       final restored = SubscriptionNotifier();
       await restored.init();
 

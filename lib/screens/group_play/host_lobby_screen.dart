@@ -14,6 +14,7 @@ import '../../providers/scripture_provider.dart';
 import '../../providers/scripture_scope_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../providers/user_preferences_provider.dart';
+import '../../services/audio_service.dart';
 import '../../services/nickname_validator.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/scripture_scope_picker.dart';
@@ -102,6 +103,19 @@ class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
       groupPlayProvider.select((s) => s.freeHostWeeklyLimitHit),
       (prev, next) {
         if (next && mounted) _showFreeTierLimitDialog();
+      },
+    );
+
+    // Play a friendly join blip on the host's device whenever a new (non-host)
+    // player appears in the roster. Only fires on increases so leaves are silent.
+    ref.listen<int>(
+      groupPlayProvider.select(
+        (s) => s.players.where((p) => !p.isHost).length,
+      ),
+      (prev, next) {
+        if (prev != null && next > prev && mounted) {
+          ref.read(audioProvider.notifier).play(SoundEffect.groupJoin);
+        }
       },
     );
 
