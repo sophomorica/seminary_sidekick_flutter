@@ -1,9 +1,11 @@
 import 'dart:developer' as developer;
+import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
@@ -61,6 +63,11 @@ Future<void> _bootstrap() async {
   await container.read(activityProvider.notifier).init();
   await container.read(onboardingProvider.notifier).init();
   await container.read(themeProvider.notifier).init();
+
+  // Configure RevenueCat BEFORE subscription init, so the background sync in
+  // SubscriptionNotifier.init() sees a configured SDK and can read the real
+  // entitlement state. No-op (free tier) if no API key dart-define is set.
+  await _maybeInitPurchases();
   await container.read(subscriptionProvider.notifier).init();
 
   // Tag crash reports with premium status (no-op when reporting is disabled).
@@ -104,6 +111,58 @@ Future<void> _bootstrap() async {
       child: const SeminarySidekickApp(),
     ),
   );
+}
+
+/// Configure RevenueCat from platform-specific public SDK keys passed via
+/// --dart-define at build/run time:
+///   --dart-define=REVENUECAT_IOS_KEY=appl_xxx       (iOS / macOS)
+///   --dart-define=REVENUECAT_ANDROID_KEY=goog_xxx   (Android)
+///
+/// If the key for the current platform is missing, RevenueCat is left
+/// unconfigured: every Purchases call in SubscriptionNotifier is guarded and
+/// the app simply runs on the free tier. This mirrors the Supabase pattern —
+/// the app must work without paid-feature credentials (dev/CI/tests).
+///
+/// Failures are logged + reported but never crash the app.
+Future<void> _maybeInitPurchases() async {
+  const iosKey = String.fromEnvironment('REVENUECAT_IOS_KEY', defaultValue: '');
+  const androidKey =
+      String.fromEnvironment('REVENUECAT_ANDROID_KEY', defaultValue: '');
+
+  String apiKey = '';
+  if (Platform.isIOS || Platform.isMacOS) {
+    apiKey = iosKey;
+  } else if (Platform.isAndroid) {
+    apiKey = androidKey;
+  }
+
+  if (apiKey.isEmpty) {
+    developer.log(
+      'RevenueCat not configured — set --dart-define=REVENUECAT_IOS_KEY '
+      'and/or --dart-define=REVENUECAT_ANDROID_KEY to enable in-app '
+      'purchases. The app runs on the free tier without it.',
+      name: 'main',
+    );
+    return;
+  }
+
+  try {
+    await Purchases.setLogLevel(LogLevel.warn);
+    await Purchases.configure(PurchasesConfiguration(apiKey));
+    developer.log('RevenueCat configured.', name: 'main');
+  } catch (e, st) {
+    developer.log(
+      'RevenueCat init failed; purchases will be unavailable.',
+      name: 'main',
+      error: e,
+      stackTrace: st,
+    );
+    await CrashReportingService.recordError(
+      e,
+      st,
+      hint: 'RevenueCat configure failed',
+    );
+  }
 }
 
 /// Read Supabase credentials from --dart-define and initialize the client.

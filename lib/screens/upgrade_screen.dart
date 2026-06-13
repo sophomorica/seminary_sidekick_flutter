@@ -237,6 +237,7 @@ class _UpgradeViewState extends State<_UpgradeView> {
                 // Plan selection
                 _PlanCard(
                   plan: PremiumPlan.yearly,
+                  priceLabel: widget.subscription.priceFor(PremiumPlan.yearly),
                   isSelected: _selectedPlan == PremiumPlan.yearly,
                   isDark: widget.isDark,
                   onTap: () => setState(() => _selectedPlan = PremiumPlan.yearly),
@@ -244,6 +245,7 @@ class _UpgradeViewState extends State<_UpgradeView> {
                 const SizedBox(height: AppTheme.spacingSm),
                 _PlanCard(
                   plan: PremiumPlan.monthly,
+                  priceLabel: widget.subscription.priceFor(PremiumPlan.monthly),
                   isSelected: _selectedPlan == PremiumPlan.monthly,
                   isDark: widget.isDark,
                   onTap: () => setState(() => _selectedPlan = PremiumPlan.monthly),
@@ -402,12 +404,17 @@ class _FeatureItem extends StatelessWidget {
 
 class _PlanCard extends StatelessWidget {
   final PremiumPlan plan;
+
+  /// Resolved price to display — the live localized store price when
+  /// RevenueCat offerings have loaded, otherwise the hardcoded fallback.
+  final String priceLabel;
   final bool isSelected;
   final bool isDark;
   final VoidCallback onTap;
 
   const _PlanCard({
     required this.plan,
+    required this.priceLabel,
     required this.isSelected,
     required this.isDark,
     required this.onTap,
@@ -509,7 +516,7 @@ class _PlanCard extends StatelessWidget {
 
             // Price
             Text(
-              plan.price,
+              priceLabel,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: isSelected ? AppTheme.premiumGold : null,

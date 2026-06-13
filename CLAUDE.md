@@ -586,6 +586,7 @@ For handled exceptions worth field visibility, call `CrashReportingService.recor
 | `group_play_service.dart`    | All Supabase calls for Group Play + resilient realtime streams (auto-resubscribe w/ backoff)       |
 | `group_play_provider.dart`   | Group Play orchestration: phases, stream subscriptions, host/player actions                        |
 | `SUPABASE_SETUP.md`          | Supabase project runbook: migrations table, dashboard steps, smoke tests                           |
+| `REVENUECAT_SETUP.md`        | RevenueCat runbook: store products, `premium` entitlement, offering, API keys, sandbox testing     |
 | `crash_reporting_service.dart` | Sentry wrapper — init gate (`SENTRY_DSN`), breadcrumbs, premium tag, `recordError`               |
 
 ## Current Task Status
@@ -625,10 +626,11 @@ For handled exceptions worth field visibility, call `CrashReportingService.recor
 
 - **P0 TASK-045**: Replace generated `.wav` sound effects with real audio (owner-sourced). `.txt` placeholders exist in `assets/audio/` (incl. `countdown_tick`, `group_join`, `streak_milestone`).
 - **P0 TASK-063**: Crash reporting & error analytics (Sentry) — done 2026-06-10. Owner setup: create a Sentry project, pass `--dart-define=SENTRY_DSN=...` in release builds.
-- **P0 (untracked, from 2026-06-10 audit)**: real RevenueCat purchase wiring in `subscription_provider.dart` (currently TODO stubs); store identity (`com.example.*` bundle IDs, Android release signing); Sidekick system-prompt safety hardening (teen-safety redirects, off-topic refusals, no-doctrinal-authority disclaimer) + backend proxy for the xAI key; privacy policy / account deletion.
-- **P1 TASK-051 owner steps**: `supabase db push` (0005, 0006) + two-instance smoke test; MAINT-002 RLS audit.
+- **P0 (untracked, from 2026-06-10 audit)**: ~~real RevenueCat purchase wiring in `subscription_provider.dart`~~ **DONE 2026-06-13** — `purchasePlan`/`restorePurchases`/`_syncWithRevenueCat` now make real `purchases_flutter` calls gated on the `premium` entitlement; `main.dart` configures the SDK from `REVENUECAT_IOS_KEY`/`REVENUECAT_ANDROID_KEY` dart-defines (free-tier no-op without them); live localized prices surface on the upgrade screen. **Pricing locked: $4.99/mo, $34.99/yr ("Save 42%").** Remaining is owner-driven dashboard setup — see `REVENUECAT_SETUP.md` (store products, `premium` entitlement, current offering, API keys, sandbox testing) and decide free-trial vs. relabel the "Start Free Trial" CTA. Still open: store identity (`com.example.*` bundle IDs, Android release signing); Sidekick system-prompt safety hardening (teen-safety redirects, off-topic refusals, no-doctrinal-authority disclaimer) + backend proxy for the xAI key; privacy policy / account deletion.
+- **P1 TASK-051 owner steps**: all 6 migrations are deployed — `supabase migration list` shows local + remote in sync (0001–0006) as of 2026-06-13. Remaining: two-instance realtime smoke test; MAINT-002 RLS audit.
 - **P1 TASK-059**: Saved class rosters (premium). **P2 TASK-061**: post-game class breakdown analytics.
 - **P2 TASK-050**: Async friends & group layer — after group play launch settles.
+- **P2 TASK-065**: Premium "Missionary Scriptures" pack — unlock a curated extra scripture set behind the existing premium subscription. Curated-only (no user-added scriptures, by owner decision). See `TODO.md` for the full entry.
 
 ---
 

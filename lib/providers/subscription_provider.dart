@@ -1,5 +1,7 @@
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 
 import '../config/app_config.dart';
 import 'dev_mode_provider.dart';
@@ -18,16 +20,16 @@ enum PremiumPlan {
   monthly(
     id: 'seminary_sidekick_monthly',
     label: 'Monthly',
-    price: '\$2.99/mo',
-    pricePerMonth: '\$2.99',
+    price: '\$4.99/mo',
+    pricePerMonth: '\$4.99',
     savings: null,
   ),
   yearly(
     id: 'seminary_sidekick_yearly',
     label: 'Yearly',
-    price: '\$19.99/yr',
-    pricePerMonth: '\$1.67',
-    savings: 'Save 44%',
+    price: '\$34.99/yr',
+    pricePerMonth: '\$2.92',
+    savings: 'Save 42%',
   );
 
   const PremiumPlan({
@@ -59,6 +61,11 @@ class SubscriptionState {
   /// Last time an upgrade prompt was shown.
   final DateTime? lastPromptShown;
 
+  /// Localized store prices keyed by [PremiumPlan.id], loaded from
+  /// RevenueCat offerings. Empty until offerings are fetched; the UI should
+  /// fall back to the hardcoded [PremiumPlan.price] via [priceFor].
+  final Map<String, String> livePrices;
+
   const SubscriptionState({
     this.tier = SubscriptionTier.free,
     this.activePlan,
@@ -67,10 +74,16 @@ class SubscriptionState {
     this.error,
     this.promptDismissals = 0,
     this.lastPromptShown,
+    this.livePrices = const {},
   });
 
   bool get isPremium => tier.isPremium;
   bool get isFree => tier.isFree;
+
+  /// Localized store price for [plan] if RevenueCat offerings have loaded,
+  /// otherwise the hardcoded fallback from the enum. Apple/Google require we
+  /// display the real localized price, so prefer the live value when present.
+  String priceFor(PremiumPlan plan) => livePrices[plan.id] ?? plan.price;
 
   /// Whether it's appropriate to show an upgrade prompt right now.
   /// Rate-limited: max 1 per session day, max 3 dismissals before backing off.
@@ -94,6 +107,7 @@ class SubscriptionState {
     String? error,
     int? promptDismissals,
     DateTime? lastPromptShown,
+    Map<String, String>? livePrices,
     bool clearPlan = false,
     bool clearExpiry = false,
     bool clearError = false,
@@ -106,15 +120,17 @@ class SubscriptionState {
       error: clearError ? null : (error ?? this.error),
       promptDismissals: promptDismissals ?? this.promptDismissals,
       lastPromptShown: lastPromptShown ?? this.lastPromptShown,
+      livePrices: livePrices ?? this.livePrices,
     );
   }
 }
 
 /// Manages subscription state with Hive persistence and RevenueCat integration.
 ///
-/// For the MVP, this provides the full subscription state management layer
-/// with graceful free-tier fallbacks. RevenueCat calls are wrapped so the app
-/// works perfectly without a network connection or before RC is configured.
+/// Provides the full subscription state management layer with graceful
+/// free-tier fallbacks. Every RevenueCat call is guarded by [_isConfigured]
+/// and wrapped in try/catch, so the app works perfectly without a network
+/// connection or before RevenueCat is configured (e.g. no API key dart-define).
 class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
   static const String _boxName = 'subscription';
   static const String _tierKey = 'tier';
@@ -122,6 +138,12 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
   static const String _expiryKey = 'expiry';
   static const String _dismissalsKey = 'dismissals';
   static const String _lastPromptKey = 'lastPrompt';
+
+  /// RevenueCat entitlement identifier that unlocks premium. This MUST match
+  /// the entitlement created in the RevenueCat dashboard (see
+  /// REVENUECAT_SETUP.md). All premium gating keys off this entitlement, not
+  /// off individual product IDs.
+  static const String premiumEntitlementId = 'premium';
 
   SubscriptionNotifier() : super(const SubscriptionState());
 
@@ -155,33 +177,59 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
   }
 
   /// Attempt to purchase a premium plan via RevenueCat.
+  ///
+  /// Flow: fetch the current offering → find the package matching [plan] →
+  /// `purchasePackage` → unlock premium iff the `premium` entitlement is now
+  /// active. Returns `true` only when premium is actually granted. A user
+  /// cancelling the native sheet is treated as a non-error (`false`, no error
+  /// message).
   Future<bool> purchasePlan(PremiumPlan plan) async {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      // TODO: Replace with actual RevenueCat purchase call:
-      // final customerInfo = await Purchases.purchasePackage(package);
-      // For now, this is the integration point. The purchase flow will be:
-      //
-      // 1. Purchases.getOfferings() → get available packages
-      // 2. Purchases.purchasePackage(package) → complete purchase
-      // 3. Check customerInfo.entitlements.all['premium']?.isActive
-      //
-      // The stub below simulates a successful purchase for development:
-      await Future.delayed(const Duration(milliseconds: 500));
+      if (!await _isConfigured()) {
+        state = state.copyWith(
+          isLoading: false,
+          error: 'Purchases aren\'t available right now. Please try again later.',
+        );
+        return false;
+      }
 
-      // On successful purchase:
+      final offerings = await Purchases.getOfferings();
+      final package = _packageForPlan(offerings, plan);
+      if (package == null) {
+        state = state.copyWith(
+          isLoading: false,
+          error: 'That plan isn\'t available right now. Please try again later.',
+        );
+        return false;
+      }
+
+      final customerInfo = await Purchases.purchasePackage(package);
+      final isPremium = _isEntitled(customerInfo);
+
       state = state.copyWith(
-        tier: SubscriptionTier.premium,
-        activePlan: plan,
-        expiresAt: plan == PremiumPlan.yearly
-            ? DateTime.now().add(const Duration(days: 365))
-            : DateTime.now().add(const Duration(days: 30)),
+        tier: isPremium ? SubscriptionTier.premium : SubscriptionTier.free,
+        activePlan: isPremium ? (_planFrom(customerInfo) ?? plan) : null,
+        clearPlan: !isPremium,
+        expiresAt: isPremium ? _expiryFrom(customerInfo) : null,
+        clearExpiry: !isPremium,
         isLoading: false,
       );
-
       await _persist();
-      return true;
+      return isPremium;
+    } on PlatformException catch (e) {
+      final code = PurchasesErrorHelper.getErrorCode(e);
+      if (code == PurchasesErrorCode.purchaseCancelledError) {
+        // User backed out of the native purchase sheet — not an error.
+        state = state.copyWith(isLoading: false);
+        return false;
+      }
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Purchase failed. Please try again.',
+      );
+      return false;
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -196,12 +244,12 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      // TODO: Replace with actual RevenueCat restore:
-      // final customerInfo = await Purchases.restorePurchases();
-      // Check customerInfo.entitlements.all['premium']?.isActive
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      // If no active subscription found after restore:
+      if (!await _isConfigured()) {
+        state = state.copyWith(isLoading: false);
+        return;
+      }
+      final customerInfo = await Purchases.restorePurchases();
+      _applyCustomerInfo(customerInfo);
       state = state.copyWith(isLoading: false);
       await _persist();
     } catch (e) {
@@ -232,27 +280,109 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
     state = state.copyWith(clearError: true);
   }
 
-  /// Background sync with RevenueCat to verify subscription status.
+  /// Background sync with RevenueCat to verify subscription status and load
+  /// localized offering prices. Called on launch (non-blocking). Reconciles
+  /// local state with the source of truth (the `premium` entitlement) so a
+  /// subscription bought on another device, or one that expired while the app
+  /// was closed, is reflected correctly.
   Future<void> _syncWithRevenueCat() async {
     try {
-      // TODO: Replace with actual RevenueCat sync:
-      // final customerInfo = await Purchases.getCustomerInfo();
-      // final isPremium = customerInfo.entitlements.all['premium']?.isActive ?? false;
-      //
-      // if (isPremium && state.isFree) {
-      //   state = state.copyWith(tier: SubscriptionTier.premium);
-      //   await _persist();
-      // } else if (!isPremium && state.isPremium) {
-      //   // Subscription expired
-      //   state = state.copyWith(
-      //     tier: SubscriptionTier.free,
-      //     clearPlan: true,
-      //     clearExpiry: true,
-      //   );
-      //   await _persist();
-      // }
+      if (!await _isConfigured()) return;
+      final customerInfo = await Purchases.getCustomerInfo();
+      _applyCustomerInfo(customerInfo);
+      await _persist();
+      await _loadOfferings();
     } catch (_) {
-      // Silent failure — free tier fallback is always safe
+      // Silent failure — free tier fallback is always safe.
+    }
+  }
+
+  /// Fetch the current offering and cache localized store prices so the
+  /// upgrade screen can show the real price the user will be charged.
+  Future<void> _loadOfferings() async {
+    try {
+      final offerings = await Purchases.getOfferings();
+      if (offerings.current == null) return;
+      final prices = <String, String>{};
+      for (final plan in PremiumPlan.values) {
+        final pkg = _packageForPlan(offerings, plan);
+        if (pkg != null) prices[plan.id] = pkg.storeProduct.priceString;
+      }
+      if (prices.isNotEmpty) {
+        state = state.copyWith(livePrices: prices);
+      }
+    } catch (_) {
+      // Non-fatal — the UI falls back to hardcoded prices.
+    }
+  }
+
+  /// Reconcile local subscription state with a [CustomerInfo] snapshot.
+  void _applyCustomerInfo(CustomerInfo info) {
+    if (_isEntitled(info)) {
+      state = state.copyWith(
+        tier: SubscriptionTier.premium,
+        activePlan: _planFrom(info) ?? state.activePlan,
+        expiresAt: _expiryFrom(info),
+      );
+    } else {
+      state = state.copyWith(
+        tier: SubscriptionTier.free,
+        clearPlan: true,
+        clearExpiry: true,
+      );
+    }
+  }
+
+  /// Whether the RevenueCat SDK has been configured (API key provided at
+  /// launch). When false, every RevenueCat call is skipped and the app stays
+  /// on the free tier. `await` is safe whether the getter returns a bool or a
+  /// Future<bool>.
+  Future<bool> _isConfigured() async {
+    try {
+      return await Purchases.isConfigured;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// True if the `premium` entitlement is active in [info].
+  bool _isEntitled(CustomerInfo info) =>
+      info.entitlements.all[premiumEntitlementId]?.isActive ?? false;
+
+  /// Expiration date of the active `premium` entitlement, if any.
+  DateTime? _expiryFrom(CustomerInfo info) {
+    final iso = info.entitlements.all[premiumEntitlementId]?.expirationDate;
+    return iso == null ? null : DateTime.tryParse(iso);
+  }
+
+  /// Map the active entitlement's product back to a [PremiumPlan] so we can
+  /// show the user which plan they're on. Android product IDs may carry a
+  /// base-plan suffix, so we match by prefix as well as exact id.
+  PremiumPlan? _planFrom(CustomerInfo info) {
+    final entitlement = info.entitlements.all[premiumEntitlementId];
+    if (entitlement == null || !entitlement.isActive) return null;
+    final productId = entitlement.productIdentifier;
+    for (final plan in PremiumPlan.values) {
+      if (productId == plan.id || productId.startsWith(plan.id)) return plan;
+    }
+    return null;
+  }
+
+  /// Find the offering package corresponding to [plan]. Matches by product
+  /// identifier first, then falls back to RevenueCat's standard package types
+  /// (monthly / annual) so this keeps working if product IDs are renamed.
+  Package? _packageForPlan(Offerings offerings, PremiumPlan plan) {
+    final offering = offerings.current;
+    if (offering == null) return null;
+    for (final pkg in offering.availablePackages) {
+      final id = pkg.storeProduct.identifier;
+      if (id == plan.id || id.startsWith(plan.id)) return pkg;
+    }
+    switch (plan) {
+      case PremiumPlan.monthly:
+        return offering.monthly;
+      case PremiumPlan.yearly:
+        return offering.annual;
     }
   }
 

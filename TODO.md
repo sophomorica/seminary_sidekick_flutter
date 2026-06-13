@@ -111,7 +111,7 @@
 > |---|---|---|---|
 > | 4 | TASK-058 (premium gating) **DONE**, TASK-059 (saved rosters), TASK-061 (analytics) | partial | TASK-059 unblocked — only one editor at a time on service + host_lobby |
 > | 5a | TASK-047 (shared scope picker) | **DONE 2026-05-25** | — |
-> | 5b | **TASK-062 (Scripture Builder Race)** | **DONE 2026-05-25** — pending owner: `supabase db push` for `0005_group_sb_finishes.sql` + two-instance smoke test | — |
+> | 5b | **TASK-062 (Scripture Builder Race)** | **DONE 2026-05-25** — migrations deployed (`0005`/`0006` pushed; `supabase migration list` shows local+remote in sync through 0006 as of 2026-06-13). Pending owner: two-instance smoke test | — |
 
 > **Scope guardrail for group play**: NONE of the existing solo features are being modified. Scripture Builder, solo Quick Quiz, solo Scripture Match, mastery tracking, journal, Sidekick AI all remain exactly as they are. Touch only:
 > - `pubspec.yaml`, `lib/main.dart`, `lib/app.dart`
@@ -138,6 +138,38 @@
   - See `lib/services/audio_service.dart` — `SoundEffect` enum paths stay the same; only the underlying files change
   - The new audio convention is documented in `CLAUDE.md` under "Conventions → Audio Assets"
   - Candidate additional sounds to scope while we're here: `streak_milestone`, `group_join`, `countdown_tick` (only if we proceed with Group Play — TASK-048)
+
+### TASK-065: Premium "Missionary Scriptures" pack (curated unlock)
+
+- **status**: `open`
+- **priority**: P2 (post-launch premium expansion — not a launch blocker)
+- **estimated_effort**: Medium (data + paywall gating + collection UI; the heavy lifting is in keeping the core-100 mastery math untouched)
+- **claimed_by**: —
+- **description**: Add a second, curated scripture collection — **Missionary Scriptures** — that is locked behind the existing premium subscription. Free users see it as a locked collection with a premium teaser; premium users get the full Study → Build → Prove → Master loop on it, exactly like the core 100. This is a new reason to upgrade that sits alongside Sidekick AI and premium group hosting.
+- **decisions_made** (owner, 2026-06-13):
+  - **Curated only — NO user-added scriptures.** Letting users paste their own scriptures risks poorly-copied / mistyped text feeding the mastery engine (which checks production word-for-word). The unlock is a hand-curated, app-shipped set only.
+  - **Gated by the existing premium subscription** (default assumption), not a separate one-time IAP. "Upgrade to unlock" reuses the current `isPremiumProvider` gate and `upgrade_screen.dart` — no new RevenueCat product unless we later decide to sell the pack standalone.
+- **open_questions** (owner to resolve before build):
+  - [ ] **Which scriptures?** Owner is undecided on the exact list. Likely candidates: common Preach My Gospel / missionary-prep proselytizing scriptures (e.g. Moroni 10:4–5, James 1:5, Malachi 3:8–10, 1 Nephi 3:7, etc.). Owner defines the final set + count. Until then this task is **not buildable past the data-model scaffolding.**
+  - [ ] **Pack size / future packs?** Decide whether "Missionary Scriptures" is a one-off or the first of several premium packs (e.g. "Old Testament heroes", "Christmas scriptures"). If multiple are likely, the data model should carry a generic `collection`/`pack` identifier rather than a single boolean.
+- **design_decisions_to_settle** (recommendations in italics):
+  - **Mastery accounting**: missionary scriptures should get the full mastery loop but **stay a separate collection** so they don't dilute the headline "X of 100 mastered" stat. *Recommend: core-100 stats stay 0–100; missionary pack has its own progress strip/ring; aggregate "all started/mastered" stats can sum both, but the canonical "100 Doctrinal Mastery" number must not change.*
+  - **Data model**: the 100 use string ids `'1'..'100'`. *Recommend adding a `collection`/`pack` field to `Scripture` (default `doctrinalMastery`) and giving missionary entries non-numeric ids (e.g. `'m1'`, `'m2'`) so nothing that assumes `1..100` breaks. Audit every place that hard-codes `100` or `length` against the full scripture list (mastery stats, progress ring denominators, onboarding copy).*
+  - **Gating granularity**: lock at the collection level (whole pack visible-but-locked with a teaser), not per-scripture. *Recommend a locked `BookCard`/collection tile in the scripture list → tapping a locked missionary scripture routes to `upgrade_screen.dart`.*
+- **acceptance_criteria** (provisional — finalize once the scripture list is chosen):
+  - [ ] Curated missionary scripture entries added to the data layer with a `collection`/`pack` discriminator; core 100 unchanged and still report as exactly 100.
+  - [ ] Free users: missionary collection is visible but locked; tapping it surfaces a premium teaser → upgrade flow. No way to start Builder/quizzes on locked scriptures.
+  - [ ] Premium users: missionary scriptures behave identically to the core 100 (detail screen, Scripture Builder all 4 tiers, Memorize, practice quizzes, mastery progression).
+  - [ ] Mastery/stat math audited: the "100 Doctrinal Mastery" headline number and progress-ring denominators do not regress when the pack exists; missionary progress tracked separately.
+  - [ ] Group Play scope picker either excludes the missionary pack or includes it only for premium hosts (decide; default: exclude from v1 to avoid mixed free/premium room scope).
+  - [ ] No user-add-scripture surface anywhere (explicitly out of scope).
+  - [ ] `flutter analyze` clean; existing solo + group flows unaffected.
+- **files_to_touch** (anticipated): `lib/data/scriptures_data.dart`, `lib/models/scripture.dart` (add `collection`/`pack`), `lib/models/enums.dart` (collection enum if generic), mastery/stat providers that assume 100 (`scripture_mastery_provider.dart`, `progress_provider.dart`, home/progress stat widgets), scripture list + book-collections UI, `upgrade_screen.dart` / `premium_teaser.dart` (locked-collection teaser).
+- **depends_on**: owner picking the scripture list (open question above).
+- **notes**:
+  - Reuse `isPremiumProvider` and the existing `PremiumGate` / teaser widgets — do not invent a new entitlement.
+  - Keep the curated text held to the same word-for-word quality bar as the core 100 (the mastery engine is unforgiving on production); double-check punctuation/verse-stripping against `scripture.dart`'s `words` auto-split.
+  - If owner later wants a standalone (non-subscription) purchase, that's a separate RevenueCat product — note it but don't build it here.
 
 ### TASK-047: Shared scripture-scope picker (Quick Quiz, Match, Group Play)
 
@@ -235,18 +267,18 @@
   - **Free vs. Premium split**:
     - JOINING is always free. No exceptions, no caps, no signup.
     - HOSTING tiered: free hosts can run a *Casual* room (cap 6 players, 1 game/week). Premium hosts get *Class* rooms (cap 30, unlimited games, saved rosters, post-game analytics).
-    - Premium price unchanged ($2.99/mo or $1.67/mo yearly). Group hosting becomes one more reason to subscribe alongside the existing Sidekick AI bundle.
+    - Premium price ($4.99/mo or $2.92/mo yearly — $34.99/yr, "Save 42%"; updated 2026-06-13). Group hosting becomes one more reason to subscribe alongside the existing Sidekick AI bundle.
   - **V1 scope limited to Quick Quiz only.** Scripture Match in group form is a v2 question — drag-and-drop multiplayer is awkward. Scripture Builder (race-mode) added to v1.5 as TASK-062 (2026-05-25 decision).
   - **Cost ceiling at the worst credible adoption** (~100K MAU, ~10K concurrent peak): roughly $2K–5K/mo on Supabase Realtime. Premium revenue at that scale ($15K–25K/mo at 5% conversion) covers it comfortably. We do NOT need to architect against this scale on day one — Pro tier ($25/mo, 500 concurrent) is fine for a long time.
   - **Future cost optimization** (NOT v1): WebRTC peer-to-peer with Supabase as signaling, or migrating the Realtime layer to Cloudflare Durable Objects. Both are v2 levers, mentioned here so the data model doesn't paint itself into a corner.
 
 ### TASK-051: Supabase dashboard verification (smoke test only)
 
-- **status**: `partial` — migrations + setup doc shipped; smoke test still pending
+- **status**: `partial` — migrations deployed (0001–0006, local+remote in sync per `supabase migration list` 2026-06-13); smoke test still pending
 - **priority**: P0
 - **estimated_effort**: Small
 - **claimed_by**: —
-- **description**: Code is done (migrations in `supabase/migrations/`, runbook in `SUPABASE_SETUP.md`, owner has run the dashboard steps). Only remaining acceptance criterion:
+- **description**: Code is done (migrations in `supabase/migrations/`, runbook in `SUPABASE_SETUP.md`, owner has run the dashboard steps and pushed all migrations). Only remaining acceptance criterion:
   - [ ] **Verifying agent step**: smoke test in SUPABASE_SETUP.md passes — anonymous user can create a room and a second device can see it via realtime
 - **notes**:
   - Service-role key stays out of the Flutter app forever. anon key is safe to ship.
@@ -375,7 +407,7 @@
 
 ### TASK-062: Scripture Builder Race Mode (group play — second game type)
 
-- **status**: `done` — code complete 2026-05-25; owner still needs to run `supabase db push` for `0005_group_sb_finishes.sql` and the two-instance smoke test before marking the dashboard step closed
+- **status**: `done` — code complete 2026-05-25; `0005_group_sb_finishes.sql` deployed (`supabase migration list` shows local+remote in sync through 0006 as of 2026-06-13). Only the two-instance smoke test remains before the dashboard step is fully closed
 - **priority**: P1
 - **estimated_effort**: Large
 - **claimed_by**: claude-opus-4-7
@@ -451,7 +483,7 @@
     - No UPDATE / DELETE policies (finishes are immutable)
     - `REPLICA IDENTITY FULL`
     - Added to `supabase_realtime` publication
-  - [ ] Owner runs `supabase db push` and the migration applies cleanly to the existing project (no destructive changes to shipped tables).
+  - [x] Owner ran `supabase db push` and the migration applied cleanly to the existing project (no destructive changes to shipped tables) — deployed, local+remote in sync through 0006 as of 2026-06-13.
 
   ### Service + provider
   - [ ] `GroupPlayService.submitSbFinish(...)` inserts a row, returns the inserted `GroupSbFinish`. Throws `GroupPlayException` on RLS rejection or network failure (mirrors `submitAnswer` error handling).

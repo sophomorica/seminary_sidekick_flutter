@@ -60,9 +60,9 @@ void main() {
     });
 
     test('yearly has lower per-month price', () {
-      // yearly: $1.67/mo, monthly: $2.99/mo
-      expect(PremiumPlan.yearly.pricePerMonth, '\$1.67');
-      expect(PremiumPlan.monthly.pricePerMonth, '\$2.99');
+      // yearly: $2.92/mo ($34.99/yr), monthly: $4.99/mo
+      expect(PremiumPlan.yearly.pricePerMonth, '\$2.92');
+      expect(PremiumPlan.monthly.pricePerMonth, '\$4.99');
     });
   });
 
