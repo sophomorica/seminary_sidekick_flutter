@@ -9,6 +9,7 @@ import 'scripture_mastery.dart';
 abstract class ScopeUsageContext {
   static const String quickQuiz = 'quickQuiz';
   static const String scriptureMatch = 'scriptureMatch';
+  static const String soloScriptureBuilder = 'soloScriptureBuilder';
   static const String groupQuiz = 'groupQuiz';
   static const String groupScriptureBuilder = 'groupScriptureBuilder';
 }
