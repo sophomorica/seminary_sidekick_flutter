@@ -297,8 +297,10 @@ class HomeScreen extends ConsumerWidget {
                             const SizedBox(width: AppTheme.spacingSm),
                             Expanded(
                               child: Text(
-                                _masteryHintFor(mastery.level,
-                                    target.isReviewNudge),
+                                // Eyebrow above the card already says "Time for
+                                // a refresher" on review nudges, so the inner
+                                // row always shows mastery progress instead.
+                                _masteryHintFor(mastery.level, false),
                                 style: Theme.of(context)
                                     .textTheme
                                     .labelSmall
