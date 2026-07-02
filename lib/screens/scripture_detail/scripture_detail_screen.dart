@@ -189,20 +189,6 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                           ],
                         ),
                       ),
-                      // Share + Bookmark buttons
-                      Row(
-                        children: [
-                          _ActionButton(
-                            icon: Icons.share,
-                            onPressed: () {},
-                          ),
-                          const SizedBox(width: AppTheme.spacingMd),
-                          _ActionButton(
-                            icon: Icons.bookmark_outline,
-                            onPressed: () {},
-                          ),
-                        ],
-                      ),
                     ],
                   ),
                 ],
@@ -294,33 +280,6 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
             const SizedBox(height: 120),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// Action button for header (share, bookmark)
-class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  const _ActionButton({
-    required this.icon,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(AppTheme.radiusRound),
-      ),
-      child: IconButton(
-        icon: Icon(icon, color: AppTheme.secondary),
-        onPressed: onPressed,
       ),
     );
   }

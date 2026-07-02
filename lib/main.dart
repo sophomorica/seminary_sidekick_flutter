@@ -189,7 +189,10 @@ Future<void> _maybeInitSupabase() async {
   try {
     await Supabase.initialize(
       url: url,
-      anonKey: anonKey,
+      // Accepts both legacy anon JWTs and new sb_publishable_ keys; the
+      // SUPABASE_ANON_KEY dart-define name is kept so existing build
+      // commands and SUPABASE_SETUP.md stay valid.
+      publishableKey: anonKey,
       // Realtime is on by default; explicit no-op kept here for clarity.
       realtimeClientOptions: const RealtimeClientOptions(
         logLevel: RealtimeLogLevel.warn,

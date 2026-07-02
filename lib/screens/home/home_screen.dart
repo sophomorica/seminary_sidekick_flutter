@@ -11,6 +11,8 @@ import '../../providers/spaced_repetition_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../providers/user_preferences_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/game_setup_sheet.dart';
+import '../../widgets/group_play_card.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -86,39 +88,65 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(height: AppTheme.spacingSm),
                 _buildResumeCard(context, ref, resumeTarget),
                 const SizedBox(height: AppTheme.spacingXl),
-                const _SectionDivider(label: 'Or start fresh'),
-                const SizedBox(height: AppTheme.spacingMd),
               ] else if (stats.attempted > 0) ...[
                 _buildAllCaughtUpCard(context),
                 const SizedBox(height: AppTheme.spacingXl),
               ],
 
-              // ─── "Let's Learn / Let's Play" tiles ─────────────────────
-              _buildImageNavigationCard(
-                context,
-                title: "Let's Learn",
-                description: 'Study scripture and build mastery.',
-                overlayColor: AppTheme.secondary,
-                icon: Icons.menu_book,
-                imagePath: 'assets/images/browse_scriptures.jpg',
-                onTap: () => context.go('/library'),
+              // ─── Let's play — one-tap into any game ───────────────────
+              const _HomeEyebrow("Let's play"),
+              const SizedBox(height: AppTheme.spacingSm),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildGameChip(
+                      context,
+                      label: 'Builder',
+                      icon: Icons.construction,
+                      color: AppTheme.primary,
+                      onTap: () => showGameSetupSheet(
+                        context,
+                        gameType: GameType.scriptureBuilder,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppTheme.spacingSm),
+                  Expanded(
+                    child: _buildGameChip(
+                      context,
+                      label: 'Match',
+                      icon: Icons.layers,
+                      color: AppTheme.secondary,
+                      onTap: () => showGameSetupSheet(
+                        context,
+                        gameType: GameType.matching,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppTheme.spacingSm),
+                  Expanded(
+                    child: _buildGameChip(
+                      context,
+                      label: 'Quiz',
+                      icon: Icons.quiz,
+                      color: AppTheme.accent,
+                      onTap: () => showGameSetupSheet(
+                        context,
+                        gameType: GameType.quiz,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: AppTheme.spacingMd),
-              _buildImageNavigationCard(
-                context,
-                title: "Let's Play",
-                description: 'Quizzes, scripture match, and Scripture Builder.',
-                overlayColor: AppTheme.primary,
-                icon: Icons.extension,
-                imagePath: 'assets/images/practice_games.jpg',
-                onTap: () => context.go('/practice'),
-              ),
-              const SizedBox(height: AppTheme.spacingMd),
-              // Group Play entry — host or join with friends.
-              // Tapping defaults to Join (the most common student flow:
-              // "my friend just sent me a code"). Hosts go through the
-              // Practice Hub's Group Play card instead.
-              _buildPlayWithFriendsTile(context),
+              // Group Play — the one entry point. Host or join in one card.
+              const GroupPlayCard(showNewFlag: true),
+              const SizedBox(height: AppTheme.spacingXl),
+
+              // ─── Let's learn — browse the library ─────────────────────
+              const _HomeEyebrow("Let's learn"),
+              const SizedBox(height: AppTheme.spacingSm),
+              _buildBrowseTile(context),
 
               // ─── Premium Quick Win — demoted below primary CTAs ───────
               if (isPremium && sidekickResponse?.quickWin != null) ...[
@@ -269,8 +297,10 @@ class HomeScreen extends ConsumerWidget {
                             const SizedBox(width: AppTheme.spacingSm),
                             Expanded(
                               child: Text(
-                                _masteryHintFor(mastery.level,
-                                    target.isReviewNudge),
+                                // Eyebrow above the card already says "Time for
+                                // a refresher" on review nudges, so the inner
+                                // row always shows mastery progress instead.
+                                _masteryHintFor(mastery.level, false),
                                 style: Theme.of(context)
                                     .textTheme
                                     .labelSmall
@@ -473,163 +503,117 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  /// Image-overlay navigation card for the two primary "Let's Learn / Let's Play" tiles.
-  Widget _buildImageNavigationCard(
+  /// A compact one-tap game chip. Opens the unified [GameSetupSheet] so a kid
+  /// can start a game from Home without going through the Practice Hub.
+  Widget _buildGameChip(
     BuildContext context, {
-    required String title,
-    required String description,
-    required Color overlayColor,
+    required String label,
     required IconData icon,
-    required String imagePath,
+    required Color color,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 168, // reduced from 240 so resume card has visual primacy
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppTheme.radiusXl),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x33221A17),
-              blurRadius: 16,
-              offset: Offset(0, 6),
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainerLowest,
+      borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant,
+              width: 0.5,
             ),
-          ],
-        ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.asset(
-              imagePath,
-              fit: BoxFit.cover,
-            ),
-            Container(color: overlayColor.withValues(alpha: 0.80)),
-            Padding(
-              padding: const EdgeInsets.all(AppTheme.spacingLg),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    icon,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineSmall
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontFamily: 'Merriweather',
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                      const SizedBox(height: 2.0),
-                      Text(
-                        description,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.white.withValues(alpha: 0.85),
-                              letterSpacing: 0.2,
-                            ),
-                      ),
-                    ],
-                  ),
-                ],
+            boxShadow: AppTheme.editorialShadow,
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 16.0),
+          child: Column(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                ),
+                child: Icon(icon, color: color, size: 24),
               ),
-            ),
-          ],
+              const SizedBox(height: 8.0),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  /// "Play with Friends" tile — entry to Group Play.
-  ///
-  /// Defaults to the Join screen because the most common student flow is
-  /// "my friend texted me a code." Hosts launch new rooms from the Practice
-  /// Hub's Group Play card, which has both Host and Join buttons.
-  ///
-  /// Uses a gradient (not an image) so we don't need a new asset to ship —
-  /// the kid-attractive icon + warm gradient carries the visual weight.
-  Widget _buildPlayWithFriendsTile(BuildContext context) {
-    return GestureDetector(
-      onTap: () => context.push('/group-play/join'),
-      child: Container(
-        height: 168,
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppTheme.tertiary, AppTheme.secondary],
-          ),
-          borderRadius: BorderRadius.circular(AppTheme.radiusXl),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x33221A17),
-              blurRadius: 16,
-              offset: Offset(0, 6),
+  /// "Browse all scriptures" tile — entry to the library / study path.
+  Widget _buildBrowseTile(BuildContext context) {
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainerLowest,
+      borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+      child: InkWell(
+        onTap: () => context.go('/library'),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant,
+              width: 0.5,
             ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(AppTheme.spacingLg),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            boxShadow: AppTheme.editorialShadow,
+          ),
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Icon(Icons.groups, color: Colors.white, size: 28),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.20),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      'NEW',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: Colors.white,
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: AppTheme.secondary.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                ),
+                child: const Icon(
+                  Icons.menu_book,
+                  color: AppTheme.secondary,
+                  size: 26,
+                ),
+              ),
+              const SizedBox(width: 16.0),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Browse all scriptures',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontFamily: 'Merriweather',
                             fontWeight: FontWeight.bold,
-                            letterSpacing: 1.5,
-                            fontSize: 10,
                           ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 3.0),
+                    Text(
+                      'Study the text and build mastery',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ],
+                ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Play with Friends',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: Colors.white,
-                          fontFamily: 'Merriweather',
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Join a class quiz with a 4-letter code.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.85),
-                          letterSpacing: 0.2,
-                        ),
-                  ),
-                ],
+              const SizedBox(width: 8.0),
+              Icon(
+                Icons.chevron_right,
+                size: 22,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ],
           ),
@@ -679,19 +663,19 @@ class _ResumeEyebrow extends StatelessWidget {
   }
 }
 
-/// "Or start fresh" / similar quiet section divider.
-class _SectionDivider extends StatelessWidget {
+/// Section eyebrow used above the Home "Let's play" / "Let's learn" groups.
+class _HomeEyebrow extends StatelessWidget {
   final String label;
-  const _SectionDivider({required this.label});
+  const _HomeEyebrow(this.label);
 
   @override
   Widget build(BuildContext context) {
     return Text(
-      label.toUpperCase(),
-      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-            letterSpacing: 0.8,
+      label,
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontFamily: 'Merriweather',
             fontWeight: FontWeight.w600,
+            fontStyle: FontStyle.italic,
           ),
     );
   }
