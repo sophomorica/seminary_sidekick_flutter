@@ -200,6 +200,41 @@ These tasks are **code-complete** and summarized in the Completed tables above; 
   - Keep the curated text held to the same word-for-word quality bar as the core 100 (the mastery engine is unforgiving on production); double-check punctuation/verse-stripping against `scripture.dart`'s `words` auto-split.
   - If owner later wants a standalone (non-subscription) purchase, that's a separate RevenueCat product — note it but don't build it here.
 
+### TASK-066: Journal discoverability redesign (home card + chat capture)
+
+- **status**: `open`
+- **priority**: P1 (premium value is currently hidden; directly affects conversion and retention)
+- **estimated_effort**: Medium
+- **claimed_by**: —
+- **description**: The journal is a premium pillar (AI reflection prompts, TASK-035) but is effectively undiscoverable. Owner review (2026-07-02): the only entry points are (1) a faded `_ReflectLink` on scripture detail ("almost clickable p tag"), (2) a small Journal icon button in the Sidekick chat app bar, (3) a `ReflectNowCard` on home that only renders when a reflection prompt is loaded. Fix placement, not the feature: make the journal a first-class Home surface and integrate it with Sidekick chat so insights flow into it.
+- **decisions_made** (owner, 2026-07-02):
+  - **Journal stays.** It is NOT redundant with per-scripture notes — notes are marginalia (one string per scripture), journal is dated reflection with AI prompts. Do not merge them.
+  - **Home card, always present.** A prominent journal card on the Home screen ("Let's Learn / Let's Play" layout), not conditional on a prompt existing. Paywalled: free users see the same card as a premium teaser (this markets premium better than the buried links).
+  - **Chat → journal capture.** Sidekick chat should encourage saving insights to the journal; saving creates a pre-filled entry (auto-added, low-friction).
+  - **Demote the scripture-detail link.** Replace `_ReflectLink`'s whisper styling with a proper button, or remove it in favor of the home card — agent's call, but it must stop looking like body text.
+  - **Framing**: lean into "Acquiring Spiritual Knowledge" (Doctrinal Mastery language teachers use) in card copy and prompt framing.
+- **agent_context_block** (read first):
+  - `lib/screens/home/premium_home_section.dart` — existing `ReflectNowCard` (line ~295) pushes `JournalScreen(initialPrompt: prompt)`; it only renders when `reflectionPromptsProvider` is non-empty. Replace/extend into an always-present `JournalCard`.
+  - `lib/screens/scripture_detail/scripture_detail_screen.dart` — `_ReflectLink` (~line 1046, used ~427).
+  - `lib/screens/sidekick_chat/` — `sidekick_chat_screen.dart` has the app-bar Journal button (`context.push('/journal')`); `chat_bubble.dart` is where a per-message "Save to journal" affordance goes.
+  - `lib/models/journal_entry.dart` — `JournalEntry.create({prompt, scriptureId, scriptureReference})` already supports pre-seeding; chat capture likely wants content pre-fill too (add optional `content` param or set it after create).
+  - `lib/providers/journal_provider.dart` — `createEntry()` / `saveEntry()`; `/journal` route exists in `lib/app.dart`.
+  - `lib/widgets/premium_teaser.dart` — `PremiumGate` / `PremiumTeaser` for the free-tier card state; gate on `isPremiumProvider`.
+- **acceptance_criteria**:
+  - [ ] Home shows a journal card for ALL users, always (not conditional on a loaded prompt). Premium: today's reflection prompt (when available) + last-entry pickup ("Continue writing…") + tap → `/journal`. Free: same card styled as a teaser → upgrade flow.
+  - [ ] Card copy uses "Acquiring Spiritual Knowledge" framing; styled per `AppTheme` premium tokens (`premiumGold` family), consistent with existing home cards.
+  - [ ] Sidekick chat: assistant messages get a "Save to journal" action; tapping creates a journal entry pre-filled with the insight (and the user's question as context/prompt), confirms with a snackbar + "View" action. No navigation away from chat mid-conversation.
+  - [ ] Scripture-detail `_ReflectLink` is either removed or restyled as a real button (secondary style, clearly tappable); no faded body-text links remain as journal entry points.
+  - [ ] Free users tapping chat-save or the detail button hit the standard premium teaser (rate-limited per `canShowUpgradePromptProvider` conventions where applicable).
+  - [ ] Journal itself unchanged (editor, list, export) — this task is entry points only.
+  - [ ] `flutter analyze` clean; existing tests pass.
+- **files_to_touch**: `lib/screens/home/premium_home_section.dart` (or new `journal_card.dart` under `screens/home/`), `lib/screens/home/home_screen.dart`, `lib/screens/scripture_detail/scripture_detail_screen.dart`, `lib/screens/sidekick_chat/chat_bubble.dart`, `lib/screens/sidekick_chat/sidekick_chat_screen.dart`, `lib/models/journal_entry.dart` (optional content seed), `lib/providers/journal_provider.dart` (if a `createEntryWithContent` helper is cleaner)
+- **depends_on**: none (post-launch-readiness polish; does not touch submission blockers)
+- **notes**:
+  - Group Play scope guardrail does not apply here, but keep the same discipline: don't touch mastery/progress logic.
+  - Consider a lightweight "saved from Sidekick chat" marker on captured entries (reuse the existing `prompt` field rather than adding schema).
+  - Future (not this task): surface journal entries tagged to a scripture on that scripture's detail screen, connecting notes ↔ journal.
+
 ### TASK-048: Seminary Group Play (Kahoot-style multiplayer) — UMBRELLA, decomposed
 
 - **status**: `decomposed` — DO NOT CLAIM. See TASK-051 through TASK-062.
