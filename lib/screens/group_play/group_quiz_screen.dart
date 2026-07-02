@@ -194,12 +194,12 @@ class _GroupQuizScreenState extends ConsumerState<GroupQuizScreen> {
                       numberOfParticles: 14,
                       gravity: 0.25,
                       shouldLoop: false,
-                      colors: const [
-                        AppTheme.primary,
+                      colors: [
+                        Theme.of(context).colorScheme.primary,
                         AppTheme.secondary,
                         AppTheme.tertiary,
-                        Color(0xFFFFD54F),
-                        Color(0xFF81C784),
+                        const Color(0xFFFFD54F),
+                        const Color(0xFF81C784),
                       ],
                     ),
                   ),

@@ -19,7 +19,8 @@ class GoalsTimelineSection extends ConsumerWidget {
         // Section header
         Row(
           children: [
-            const Icon(Icons.flag_outlined, color: AppTheme.primary, size: 22),
+            Icon(Icons.flag_outlined,
+                color: Theme.of(context).colorScheme.primary, size: 22),
             const SizedBox(width: 8),
             Text(
               'Goals & Timeline',
@@ -165,7 +166,7 @@ class _ProgressGoalTile extends StatelessWidget {
                     border: Border.all(
                       color: goal.isSidekickSuggestion
                           ? AppTheme.premiumGold
-                          : AppTheme.primary,
+                          : Theme.of(context).colorScheme.primary,
                       width: 2,
                     ),
                   ),

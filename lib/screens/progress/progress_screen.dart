@@ -80,7 +80,7 @@ class ProgressScreen extends ConsumerWidget {
                   progress: stats.totalScriptures > 0
                       ? stats.mastered / stats.totalScriptures
                       : 0.0,
-                  color: AppTheme.primary,
+                  color: Theme.of(context).colorScheme.primary,
                   strokeWidth: 10.0,
                   backgroundColor:
                       Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -187,13 +187,25 @@ class ProgressScreen extends ConsumerWidget {
             children: [
               _ColorLegendBox(color: Theme.of(context).colorScheme.surfaceContainerHighest),
               const SizedBox(width: 8.0),
-              _ColorLegendBox(color: AppTheme.primary.withValues(alpha: 0.1)),
+              _ColorLegendBox(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.1)),
               const SizedBox(width: 8.0),
-              _ColorLegendBox(color: AppTheme.primary.withValues(alpha: 0.3)),
+              _ColorLegendBox(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.3)),
               const SizedBox(width: 8.0),
-              _ColorLegendBox(color: AppTheme.primary.withValues(alpha: 0.6)),
+              _ColorLegendBox(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.6)),
               const SizedBox(width: 8.0),
-              const _ColorLegendBox(color: AppTheme.primary),
+              _ColorLegendBox(color: Theme.of(context).colorScheme.primary),
             ],
           ),
           const SizedBox(height: 12.0),
@@ -209,10 +221,10 @@ class ProgressScreen extends ConsumerWidget {
     const daysToShow = 60;
     final colors = [
       Theme.of(context).colorScheme.surfaceContainerHighest,
-      AppTheme.primary.withValues(alpha: 0.1),
-      AppTheme.primary.withValues(alpha: 0.3),
-      AppTheme.primary.withValues(alpha: 0.6),
-      AppTheme.primary,
+      Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+      Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+      Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
+      Theme.of(context).colorScheme.primary,
     ];
 
     return Wrap(

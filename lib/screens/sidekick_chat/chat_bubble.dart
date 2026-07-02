@@ -11,10 +11,15 @@ class ChatBubble extends ConsumerWidget {
   final SidekickMessage message;
   final void Function(String scriptureId) onScriptureTap;
 
+  /// Called when the user taps "Save to journal" on a Sidekick message
+  /// (TASK-066). Null hides the action (e.g. for user messages).
+  final VoidCallback? onSaveToJournal;
+
   const ChatBubble({
     super.key,
     required this.message,
     required this.onScriptureTap,
+    this.onSaveToJournal,
   });
 
   bool get isUser => message.role == 'user';
@@ -104,7 +109,7 @@ class ChatBubble extends ConsumerWidget {
                 ),
                 if (!isUser) ...[
                   const SizedBox(height: 12),
-                  const _SuggestionChips(),
+                  _SuggestionChips(onSaveToJournal: onSaveToJournal),
                 ],
                 const SizedBox(height: 4),
                 Text(
@@ -237,25 +242,25 @@ class RichMessageText extends ConsumerWidget {
 // ─── Suggestion Chips (appear below sidekick messages) ─────────────────────
 
 class _SuggestionChips extends StatelessWidget {
-  const _SuggestionChips();
+  final VoidCallback? onSaveToJournal;
+
+  const _SuggestionChips({this.onSaveToJournal});
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (onSaveToJournal == null) return const SizedBox.shrink();
 
+    // "Save to journal" — captures this insight as a journal entry without
+    // leaving the conversation (TASK-066).
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
         _SuggestionChip(
-          label: 'Show me verses',
-          icon: Icons.menu_book,
-          isDark: isDark,
-        ),
-        _SuggestionChip(
-          label: 'Write a prayer',
-          icon: Icons.edit_note,
-          isDark: isDark,
+          label: 'Save to journal',
+          icon: Icons.auto_stories_outlined,
+          highlighted: true,
+          onTap: onSaveToJournal,
         ),
       ],
     );
@@ -265,22 +270,29 @@ class _SuggestionChips extends StatelessWidget {
 class _SuggestionChip extends ConsumerWidget {
   final String label;
   final IconData icon;
-  final bool isDark;
+  final bool highlighted;
+  final VoidCallback? onTap;
 
   const _SuggestionChip({
     required this.label,
     required this.icon,
-    required this.isDark,
+    this.highlighted = false,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = highlighted
+        ? AppTheme.sidekickColor(context)
+        : Theme.of(context).colorScheme.onSurfaceVariant;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
-          // Trigger the tap action
           ref.read(hapticProvider).light();
+          onTap?.call();
         },
         borderRadius: BorderRadius.circular(AppTheme.radiusRound),
         child: Container(
@@ -289,24 +301,29 @@ class _SuggestionChip extends ConsumerWidget {
             vertical: 8,
           ),
           decoration: BoxDecoration(
-            color: isDark
-                ? AppTheme.darkSurfaceContainerLow
-                : Theme.of(context).colorScheme.surfaceContainerHigh,
+            color: highlighted
+                ? AppTheme.sidekickTint(context, 0.12)
+                : (isDark
+                    ? AppTheme.darkSurfaceContainerLow
+                    : Theme.of(context).colorScheme.surfaceContainerHigh),
             borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+            border: highlighted
+                ? Border.all(
+                    color: AppTheme.sidekickColor(context)
+                        .withValues(alpha: 0.35),
+                    width: 0.5,
+                  )
+                : null,
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                size: 16,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+              Icon(icon, size: 16, color: color),
               const SizedBox(width: 6),
               Text(
                 label,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      color: color,
                       fontWeight: FontWeight.w500,
                     ),
               ),

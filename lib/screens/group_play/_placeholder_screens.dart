@@ -40,8 +40,8 @@ class _PlaceholderScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.construction,
-                  size: 64, color: AppTheme.primary),
+              Icon(Icons.construction,
+                  size: 64, color: Theme.of(context).colorScheme.primary),
               const SizedBox(height: AppTheme.spacingLg),
               Text(title, style: Theme.of(context).textTheme.headlineSmall),
               const SizedBox(height: AppTheme.spacingSm),
@@ -57,13 +57,16 @@ class _PlaceholderScreen extends StatelessWidget {
                   vertical: AppTheme.spacingSm,
                 ),
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.1),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 ),
                 child: Text(
                   taskId,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppTheme.primary,
+                        color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.bold,
                       ),
                 ),

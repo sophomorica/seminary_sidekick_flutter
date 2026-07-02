@@ -65,7 +65,7 @@ class _QuickSessionTile extends ConsumerWidget {
   Color _colorForAction(BuildContext context, String actionType) {
     switch (actionType) {
       case 'scriptureBuilder':
-        return AppTheme.primary;
+        return Theme.of(context).colorScheme.primary;
       case 'review':
         return AppTheme.warning;
       case 'reflect':

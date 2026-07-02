@@ -86,7 +86,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   child: Text(
                     'Skip',
                     style: theme.textTheme.titleMedium?.copyWith(
-                      color: AppTheme.primary,
+                      color: theme.colorScheme.primary,
                     ),
                   ),
                 ),
@@ -128,8 +128,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         height: 8,
                         decoration: BoxDecoration(
                           color: isActive
-                              ? AppTheme.primary
-                              : AppTheme.primary.withValues(alpha: 0.25),
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.primary
+                                  .withValues(alpha: 0.25),
                           borderRadius:
                               BorderRadius.circular(AppTheme.radiusRound),
                         ),

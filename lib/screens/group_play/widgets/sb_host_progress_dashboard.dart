@@ -242,7 +242,7 @@ class _Row extends StatelessWidget {
             minHeight: 3,
             backgroundColor: theme.colorScheme.surfaceContainerHighest,
             valueColor: AlwaysStoppedAnimation<Color>(
-              isDone ? AppTheme.success : AppTheme.primary,
+              isDone ? AppTheme.success : theme.colorScheme.primary,
             ),
           ),
         ),

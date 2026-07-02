@@ -188,12 +188,12 @@ class _GroupScriptureBuilderScreenState
                 numberOfParticles: 14,
                 gravity: 0.25,
                 shouldLoop: false,
-                colors: const [
-                  AppTheme.primary,
+                colors: [
+                  Theme.of(context).colorScheme.primary,
                   AppTheme.secondary,
                   AppTheme.tertiary,
-                  Color(0xFFFFD54F),
-                  Color(0xFF81C784),
+                  const Color(0xFFFFD54F),
+                  const Color(0xFF81C784),
                 ],
               ),
             ),
@@ -444,7 +444,7 @@ class _HostView extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(AppTheme.spacingMd),
                   decoration: BoxDecoration(
-                    color: AppTheme.primary.withValues(alpha: 0.08),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.08),
                     borderRadius:
                         BorderRadius.circular(AppTheme.radiusMd),
                   ),
@@ -455,7 +455,7 @@ class _HostView extends StatelessWidget {
                         scripture.reference,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.primary,
+                          color: theme.colorScheme.primary,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -683,20 +683,20 @@ class _RaceStatusStrip extends StatelessWidget {
         horizontal: AppTheme.spacingMd,
         vertical: AppTheme.spacingSm,
       ),
-      color: AppTheme.primary.withValues(alpha: 0.06),
+      color: theme.colorScheme.primary.withValues(alpha: 0.06),
       child: Row(
         children: [
           Icon(
             isRound ? Icons.flag_circle : Icons.timeline,
             size: 16,
-            color: AppTheme.primary,
+            color: theme.colorScheme.primary,
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               detail,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: AppTheme.primary,
+                color: theme.colorScheme.primary,
                 fontWeight: FontWeight.w600,
               ),
             ),

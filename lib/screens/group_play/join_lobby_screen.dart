@@ -216,7 +216,7 @@ class _EntryView extends StatelessWidget {
                   fontFamily: 'monospace',
                   letterSpacing: 12,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.primary,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
             decoration: InputDecoration(
               hintText: 'ABCD',
@@ -373,7 +373,10 @@ class _WaitingView extends ConsumerWidget {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.10),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.10),
                   borderRadius:
                       BorderRadius.circular(AppTheme.radiusRound),
                 ),
@@ -383,7 +386,7 @@ class _WaitingView extends ConsumerWidget {
                         fontFamily: 'monospace',
                         letterSpacing: 4,
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.primary,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                 ),
               ),

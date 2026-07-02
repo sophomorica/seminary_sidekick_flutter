@@ -22,7 +22,7 @@ class StatsGrid extends StatelessWidget {
           label: 'Attempted',
           value: stats.attempted.toString(),
           icon: Icons.note_outlined,
-          color: AppTheme.primary,
+          color: Theme.of(context).colorScheme.primary,
         ),
         _StatTile(
           label: 'Memorized',

@@ -234,7 +234,7 @@ class _MemorizeScreenState extends ConsumerState<MemorizeScreen>
                           ? Icons.radio_button_checked
                           : Icons.radio_button_off,
                       color: mode == _mode
-                          ? AppTheme.primary
+                          ? Theme.of(context).colorScheme.primary
                           : Theme.of(context)
                               .colorScheme
                               .onSurface

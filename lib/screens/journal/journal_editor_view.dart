@@ -264,6 +264,23 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
     final mainScriptureRef = _taggedScriptureReferences.isNotEmpty
         ? _taggedScriptureReferences.first
         : null;
+    final mainScripture = _taggedScriptureIds.isNotEmpty
+        ? ref.watch(scriptureByIdProvider(_taggedScriptureIds.first))
+        : null;
+
+    // Hero heading: the Sidekick prompt that spawned this entry wins;
+    // otherwise fall back to a generic question about the tagged scripture.
+    final entryPrompt = widget.entry.prompt;
+    final heroHeading = (entryPrompt != null && entryPrompt.trim().isNotEmpty)
+        ? entryPrompt
+        : (mainScriptureRef != null
+            ? 'How did $mainScriptureRef apply to your day?'
+            : null);
+
+    // Journal progress: real saved-entry count, milestone every 5 entries.
+    final entryCount = ref.watch(journalEntryCountProvider);
+    final entriesToMilestone = 5 - (entryCount % 5);
+    final milestoneProgress = (entryCount % 5) / 5;
 
     return PopScope(
       canPop: false,
@@ -325,15 +342,18 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
                   horizontal: AppTheme.spacingMd,
                   vertical: 10,
                 ),
-                color: AppTheme.primary.withValues(alpha: 0.08),
+                color: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.08),
                 child: Row(
                   children: [
-                    const SizedBox(
+                    SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppTheme.primary,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -343,7 +363,7 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
                             ? _partialSpeechText
                             : 'Listening... speak now',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppTheme.primary,
+                              color: Theme.of(context).colorScheme.primary,
                               fontStyle: FontStyle.italic,
                             ),
                         maxLines: 1,
@@ -365,7 +385,7 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // "DAILY REFLECTION" label + Hero Heading
-                    if (mainScriptureRef != null)
+                    if (heroHeading != null)
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -385,9 +405,9 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
                           ),
                           const SizedBox(height: AppTheme.spacingMd),
 
-                          // Hero heading: "How did Mosiah 2:17 apply to your day?"
+                          // Hero heading: Sidekick prompt or scripture question
                           Text(
-                            'How did $mainScriptureRef apply to your day?',
+                            heroHeading,
                             style: Theme.of(context)
                                 .textTheme
                                 .displaySmall
@@ -457,162 +477,131 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
                           ),
                           const SizedBox(height: AppTheme.spacingLg),
 
-                          // Main textarea with white/surfaceContainerLowest background
-                          Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerLowest,
-                                borderRadius:
-                                    BorderRadius.circular(AppTheme.radiusMd),
-                              ),
-                              padding: const EdgeInsets.all(AppTheme.spacingMd),
-                              child: Stack(
-                                children: [
-                                  TextField(
-                                    controller: _contentController,
-                                    textCapitalization:
-                                        TextCapitalization.sentences,
-                                    maxLines: null,
-                                    minLines: 8,
-                                    style: Theme.of(context)
+                          // Main textarea with white/surfaceContainerLowest background.
+                          // NOT Expanded: this Column sits inside a
+                          // SingleChildScrollView, so height is unbounded and a
+                          // flex child would fail layout. minLines keeps it tall.
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerLowest,
+                              borderRadius:
+                                  BorderRadius.circular(AppTheme.radiusMd),
+                            ),
+                            padding: const EdgeInsets.all(AppTheme.spacingMd),
+                            child: Stack(
+                              children: [
+                                TextField(
+                                  controller: _contentController,
+                                  textCapitalization:
+                                      TextCapitalization.sentences,
+                                  maxLines: null,
+                                  minLines: 8,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyLarge
+                                      ?.copyWith(
+                                        height: 1.6,
+                                      ),
+                                  decoration: InputDecoration(
+                                    hintText:
+                                        'Begin typing your thoughts here... Let the Spirit guide.',
+                                    hintStyle: Theme.of(context)
                                         .textTheme
                                         .bodyLarge
                                         ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .outline
+                                              .withValues(alpha: 0.5),
                                           height: 1.6,
                                         ),
-                                    decoration: InputDecoration(
-                                      hintText:
-                                          'Begin typing your thoughts here... Let the Spirit guide.',
-                                      hintStyle: Theme.of(context)
-                                          .textTheme
-                                          .bodyLarge
-                                          ?.copyWith(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .outline
-                                                .withValues(alpha: 0.5),
-                                            height: 1.6,
-                                          ),
-                                      border: InputBorder.none,
-                                      contentPadding: EdgeInsets.zero,
-                                    ),
+                                    border: InputBorder.none,
+                                    contentPadding: EdgeInsets.zero,
                                   ),
-                                  // Watermark quote icon (bottom-right, very faint)
-                                  Positioned(
-                                    bottom: 0,
-                                    right: -8,
-                                    child: Icon(
-                                      Icons.format_quote,
-                                      size: 120,
-                                      color: AppTheme.primary
-                                          .withValues(alpha: 0.05),
-                                    ),
+                                ),
+                                // Watermark quote icon (bottom-right, very faint)
+                                Positioned(
+                                  bottom: 0,
+                                  right: -8,
+                                  child: Icon(
+                                    Icons.format_quote,
+                                    size: 120,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .primary
+                                        .withValues(alpha: 0.05),
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(height: AppTheme.spacingLg),
 
-                          // Bottom row: Milestone chip + Save button
-                          Row(
-                            children: [
-                              // Portfolio milestone chip
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppTheme.spacingMd,
-                                  vertical: AppTheme.spacingSm,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.secondaryContainer
-                                      .withValues(alpha: 0.3),
-                                  borderRadius: BorderRadius.circular(
-                                      AppTheme.radiusRound),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.star,
-                                      size: 12,
-                                      color: AppTheme.tertiaryContainer,
-                                    ),
-                                    const SizedBox(width: AppTheme.spacingSm),
-                                    Text(
-                                      'Portfolio milestone ready',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelSmall
-                                          ?.copyWith(
-                                            color: AppTheme.secondary,
-                                            fontStyle: FontStyle.italic,
-                                          ),
-                                    ),
+                          // Save button, right-aligned. (No chip beside it:
+                          // the mockup's milestone chip overflowed narrow
+                          // screens and had no real data behind it.)
+                          Align(
+                            alignment: Alignment.centerRight,
+                            // Save button with gradient (primary -> primaryContainer)
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    AppTheme.primary,
+                                    AppTheme.primaryContainer,
                                   ],
                                 ),
-                              ),
-                              const Spacer(),
-                              // Save to Portfolio button with gradient (primary -> primaryContainer)
-                              Container(
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      AppTheme.primary,
-                                      AppTheme.primaryContainer,
-                                    ],
+                                borderRadius:
+                                    BorderRadius.circular(AppTheme.radiusRound),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color:
+                                        AppTheme.primary.withValues(alpha: 0.2),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
                                   ),
+                                ],
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: _hasChanges ? _save : null,
                                   borderRadius: BorderRadius.circular(
                                       AppTheme.radiusRound),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppTheme.primary
-                                          .withValues(alpha: 0.2),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 4),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppTheme.spacingLg,
+                                      vertical: AppTheme.spacingMd,
                                     ),
-                                  ],
-                                ),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    onTap: _hasChanges ? _save : null,
-                                    borderRadius: BorderRadius.circular(
-                                        AppTheme.radiusRound),
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: AppTheme.spacingLg,
-                                        vertical: AppTheme.spacingMd,
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Text(
-                                            'Save to Portfolio',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14,
-                                            ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Text(
+                                          'Save Entry',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
                                           ),
-                                          const SizedBox(
-                                              width: AppTheme.spacingMd),
-                                          Icon(
-                                            Icons.arrow_upward,
-                                            size: 18,
-                                            color: Colors.white
-                                                .withValues(alpha: 0.8),
-                                          ),
-                                        ],
-                                      ),
+                                        ),
+                                        const SizedBox(
+                                            width: AppTheme.spacingMd),
+                                        Icon(
+                                          Icons.arrow_upward,
+                                          size: 18,
+                                          color: Colors.white
+                                              .withValues(alpha: 0.8),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),
                               ),
-                            ],
+                            ),
                           ),
                         ],
                       ),
@@ -621,7 +610,7 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
                     const SizedBox(height: AppTheme.spacingXl),
 
                     // Contextual Verse section (if tagged)
-                    if (_taggedScriptureReferences.isNotEmpty) ...[
+                    if (mainScripture != null) ...[
                       Container(
                         padding: const EdgeInsets.all(AppTheme.spacingLg),
                         decoration: BoxDecoration(
@@ -645,7 +634,7 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
                             const SizedBox(height: AppTheme.spacingMd),
                             // Scripture quote in italic Merriweather
                             Text(
-                              '"And behold, I tell you these things that ye may learn wisdom; that ye may learn that when ye are in the service of your fellow beings ye are only in the service of your God."',
+                              '"${mainScripture.fullText}"',
                               style: Theme.of(context)
                                   .textTheme
                                   .bodyMedium
@@ -657,7 +646,7 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
                             const SizedBox(height: AppTheme.spacingMd),
                             // Reference below in secondary color
                             Text(
-                              mainScriptureRef ?? '',
+                              mainScripture.reference,
                               style: Theme.of(context)
                                   .textTheme
                                   .labelMedium
@@ -686,7 +675,7 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'PORTFOLIO PROGRESS',
+                            'JOURNAL PROGRESS',
                             style: Theme.of(context)
                                 .textTheme
                                 .labelSmall
@@ -707,7 +696,8 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
                                   BorderRadius.circular(AppTheme.radiusRound),
                             ),
                             child: FractionallySizedBox(
-                              widthFactor: 0.75,
+                              alignment: Alignment.centerLeft,
+                              widthFactor: milestoneProgress,
                               child: Container(
                                 decoration: BoxDecoration(
                                   color: AppTheme.secondary,
@@ -719,7 +709,10 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
                           ),
                           const SizedBox(height: AppTheme.spacingMd),
                           Text(
-                            'You are 2 reflections away from your next Mastery Seal.',
+                            entryCount == 0
+                                ? 'Write your first reflection to start your journal.'
+                                : '$entryCount ${entryCount == 1 ? 'reflection' : 'reflections'} written — '
+                                    '$entriesToMilestone more to your next milestone.',
                             style: Theme.of(context)
                                 .textTheme
                                 .labelMedium
@@ -743,7 +736,8 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
   }
 
   String _formatDate() {
-    final now = DateTime.now();
+    // Show when the entry was started, not today — matters when re-editing.
+    final now = widget.entry.createdAt;
     final months = [
       'January',
       'February',

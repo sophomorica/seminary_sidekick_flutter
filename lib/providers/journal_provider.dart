@@ -91,6 +91,36 @@ class JournalNotifier extends StateNotifier<JournalState> {
     state = state.copyWith(activeEntry: entry);
   }
 
+  /// Create and persist an entry in one step WITHOUT opening the editor.
+  ///
+  /// Used by "Save to journal" in the Sidekick chat (TASK-066): the insight
+  /// is captured in the background so the user never leaves the conversation.
+  /// [prompt] carries the user's question that led to the insight, reusing
+  /// the existing prompt field (shows as the entry's inspiration).
+  Future<JournalEntry> addQuickEntry({
+    required String content,
+    String? title,
+    String? prompt,
+  }) async {
+    final base = JournalEntry.create(prompt: prompt);
+    final entry = base.copyWith(
+      title: title ?? _generateTitle(content, prompt),
+      content: content,
+    );
+
+    try {
+      final box = Hive.box<String>(_boxName);
+      await box.put(entry.id, jsonEncode(entry.toJson()));
+    } catch (_) {
+      // Persist failure is non-fatal
+    }
+
+    final entries = List<JournalEntry>.from(state.entries)..insert(0, entry);
+    entries.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    state = state.copyWith(entries: entries);
+    return entry;
+  }
+
   /// Save the current active entry (create or update).
   Future<void> saveEntry({
     required String title,

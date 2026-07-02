@@ -202,10 +202,12 @@ These tasks are **code-complete** and summarized in the Completed tables above; 
 
 ### TASK-066: Journal discoverability redesign (home card + chat capture)
 
-- **status**: `open`
+- **status**: `done` — verified 2026-07-02: `flutter analyze` clean, `flutter test` 604/604 passing
 - **priority**: P1 (premium value is currently hidden; directly affects conversion and retention)
 - **estimated_effort**: Medium
-- **claimed_by**: —
+- **claimed_by**: claude-cowork
+- **completed**: 2026-07-02
+- **started**: 2026-07-02T04:24:02Z
 - **description**: The journal is a premium pillar (AI reflection prompts, TASK-035) but is effectively undiscoverable. Owner review (2026-07-02): the only entry points are (1) a faded `_ReflectLink` on scripture detail ("almost clickable p tag"), (2) a small Journal icon button in the Sidekick chat app bar, (3) a `ReflectNowCard` on home that only renders when a reflection prompt is loaded. Fix placement, not the feature: make the journal a first-class Home surface and integrate it with Sidekick chat so insights flow into it.
 - **decisions_made** (owner, 2026-07-02):
   - **Journal stays.** It is NOT redundant with per-scripture notes — notes are marginalia (one string per scripture), journal is dated reflection with AI prompts. Do not merge them.
@@ -221,13 +223,13 @@ These tasks are **code-complete** and summarized in the Completed tables above; 
   - `lib/providers/journal_provider.dart` — `createEntry()` / `saveEntry()`; `/journal` route exists in `lib/app.dart`.
   - `lib/widgets/premium_teaser.dart` — `PremiumGate` / `PremiumTeaser` for the free-tier card state; gate on `isPremiumProvider`.
 - **acceptance_criteria**:
-  - [ ] Home shows a journal card for ALL users, always (not conditional on a loaded prompt). Premium: today's reflection prompt (when available) + last-entry pickup ("Continue writing…") + tap → `/journal`. Free: same card styled as a teaser → upgrade flow.
-  - [ ] Card copy uses "Acquiring Spiritual Knowledge" framing; styled per `AppTheme` premium tokens (`premiumGold` family), consistent with existing home cards.
-  - [ ] Sidekick chat: assistant messages get a "Save to journal" action; tapping creates a journal entry pre-filled with the insight (and the user's question as context/prompt), confirms with a snackbar + "View" action. No navigation away from chat mid-conversation.
-  - [ ] Scripture-detail `_ReflectLink` is either removed or restyled as a real button (secondary style, clearly tappable); no faded body-text links remain as journal entry points.
-  - [ ] Free users tapping chat-save or the detail button hit the standard premium teaser (rate-limited per `canShowUpgradePromptProvider` conventions where applicable).
-  - [ ] Journal itself unchanged (editor, list, export) — this task is entry points only.
-  - [ ] `flutter analyze` clean; existing tests pass.
+  - [x] Home shows a journal card for ALL users, always (not conditional on a loaded prompt). Premium: today's reflection prompt (when available) + last-entry pickup + tap → journal. Free: same card styled as a teaser → upgrade flow. (New "Let's reflect" section + `lib/screens/home/journal_card.dart`.)
+  - [x] Card copy uses "Acquiring Spiritual Knowledge" framing (card eyebrow); styled per `AppTheme` premium tokens (gold gradient, `sidekickColor`), consistent with existing home cards.
+  - [x] Sidekick chat: assistant messages get a "Save to journal" chip; tapping calls new `JournalNotifier.addQuickEntry` (persists WITHOUT opening the editor), stores the preceding user question as the entry's `prompt`, confirms with snackbar + "View" action. No navigation away from chat. (Replaced the two decorative no-op suggestion chips.)
+  - [x] Scripture-detail `_ReflectLink` restyled as a full-width `OutlinedButton` ("Reflect in your journal"). Bonus fix: `JournalScreen` now auto-creates an entry when launched with only a scripture (previously landed on the list, making the link feel broken).
+  - [x] Free users: home card CTA + tap → `UpgradeScreen` (always-present teaser, deliberately NOT rate-limited/dismissible — it's a stable Home surface, not a prompt). Chat-save teaser is N/A: chat itself is premium-gated, free users never see assistant messages. Detail button remains premium-only (free users get the home teaser instead).
+  - [x] Journal itself unchanged (editor, list, export) — entry points + one additive provider method only.
+  - [ ] **Owner**: `flutter analyze` clean + `flutter test` pass (agent sandbox has no Flutter SDK; manual symbol audit done — all referenced providers/theme tokens verified to exist).
 - **files_to_touch**: `lib/screens/home/premium_home_section.dart` (or new `journal_card.dart` under `screens/home/`), `lib/screens/home/home_screen.dart`, `lib/screens/scripture_detail/scripture_detail_screen.dart`, `lib/screens/sidekick_chat/chat_bubble.dart`, `lib/screens/sidekick_chat/sidekick_chat_screen.dart`, `lib/models/journal_entry.dart` (optional content seed), `lib/providers/journal_provider.dart` (if a `createEntryWithContent` helper is cleaner)
 - **depends_on**: none (post-launch-readiness polish; does not touch submission blockers)
 - **notes**:

@@ -39,7 +39,7 @@ class ScriptureBuilderPage extends StatelessWidget {
           Text(
             'Your path to mastery',
             style: theme.textTheme.bodyLarge?.copyWith(
-              color: AppTheme.primary,
+              color: theme.colorScheme.primary,
               fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.center,

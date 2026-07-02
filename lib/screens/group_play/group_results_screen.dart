@@ -178,12 +178,12 @@ class _GroupResultsScreenState extends ConsumerState<GroupResultsScreen> {
                 numberOfParticles: 25,
                 gravity: 0.2,
                 shouldLoop: false,
-                colors: const [
-                  AppTheme.primary,
+                colors: [
+                  Theme.of(context).colorScheme.primary,
                   AppTheme.secondary,
                   AppTheme.tertiary,
                   AppTheme.gold,
-                  Color(0xFF81C784),
+                  const Color(0xFF81C784),
                 ],
               ),
             ),
@@ -541,12 +541,12 @@ class _LeaderboardRow extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: isMe
-            ? AppTheme.primary.withValues(alpha: 0.10)
+            ? theme.colorScheme.primary.withValues(alpha: 0.10)
             : theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
         border: isMe
             ? Border.all(
-                color: AppTheme.primary.withValues(alpha: 0.5),
+                color: theme.colorScheme.primary.withValues(alpha: 0.5),
                 width: 1.5,
               )
             : null,
@@ -559,7 +559,9 @@ class _LeaderboardRow extends StatelessWidget {
               '$rank',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w800,
-                color: isMe ? AppTheme.primary : theme.colorScheme.onSurface,
+                color: isMe
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurface,
               ),
             ),
           ),
@@ -591,7 +593,9 @@ class _LeaderboardRow extends StatelessWidget {
             score,
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w800,
-              color: isMe ? AppTheme.primary : theme.colorScheme.onSurface,
+              color: isMe
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurface,
             ),
           ),
         ],

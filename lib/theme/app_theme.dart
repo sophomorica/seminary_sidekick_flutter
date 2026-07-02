@@ -10,63 +10,63 @@ import 'package:google_fonts/google_fonts.dart';
 class AppTheme {
   AppTheme._();
 
-  // ─── Sacred Editorial Color Palette (Material Tokens) ──────────
-  // Primary: active states, brand moments
-  static const Color primary = Color(0xFF94492C);
-  static const Color primaryContainer = Color(0xFFD9805F);
-  static const Color primaryFixed = Color(0xFFFFDBCF);
-  static const Color primaryFixedDim = Color(0xFFFFB59B);
+  // ─── "Midnight & Gold" Color Palette (Material Tokens) ─────────
+  // Primary: deep navy — active states, brand moments
+  static const Color primary = Color(0xFF2F4374);
+  static const Color primaryContainer = Color(0xFF5C77AE);
+  static const Color primaryFixed = Color(0xFFDCE4F9);
+  static const Color primaryFixedDim = Color(0xFF9FB4E8);
   static const Color onPrimary = Color(0xFFFFFFFF);
-  static const Color onPrimaryContainer = Color(0xFF581C03);
-  static const Color onPrimaryFixed = Color(0xFF380D00);
-  static const Color onPrimaryFixedVariant = Color(0xFF763218);
+  static const Color onPrimaryContainer = Color(0xFF12224A);
+  static const Color onPrimaryFixed = Color(0xFF071336);
+  static const Color onPrimaryFixedVariant = Color(0xFF1E3260);
 
-  // Secondary: steady, calming elements (progress tracking)
-  static const Color secondary = Color(0xFF3B665F);
-  static const Color secondaryContainer = Color(0xFFBEECE2);
-  static const Color secondaryFixed = Color(0xFFBEECE2);
-  static const Color secondaryFixedDim = Color(0xFFA3CFC6);
+  // Secondary: steel blue — steady, calming elements (progress tracking)
+  static const Color secondary = Color(0xFF3F6E9C);
+  static const Color secondaryContainer = Color(0xFFC7DDF0);
+  static const Color secondaryFixed = Color(0xFFC7DDF0);
+  static const Color secondaryFixedDim = Color(0xFF8FB5D9);
   static const Color onSecondary = Color(0xFFFFFFFF);
-  static const Color onSecondaryContainer = Color(0xFF426C65);
-  static const Color onSecondaryFixed = Color(0xFF00201C);
-  static const Color onSecondaryFixedVariant = Color(0xFF234E47);
+  static const Color onSecondaryContainer = Color(0xFF33608C);
+  static const Color onSecondaryFixed = Color(0xFF0A1E30);
+  static const Color onSecondaryFixedVariant = Color(0xFF275178);
 
   // Tertiary/Gold: RESERVED for "Sacred Moments" — achievements,
   // scripture mastery milestones, premium features
-  static const Color tertiary = Color(0xFF735C00);
-  static const Color tertiaryContainer = Color(0xFFCCA72F);
-  static const Color tertiaryFixed = Color(0xFFFFE088);
-  static const Color tertiaryFixedDim = Color(0xFFE9C349);
+  static const Color tertiary = Color(0xFF6F5A10);
+  static const Color tertiaryContainer = Color(0xFFB8942A);
+  static const Color tertiaryFixed = Color(0xFFF4E3A6);
+  static const Color tertiaryFixedDim = Color(0xFFE3C35C);
   static const Color onTertiary = Color(0xFFFFFFFF);
-  static const Color onTertiaryContainer = Color(0xFF4E3D00);
-  static const Color onTertiaryFixed = Color(0xFF241A00);
-  static const Color onTertiaryFixedVariant = Color(0xFF574500);
+  static const Color onTertiaryContainer = Color(0xFF4A3B08);
+  static const Color onTertiaryFixed = Color(0xFF241C00);
+  static const Color onTertiaryFixedVariant = Color(0xFF55430A);
 
-  // Surface hierarchy — "stacked sheets of fine, translucent paper"
-  static const Color surface = Color(0xFFFFF8F6);         // Base "paper"
-  static const Color surfaceBright = Color(0xFFFFF8F6);
+  // Surface hierarchy — cool "midnight paper" sheets
+  static const Color surface = Color(0xFFF7F8FC);         // Base "paper"
+  static const Color surfaceBright = Color(0xFFF7F8FC);
   static const Color surfaceContainerLowest = Color(0xFFFFFFFF);  // Floating (lifted)
-  static const Color surfaceContainerLow = Color(0xFFFFF1EC);     // Sections
-  static const Color surfaceContainer = Color(0xFFFBEBE6);
-  static const Color surfaceContainerHigh = Color(0xFFF5E5E0);
-  static const Color surfaceContainerHighest = Color(0xFFEFDFDA);
-  static const Color surfaceDim = Color(0xFFE6D7D2);
-  static const Color surfaceVariant = Color(0xFFEFDFDA);
-  static const Color surfaceTint = Color(0xFF94492C);
+  static const Color surfaceContainerLow = Color(0xFFEFF2F9);     // Sections
+  static const Color surfaceContainer = Color(0xFFE9EDF6);
+  static const Color surfaceContainerHigh = Color(0xFFE2E7F2);
+  static const Color surfaceContainerHighest = Color(0xFFDBE1EE);
+  static const Color surfaceDim = Color(0xFFD4DBEA);
+  static const Color surfaceVariant = Color(0xFFDBE1EE);
+  static const Color surfaceTint = Color(0xFF2F4374);
 
   // On-surface text
-  static const Color onSurface = Color(0xFF221A17);
-  static const Color onSurfaceVariant = Color(0xFF54433D);
-  static const Color onBackground = Color(0xFF221A17);
+  static const Color onSurface = Color(0xFF1B2233);
+  static const Color onSurfaceVariant = Color(0xFF4E5871);
+  static const Color onBackground = Color(0xFF1B2233);
 
   // Outline
-  static const Color outline = Color(0xFF87736C);
-  static const Color outlineVariant = Color(0xFFDAC1B9);
+  static const Color outline = Color(0xFF737E98);
+  static const Color outlineVariant = Color(0xFFC9D2E5);
 
   // Inverse
-  static const Color inverseSurface = Color(0xFF372E2B);
-  static const Color inverseOnSurface = Color(0xFFFEEDE8);
-  static const Color inversePrimary = Color(0xFFFFB59B);
+  static const Color inverseSurface = Color(0xFF2F3547);
+  static const Color inverseOnSurface = Color(0xFFEFF1FA);
+  static const Color inversePrimary = Color(0xFF9FB4E8);
 
   // Error
   static const Color error = Color(0xFFBA1A1A);
@@ -75,30 +75,30 @@ class AppTheme {
   static const Color onErrorContainer = Color(0xFF93000A);
 
   // ─── Legacy Aliases (backward compatibility) ────────────────────
-  static const Color primaryDark = Color(0xFF763218);
-  static const Color primaryLight = Color(0xFFFFB59B);
-  static const Color secondaryDark = Color(0xFF234E47);
-  static const Color secondaryLight = Color(0xFFA3CFC6);
+  static const Color primaryDark = Color(0xFF1E3260);
+  static const Color primaryLight = Color(0xFF9FB4E8);
+  static const Color secondaryDark = Color(0xFF275178);
+  static const Color secondaryLight = Color(0xFF8FB5D9);
   static const Color accent = Color(0xFF5B8ABF);
   static const Color accentLight = Color(0xFF89B4DB);
-  static const Color dark = Color(0xFF221A17);       // on-surface
-  static const Color darkSurface = Color(0xFF54433D); // on-surface-variant
-  static const Color cream = Color(0xFFFFF1EC);       // surface-container-low
+  static const Color dark = Color(0xFF1B2233);       // on-surface
+  static const Color darkSurface = Color(0xFF4E5871); // on-surface-variant
+  static const Color cream = Color(0xFFEFF2F9);       // surface-container-low
   // "offWhite" is now "surface"
-  static const Color offWhite = Color(0xFFFFF8F6);
+  static const Color offWhite = Color(0xFFF7F8FC);
 
   // ─── Game Feedback Colors ───────────────────────────────────────
   static const Color success = Color(0xFF66BB6A);
   static const Color successLight = Color(0xFFE8F5E9);
   static const Color warning = Color(0xFFFFA726);
   static const Color errorLight = Color(0xFFFFEBEE);
-  static const Color gold = Color(0xFF735C00);  // aligned with tertiary
+  static const Color gold = Color(0xFF6F5A10);  // aligned with tertiary
 
   // ─── Premium / Upgrade Colors (now tertiary-aligned) ────────────
-  static const Color premiumGold = Color(0xFFCCA72F);
-  static const Color premiumGoldLight = Color(0xFFFFE088);
-  static const Color premiumGradientStart = Color(0xFFCCA72F);
-  static const Color premiumGradientEnd = Color(0xFFE9C349);
+  static const Color premiumGold = Color(0xFFB8942A);
+  static const Color premiumGoldLight = Color(0xFFF4E3A6);
+  static const Color premiumGradientStart = Color(0xFFB8942A);
+  static const Color premiumGradientEnd = Color(0xFFD6B45E);
 
   // ─── Mastery Level Colors ───────────────────────────────────────
   static const Color masteryNew = Color(0xFF9E9E9E);
@@ -106,7 +106,7 @@ class AppTheme {
   static const Color masteryFamiliar = Color(0xFFFFD54F);
   static const Color masteryMemorized = Color(0xFF81C784);
   static const Color masteryMastered = Color(0xFF64B5F6);
-  static const Color masteryEternal = Color(0xFFCCA72F);  // Sacred gold
+  static const Color masteryEternal = Color(0xFFB8942A);  // Sacred gold
 
   // ─── Book Colors ────────────────────────────────────────────────
   static const Color oldTestamentColor = Color(0xFF8D6E63);
@@ -114,14 +114,14 @@ class AppTheme {
   static const Color bookOfMormonColor = Color(0xFF26A69A);
   static const Color doctrineCovenants = Color(0xFFAB47BC);
 
-  // ─── Dark Mode — "Deep Grove" (green-slate, matching app logo) ──
-  static const Color darkBackground = Color(0xFF1A2226);
-  static const Color darkCard = Color(0xFF222E32);
-  static const Color darkSurfaceColor = Color(0xFF1E2A2E);
-  static const Color darkOnSurface = Color(0xFFE2EBE8); // cool sage-tinted white
-  static const Color darkSurfaceContainerLow = Color(0xFF263236);
-  static const Color darkSurfaceContainer = Color(0xFF2E3A3E);
-  static const Color darkSurfaceContainerHigh = Color(0xFF384448);
+  // ─── Dark Mode — "Midnight" (deep navy-slate) ───────────────────
+  static const Color darkBackground = Color(0xFF131A2B);
+  static const Color darkCard = Color(0xFF1C2438);
+  static const Color darkSurfaceColor = Color(0xFF182034);
+  static const Color darkOnSurface = Color(0xFFE4E9F5); // cool blue-tinted white
+  static const Color darkSurfaceContainerLow = Color(0xFF212A42);
+  static const Color darkSurfaceContainer = Color(0xFF27314C);
+  static const Color darkSurfaceContainerHigh = Color(0xFF2F3A58);
 
   // ─── Spacing ────────────────────────────────────────────────────
   static const double spacingXs = 4.0;
@@ -142,7 +142,7 @@ class AppTheme {
   // ─── Ambient Shadows (tinted, never pure black) ─────────────────
   static const List<BoxShadow> editorialShadow = [
     BoxShadow(
-      color: Color(0x0F221A17), // on-surface at 6%
+      color: Color(0x0F1B2233), // on-surface at 6%
       blurRadius: 20,
       offset: Offset(0, 4),
     ),
@@ -150,7 +150,7 @@ class AppTheme {
 
   static const List<BoxShadow> floatingShadow = [
     BoxShadow(
-      color: Color(0x0A221A17), // on-surface at 4%
+      color: Color(0x0A1B2233), // on-surface at 4%
       blurRadius: 40,
       offset: Offset(0, 12),
     ),
@@ -224,7 +224,7 @@ class AppTheme {
     );
   }
 
-  // ─── Dark Theme — "Deep Grove" ───────────────────────────────────
+  // ─── Dark Theme — "Midnight" ─────────────────────────────────────
   static ThemeData getDarkTheme() {
     const colorScheme = ColorScheme(
       brightness: Brightness.dark,
@@ -246,18 +246,20 @@ class AppTheme {
       onErrorContainer: onErrorContainer,
       surface: darkBackground,
       onSurface: darkOnSurface,
-      surfaceContainerLowest: darkBackground,
+      // "Floating (lifted)" in this design system — must sit above the
+      // scaffold background or cards lose their shape in dark mode.
+      surfaceContainerLowest: darkCard,
       surfaceContainerLow: darkSurfaceContainerLow,
       surfaceContainer: darkSurfaceContainer,
       surfaceContainerHigh: darkSurfaceContainerHigh,
-      surfaceContainerHighest: Color(0xFF425054),  // green-slate highest
-      onSurfaceVariant: Color(0xFFB9CFC8),         // sage-tinted muted text
-      outline: Color(0xFF6C8780),                   // green-tinted outline
-      outlineVariant: Color(0xFF3D5450),            // subtle green border
-      inverseSurface: Color(0xFFE2EBE8),            // light sage
-      onInverseSurface: Color(0xFF1A2226),          // dark on light
+      surfaceContainerHighest: Color(0xFF3A4666),  // navy-slate highest
+      onSurfaceVariant: Color(0xFFA9B4CE),         // blue-tinted muted text
+      outline: Color(0xFF6F7DA0),                   // blue-tinted outline
+      outlineVariant: Color(0xFF2E3A57),            // subtle navy border
+      inverseSurface: Color(0xFFE4E9F5),            // light blue-white
+      onInverseSurface: Color(0xFF131A2B),          // dark on light
       inversePrimary: primary,
-      surfaceTint: secondaryFixedDim,               // green tint instead of brown
+      surfaceTint: primaryFixedDim,                 // soft navy tint
     );
 
     return ThemeData(

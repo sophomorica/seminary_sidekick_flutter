@@ -600,8 +600,9 @@ class _MatchTile extends StatelessWidget {
       borderColor = AppTheme.accent;
       textColor = Theme.of(context).colorScheme.onSurface;
     } else if (isSelected) {
-      bgColor = AppTheme.primary.withValues(alpha: 0.12);
-      borderColor = AppTheme.primary;
+      bgColor =
+          Theme.of(context).colorScheme.primary.withValues(alpha: 0.12);
+      borderColor = Theme.of(context).colorScheme.primary;
       textColor = Theme.of(context).colorScheme.primary;
     } else {
       bgColor = Theme.of(context).colorScheme.surface;
@@ -620,7 +621,10 @@ class _MatchTile extends StatelessWidget {
         boxShadow: isSelected
             ? [
                 BoxShadow(
-                  color: AppTheme.primary.withValues(alpha: 0.15),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.15),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -638,7 +642,10 @@ class _MatchTile extends StatelessWidget {
               Icons.drag_indicator,
               size: 16,
               color: isSelected
-                  ? AppTheme.primary.withValues(alpha: 0.7)
+                  ? Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.7)
                   : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
             ),
             const SizedBox(width: 6),

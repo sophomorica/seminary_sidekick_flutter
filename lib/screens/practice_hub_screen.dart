@@ -53,7 +53,7 @@ class PracticeHubScreen extends ConsumerWidget {
                 title: 'Scripture Builder',
                 subtitle: 'Prove a scripture from memory',
                 icon: Icons.construction,
-                accent: AppTheme.primary,
+                accent: Theme.of(context).colorScheme.primary,
                 masteryBadge: true,
                 onTap: () => showGameSetupSheet(
                   context,

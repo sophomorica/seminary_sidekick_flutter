@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../models/enums.dart';
-import '../../theme/app_theme.dart';
 
 class BookCard extends StatelessWidget {
   final ScriptureBook book;
@@ -28,7 +27,7 @@ class BookCard extends StatelessWidget {
               Icon(
                 _getIconForBook(book),
                 size: 32,
-                color: AppTheme.primary,
+                color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(height: 12),
               Text(

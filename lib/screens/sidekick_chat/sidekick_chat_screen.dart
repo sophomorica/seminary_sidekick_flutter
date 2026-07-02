@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../providers/journal_provider.dart';
 import '../../providers/sidekick_provider.dart';
 import '../../providers/scripture_provider.dart';
 import '../../providers/subscription_provider.dart';
+import '../../services/haptic_service.dart';
 import '../../theme/app_theme.dart';
 import 'chat_bubble.dart';
 import 'chat_empty_state.dart';
@@ -24,9 +26,15 @@ class SidekickChatScreen extends ConsumerStatefulWidget {
   /// Optional scripture ID to pre-populate context (e.g., from scripture detail).
   final String? initialScriptureId;
 
+  /// Optional message to auto-send on open (e.g., the suggested question shown
+  /// on the scripture detail card). Takes precedence over the generic
+  /// scripture-context message built from [initialScriptureId].
+  final String? initialMessage;
+
   const SidekickChatScreen({
     super.key,
     this.initialScriptureId,
+    this.initialMessage,
   });
 
   @override
@@ -43,8 +51,9 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
   @override
   void initState() {
     super.initState();
-    // If opened from a scripture detail, auto-send a context message
-    if (widget.initialScriptureId != null && !_hasAutoSentInitial) {
+    // If opened with a question or scripture context, auto-send it
+    if ((widget.initialMessage != null || widget.initialScriptureId != null) &&
+        !_hasAutoSentInitial) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _sendInitialContextMessage();
       });
@@ -55,18 +64,18 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
     if (_hasAutoSentInitial) return;
     _hasAutoSentInitial = true;
 
-    final scripture =
-        ref.read(scriptureByIdProvider(widget.initialScriptureId!));
-    if (scripture == null) return;
-
     // Only auto-send if chat is empty (don't re-send on rebuild)
     final chatHistory = ref.read(chatHistoryProvider);
     if (chatHistory.isNotEmpty) return;
 
-    // Build a contextual message that references the scripture
-    final message = 'Peace be with you. I see you\'ve spent some time today in '
-        '${scripture.reference}. The imagery of "${scripture.keyPhrase}" is '
-        'powerful. Let\'s sit with that.';
+    var message = widget.initialMessage;
+    if (message == null) {
+      final scripture =
+          ref.read(scriptureByIdProvider(widget.initialScriptureId!));
+      if (scripture == null) return;
+      message = 'Can you help me understand ${scripture.reference}? '
+          'I\'ve been studying "${scripture.keyPhrase}"';
+    }
 
     ref.read(sidekickProvider.notifier).sendMessage(message);
   }
@@ -145,9 +154,13 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
                       if (index == chatHistory.length && isLoading) {
                         return const TypingIndicator();
                       }
+                      final msg = chatHistory[index];
                       return ChatBubble(
-                        message: chatHistory[index],
+                        message: msg,
                         onScriptureTap: _navigateToScripture,
+                        onSaveToJournal: msg.role == 'assistant'
+                            ? () => _saveMessageToJournal(index)
+                            : null,
                       );
                     },
                   ),
@@ -169,7 +182,9 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final canPop = Navigator.of(context).canPop();
     return Container(
-      color: isDark ? AppTheme.darkBackground : Theme.of(context).colorScheme.surface,
+      color: isDark
+          ? AppTheme.darkBackground
+          : Theme.of(context).colorScheme.surface,
       padding: EdgeInsets.fromLTRB(
         canPop ? AppTheme.spacingSm : AppTheme.spacingMd,
         AppTheme.spacingMd,
@@ -194,25 +209,61 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
                   tooltip: 'Back',
                 ),
               ),
-            // Label
-            Text(
-              'Your Spiritual Guide',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppTheme.secondary,
-                    letterSpacing: 2.0,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Label
+                      Text(
+                        'Your Spiritual Guide',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: AppTheme.secondary,
+                              letterSpacing: 2.0,
+                            ),
+                      ),
+                      const SizedBox(height: AppTheme.spacingSm),
+                      // Title
+                      Text(
+                        'Walking in the Light',
+                        style: GoogleFonts.merriweather(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.onSurface,
+                          height: 1.2,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
                   ),
-            ),
-            const SizedBox(height: AppTheme.spacingSm),
-            // Title
-            Text(
-              'Walking in the Light',
-              style: GoogleFonts.merriweather(
-                fontSize: 32,
-                fontWeight: FontWeight.w700,
-                color: Theme.of(context).colorScheme.onSurface,
-                height: 1.2,
-                fontStyle: FontStyle.italic,
-              ),
+                ),
+                const SizedBox(width: AppTheme.spacingSm),
+                // Journal — the Sidekick's companion surface. This is the
+                // journal's one persistent entry point in the app.
+                TextButton.icon(
+                  onPressed: () => context.push('/journal'),
+                  icon: const Icon(Icons.auto_stories_outlined, size: 18),
+                  label: const Text('Journal'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.sidekickColor(context),
+                    backgroundColor:
+                        AppTheme.sidekickColor(context).withValues(alpha: 0.10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingMd,
+                      vertical: AppTheme.spacingSm,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+                    ),
+                    textStyle: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: AppTheme.spacingSm),
             // Subtitle
@@ -271,5 +322,46 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
 
   void _navigateToScripture(String scriptureId) {
     context.push('/scripture/$scriptureId');
+  }
+
+  /// Save a Sidekick insight as a journal entry without leaving the chat
+  /// (TASK-066). The preceding user question is stored as the entry's
+  /// prompt so the journal shows what inspired it.
+  Future<void> _saveMessageToJournal(int messageIndex) async {
+    final chatHistory = ref.read(chatHistoryProvider);
+    if (messageIndex < 0 || messageIndex >= chatHistory.length) return;
+    final message = chatHistory[messageIndex];
+
+    // Walk back to the user question that led to this insight.
+    String? question;
+    for (var i = messageIndex - 1; i >= 0; i--) {
+      if (chatHistory[i].role == 'user') {
+        question = chatHistory[i].content;
+        break;
+      }
+    }
+
+    final entry = await ref.read(journalProvider.notifier).addQuickEntry(
+          content: message.content,
+          prompt: question,
+        );
+
+    if (!mounted) return;
+    ref.read(hapticProvider).light();
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: const Text('Insight saved to your journal'),
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: 'View',
+            onPressed: () {
+              ref.read(journalProvider.notifier).editEntry(entry);
+              context.push('/journal');
+            },
+          ),
+        ),
+      );
   }
 }

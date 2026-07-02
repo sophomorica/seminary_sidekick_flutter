@@ -267,7 +267,7 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
   Color _getDifficultyColor(DifficultyLevel difficulty) {
     return switch (difficulty) {
       DifficultyLevel.beginner => AppTheme.secondary,
-      DifficultyLevel.intermediate => AppTheme.primary,
+      DifficultyLevel.intermediate => Theme.of(context).colorScheme.primary,
       DifficultyLevel.advanced => AppTheme.accent,
       DifficultyLevel.master => AppTheme.tertiary,
     };

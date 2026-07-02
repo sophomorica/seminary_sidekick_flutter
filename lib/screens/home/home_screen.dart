@@ -13,6 +13,7 @@ import '../../providers/user_preferences_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/game_setup_sheet.dart';
 import '../../widgets/group_play_card.dart';
+import 'journal_card.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -74,7 +75,7 @@ class HomeScreen extends ConsumerWidget {
                 Text(
                   greetingName,
                   style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        color: AppTheme.primary,
+                        color: Theme.of(context).colorScheme.primary,
                         fontStyle: FontStyle.italic,
                       ),
                 ),
@@ -103,7 +104,7 @@ class HomeScreen extends ConsumerWidget {
                       context,
                       label: 'Builder',
                       icon: Icons.construction,
-                      color: AppTheme.primary,
+                      color: Theme.of(context).colorScheme.primary,
                       onTap: () => showGameSetupSheet(
                         context,
                         gameType: GameType.scriptureBuilder,
@@ -147,6 +148,12 @@ class HomeScreen extends ConsumerWidget {
               const _HomeEyebrow("Let's learn"),
               const SizedBox(height: AppTheme.spacingSm),
               _buildBrowseTile(context),
+              const SizedBox(height: AppTheme.spacingXl),
+
+              // ─── Let's reflect — journal, always present (TASK-066) ───
+              const _HomeEyebrow("Let's reflect"),
+              const SizedBox(height: AppTheme.spacingSm),
+              const JournalCard(),
 
               // ─── Premium Quick Win — demoted below primary CTAs ───────
               if (isPremium && sidekickResponse?.quickWin != null) ...[
@@ -704,7 +711,7 @@ class _MasteryPips extends StatelessWidget {
         if (i < reached) {
           color = AppTheme.secondary;
         } else if (i == next) {
-          color = AppTheme.primary;
+          color = Theme.of(context).colorScheme.primary;
         } else {
           color = Theme.of(context).colorScheme.surfaceContainerHighest;
         }

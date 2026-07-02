@@ -222,7 +222,9 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
                                       const Divider(height: 16),
                                       _StatRow(
                                         icon: Icons.speed,
-                                        iconColor: AppTheme.primary,
+                                        iconColor: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
                                         label: 'Difficulty',
                                         value: widget.difficulty.label,
                                       ),
@@ -281,13 +283,13 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
                 numberOfParticles: 25,
                 gravity: 0.2,
                 shouldLoop: false,
-                colors: const [
-                  AppTheme.primary,
+                colors: [
+                  Theme.of(context).colorScheme.primary,
                   AppTheme.secondary,
                   AppTheme.accent,
-                  Color(0xFFFFD54F), // gold
-                  Color(0xFFFF8A65), // warm orange
-                  Color(0xFF81C784), // soft green
+                  const Color(0xFFFFD54F), // gold
+                  const Color(0xFFFF8A65), // warm orange
+                  const Color(0xFF81C784), // soft green
                 ],
               ),
               ),

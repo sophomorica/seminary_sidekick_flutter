@@ -59,7 +59,7 @@ class ChatEmptyState extends StatelessWidget {
             Text(
               'Begin the Conversation',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: AppTheme.primary,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
             ),
             const SizedBox(height: AppTheme.spacingMd),

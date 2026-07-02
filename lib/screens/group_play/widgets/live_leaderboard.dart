@@ -89,7 +89,7 @@ class _LeaderboardRow extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final rowFill = isMe
-        ? AppTheme.primary.withValues(alpha: 0.10)
+        ? theme.colorScheme.primary.withValues(alpha: 0.10)
         : (isDark
             ? AppTheme.darkSurfaceContainerHigh.withValues(alpha: 0.40)
             : AppTheme.surfaceContainer.withValues(alpha: 0.50));
@@ -102,7 +102,7 @@ class _LeaderboardRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
         border: isMe
             ? Border.all(
-                color: AppTheme.primary.withValues(alpha: 0.4),
+                color: theme.colorScheme.primary.withValues(alpha: 0.4),
                 width: 1,
               )
             : null,
@@ -144,7 +144,7 @@ class _LeaderboardRow extends StatelessWidget {
             '${player.score}',
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
-              color: AppTheme.primary,
+              color: theme.colorScheme.primary,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),

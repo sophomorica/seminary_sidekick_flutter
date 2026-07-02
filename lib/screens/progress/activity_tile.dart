@@ -22,10 +22,10 @@ class ActivityTile extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: _iconColor.withValues(alpha: 0.12),
+                  color: _iconColor(context).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 ),
-                child: Icon(_icon, color: _iconColor, size: 18),
+                child: Icon(_icon, color: _iconColor(context), size: 18),
               ),
               const SizedBox(width: 12),
               // Activity details
@@ -85,7 +85,7 @@ class ActivityTile extends StatelessWidget {
     }
   }
 
-  Color get _iconColor {
+  Color _iconColor(BuildContext context) {
     switch (activity.type) {
       case ActivityType.gameCompleted:
         return AppTheme.secondary;
@@ -94,7 +94,7 @@ class ActivityTile extends StatelessWidget {
       case ActivityType.streakMilestone:
         return AppTheme.warning;
       case ActivityType.firstAttempt:
-        return AppTheme.primary;
+        return Theme.of(context).colorScheme.primary;
       case ActivityType.perfectRun:
         return AppTheme.gold;
     }

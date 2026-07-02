@@ -224,7 +224,7 @@ class _WbRaceBoardState extends ConsumerState<SbRaceBoard>
               value: progress.clamp(0.0, 1.0),
               backgroundColor: theme.colorScheme.surfaceContainerHighest,
               valueColor:
-                  const AlwaysStoppedAnimation<Color>(AppTheme.primary),
+                  AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
               minHeight: 3,
             ),
           ),
@@ -267,7 +267,7 @@ class _WbRaceBoardState extends ConsumerState<SbRaceBoard>
 
   List<InlineSpan> _buildCanvasSpans(ThemeData theme) {
     final spans = <InlineSpan>[];
-    const color = AppTheme.primary;
+    final color = theme.colorScheme.primary;
     for (var i = 0; i < _targetChunks.length; i++) {
       final placed = _placedChunks[i];
       final target = _targetChunks[i];

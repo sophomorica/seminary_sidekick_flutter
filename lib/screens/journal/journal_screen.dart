@@ -35,8 +35,10 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
   @override
   void initState() {
     super.initState();
-    // If launched with a prompt, auto-create a new entry
-    if (widget.initialPrompt != null) {
+    // If launched with a prompt or a scripture to reflect on,
+    // auto-create a new entry (TASK-066: scripture-only launches used to
+    // land on the list, which made "Reflect on this verse" feel broken).
+    if (widget.initialPrompt != null || widget.initialScriptureId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref.read(journalProvider.notifier).createEntry(
               prompt: widget.initialPrompt,

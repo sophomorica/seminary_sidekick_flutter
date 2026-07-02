@@ -152,8 +152,8 @@ class ActiveGoalsSection extends ConsumerWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.flag_outlined,
-                  color: AppTheme.primary, size: 20),
+              Icon(Icons.flag_outlined,
+                  color: Theme.of(context).colorScheme.primary, size: 20),
               const SizedBox(width: 8),
               Text(
                 'Your Goals',
@@ -205,7 +205,7 @@ class _GoalTile extends ConsumerWidget {
                   border: Border.all(
                     color: goal.isSidekickSuggestion
                         ? AppTheme.sidekickColor(context)
-                        : AppTheme.primary,
+                        : Theme.of(context).colorScheme.primary,
                     width: 2,
                   ),
                 ),

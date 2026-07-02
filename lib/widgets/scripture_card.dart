@@ -50,7 +50,7 @@ class ScriptureCard extends ConsumerWidget {
                               .labelLarge
                               ?.copyWith(
                                 fontWeight: FontWeight.w600,
-                                color: AppTheme.primary,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                         ),
                         const SizedBox(height: 4),

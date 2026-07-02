@@ -19,13 +19,13 @@ class WelcomePage extends StatelessWidget {
             width: 120,
             height: 120,
             decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.12),
+              color: theme.colorScheme.primary.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.menu_book,
               size: 56,
-              color: AppTheme.primary,
+              color: theme.colorScheme.primary,
             ),
           ),
           const SizedBox(height: AppTheme.spacingXl),

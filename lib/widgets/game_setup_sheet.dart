@@ -121,13 +121,16 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
-                          color: AppTheme.primary.withValues(alpha: 0.12),
+                          color: Theme.of(ctx)
+                              .colorScheme
+                              .primary
+                              .withValues(alpha: 0.12),
                           borderRadius:
                               BorderRadius.circular(AppTheme.radiusSm),
                         ),
                         child: Icon(
                           widget.gameType.icon,
-                          color: AppTheme.primary,
+                          color: Theme.of(ctx).colorScheme.primary,
                           size: 20,
                         ),
                       ),

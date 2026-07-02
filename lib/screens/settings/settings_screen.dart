@@ -284,7 +284,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       icon: Icons.local_fire_department,
                       label: 'Current Streak',
                       value: '${streak.currentStreak} day${streak.currentStreak == 1 ? '' : 's'}',
-                      valueColor: AppTheme.primary,
+                      valueColor: Theme.of(context).colorScheme.primary,
                     ),
                     _buildDivider(context),
                     _buildInfoTile(
@@ -292,7 +292,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       icon: Icons.emoji_events_outlined,
                       label: 'Best Streak',
                       value: '${streak.bestStreak} day${streak.bestStreak == 1 ? '' : 's'}',
-                      valueColor: AppTheme.tertiary,
+                      valueColor: Theme.of(context).colorScheme.tertiary,
                     ),
                     _buildDivider(context),
                     _buildInfoTile(
@@ -471,11 +471,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     BuildContext context, {
     required List<Widget> children,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        boxShadow: AppTheme.editorialShadow,
+        // The tinted shadow is invisible on dark backgrounds; use a
+        // hairline border for card definition instead.
+        border: isDark
+            ? Border.all(
+                color: Theme.of(context)
+                    .colorScheme
+                    .outlineVariant
+                    .withValues(alpha: 0.5),
+              )
+            : null,
+        boxShadow: isDark ? null : AppTheme.editorialShadow,
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -526,8 +537,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           Switch.adaptive(
             value: value,
             onChanged: onChanged,
-            activeTrackColor: AppTheme.primary.withValues(alpha: 0.5),
-            activeThumbColor: AppTheme.primary,
+            activeTrackColor:
+                Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
         ],
       ),
@@ -557,8 +569,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onChanged: onChanged,
             underline: const SizedBox.shrink(),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.primary,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
+            iconEnabledColor: Theme.of(context).colorScheme.onSurfaceVariant,
             dropdownColor: Theme.of(context).colorScheme.surfaceContainerLowest,
             borderRadius: BorderRadius.circular(AppTheme.radiusMd),
           ),
