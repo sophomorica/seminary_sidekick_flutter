@@ -22,11 +22,11 @@
 - [X] ⚠️ **Confirm the privacy policy is live** at `https://seminarysidekick.com/privacy`.
 - [X] ⛔ **Capture screenshots** on the iPhone 6.9" simulator (and ideally an iPad) — see §6.
 - [X] ⚠️ **Paste the listing into App Store Connect** — **App Information** (§1), **listing copy** (§2), **App Privacy** (§3), **Age Rating** (§4), and **Review notes** (§5).
-- [ ] ⚠️ **Set the release build's dart-defines and archive** in Xcode:
+- [X] ⚠️ **Set the release build's dart-defines and archive** (done 2026-07-04):
   `flutter build ipa --dart-define=REVENUECAT_IOS_KEY=$REVENUECAT_IOS_KEY --dart-define=SUPABASE_URL=$SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY --dart-define=SENTRY_DSN=$SENTRY_DSN`
   (xAI key is **not** passed anymore — it lives in the proxy.)
-- [ ] ⚠️ **Upload the build**, attach it to the 1.0.0 version, and attach the two subscriptions to this version (clears their "Missing Metadata").
-- [ ] ⛔ **Submit for review.**
+- [X] ⚠️ **Upload the build** (Transporter, 2026-07-04) — attached to 1.0.0, both subscriptions attached, "Missing Metadata" cleared (needed subscription-group localization + per-sub review screenshot + availability).
+- [X] ⛔ **Submit for review — DONE 2026-07-04.** 🎉 (App priced Free, worldwide availability, iPad 13" screenshots included.)
 - [ ] _After approval:_ delete the leftover sample "Seminary Sidekick Pro" entitlement + Test Store products in RevenueCat (cosmetic).
 
 ---
@@ -170,6 +170,8 @@ The AI companion is scoped strictly to scripture study and runs behind a server-
 
 ## 6. Screenshots (you must capture these)
 
+> ✅ **Done 2026-07-03/04** — 9 iPhone 6.9" shots (order: home, memorize, match, builder chunk-tap, group-play lobby, quick quiz, chat, stats, journal) + 5 iPad 13" shots (home, library, scripture detail, builder, group-play lobby) uploaded via Media Manager. iPad 13" is *required* (not optional) because the Flutter build targets iPad (`TARGETED_DEVICE_FAMILY 1,2`).
+
 Required: **iPhone 6.9"** (e.g. iPhone 16 Pro Max simulator). Strongly recommended: **iPad 13"** if you ship for iPad. 3–10 images each; the first 1–3 matter most.
 
 Suggested shots (turn on dev-mode premium to capture the AI screens):
@@ -187,16 +189,19 @@ Tip: capture on the simulator with `⌘S`, or `flutter screenshot`. Keep them cl
 
 ## 7. Subscription review specifics (so IAP isn't rejected)
 
-- [ ] Attach **both subscriptions to the 1.0.0 version** and submit them **with** the build (first-time subs review alongside the app).
+- [X] Attach **both subscriptions to the 1.0.0 version** and submit them **with** the build (done 2026-07-04).
 - [X] Description includes the required **subscription disclosure** (price, period, auto-renew, manage/cancel) — keep it.
-- [X] Each subscription has a **localized display name + description**.
-- [ ] Add a **review screenshot** of the paywall to each subscription (use shot #5 / the upgrade screen).
+- [X] Each subscription has a **localized display name + description** (plus the subscription-**group** localization, which was the hidden "Missing Metadata" cause).
+- [X] Add a **review screenshot** of the paywall to each subscription (done 2026-07-04 — `14-paywall.png` on both).
 - [X] Upgrade button says **"Subscribe"** (no free trial configured) — no "Start Free Trial" rejection risk.
 
 ---
 
 ## 8. Still-open owner items beyond this submission
 
-- [X] **Sentry**: project created 2026-07-03; `SENTRY_DSN` in gitignored `.env` — pass it as a dart-define in the release build.
+- [X] **Sentry**: project created 2026-07-03; `SENTRY_DSN` in gitignored `.env` — passed as a dart-define in the submitted build.
+- [X] **Sidekick premium gate**: `REVENUECAT_SECRET_KEY` Supabase secret set + `sidekick-proxy` redeployed and enforcing (2026-07-04).
+- [ ] **Supabase free-tier auto-pause**: upgrade to Pro or set a keep-alive before launch — a paused project kills Group Play + Sidekick (already happened once).
 - [ ] **Android**: Play Console products + `REVENUECAT_ANDROID_KEY` + release signing (separate launch).
 - [ ] **Group Play**: two-instance realtime smoke test (TASK-051) before relying on it at class scale.
+- [ ] **After approval**: delete the sample "Seminary Sidekick Pro" entitlement + Test Store products in RevenueCat.

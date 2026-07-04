@@ -8,6 +8,21 @@
 
 ---
 
+## 🚀 Launch Status (updated 2026-07-04)
+
+**iOS v1.0.0 (build 1) SUBMITTED for App Review on 2026-07-04** — screenshots (9× iPhone 6.9", 5× iPad 13"), full listing metadata, privacy labels, age rating, both subscriptions attached and reviewing with the app, priced Free with worldwide availability. The sidekick-proxy premium entitlement gate is **enforcing** (`REVENUECAT_SECRET_KEY` set + redeployed 2026-07-04 — see `SUPABASE_SETUP.md`).
+
+**Open items while in / after review:**
+
+- [ ] **Supabase free-tier auto-pause** — the project pauses after ~7 days idle (it already bit us once during screenshot capture), which kills Group Play and Sidekick AI. Upgrade to Pro (~$25/mo) or set up a keep-alive **before real users arrive**.
+- [ ] **After approval — RevenueCat tidy-up**: delete the leftover sample "Seminary Sidekick Pro" entitlement + Test Store products.
+- [ ] **TASK-051 two-instance realtime smoke test** before relying on Group Play at class scale.
+- [ ] **TASK-045 audio ear-check** on device (see sanity-check list below).
+- [ ] **Android launch** (separate effort): Play Console products, `REVENUECAT_ANDROID_KEY`, release signing.
+- [ ] If Apple rejects/asks questions → resolve and resubmit (watch email + App Store Connect).
+
+---
+
 ## Completed Tasks (summary — see git history for details)
 
 ### Free-Tier MVP (2026-03-19 → 2026-04-06)
@@ -126,19 +141,16 @@
 |------|------|-----------|
 | (untracked, owner-paired) | **Sidekick safety + xAI key security + privacy/deletion (iOS launch blockers).** (1) **Safety prompt** — `sidekick_service.dart` prompts share a `_safetyGuardrails` block: age-appropriate/minors, no-doctrinal-authority disclaimer (defer to teacher/parent/bishop), stay-on-topic refusals, crisis→trusted-adult redirect, no disparagement. (2) **xAI key off the client** — new `sidekick-proxy` Supabase Edge Function (`supabase/functions/sidekick-proxy/index.ts`) holds `XAI_API_KEY` server-side + prepends the safety prompt; `sidekick_service.dart` calls it via `functions.invoke` (no more `--dart-define=XAI_API_KEY`). (3) **In-app data deletion** — Settings → "Delete All My Data" (`lib/services/data_reset_service.dart`) clears all Hive boxes + signs out the anon Supabase session + reloads providers. (4) **Privacy policy** — Settings links to `https://seminarysidekick.com/privacy` via new `url_launcher` dep. | 2026-06-13 |
 
-**Remaining owner steps (Sidekick / privacy):**
+**Owner steps (Sidekick / privacy):** ✅ all done — proxy deployed + `XAI_API_KEY` secret set (2026-06-13); premium entitlement gate enforcing via `REVENUECAT_SECRET_KEY` (2026-07-04); privacy policy live at `https://seminarysidekick.com/privacy` and on the App Store listing; `flutter analyze` clean + `flutter test` green (2026-07-03).
 
-- ✅ **Done 2026-06-13** — proxy deployed + secret set: `XAI_API_KEY` secret is set and `sidekick-proxy` is live (`supabase functions list` → ACTIVE, v1). The xAI key lives only as a Supabase secret (the `.env` copy is an inert reference; the app never reads it).
-- Confirm the privacy policy is actually live at `https://seminarysidekick.com/privacy` and add that URL to the App Store listing (App Privacy section).
-- `flutter pub get` (new `url_launcher` dependency), then `flutter analyze` + `flutter test`, and smoke-test Sidekick + the delete-data flow on device.
+**Owner steps (RevenueCat / store):** "Missing Metadata" ✅ cleared 2026-07-04 — build 1.0.0 (1) uploaded, review screenshots on both subscriptions, group localization added, both subs "Ready to Submit" and attached to the version. Still open (also tracked in Launch Status above): Android (Play Console products + `REVENUECAT_ANDROID_KEY` + release signing), optional App Store Connect API key for RevenueCat product sync, post-approval sample-entitlement tidy-up.
 
-**Remaining owner steps (RevenueCat / store):**
+### Journal Discoverability & App Store Submission (2026-07-02 → 2026-07-04)
 
-- **Android**: create the two subscriptions in Play Console, add the Play app + service-account JSON in RevenueCat, then put the `goog_…` key in `.env` as `REVENUECAT_ANDROID_KEY`.
-- **App Store Connect API key** (optional): products currently show "Could not check" in RevenueCat — add the App Store Connect API key (or wait for Apple approval) to enable product/price import + sync.
-- **Submit a build** to clear the subscriptions' "Missing Metadata" status (also needs a review screenshot per subscription).
-- **Tidy-up**: delete the leftover sample **"Seminary Sidekick Pro"** entitlement + Test Store products in RevenueCat (left for owner — deletion).
-- Android release signing. (Privacy policy / account deletion and Sidekick safety + xAI key backend proxy are now done — see the Sidekick/privacy section above; proxy deployed 2026-06-13.)
+| Task | What | Completed |
+|------|------|-----------|
+| TASK-066 | Journal discoverability redesign — always-present Home journal card ("Acquiring Spiritual Knowledge" framing; premium teaser for free users; new `lib/screens/home/journal_card.dart`), Sidekick chat "Save to journal" chips (`JournalNotifier.addQuickEntry`, no-navigation save + snackbar), scripture-detail reflect link restyled as a full-width `OutlinedButton`, journal auto-creates an entry when launched with a scripture. Verified: `flutter analyze` clean, 604/604 tests. | 2026-07-02 |
+| (untracked, owner-paired) | **App Store submission.** Sentry project + `SENTRY_DSN` wired via `.env` dart-define; MAINT-004 typing-punctuation fix (+2 regression tests); sidekick-proxy RevenueCat entitlement gate shipped and later set enforcing (2026-07-04); 9 iPhone 6.9" + 5 iPad 13" screenshots; full ASC metadata (listing copy, keywords, privacy labels, age rating, review info); subscription group localization + per-sub review screenshots + availability; app priced Free, worldwide availability; `flutter build ipa` + Transporter upload; build attached; **submitted for review 2026-07-04**. | 2026-07-04 |
 
 ---
 
@@ -161,9 +173,9 @@
 
 ### ✅ Done — pending only an owner sanity check
 
-These tasks are **code-complete** and summarized in the Completed tables above; their full specs live in git history. The only thing left on each is a manual check the agent sandbox can't run (no Flutter SDK, no second device). Not code blockers — worth ticking before submit:
+These tasks are **code-complete** and summarized in the Completed tables above; their full specs live in git history. The only thing left on each is a manual check the agent sandbox can't run (no Flutter SDK, no second device). Not code blockers — the app is already submitted; worth ticking before launch-day traffic:
 
-- [ ] **Run the suite locally** — `flutter pub get && flutter analyze && flutter test` (covers TASK-045, TASK-063, and the Sidekick/RevenueCat work).
+- [x] **Run the suite locally** — done 2026-07-03: `flutter analyze` clean, `flutter test` all green.
 - [ ] **TASK-045 audio ear-check** — play through Scripture Builder / Quick Quiz / Match / group lobby + quiz countdown; re-pick any sound that doesn't land. (One open call: the `streak_milestone` chime is wired to the per-scripture answer streak `[5,10,25,50,100]`, not a daily-streak event — flag if you want a true daily-streak chime.)
 - [ ] **TASK-058 free-tier cap** — with `forcePremium: false`, confirm a free host can create exactly 1 room/week (2nd attempt shows the upgrade dialog).
 - [ ] **TASK-051 / TASK-062 two-instance smoke test** — host + 2nd device: create a quiz room AND a Scripture Builder race, verify live realtime sync; confirm a group SB race leaves solo mastery/streak/progress untouched (the decoupling invariant). (This is also TASK-051's remaining acceptance criterion below.)
@@ -199,43 +211,6 @@ These tasks are **code-complete** and summarized in the Completed tables above; 
   - Reuse `isPremiumProvider` and the existing `PremiumGate` / teaser widgets — do not invent a new entitlement.
   - Keep the curated text held to the same word-for-word quality bar as the core 100 (the mastery engine is unforgiving on production); double-check punctuation/verse-stripping against `scripture.dart`'s `words` auto-split.
   - If owner later wants a standalone (non-subscription) purchase, that's a separate RevenueCat product — note it but don't build it here.
-
-### TASK-066: Journal discoverability redesign (home card + chat capture)
-
-- **status**: `done` — verified 2026-07-02: `flutter analyze` clean, `flutter test` 604/604 passing
-- **priority**: P1 (premium value is currently hidden; directly affects conversion and retention)
-- **estimated_effort**: Medium
-- **claimed_by**: claude-cowork
-- **completed**: 2026-07-02
-- **started**: 2026-07-02T04:24:02Z
-- **description**: The journal is a premium pillar (AI reflection prompts, TASK-035) but is effectively undiscoverable. Owner review (2026-07-02): the only entry points are (1) a faded `_ReflectLink` on scripture detail ("almost clickable p tag"), (2) a small Journal icon button in the Sidekick chat app bar, (3) a `ReflectNowCard` on home that only renders when a reflection prompt is loaded. Fix placement, not the feature: make the journal a first-class Home surface and integrate it with Sidekick chat so insights flow into it.
-- **decisions_made** (owner, 2026-07-02):
-  - **Journal stays.** It is NOT redundant with per-scripture notes — notes are marginalia (one string per scripture), journal is dated reflection with AI prompts. Do not merge them.
-  - **Home card, always present.** A prominent journal card on the Home screen ("Let's Learn / Let's Play" layout), not conditional on a prompt existing. Paywalled: free users see the same card as a premium teaser (this markets premium better than the buried links).
-  - **Chat → journal capture.** Sidekick chat should encourage saving insights to the journal; saving creates a pre-filled entry (auto-added, low-friction).
-  - **Demote the scripture-detail link.** Replace `_ReflectLink`'s whisper styling with a proper button, or remove it in favor of the home card — agent's call, but it must stop looking like body text.
-  - **Framing**: lean into "Acquiring Spiritual Knowledge" (Doctrinal Mastery language teachers use) in card copy and prompt framing.
-- **agent_context_block** (read first):
-  - `lib/screens/home/premium_home_section.dart` — existing `ReflectNowCard` (line ~295) pushes `JournalScreen(initialPrompt: prompt)`; it only renders when `reflectionPromptsProvider` is non-empty. Replace/extend into an always-present `JournalCard`.
-  - `lib/screens/scripture_detail/scripture_detail_screen.dart` — `_ReflectLink` (~line 1046, used ~427).
-  - `lib/screens/sidekick_chat/` — `sidekick_chat_screen.dart` has the app-bar Journal button (`context.push('/journal')`); `chat_bubble.dart` is where a per-message "Save to journal" affordance goes.
-  - `lib/models/journal_entry.dart` — `JournalEntry.create({prompt, scriptureId, scriptureReference})` already supports pre-seeding; chat capture likely wants content pre-fill too (add optional `content` param or set it after create).
-  - `lib/providers/journal_provider.dart` — `createEntry()` / `saveEntry()`; `/journal` route exists in `lib/app.dart`.
-  - `lib/widgets/premium_teaser.dart` — `PremiumGate` / `PremiumTeaser` for the free-tier card state; gate on `isPremiumProvider`.
-- **acceptance_criteria**:
-  - [x] Home shows a journal card for ALL users, always (not conditional on a loaded prompt). Premium: today's reflection prompt (when available) + last-entry pickup + tap → journal. Free: same card styled as a teaser → upgrade flow. (New "Let's reflect" section + `lib/screens/home/journal_card.dart`.)
-  - [x] Card copy uses "Acquiring Spiritual Knowledge" framing (card eyebrow); styled per `AppTheme` premium tokens (gold gradient, `sidekickColor`), consistent with existing home cards.
-  - [x] Sidekick chat: assistant messages get a "Save to journal" chip; tapping calls new `JournalNotifier.addQuickEntry` (persists WITHOUT opening the editor), stores the preceding user question as the entry's `prompt`, confirms with snackbar + "View" action. No navigation away from chat. (Replaced the two decorative no-op suggestion chips.)
-  - [x] Scripture-detail `_ReflectLink` restyled as a full-width `OutlinedButton` ("Reflect in your journal"). Bonus fix: `JournalScreen` now auto-creates an entry when launched with only a scripture (previously landed on the list, making the link feel broken).
-  - [x] Free users: home card CTA + tap → `UpgradeScreen` (always-present teaser, deliberately NOT rate-limited/dismissible — it's a stable Home surface, not a prompt). Chat-save teaser is N/A: chat itself is premium-gated, free users never see assistant messages. Detail button remains premium-only (free users get the home teaser instead).
-  - [x] Journal itself unchanged (editor, list, export) — entry points + one additive provider method only.
-  - [ ] **Owner**: `flutter analyze` clean + `flutter test` pass (agent sandbox has no Flutter SDK; manual symbol audit done — all referenced providers/theme tokens verified to exist).
-- **files_to_touch**: `lib/screens/home/premium_home_section.dart` (or new `journal_card.dart` under `screens/home/`), `lib/screens/home/home_screen.dart`, `lib/screens/scripture_detail/scripture_detail_screen.dart`, `lib/screens/sidekick_chat/chat_bubble.dart`, `lib/screens/sidekick_chat/sidekick_chat_screen.dart`, `lib/models/journal_entry.dart` (optional content seed), `lib/providers/journal_provider.dart` (if a `createEntryWithContent` helper is cleaner)
-- **depends_on**: none (post-launch-readiness polish; does not touch submission blockers)
-- **notes**:
-  - Group Play scope guardrail does not apply here, but keep the same discipline: don't touch mastery/progress logic.
-  - Consider a lightweight "saved from Sidekick chat" marker on captured entries (reuse the existing `prompt` field rather than adding schema).
-  - Future (not this task): surface journal entries tagged to a scripture on that scripture's detail screen, connecting notes ↔ journal.
 
 ### TASK-048: Seminary Group Play (Kahoot-style multiplayer) — UMBRELLA, decomposed
 

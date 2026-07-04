@@ -14,30 +14,12 @@
 
 | Task | What | Completed |
 |------|------|-----------|
-| MAINT-001 | Lock down `bump_host_usage` — `0006_lock_bump_host_usage.sql` revokes implicit `PUBLIC` grant + adds internal `auth.uid()` guard; signature/behavior preserved for legitimate callers. Owner step: `supabase db push` + re-run dashboard linter to confirm both `bump_host_usage` warnings clear. | 2026-05-27 |
+| MAINT-001 | Lock down `bump_host_usage` — `0006_lock_bump_host_usage.sql` revokes implicit `PUBLIC` grant + adds internal `auth.uid()` guard; signature/behavior preserved for legitimate callers. `supabase db push` done (0001–0006 local+remote in sync, 2026-06-13); dashboard-linter re-check folded into MAINT-002. | 2026-05-27 |
 | MAINT-004 | Scripture Builder typing mode: a user-typed punctuation char (e.g. the comma in "world,") counted as a wrong character — and triggered a full reset on Master difficulty. Found live during App Store screenshot capture. Fix: `onType` now ignores every `_isAutoFillChar` (spaces AND punctuation) typed by the user, since auto-fill already inserts them. Two regression tests added in `scripture_builder_provider_test.dart` (advanced: no error/no attempt increment; master: no reset). | 2026-07-03 |
 
 ---
 
 ## Active
-
-### MAINT-001: Lock down `bump_host_usage` SECURITY DEFINER function
-
-- **status**: `done` — see Completed table above
-- **completed**: 2026-05-27
-- **priority**: P1
-- **claimed_by**: claude-opus-4-7
-- **started**: 2026-05-27
-- **files_touched**: NEW `supabase/migrations/0006_lock_bump_host_usage.sql`, `SUPABASE_SETUP.md` (migration table updated; also backfilled rows for 0004 and 0005 which were undocumented)
-- **acceptance_criteria**:
-  - [x] New migration `0006_lock_bump_host_usage.sql`: revokes implicit `PUBLIC` grant, adds `auth.uid()` guard inside the function body (NULL check + `p_host_id <> auth.uid()` check, both raise 42501), re-grants execute to `authenticated`. Idempotent / replay-safe.
-  - [x] `SUPABASE_SETUP.md` runbook table updated (added 0006 + backfilled missing rows for 0004 and 0005).
-  - [ ] **Owner step**: `supabase db push` to apply 0006 (along with 0005 if not already pushed), then re-run Supabase dashboard linter — both `bump_host_usage` warnings should clear.
-  - [ ] **Owner step**: smoke test that `createRoom` as an anonymous user still bumps the counter end-to-end.
-- **notes**:
-  - Signature unchanged. Legitimate callers in `GroupPlayService._bumpHostUsage` pass `auth.currentUser.id` which equals server-side `auth.uid()`, so the new guard never fires for them.
-  - Guard handles the NULL-comparison edge case: `uuid <> NULL` evaluates to NULL (treated as false in IF), so an explicit `v_uid is null` check precedes the equality test.
-  - The migration table in `SUPABASE_SETUP.md` was already stale ("three migration files" with six on disk); fixed in the same edit since adding a row under a stale heading would have been more confusing.
 
 ### MAINT-002: Audit anonymous-access RLS policies on group-play tables
 

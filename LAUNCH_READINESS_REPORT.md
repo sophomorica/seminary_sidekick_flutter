@@ -1,5 +1,3 @@
-open -a Simulatorexport $(grep -v '^#' .env | xargs) && flutter run --release --dart-define=REVENUECAT_IOS_KEY=$REVENUECAT_IOS_KEY --dart-define=SUPABASE_URL=$SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
-
 # Launch Readiness Report — Seminary Sidekick
 
 **Date:** 2026-07-01 · **Scope:** Full claim-by-claim verification of CLAUDE.md, TODO.md, MAINTENANCE.md, REVENUECAT_SETUP.md, SUPABASE_SETUP.md, APP_STORE_SUBMISSION.md against the actual code, plus live checks (privacy policy URL).
@@ -7,6 +5,8 @@ open -a Simulatorexport $(grep -v '^#' .env | xargs) && flutter run --release --
 **Bottom line: the markdown files are accurate.** Every launch-readiness claim checked out against the code, with one stale line in CLAUDE.md (audio — **fixed 2026-07-01**) and zero contradictions. There are **no code blockers** for iOS submission — everything remaining is manual owner work in Xcode/App Store Connect.
 
 **Update 2026-07-01 (local toolchain pass):** `flutter analyze` is clean (one `anonKey` deprecation in `main.dart` found and fixed — now `publishableKey`) and `flutter test` passes **604/604**. The CLAUDE.md staleness below is resolved. Section 1 rows are otherwise left as originally verified.
+
+**Update 2026-07-04 — SUBMITTED.** All manual owner work from this report is done: screenshots (9× iPhone 6.9", 5× iPad 13"), full App Store Connect metadata + privacy labels + age rating, `flutter build ipa` + Transporter upload, build 1.0.0 (1) attached, both subscriptions attached and "Ready to Submit", app priced Free with worldwide availability. **v1.0.0 submitted for App Review 2026-07-04.** The sidekick-proxy premium gate is enforcing (`REVENUECAT_SECRET_KEY` set 2026-07-04). Still open post-submission: see "Launch Status" in `TODO.md`.
 
 ---
 
