@@ -68,8 +68,10 @@ supabase secrets set REVENUECAT_SECRET_KEY=sk_...          # enables the gate
 supabase functions deploy sidekick-proxy                    # redeploy with the check
 ```
 
-⚠️ Owner step pending: `REVENUECAT_SECRET_KEY` has NOT been set yet — until it is, the
-function logs a warning and skips the check (dev-friendly fail-open). Set it before launch.
+✅ **Enforcing since 2026-07-04**: `REVENUECAT_SECRET_KEY` is set and the function is
+redeployed with the gate. Verified live: anonymous sessions without a premium
+`app_user_id` (missing or fake) get HTTP 403 before any xAI spend. Note the gate fails
+*closed* — if the RevenueCat API is unreachable, premium users get 403 until it recovers.
 The client UI also gates free users (teaser + locked input on the Sidekick tab), so the
 server check is defense-in-depth, not the primary UX.
 
