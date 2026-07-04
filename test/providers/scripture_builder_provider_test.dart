@@ -579,6 +579,72 @@ void main() {
       expect(notifier.state.typedChars.length, target.length);
     });
 
+    test(
+        'User-typed punctuation is ignored in advanced mode — no error, no reset',
+        () {
+      // Regression: typing a natural "Word," (with the comma) used to count
+      // the comma as a wrong character.
+      notifier.startGame(
+          difficulty: DifficultyLevel.advanced,
+          scriptures: [shortPunctuatedScripture]);
+
+      final target = notifier.state.targetText;
+      final commaIndex = target.indexOf(',');
+
+      // Type every char up to and including the char before the comma
+      String typed = '';
+      for (int i = 0; i < commaIndex; i++) {
+        typed += target[i];
+        notifier.onType(typed);
+      }
+      final placedBefore = notifier.state.typedChars.length;
+      expect(notifier.state.hasActiveError, isFalse);
+
+      // Now the user types the comma itself — it must be ignored, not flagged
+      typed += ',';
+      notifier.onType(typed);
+
+      expect(notifier.state.hasActiveError, isFalse,
+          reason: 'User-typed punctuation must not register as an error');
+      expect(notifier.state.incorrectAttempts, 0);
+      expect(notifier.state.typedChars.length, placedBefore,
+          reason: 'Ignored punctuation adds nothing to typedChars');
+
+      // And typing continues normally afterwards
+      final nextLetterIndex = notifier.state.typedChars.length;
+      typed += target[nextLetterIndex];
+      notifier.onType(typed);
+      expect(notifier.state.hasActiveError, isFalse);
+      expect(notifier.state.typedChars.every((tc) => tc.isCorrect), isTrue);
+    });
+
+    test('User-typed punctuation does NOT trigger a master reset', () {
+      // Regression: on Master difficulty a typed comma caused a full reset.
+      notifier.startGame(
+          difficulty: DifficultyLevel.master,
+          scriptures: [shortPunctuatedScripture]);
+
+      final target = notifier.state.targetText;
+      final commaIndex = target.indexOf(',');
+
+      String typed = '';
+      for (int i = 0; i < commaIndex; i++) {
+        typed += target[i];
+        notifier.onType(typed);
+      }
+      final placedBefore = notifier.state.typedChars.length;
+      expect(placedBefore, greaterThan(0));
+
+      // User types the comma — previously wiped all progress
+      typed += ',';
+      notifier.onType(typed);
+
+      expect(notifier.state.resetCount, 0,
+          reason: 'Typed punctuation must not reset a Master run');
+      expect(notifier.state.typedChars.length, placedBefore);
+      expect(notifier.state.incorrectAttempts, 0);
+    });
+
     test('Trailing punctuation is auto-filled after last real character', () {
       // "...was God." — the period at the end should auto-fill
       notifier.startGame(

@@ -15,6 +15,7 @@
 | Task | What | Completed |
 |------|------|-----------|
 | MAINT-001 | Lock down `bump_host_usage` — `0006_lock_bump_host_usage.sql` revokes implicit `PUBLIC` grant + adds internal `auth.uid()` guard; signature/behavior preserved for legitimate callers. Owner step: `supabase db push` + re-run dashboard linter to confirm both `bump_host_usage` warnings clear. | 2026-05-27 |
+| MAINT-004 | Scripture Builder typing mode: a user-typed punctuation char (e.g. the comma in "world,") counted as a wrong character — and triggered a full reset on Master difficulty. Found live during App Store screenshot capture. Fix: `onType` now ignores every `_isAutoFillChar` (spaces AND punctuation) typed by the user, since auto-fill already inserts them. Two regression tests added in `scripture_builder_provider_test.dart` (advanced: no error/no attempt increment; master: no reset). | 2026-07-03 |
 
 ---
 

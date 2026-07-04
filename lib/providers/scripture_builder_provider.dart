@@ -500,9 +500,12 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
 
       final newChar = newText[newText.length - 1];
 
-      // Ignore spaces typed by the user — spaces are auto-filled.
-      // The user only needs to type letters and digits.
-      if (newChar == ' ') {
+      // Ignore spaces and punctuation typed by the user — both are
+      // auto-filled. The user only needs to type letters and digits.
+      // Without this, typing a natural "world," (with the comma) counted
+      // the comma as a wrong character — and triggered a full reset on
+      // Master difficulty.
+      if (_isAutoFillChar(newChar)) {
         state = state.copyWith(typedText: newText);
         return;
       }
