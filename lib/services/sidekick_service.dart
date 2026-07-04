@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/sidekick_response.dart';
@@ -87,6 +88,23 @@ class SidekickService {
       );
     }
 
+    // RevenueCat app-user ID lets the proxy verify the `premium` entitlement
+    // server-side before spending xAI tokens. Null when RevenueCat isn't
+    // configured (dev builds) — the proxy only enforces the check when its
+    // REVENUECAT_SECRET_KEY secret is set.
+    //
+    // The `isConfigured` guard is load-bearing: calling `Purchases.appUserID`
+    // before `Purchases.configure(...)` triggers a native Swift fatalError
+    // that Dart try/catch CANNOT intercept — the app hard-crashes.
+    String? appUserId;
+    try {
+      if (await Purchases.isConfigured) {
+        appUserId = await Purchases.appUserID;
+      }
+    } catch (_) {
+      appUserId = null;
+    }
+
     try {
       final res = await client.functions.invoke(
         _proxyFunction,
@@ -94,6 +112,7 @@ class SidekickService {
           'messages': messages,
           'temperature': 0.7,
           'max_tokens': 1500,
+          if (appUserId != null) 'app_user_id': appUserId,
         },
       );
 

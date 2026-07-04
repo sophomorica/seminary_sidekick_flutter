@@ -451,7 +451,7 @@ class HomeScreen extends ConsumerWidget {
           Row(
             children: [
               const Icon(
-                Icons.smart_toy,
+                Icons.explore,
                 color: AppTheme.accent,
                 size: 20,
               ),

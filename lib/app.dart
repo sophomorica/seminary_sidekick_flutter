@@ -378,8 +378,8 @@ class _AppShell extends ConsumerWidget {
                     ),
                     _buildNavDestination(
                       context,
-                      icon: Icons.smart_toy_outlined,
-                      selectedIcon: Icons.smart_toy,
+                      icon: Icons.explore_outlined,
+                      selectedIcon: Icons.explore,
                       label: 'SIDEKICK',
                       isSelected: navigationShell.currentIndex == 4,
                     ),

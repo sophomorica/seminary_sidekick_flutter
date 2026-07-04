@@ -54,7 +54,7 @@ class _TypingIndicatorState extends State<TypingIndicator>
               ],
             ),
             child: const Icon(
-              Icons.smart_toy,
+              Icons.explore,
               size: 18,
               color: AppTheme.onSecondaryContainer,
             ),

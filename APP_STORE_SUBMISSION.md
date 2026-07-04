@@ -20,8 +20,8 @@
 **Still to do (roughly in order):**
 
 - [X] ⚠️ **Confirm the privacy policy is live** at `https://seminarysidekick.com/privacy`.
-- [ ] ⛔ **Capture screenshots** on the iPhone 6.9" simulator (and ideally an iPad) — see §6.
-- [ ] ⚠️ **Paste the listing into App Store Connect** — **App Information** (§1), **listing copy** (§2), **App Privacy** (§3), **Age Rating** (§4), and **Review notes** (§5).
+- [X] ⛔ **Capture screenshots** on the iPhone 6.9" simulator (and ideally an iPad) — see §6.
+- [X] ⚠️ **Paste the listing into App Store Connect** — **App Information** (§1), **listing copy** (§2), **App Privacy** (§3), **Age Rating** (§4), and **Review notes** (§5).
 - [ ] ⚠️ **Set the release build's dart-defines and archive** in Xcode:
   `flutter build ipa --dart-define=REVENUECAT_IOS_KEY=$REVENUECAT_IOS_KEY --dart-define=SUPABASE_URL=$SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY --dart-define=SENTRY_DSN=$SENTRY_DSN`
   (xAI key is **not** passed anymore — it lives in the proxy.)
@@ -124,7 +124,7 @@ Declare these data types. For ALL of them: **Linked to the user? → No** (anony
 | **Identifiers → User ID**             | Anonymous Supabase auth ID (group play) + RevenueCat app user ID                                                                        | App Functionality                    | Not tied to a real identity                                               |
 | **User Content → Other User Content** | Group-play nickname; chat messages typed to the Sidekick AI (sent to xAI via our server proxy); journal/notes are NOT sent (local only) | App Functionality                    | Chat content is processed by xAI (Grok) as a third party — disclose this |
 | **Purchases → Purchase History**      | Subscription status / purchase events via RevenueCat + Apple                                                                            | App Functionality                    | —                                                                        |
-| **Diagnostics → Crash Data**          | Crash reports via Sentry                                                                                                                | App Functionality (and/or Analytics) | `sendDefaultPii` off; no screenshots, no PII                            |
+| **Diagnostics → Crash Data**          | Crash reports via Sentry                                                                                                            | App Functionality (and/or Analytics) | `sendDefaultPii` off; no screenshots, no PII                            |
 
 Everything is **"Data Not Linked to You"** and **"Not Used to Track You."** Do not check any Advertising purposes.
 
@@ -188,15 +188,15 @@ Tip: capture on the simulator with `⌘S`, or `flutter screenshot`. Keep them cl
 ## 7. Subscription review specifics (so IAP isn't rejected)
 
 - [ ] Attach **both subscriptions to the 1.0.0 version** and submit them **with** the build (first-time subs review alongside the app).
-- [x] Description includes the required **subscription disclosure** (price, period, auto-renew, manage/cancel) — keep it.
-- [x] Each subscription has a **localized display name + description**.
+- [X] Description includes the required **subscription disclosure** (price, period, auto-renew, manage/cancel) — keep it.
+- [X] Each subscription has a **localized display name + description**.
 - [ ] Add a **review screenshot** of the paywall to each subscription (use shot #5 / the upgrade screen).
-- [x] Upgrade button says **"Subscribe"** (no free trial configured) — no "Start Free Trial" rejection risk.
+- [X] Upgrade button says **"Subscribe"** (no free trial configured) — no "Start Free Trial" rejection risk.
 
 ---
 
 ## 8. Still-open owner items beyond this submission
 
-- [ ] **Sentry**: create the project and pass `SENTRY_DSN` in the release build (crash visibility at launch).
+- [X] **Sentry**: project created 2026-07-03; `SENTRY_DSN` in gitignored `.env` — pass it as a dart-define in the release build.
 - [ ] **Android**: Play Console products + `REVENUECAT_ANDROID_KEY` + release signing (separate launch).
 - [ ] **Group Play**: two-instance realtime smoke test (TASK-051) before relying on it at class scale.

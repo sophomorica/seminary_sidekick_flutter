@@ -937,7 +937,7 @@ final List<Scripture> allScriptures = [
     id: '97',
     book: ScriptureBook.doctrineAndCovenants,
     volume: 'D&C',
-    reference: 'Doctrine and Covenants 88:81',
+    reference: 'D&C 88:81',
     name: 'Go Ye Into All the World',
     keyPhrase:
         '“I give unto you a commandment, that ye shall teach them unto all men.”',
@@ -948,7 +948,7 @@ final List<Scripture> allScriptures = [
     id: '98',
     book: ScriptureBook.doctrineAndCovenants,
     volume: 'D&C',
-    reference: 'Doctrine and Covenants 93:1',
+    reference: 'D&C 93:1',
     name: 'Truth and Light',
     keyPhrase:
         '“Every soul who forsaketh his sins and cometh unto me … shall see my face and know that I am.”',
@@ -959,7 +959,7 @@ final List<Scripture> allScriptures = [
     id: '99',
     book: ScriptureBook.doctrineAndCovenants,
     volume: 'D&C',
-    reference: 'Doctrine and Covenants 130:20–21',
+    reference: 'D&C 130:20–21',
     name: 'Obedience and Blessings',
     keyPhrase:
         '“There is a law, irrevocably decreed in heaven … upon which all blessings are predicated.”',
@@ -970,7 +970,7 @@ final List<Scripture> allScriptures = [
     id: '100',
     book: ScriptureBook.doctrineAndCovenants,
     volume: 'D&C',
-    reference: 'Doctrine and Covenants 138:11–12, 32–34',
+    reference: 'D&C 138:11–12, 32–34',
     name: 'Salvation for the Dead',
     keyPhrase: 'The gospel was preached to the spirits in prison.',
     fullText:

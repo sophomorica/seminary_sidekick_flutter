@@ -57,6 +57,22 @@ JWT verification stays ON (default): the app's anonymous Supabase session author
 call via `functions.invoke`, so Sidekick only works when `SUPABASE_URL` / `SUPABASE_ANON_KEY`
 are configured.
 
+**Premium entitlement gate (added 2026-07-02).** Sidekick chat is premium-only. The client
+sends its RevenueCat `app_user_id` with each request, and the function verifies the
+`premium` entitlement against the RevenueCat REST API (cached ~15 min per user) before
+calling xAI — a tampered client can no longer chat for free. Enforcement requires a
+RevenueCat **secret** API key (Project settings → API keys → Secret key, `sk_...`):
+
+```bash
+supabase secrets set REVENUECAT_SECRET_KEY=sk_...          # enables the gate
+supabase functions deploy sidekick-proxy                    # redeploy with the check
+```
+
+⚠️ Owner step pending: `REVENUECAT_SECRET_KEY` has NOT been set yet — until it is, the
+function logs a warning and skips the check (dev-friendly fail-open). Set it before launch.
+The client UI also gates free users (teaser + locked input on the Sidekick tab), so the
+server check is defense-in-depth, not the primary UX.
+
 > Keep the safety prompt in the Edge Function in sync with `_safetyGuardrails` in
 > `lib/services/sidekick_service.dart`.
 

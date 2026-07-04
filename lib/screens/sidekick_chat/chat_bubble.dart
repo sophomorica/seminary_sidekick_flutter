@@ -55,7 +55,7 @@ class ChatBubble extends ConsumerWidget {
                 ],
               ),
               child: const Icon(
-                Icons.smart_toy,
+                Icons.explore,
                 size: 18,
                 color: AppTheme.onSecondaryContainer,
               ),

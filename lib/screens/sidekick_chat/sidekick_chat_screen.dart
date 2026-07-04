@@ -62,6 +62,8 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
 
   void _sendInitialContextMessage() {
     if (_hasAutoSentInitial) return;
+    // Chat is premium-only — never auto-spend an API call for free users.
+    if (!ref.read(isPremiumProvider)) return;
     _hasAutoSentInitial = true;
 
     // Only auto-send if chat is empty (don't re-send on rebuild)
@@ -89,6 +91,9 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
   }
 
   void _sendMessage() {
+    // Chat is premium-only; the UI never offers send affordances to free
+    // users, but guard anyway.
+    if (!ref.read(isPremiumProvider)) return;
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
 
@@ -133,15 +138,16 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
           // Error banner
           if (error != null) _buildErrorBanner(context),
 
-          // Chat messages
+          // Chat messages — free users always see the premium teaser state.
           Expanded(
-            child: chatHistory.isEmpty && !isLoading
+            child: !isPremium || (chatHistory.isEmpty && !isLoading)
                 ? ChatEmptyState(
                     isPremium: isPremium,
                     onSuggestionTap: (suggestion) {
                       _messageController.text = suggestion;
                       _sendMessage();
                     },
+                    onUpgradeTap: () => context.push('/upgrade'),
                   )
                 : ListView.builder(
                     controller: _scrollController,
@@ -166,14 +172,76 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
                   ),
           ),
 
-          // Input area
-          ChatInput(
-            controller: _messageController,
-            focusNode: _inputFocusNode,
-            isLoading: isLoading,
-            onSend: _sendMessage,
-          ),
+          // Input area — locked for free users, routes to upgrade.
+          if (isPremium)
+            ChatInput(
+              controller: _messageController,
+              focusNode: _inputFocusNode,
+              isLoading: isLoading,
+              onSend: _sendMessage,
+            )
+          else
+            _buildLockedInput(context),
         ],
+      ),
+    );
+  }
+
+  /// Faux input bar for free users — looks like the chat input but taps
+  /// through to the upgrade screen instead of accepting text.
+  Widget _buildLockedInput(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacingMd,
+        vertical: AppTheme.spacingMd,
+      ).copyWith(
+        bottom: MediaQuery.of(context).padding.bottom + AppTheme.spacingMd,
+      ),
+      color: isDark
+          ? AppTheme.darkBackground
+          : Theme.of(context).colorScheme.surface,
+      child: Material(
+        color: isDark
+            ? AppTheme.darkSurfaceContainerLow
+            : Theme.of(context).colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+        child: InkWell(
+          onTap: () {
+            ref.read(hapticProvider).light();
+            context.push('/upgrade');
+          },
+          borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTheme.spacingMd,
+              vertical: AppTheme.spacingMd,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.lock_outline,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: AppTheme.spacingMd),
+                Expanded(
+                  child: Text(
+                    'Subscribe to chat with your Sidekick',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ),
+                const Icon(
+                  Icons.workspace_premium,
+                  size: 20,
+                  color: AppTheme.premiumGold,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

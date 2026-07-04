@@ -5,11 +5,19 @@
 // system prompt that holds even if a tampered client alters its own prompts.
 //
 // Deploy:   supabase functions deploy sidekick-proxy
-// Secret:   supabase secrets set XAI_API_KEY=xai-...
+// Secrets:  supabase secrets set XAI_API_KEY=xai-...
+//           supabase secrets set REVENUECAT_SECRET_KEY=sk_...   (entitlement gate)
 // JWT:      verify_jwt stays ON (default) — the app's anonymous Supabase
 //           session authorizes the call via supabase_flutter functions.invoke.
 //
-// Request body:  { messages: [...], temperature?: number, max_tokens?: number }
+// Entitlement gate: when REVENUECAT_SECRET_KEY is set, every request must
+// include the caller's RevenueCat `app_user_id`, and the function verifies the
+// `premium` entitlement via the RevenueCat REST API (cached ~15 min per user)
+// before spending xAI tokens. Without the secret the check is SKIPPED (dev
+// environments) and a warning is logged.
+//
+// Request body:  { messages: [...], temperature?: number, max_tokens?: number,
+//                  app_user_id?: string }
 // Response:      the raw xAI/OpenAI-format chat-completion JSON.
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -25,6 +33,37 @@ const SAFETY_SYSTEM = `SAFETY & SCOPE (these rules always take priority):
 - Stay on topic: the 100 Doctrinal Mastery scriptures, scripture study, and closely related gospel learning. If you're asked for unrelated help (homework in other subjects, writing code, general web tasks) or anything inappropriate, gently decline and steer back to scripture study.
 - You are not a counselor or a medical, mental-health, or legal professional. If a student mentions self-harm, abuse, a crisis, or serious distress, respond with warmth and without judgment, gently encourage them to reach out to a trusted adult (parent, teacher, or bishop) or local emergency/crisis services, and do not attempt to provide therapy or any step-by-step guidance.
 - Be respectful of everyone. Do not disparage individuals, groups, or other faiths.`;
+
+const RC_SUBSCRIBERS_URL = "https://api.revenuecat.com/v1/subscribers/";
+const RC_ENTITLEMENT = "premium";
+const RC_CACHE_TTL_MS = 15 * 60 * 1000;
+
+// appUserId -> cache expiry (ms epoch). Edge isolates are ephemeral, so this
+// is best-effort: worst case we re-check with RevenueCat.
+const entitlementCache = new Map<string, number>();
+
+async function hasPremiumEntitlement(
+  appUserId: string,
+  rcKey: string,
+): Promise<boolean> {
+  const cached = entitlementCache.get(appUserId);
+  if (cached && cached > Date.now()) return true;
+
+  const res = await fetch(
+    RC_SUBSCRIBERS_URL + encodeURIComponent(appUserId),
+    { headers: { Authorization: `Bearer ${rcKey}` } },
+  );
+  if (!res.ok) return false;
+
+  const data = await res.json();
+  const ent = data?.subscriber?.entitlements?.[RC_ENTITLEMENT];
+  const active = !!ent &&
+    (!ent.expires_date ||
+      new Date(ent.expires_date).getTime() > Date.now());
+
+  if (active) entitlementCache.set(appUserId, Date.now() + RC_CACHE_TTL_MS);
+  return active;
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -57,6 +96,7 @@ Deno.serve(async (req: Request) => {
     messages?: unknown;
     temperature?: number;
     max_tokens?: number;
+    app_user_id?: unknown;
   };
   try {
     payload = await req.json();
@@ -67,6 +107,32 @@ Deno.serve(async (req: Request) => {
   const { messages, temperature = 0.7, max_tokens = 1500 } = payload;
   if (!Array.isArray(messages)) {
     return json({ error: "`messages` (array) is required." }, 400);
+  }
+
+  // Premium entitlement gate — Sidekick AI is a paid feature. Enforced only
+  // when the RevenueCat secret is configured, so dev/CI setups keep working.
+  const rcKey = Deno.env.get("REVENUECAT_SECRET_KEY");
+  if (rcKey) {
+    const appUserId =
+      typeof payload.app_user_id === "string" ? payload.app_user_id : "";
+    let entitled = false;
+    if (appUserId) {
+      try {
+        entitled = await hasPremiumEntitlement(appUserId, rcKey);
+      } catch (e) {
+        console.error(`RevenueCat entitlement check failed: ${e}`);
+      }
+    }
+    if (!entitled) {
+      return json(
+        { error: "A premium subscription is required to use the Sidekick." },
+        403,
+      );
+    }
+  } else {
+    console.warn(
+      "REVENUECAT_SECRET_KEY not set — skipping premium entitlement check.",
+    );
   }
 
   // Prepend the authoritative safety prompt; client-supplied messages follow.

@@ -6,10 +6,14 @@ class ChatEmptyState extends StatelessWidget {
   final bool isPremium;
   final void Function(String suggestion) onSuggestionTap;
 
+  /// Shown to free users instead of the suggestion chips. Routes to upgrade.
+  final VoidCallback? onUpgradeTap;
+
   const ChatEmptyState({
     super.key,
     required this.isPremium,
     required this.onSuggestionTap,
+    this.onUpgradeTap,
   });
 
   static const _suggestions = [
@@ -66,7 +70,9 @@ class ChatEmptyState extends StatelessWidget {
 
             // Subtitle
             Text(
-              'Your Sidekick is ready to explore scripture with you—ask about doctrines, find connections, or dive deeper into your faith.',
+              isPremium
+                  ? 'Your Sidekick is ready to explore scripture with you—ask about doctrines, find connections, or dive deeper into your faith.'
+                  : 'The Sidekick is a premium companion—personal study prompts, scripture connections, and a guide that knows where you are on your mastery path.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                     height: 1.6,
@@ -75,28 +81,45 @@ class ChatEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: AppTheme.spacingXl),
 
-            // Suggestion chips label
-            Text(
-              'Try one of these',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                    letterSpacing: 0.5,
-                  ),
-            ),
-            const SizedBox(height: AppTheme.spacingMd),
+            if (isPremium) ...[
+              // Suggestion chips label
+              Text(
+                'Try one of these',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                      letterSpacing: 0.5,
+                    ),
+              ),
+              const SizedBox(height: AppTheme.spacingMd),
 
-            // Suggestion chips
-            Wrap(
-              spacing: AppTheme.spacingSm,
-              runSpacing: AppTheme.spacingSm,
-              alignment: WrapAlignment.center,
-              children: _suggestions.map((suggestion) {
-                return _SuggestionChip(
-                  label: suggestion,
-                  onTap: () => onSuggestionTap(suggestion),
-                );
-              }).toList(),
-            ),
+              // Suggestion chips
+              Wrap(
+                spacing: AppTheme.spacingSm,
+                runSpacing: AppTheme.spacingSm,
+                alignment: WrapAlignment.center,
+                children: _suggestions.map((suggestion) {
+                  return _SuggestionChip(
+                    label: suggestion,
+                    onTap: () => onSuggestionTap(suggestion),
+                  );
+                }).toList(),
+              ),
+            ] else ...[
+              // Free tier: upgrade CTA instead of suggestions
+              ElevatedButton.icon(
+                onPressed: onUpgradeTap,
+                icon: const Icon(Icons.workspace_premium, size: 20),
+                label: const Text('Unlock with Premium'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.premiumGold,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.spacingLg,
+                    vertical: AppTheme.spacingMd,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
