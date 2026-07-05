@@ -16,6 +16,7 @@
 |------|------|-----------|
 | MAINT-001 | Lock down `bump_host_usage` — `0006_lock_bump_host_usage.sql` revokes implicit `PUBLIC` grant + adds internal `auth.uid()` guard; signature/behavior preserved for legitimate callers. `supabase db push` done (0001–0006 local+remote in sync, 2026-06-13); dashboard-linter re-check folded into MAINT-002. | 2026-05-27 |
 | MAINT-004 | Scripture Builder typing mode: a user-typed punctuation char (e.g. the comma in "world,") counted as a wrong character — and triggered a full reset on Master difficulty. Found live during App Store screenshot capture. Fix: `onType` now ignores every `_isAutoFillChar` (spaces AND punctuation) typed by the user, since auto-fill already inserts them. Two regression tests added in `scripture_builder_provider_test.dart` (advanced: no error/no attempt increment; master: no reset). | 2026-07-03 |
+| MAINT-005 | `share_plus` ^7.2.2 → ^10.1.4 after Apple rejected build 1 in processing (**ITMS-91061 Missing privacy manifest** — 7.2.2 predates the required `PrivacyInfo.xcprivacy`; included since 8.0.2). Same `Share.share()`/`shareXFiles()` API, zero code changes; app version bumped 1.0.0+1 → 1.0.0+2, build 2 resubmitted 2026-07-05. Lesson for future bumps: any SDK on Apple's [required-manifest list](https://developer.apple.com/support/third-party-SDK-requirements) must ship a privacy manifest or upload processing rejects the binary. | 2026-07-05 |
 
 ---
 

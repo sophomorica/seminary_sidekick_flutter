@@ -1,7 +1,7 @@
 # App Store Submission Pack — Seminary Sidekick
 
 > Copy-paste source for the App Store Connect listing. Everything here is a draft you own — edit freely. **Bracketed `[…]` items need a real value from you.**
-> App: **Seminary Sidekick** · Bundle ID `com.seminarysidekick.app` · Version **1.0.0 (build 1)** · SKU `seminarysidekick`
+> App: **Seminary Sidekick** · Bundle ID `com.seminarysidekick.app` · Version **1.0.0 (build 2)** · SKU `seminarysidekick`
 
 ---
 
@@ -27,6 +27,7 @@
   (xAI key is **not** passed anymore — it lives in the proxy.)
 - [X] ⚠️ **Upload the build** (Transporter, 2026-07-04) — attached to 1.0.0, both subscriptions attached, "Missing Metadata" cleared (needed subscription-group localization + per-sub review screenshot + availability).
 - [X] ⛔ **Submit for review — DONE 2026-07-04.** 🎉 (App priced Free, worldwide availability, iPad 13" screenshots included.)
+- [X] ⛔ **Build 1 rejected in processing (ITMS-91061, 2026-07-04)** — `share_plus` 7.2.2 shipped without the required privacy manifest. **Fixed + resubmitted 2026-07-05**: `share_plus` bumped to ^10.1.4, version 1.0.0+2, build 2 uploaded via Transporter (passed processing), swapped onto the 1.0 version, submission resubmitted → **Waiting for Review** (submission ID `9e3cdac1-11c1-40eb-afcc-84931cd7ef54`).
 - [ ] _After approval:_ delete the leftover sample "Seminary Sidekick Pro" entitlement + Test Store products in RevenueCat (cosmetic).
 
 ---

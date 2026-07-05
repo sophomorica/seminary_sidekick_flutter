@@ -8,9 +8,11 @@
 
 ---
 
-## 🚀 Launch Status (updated 2026-07-04)
+## 🚀 Launch Status (updated 2026-07-05)
 
-**iOS v1.0.0 (build 1) SUBMITTED for App Review on 2026-07-04** — screenshots (9× iPhone 6.9", 5× iPad 13"), full listing metadata, privacy labels, age rating, both subscriptions attached and reviewing with the app, priced Free with worldwide availability. The sidekick-proxy premium entitlement gate is **enforcing** (`REVENUECAT_SECRET_KEY` set + redeployed 2026-07-04 — see `SUPABASE_SETUP.md`).
+**iOS v1.0.0 (build 2) WAITING FOR REVIEW since 2026-07-05 (resubmitted 4:16 PM ET)** — screenshots (9× iPhone 6.9", 5× iPad 13"), full listing metadata, privacy labels, age rating, both subscriptions attached and reviewing with the app, priced Free with worldwide availability. The sidekick-proxy premium entitlement gate is **enforcing** (`REVENUECAT_SECRET_KEY` set + redeployed 2026-07-04 — see `SUPABASE_SETUP.md`).
+
+**Build 1 → build 2 history**: build 1 (submitted 2026-07-04) was rejected in post-upload processing with **ITMS-91061 Missing privacy manifest** — `share_plus` 7.2.2 predates the required `PrivacyInfo.xcprivacy`. Fix (2026-07-05): bumped `share_plus` `^7.2.2` → `^10.1.4` (manifest included since 8.0.2; same `Share.share()` API, no code changes) and version `1.0.0+1` → `1.0.0+2`. Build 2 uploaded via Transporter, passed processing, swapped onto the 1.0 version in App Store Connect, and the existing submission (ID `9e3cdac1-11c1-40eb-afcc-84931cd7ef54`) was resubmitted. No other flagged SDKs — remaining plus-family/transitive deps already ship manifests.
 
 **Open items while in / after review:**
 

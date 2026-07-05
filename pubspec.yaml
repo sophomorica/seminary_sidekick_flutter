@@ -1,7 +1,7 @@
 name: seminary_sidekick
 description: Master the Doctrinal Mastery scriptures through fun, addictive games.
 publish_to: "none"
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ">=3.2.0 <4.0.0"
@@ -51,7 +51,7 @@ dependencies:
   qr_flutter: ^4.1.0
 
   # Sharing
-  share_plus: ^7.2.2
+  share_plus: ^10.1.4
   path_provider: ^2.1.2
 
   # Open external links (privacy policy, etc.)

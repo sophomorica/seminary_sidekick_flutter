@@ -20,7 +20,7 @@ The viral mechanic is **Class Play** (Group Play) — Kahoot-style live multipla
 
 **Design philosophy**: Fun first with warm, satisfying feedback (animations, haptics, confetti, progressive difficulty). The experience is reverent and purposeful while remaining engaging for seminary students. The primary success metrics are **engagement with friends and mastery retention** — we want kids to come back on their own AND invite their seminary group to play together.
 
-**Status**: Free-tier MVP complete. Premium tier (Seminary Sidekick AI — Grok-powered journal prompts, reflection questions, smart goals, timeline insights, chat) built. Group Play v1 (quiz + Scripture Builder race) shipped end-to-end. Code-side launch readiness verified claim-by-claim in `LAUNCH_READINESS_REPORT.md` (2026-07-01). **iOS v1.0.0 (build 1) was SUBMITTED for App Review on 2026-07-04** — screenshots, listing, privacy labels, subscriptions, and build all in; sidekick-proxy premium gate enforcing. What's still open (Supabase auto-pause decision, post-approval RevenueCat tidy-up, group-play smoke test, Android) lives in the "🚀 Launch Status" section at the top of `TODO.md`.
+**Status**: Free-tier MVP complete. Premium tier (Seminary Sidekick AI — Grok-powered journal prompts, reflection questions, smart goals, timeline insights, chat) built. Group Play v1 (quiz + Scripture Builder race) shipped end-to-end. Code-side launch readiness verified claim-by-claim in `LAUNCH_READINESS_REPORT.md` (2026-07-01). **iOS v1.0.0 (build 2) is WAITING FOR REVIEW since 2026-07-05** — build 1 was rejected in processing (ITMS-91061: `share_plus` 7.2.2 missing privacy manifest; fixed by bumping to `share_plus` ^10.1.4 and version 1.0.0+2), build 2 uploaded, swapped onto the version, and the submission resubmitted same day. Screenshots, listing, privacy labels, subscriptions all in; sidekick-proxy premium gate enforcing. What's still open (Supabase auto-pause decision, post-approval RevenueCat tidy-up, group-play smoke test, Android) lives in the "🚀 Launch Status" section at the top of `TODO.md`.
 
 **Business model**: Freemium.
 
@@ -566,7 +566,7 @@ Wired through `lib/services/crash_reporting_service.dart`, enabled only when a D
 ```bash
 flutter run --dart-define=SENTRY_DSN=https://...@oXXXX.ingest.sentry.io/XXXX
 # Optional: tag releases for crash grouping
-flutter build ipa --dart-define=SENTRY_DSN=... --dart-define=APP_RELEASE=seminary_sidekick@1.0.0+1
+flutter build ipa --dart-define=SENTRY_DSN=... --dart-define=APP_RELEASE=seminary_sidekick@1.0.0+2
 ```
 
 Without `SENTRY_DSN` the service is a silent no-op (dev/CI/tests send nothing).
@@ -636,7 +636,7 @@ For handled exceptions worth field visibility, call `CrashReportingService.recor
 - TASK-047 Shared scripture-scope picker + TASK-049 dead-state cleanup — done 2026-05-25.
 - **Group Play (TASK-048 umbrella, decomposed into TASK-051–062)** — Quiz mode v1 shipped 2026-05-07 (Supabase backend, host/join lobbies, live quiz, results, profanity filter); premium hosting gates (TASK-058) and Scripture Builder Race mode (TASK-062) shipped 2026-05-25; group-play polish (TASK-064: stream reconnection, answer-distribution reveal, leaderboard/podium reveal animations) 2026-06-10.
 
-**🚀 SUBMITTED (2026-07-04)**: iOS v1.0.0 (build 1) submitted for App Review with both subscriptions attached. Full submission record in `APP_STORE_SUBMISSION.md` §0; open post-submission items in `TODO.md` → "🚀 Launch Status" (Supabase free-tier auto-pause mitigation before launch, post-approval RevenueCat sample-entitlement cleanup, TASK-051 two-instance smoke test, audio ear-check, Android). Also shipped en route: TASK-066 journal discoverability (2026-07-02), MAINT-004 typing-punctuation fix (2026-07-03), and the sidekick-proxy RevenueCat entitlement gate — **enforcing** since 2026-07-04 (`REVENUECAT_SECRET_KEY` secret set; see `SUPABASE_SETUP.md`).
+**🚀 WAITING FOR REVIEW (resubmitted 2026-07-05)**: iOS v1.0.0 (build 1) was submitted 2026-07-04 with both subscriptions attached, then rejected in post-upload processing with **ITMS-91061 Missing privacy manifest** (`share_plus` 7.2.2 predates the required `PrivacyInfo.xcprivacy`). Fixed 2026-07-05: `share_plus` ^7.2.2 → ^10.1.4 (manifest included since 8.0.2; same `Share.share()` API, zero code changes), version bumped to 1.0.0+2, build 2 uploaded via Transporter (passed processing), swapped onto the 1.0 version, and the submission resubmitted — now **Waiting for Review**. Full submission record in `APP_STORE_SUBMISSION.md` §0; open post-submission items in `TODO.md` → "🚀 Launch Status" (Supabase free-tier auto-pause mitigation before launch, post-approval RevenueCat sample-entitlement cleanup, TASK-051 two-instance smoke test, audio ear-check, Android). Also shipped en route: TASK-066 journal discoverability (2026-07-02), MAINT-004 typing-punctuation fix (2026-07-03), and the sidekick-proxy RevenueCat entitlement gate — **enforcing** since 2026-07-04 (`REVENUECAT_SECRET_KEY` secret set; see `SUPABASE_SETUP.md`).
 
 **Launch-readiness history** (owner-reviewed 2026-06-10; all resolved by the 2026-07-04 submission; see `TODO.md` / `MAINTENANCE.md` for full entries):
 

@@ -8,6 +8,8 @@
 
 **Update 2026-07-04 — SUBMITTED.** All manual owner work from this report is done: screenshots (9× iPhone 6.9", 5× iPad 13"), full App Store Connect metadata + privacy labels + age rating, `flutter build ipa` + Transporter upload, build 1.0.0 (1) attached, both subscriptions attached and "Ready to Submit", app priced Free with worldwide availability. **v1.0.0 submitted for App Review 2026-07-04.** The sidekick-proxy premium gate is enforcing (`REVENUECAT_SECRET_KEY` set 2026-07-04). Still open post-submission: see "Launch Status" in `TODO.md`.
 
+**Update 2026-07-05 — REJECTED IN PROCESSING → FIXED → RESUBMITTED.** Build 1 was flagged **ITMS-91061 Missing privacy manifest** (`share_plus` 7.2.2 predates the required `PrivacyInfo.xcprivacy` — a gap this report couldn't catch since it's enforced server-side by Apple at upload processing). Fix: `share_plus` ^7.2.2 → ^10.1.4 (manifest included since 8.0.2; identical `Share.share()`/`shareXFiles()` API, zero code changes), version 1.0.0+1 → 1.0.0+2. Build 2 uploaded via Transporter 2026-07-05, passed processing, attached to the 1.0 version, and the submission resubmitted — **now Waiting for Review**. Remaining plus-family/transitive dependencies were checked; no other stale SDKs from Apple's required-manifest list.
+
 ---
 
 ## 1. Claim verification results
@@ -48,7 +50,7 @@ Matches APP_STORE_SUBMISSION.md §0 — that checklist is accurate. Sequence:
 2. ~~**Run `flutter pub get && flutter analyze && flutter test` locally**~~ **DONE 2026-07-01** — analyze clean (after the `main.dart` deprecation fix), 604/604 tests pass. Re-run only if you make further code edits before archiving.
 3. **Set signing in Xcode** — `DEVELOPMENT_TEAM` is not set in the project (expected); select your team on the Runner target before archiving.
 4. **Capture screenshots** — iPhone 6.9" required (⛔ blocker), iPad 13" if shipping iPad.
-5. **Archive with dart-defines** (REVENUECAT_IOS_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, SENTRY_DSN — create the Sentry project first or skip the DSN). Consider adding `APP_RELEASE=seminary_sidekick@1.0.0+1` for crash grouping.
+5. **Archive with dart-defines** (REVENUECAT_IOS_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, SENTRY_DSN — create the Sentry project first or skip the DSN). Consider adding `APP_RELEASE=seminary_sidekick@1.0.0+2` for crash grouping.
 6. **App Store Connect**: paste listing (§1–2), App Privacy (§3), age rating (§4), review notes (§5); confirm the Support URL (`/support` — verify it exists or use the homepage); fill Copyright + review contact.
 7. **Upload build, attach both subscriptions to 1.0.0** (clears "Missing Metadata"), add a paywall review screenshot to each subscription.
 8. **Submit.**
