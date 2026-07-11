@@ -8,9 +8,33 @@
 
 ---
 
-## 🚀 Launch Status (updated 2026-07-05)
+## 🚀 Launch Status (updated 2026-07-10)
 
-**iOS v1.0.0 (build 2) WAITING FOR REVIEW since 2026-07-05 (resubmitted 4:16 PM ET)** — screenshots (9× iPhone 6.9", 5× iPad 13"), full listing metadata, privacy labels, age rating, both subscriptions attached and reviewing with the app, priced Free with worldwide availability. The sidekick-proxy premium entitlement gate is **enforcing** (`REVENUECAT_SECRET_KEY` set + redeployed 2026-07-04 — see `SUPABASE_SETUP.md`).
+**REJECTED 2026-07-10 — Guideline 2.1(b) (App Completeness): tapping "Subscribe" showed an error message during review** (iPad Air 11" M3, iPadOS 26.5.2, version 1.0 (3)). The 3.1.2(c) EULA fix PASSED — this is a new, separate issue: the sandbox purchase itself failed. Apple's letter pointedly links to the **Paid Apps Agreement** docs.
+
+**Diagnosis (2026-07-10)** — the upgrade screen can only show one of three errors, each with a distinct root cause:
+
+1. *"Purchases aren't available right now"* → RevenueCat SDK never configured → **the build 3 archive was missing `--dart-define=REVENUECAT_IOS_KEY=...`**. Prime suspect if the rebuild for the EULA fix didn't reuse the full command from `APP_STORE_SUBMISSION.md` §0.
+2. *"That plan isn't available right now"* → store products failed to load in sandbox → **Paid Apps Agreement not Active** (banking/tax incomplete — very common for first apps and the thing Apple's letter hints at), or subscriptions detached/`Developer Action Needed` after the rejection, or RevenueCat offering misconfig.
+3. *"Purchase failed"* → the purchase call itself errored → check RevenueCat dashboard + Sentry.
+
+**Code shipped 2026-07-10**: every purchase failure path in `subscription_provider.dart` now reports to Sentry (`recordError` with error code + offering/package context, plus a `purchase` breadcrumb on Subscribe tap) — next time this happens in the field we'll know exactly which path fired.
+
+**Owner checklist before resubmitting:**
+
+- [ ] **Paid Apps Agreement**: App Store Connect → Business/Agreements → "Paid Apps" must show **Active** (requires completed banking + tax forms). If it's "Pending" or missing, fix this first — nothing else matters until it's Active.
+- [X] **Root cause CONFIRMED (2026-07-10)**: build 3 was archived **without** the dart-defines — RevenueCat never configured, so Subscribe always showed "Purchases aren't available right now." Fix: new `scripts/build_ios_release.sh` loads `.env`, hard-fails if `REVENUECAT_IOS_KEY`/`SUPABASE_URL`/`SUPABASE_ANON_KEY` are missing, and passes all defines. **Always build with the script from now on.**
+- [ ] **Check both subscriptions** in App Store Connect: still attached to the version, not "Developer Action Needed" (IAPs can get bounced alongside an app rejection).
+- [ ] **Xcode → Runner → Signing & Capabilities → add In-App Purchase capability** (not currently in the project; usually implicit but cheap insurance).
+- [ ] **Sandbox-test on a real device**: sandbox Apple ID (Settings → App Store → Sandbox Account), install the actual archive build (TestFlight is easiest), tap Subscribe on iPhone AND iPad, confirm the native purchase sheet appears and completes.
+- [ ] `flutter analyze` + `flutter test`, bump to **1.0.0+4**, archive **with dart-defines**, upload, swap onto version.
+- [ ] Reply to the rejection in App Store Connect describing the root cause + fix, include a screen recording of a successful sandbox purchase, resubmit.
+
+**Previous**: REJECTED 2026-07-09 — Guideline 3.1.2(c): missing functional Terms of Use (EULA) link in the app (fixed same day: upgrade-screen legal footer links + standard EULA in App Description; passed review 2026-07-10). Reviewed on iPad Air 11" (M3), version 1.0 (2), same submission ID as below. Fix shipped in code same day: the upgrade screen legal footer now has tappable **Privacy Policy** (`seminarysidekick.com/privacy`) and **Terms of Use** (Apple standard EULA: `apple.com/legal/internet-services/itunes/dev/stdeula`) links via `url_launcher`, plus expanded auto-renewal fine print. Plan cards already showed subscription title/length/price — the links were the only gap.
+
+**Resubmission checklist (owner):**
+
+**Earlier status**: iOS v1.0.0 (build 2) waiting for review since 2026-07-05 (resubmitted 4:16 PM ET) — screenshots (9× iPhone 6.9", 5× iPad 13"), full listing metadata, privacy labels, age rating, both subscriptions attached and reviewing with the app, priced Free with worldwide availability. The sidekick-proxy premium entitlement gate is **enforcing** (`REVENUECAT_SECRET_KEY` set + redeployed 2026-07-04 — see `SUPABASE_SETUP.md`).
 
 **Build 1 → build 2 history**: build 1 (submitted 2026-07-04) was rejected in post-upload processing with **ITMS-91061 Missing privacy manifest** — `share_plus` 7.2.2 predates the required `PrivacyInfo.xcprivacy`. Fix (2026-07-05): bumped `share_plus` `^7.2.2` → `^10.1.4` (manifest included since 8.0.2; same `Share.share()` API, no code changes) and version `1.0.0+1` → `1.0.0+2`. Build 2 uploaded via Transporter, passed processing, swapped onto the 1.0 version in App Store Connect, and the existing submission (ID `9e3cdac1-11c1-40eb-afcc-84931cd7ef54`) was resubmitted. No other flagged SDKs — remaining plus-family/transitive deps already ship manifests.
 
@@ -181,6 +205,54 @@ These tasks are **code-complete** and summarized in the Completed tables above; 
 - [ ] **TASK-045 audio ear-check** — play through Scripture Builder / Quick Quiz / Match / group lobby + quiz countdown; re-pick any sound that doesn't land. (One open call: the `streak_milestone` chime is wired to the per-scripture answer streak `[5,10,25,50,100]`, not a daily-streak event — flag if you want a true daily-streak chime.)
 - [ ] **TASK-058 free-tier cap** — with `forcePremium: false`, confirm a free host can create exactly 1 room/week (2nd attempt shows the upgrade dialog).
 - [ ] **TASK-051 / TASK-062 two-instance smoke test** — host + 2nd device: create a quiz room AND a Scripture Builder race, verify live realtime sync; confirm a group SB race leaves solo mastery/streak/progress untouched (the decoupling invariant). (This is also TASK-051's remaining acceptance criterion below.)
+
+### TASK-068: Sidekick chat history policy + context-window bugs
+
+- **status**: `in_progress`
+- **priority**: P1 (two live bugs degrade chat quality today; unbounded history is a privacy + UX liability)
+- **estimated_effort**: Small
+- **claimed_by**: cursor-agent
+- **started**: 2026-07-11T14:22:52Z
+- **files_to_touch**: `lib/services/sidekick_service.dart`, `lib/providers/sidekick_provider.dart`, `lib/screens/sidekick_chat/sidekick_chat_screen.dart`
+- **description**: Found during chat review (2026-07-11). Chat history currently **never clears**: every message is cached to Hive (`sidekick_cache` → `chat_history`) after each send, reloaded on every launch, with no cap, no expiry, and no user-facing clear action (only Settings → "Delete All My Data" wipes it). Worst case is the current behavior — an ever-growing scroll and Hive blob. Additionally, two bugs in what gets sent to the model:
+  1. **Wrong end of the window**: `sidekick_service.dart` `chat()` uses `history.take(20)`, which takes the **first** 20 messages, not the most recent 20 (despite the "Include recent chat history" comment). Once a conversation passes 20 messages, the model permanently sees only the oldest 20 and loses all recent context.
+  2. **Duplicate newest message**: `sidekick_provider.dart` `sendMessage()` appends the user message to `updatedHistory` before calling `chat()`, which also appends `userMessage` explicitly — so while history ≤ 20 messages, the newest user message is sent to the API twice.
+- **decisions_made** (owner, 2026-07-11):
+  - **Do NOT auto-clear on launch** — losing yesterday's conversation mid-thought feels bad. Bound growth with a rolling cap instead.
+  - Rationale for less retention generally: the session snapshot (progress context) is rebuilt every launch anyway, so old history has little functional value; the Sidekick is a daily study companion, not a long-term confidant; and chats can contain personal spiritual content from minors.
+- **acceptance_criteria**:
+  - [ ] API context window fixed: send the **last** 20 history messages (e.g. `history.skip(max(0, history.length - 20))` or a sublist), not the first 20
+  - [ ] Newest user message sent exactly once (pass history *without* the just-added message, or stop appending it separately in the service)
+  - [ ] **Rolling storage cap**: on every cache write, trim persisted + in-state history to the most recent ~50 messages (constant, easy to tune)
+  - [ ] **"New conversation" action** in the chat screen app bar (menu or icon) that clears history (state + Hive) with a confirm dialog; empty state reappears
+  - [ ] "Delete All My Data" still clears chat history (should be free — it wipes all Hive boxes; just verify)
+  - [ ] `flutter analyze` clean; existing tests green; add provider tests for the trim + the last-20 window if practical
+- **notes**:
+  - Keep the cap and window as named constants (`_maxStoredMessages = 50`, `_apiHistoryWindow = 20`) — likely to be tuned.
+  - No schema/model changes needed; `SidekickMessage` already has `toJson`/`fromJson`.
+  - Privacy: never log or Sentry-report chat content while touching these paths (existing rule).
+
+### TASK-067: Graceful handling of sidekick-proxy 403 (lapsed subscription) in chat
+
+- **status**: `done`
+- **priority**: P1 (real users WILL hit this — it's the guaranteed UX for any mid-session subscription lapse)
+- **estimated_effort**: Small
+- **claimed_by**: cursor-agent
+- **completed**: 2026-07-11T13:40:00Z
+- **files_to_touch**: `lib/services/sidekick_service.dart`, `lib/providers/sidekick_provider.dart`, `lib/screens/sidekick_chat/sidekick_chat_screen.dart`, `lib/providers/subscription_provider.dart`
+- **description**: Found during safety stress testing (2026-07-11): after ~1 hour of sandbox chat, the sidekick-proxy entitlement gate correctly returned 403 ("A premium subscription is required...") because the sandbox subscription expired (Apple sandbox: monthly renews every 5 min, max 12 renewals ≈ 1 hour). The chat UI surfaced the raw exception string: `Could not send message: SidekickServiceException: sidekick request failed (status 403)...`. The gate is working as designed (fails closed, protects xAI spend); the client-side presentation is the bug. In production this exact state occurs whenever a real subscription lapses mid-session — the client's cached RevenueCat `CustomerInfo` still says premium while the server says no.
+- **acceptance_criteria**:
+  - [x] `sidekick_service.dart` detects HTTP 403 from `sidekick-proxy` and throws a typed exception (e.g. `SidekickEntitlementException`) instead of the generic failure
+  - [x] Chat UI catches it and shows a friendly inline message (e.g. "Your subscription needs a refresh") with a **Restore/Refresh** action — never the raw exception string
+  - [x] The action triggers a RevenueCat re-sync (`restorePurchases` / refresh `CustomerInfo`); if the entitlement is truly gone, route to `upgrade_screen.dart`; if it was a stale cache, retry the message succeeds
+  - [x] Same handling applies to the structured session refresh path (`refreshSession()`), not just chat sends
+  - [x] The user's typed message is not lost — it stays in the input (or is retryable) after the 403
+  - [x] `flutter analyze` clean
+- **notes**:
+  - Do NOT weaken the server gate; it fails closed on purpose (see `SUPABASE_SETUP.md`). A RevenueCat API outage will also 403 premium users — the friendly message should read as "refresh/try again" rather than accusing the user of not paying.
+  - Sentry: record the 403 path with `recordError` + breadcrumb (no chat content — privacy rules) so field frequency is visible.
+  - For sandbox testing after a lapse: just re-purchase with the sandbox Apple ID, or raise the tester's subscription renewal rate in App Store Connect → Sandbox.
+  - **Done 2026-07-11**: `SidekickEntitlementException` from proxy 403; chat restores text to input + Refresh banner → `refreshEntitlement()` then retry or `/upgrade`; session refresh uses the same friendly copy; Sentry breadcrumb/`recordError` on the 403 path (no message content).
 
 ### TASK-065: Premium "Missionary Scriptures" pack (curated unlock)
 
