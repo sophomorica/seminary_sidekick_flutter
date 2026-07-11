@@ -5,6 +5,19 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/sidekick_response.dart';
 import '../models/sidekick_snapshot.dart';
+import 'crash_reporting_service.dart';
+
+/// Returns the most recent [window] messages for the API context.
+///
+/// Prefer this over [Iterable.take] — `take(n)` keeps the *oldest* n, which
+/// permanently drops recent context once a conversation exceeds the window.
+List<SidekickMessage> selectRecentChatHistory(
+  List<SidekickMessage> history, {
+  int window = SidekickService.apiHistoryWindow,
+}) {
+  if (history.length <= window) return List<SidekickMessage>.of(history);
+  return history.sublist(history.length - window);
+}
 
 /// Low-level service that talks to the Seminary Sidekick AI.
 ///
@@ -37,9 +50,14 @@ class SidekickService {
     return _parseResponse(body);
   }
 
+  /// How many prior messages are included in the API context (excludes the
+  /// new user turn, which is appended separately). Tunable.
+  static const int apiHistoryWindow = 20;
+
   /// Send a direct chat message to the Sidekick with conversation history.
   ///
-  /// [history] contains previous messages (role: user/assistant).
+  /// [history] contains previous messages (role: user/assistant) — do **not**
+  /// include [userMessage]; it is appended once at the end.
   /// [snapshot] provides context about the user's current state.
   /// [userMessage] is the new message from the user.
   ///
@@ -49,6 +67,7 @@ class SidekickService {
     required List<SidekickMessage> history,
     required String userMessage,
   }) async {
+    final recent = selectRecentChatHistory(history);
     final messages = <Map<String, dynamic>>[
       {'role': 'system', 'content': _chatSystemPrompt},
       {
@@ -58,9 +77,9 @@ class SidekickService {
             'Please keep this context in mind but respond conversationally.',
       },
       {'role': 'assistant', 'content': 'Got it — I have your progress context. How can I help?'},
-      // Include recent chat history
-      ...history.take(20).map((m) => m.toApiMessage()),
-      // New user message
+      // Most recent prior turns (not the oldest — see selectRecentChatHistory)
+      ...recent.map((m) => m.toApiMessage()),
+      // New user message (exactly once)
       {'role': 'user', 'content': userMessage},
     ];
 
@@ -124,7 +143,22 @@ class SidekickService {
       throw const SidekickServiceException(
         'Unexpected response from the Sidekick proxy.',
       );
-    } on FunctionException catch (e) {
+    } on FunctionException catch (e, st) {
+      if (e.status == 403) {
+        // Proxy entitlement gate — subscription lapsed, stale client cache,
+        // or RevenueCat API unreachable (gate fails closed). Never surface
+        // the raw status/details string to the user (TASK-067).
+        CrashReportingService.addBreadcrumb(
+          'sidekick-proxy 403 entitlement gate',
+          category: 'sidekick',
+        );
+        await CrashReportingService.recordError(
+          e,
+          st,
+          hint: 'sidekick-proxy entitlement 403',
+        );
+        throw const SidekickEntitlementException();
+      }
       throw SidekickServiceException(
         'Sidekick request failed (status ${e.status}): ${e.details}',
       );
@@ -286,4 +320,18 @@ class SidekickServiceException implements Exception {
 
   @override
   String toString() => 'SidekickServiceException: $message';
+}
+
+/// Proxy returned 403 — premium entitlement missing or unverifiable.
+///
+/// Distinct from a generic network/API failure so the UI can offer Refresh
+/// instead of dumping the raw exception string (TASK-067).
+class SidekickEntitlementException extends SidekickServiceException {
+  const SidekickEntitlementException([
+    super.message =
+        'Your subscription needs a refresh. Tap Refresh to try again.',
+  ]);
+
+  @override
+  String toString() => 'SidekickEntitlementException: $message';
 }

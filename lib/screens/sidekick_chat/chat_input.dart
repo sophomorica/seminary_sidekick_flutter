@@ -21,80 +21,70 @@ class ChatInput extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacingMd,
-        vertical: AppTheme.spacingMd,
-      ).copyWith(
-        bottom: MediaQuery.of(context).padding.bottom + AppTheme.spacingMd,
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.spacingMd,
+        AppTheme.spacingSm,
+        AppTheme.spacingMd,
+        AppTheme.spacingSm,
       ),
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkBackground : Theme.of(context).colorScheme.surface,
+        color: isDark
+            ? AppTheme.darkBackground
+            : Theme.of(context).colorScheme.surface,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: isDark
-                  ? AppTheme.darkSurfaceContainerLow
-                  : Theme.of(context).colorScheme.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(AppTheme.radiusXl),
-              boxShadow: [
-                BoxShadow(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark
+              ? AppTheme.darkSurfaceContainerLow
+              : Theme.of(context).colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+          boxShadow: [
+            BoxShadow(
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    maxLines: 4,
-                    minLines: 1,
-                    textCapitalization: TextCapitalization.sentences,
-                    textInputAction: TextInputAction.newline,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
-                    decoration: InputDecoration(
-                      hintText:
-                          'Ask about scripture, history, or your journey...',
-                      hintStyle:
-                          Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppTheme.outlineVariant,
-                                fontWeight: FontWeight.w400,
-                              ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: AppTheme.spacingMd,
-                        vertical: AppTheme.spacingMd,
-                      ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: TextField(
+                controller: controller,
+                focusNode: focusNode,
+                maxLines: 4,
+                minLines: 1,
+                textCapitalization: TextCapitalization.sentences,
+                textInputAction: TextInputAction.newline,
+                onTapOutside: (_) => focusNode.unfocus(),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
                     ),
-                    onSubmitted: (_) => onSend(),
+                decoration: InputDecoration(
+                  hintText: 'Ask about scripture, history, or your journey...',
+                  hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.outlineVariant,
+                        fontWeight: FontWeight.w400,
+                      ),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.spacingMd,
+                    vertical: AppTheme.spacingMd,
                   ),
                 ),
-                // Send button
-                _SendButton(
-                  isLoading: isLoading,
-                  onTap: isLoading ? null : onSend,
-                ),
-              ],
+                onSubmitted: (_) => onSend(),
+              ),
             ),
-          ),
-          const SizedBox(height: AppTheme.spacingSm),
-          Text(
-            'Sidekick is an AI companion for theological exploration.',
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppTheme.outlineVariant,
-                  letterSpacing: 1.5,
-                ),
-          ),
-        ],
+            _SendButton(
+              isLoading: isLoading,
+              onTap: isLoading ? null : onSend,
+            ),
+          ],
+        ),
       ),
     );
   }

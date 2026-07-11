@@ -16,6 +16,17 @@ import '../providers/spaced_repetition_provider.dart';
 import '../providers/subscription_provider.dart';
 import '../services/sidekick_service.dart';
 
+// ─── Chat history helpers (TASK-068) ────────────────────────────────────────
+
+/// Keeps only the most recent [max] messages (rolling storage cap).
+List<SidekickMessage> trimChatHistory(
+  List<SidekickMessage> history, {
+  int max = SidekickNotifier.maxStoredMessages,
+}) {
+  if (history.length <= max) return List<SidekickMessage>.of(history);
+  return history.sublist(history.length - max);
+}
+
 // ─── State ──────────────────────────────────────────────────────────────────
 
 /// State for the Seminary Sidekick AI orchestration layer.
@@ -35,6 +46,12 @@ class SidekickState {
   /// Last error, if any.
   final String? error;
 
+  /// True when [error] is from a sidekick-proxy entitlement 403 (TASK-067).
+  final bool isEntitlementError;
+
+  /// Message to put back in the chat input after a failed send (403 / retry).
+  final String? pendingRetryMessage;
+
   /// The snapshot that was last sent (for chat context reuse).
   final SidekickSnapshot? lastSnapshot;
 
@@ -44,6 +61,8 @@ class SidekickState {
     this.isLoadingSession = false,
     this.isLoadingChat = false,
     this.error,
+    this.isEntitlementError = false,
+    this.pendingRetryMessage,
     this.lastSnapshot,
   });
 
@@ -53,9 +72,12 @@ class SidekickState {
     bool? isLoadingSession,
     bool? isLoadingChat,
     String? error,
+    bool? isEntitlementError,
+    String? pendingRetryMessage,
     SidekickSnapshot? lastSnapshot,
     bool clearError = false,
     bool clearResponse = false,
+    bool clearPendingRetry = false,
   }) {
     return SidekickState(
       sessionResponse:
@@ -64,6 +86,11 @@ class SidekickState {
       isLoadingSession: isLoadingSession ?? this.isLoadingSession,
       isLoadingChat: isLoadingChat ?? this.isLoadingChat,
       error: clearError ? null : (error ?? this.error),
+      isEntitlementError:
+          clearError ? false : (isEntitlementError ?? this.isEntitlementError),
+      pendingRetryMessage: clearPendingRetry
+          ? null
+          : (pendingRetryMessage ?? this.pendingRetryMessage),
       lastSnapshot: lastSnapshot ?? this.lastSnapshot,
     );
   }
@@ -83,6 +110,9 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
   static const String _cacheBoxName = 'sidekick_cache';
   static const String _responseCacheKey = 'last_session_response';
   static const String _chatHistoryKey = 'chat_history';
+
+  /// Rolling cap for persisted + in-memory chat history. Tunable.
+  static const int maxStoredMessages = 50;
 
   SidekickNotifier(this._ref) : super(const SidekickState());
 
@@ -115,6 +145,23 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
       );
 
       await _cacheResponse(response);
+    } on SidekickEntitlementException catch (e, stack) {
+      developer.log(
+        'Sidekick session refresh blocked by entitlement gate',
+        name: 'sidekick',
+        error: e,
+        stackTrace: stack,
+      );
+      state = state.copyWith(
+        isLoadingSession: false,
+        error: e.message,
+        isEntitlementError: true,
+      );
+      if (state.sessionResponse == null) {
+        state = state.copyWith(
+          sessionResponse: SidekickResponse.offlineFallback(),
+        );
+      }
     } catch (e, stack) {
       developer.log(
         'Sidekick session refresh failed',
@@ -141,17 +188,25 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
   Future<void> sendMessage(String userMessage) async {
     if (state.isLoadingChat || userMessage.trim().isEmpty) return;
 
+    final trimmed = userMessage.trim();
+
+    // Prior turns only — the service appends [trimmed] once. Passing the
+    // optimistic history (which already includes the new user bubble) would
+    // duplicate the newest message in the API payload.
+    final priorHistory = List<SidekickMessage>.of(state.chatHistory);
+
     // Add user message to history
     final userMsg = SidekickMessage(
       role: 'user',
-      content: userMessage.trim(),
+      content: trimmed,
       timestamp: DateTime.now(),
     );
-    final updatedHistory = [...state.chatHistory, userMsg];
+    final updatedHistory = trimChatHistory([...priorHistory, userMsg]);
     state = state.copyWith(
       chatHistory: updatedHistory,
       isLoadingChat: true,
       clearError: true,
+      clearPendingRetry: true,
     );
 
     try {
@@ -160,8 +215,8 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
 
       final reply = await _service.chat(
         snapshot: snapshot,
-        history: updatedHistory,
-        userMessage: userMessage.trim(),
+        history: priorHistory,
+        userMessage: trimmed,
       );
 
       final assistantMsg = SidekickMessage(
@@ -171,10 +226,28 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
       );
 
       state = state.copyWith(
-        chatHistory: [...updatedHistory, assistantMsg],
+        chatHistory: trimChatHistory([...updatedHistory, assistantMsg]),
         isLoadingChat: false,
       );
 
+      await _cacheChatHistory();
+    } on SidekickEntitlementException catch (e, stack) {
+      developer.log(
+        'Sidekick chat blocked by entitlement gate',
+        name: 'sidekick',
+        error: e,
+        stackTrace: stack,
+      );
+      // Pull the optimistic user bubble back out and keep the text for retry.
+      final withoutFailedSend = List<SidekickMessage>.of(updatedHistory)
+        ..removeLast();
+      state = state.copyWith(
+        chatHistory: withoutFailedSend,
+        isLoadingChat: false,
+        error: e.message,
+        isEntitlementError: true,
+        pendingRetryMessage: trimmed,
+      );
       await _cacheChatHistory();
     } catch (e, stack) {
       developer.log(
@@ -185,20 +258,25 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
       );
       state = state.copyWith(
         isLoadingChat: false,
-        error: 'Could not send message: $e',
+        error: 'Could not send message. Please try again.',
       );
     }
   }
 
   /// Clear chat history.
   void clearChat() {
-    state = state.copyWith(chatHistory: []);
+    state = state.copyWith(chatHistory: [], clearPendingRetry: true);
     _cacheChatHistory();
   }
 
-  /// Clear error state.
+  /// Clear error state (keeps [pendingRetryMessage] so the input can retain it).
   void clearError() {
     state = state.copyWith(clearError: true);
+  }
+
+  /// Clear a pending retry after the UI has restored it to the input (or sent).
+  void clearPendingRetry() {
+    state = state.copyWith(clearPendingRetry: true);
   }
 
   // ─── Snapshot Builder ───────────────────────────────────────────────────
@@ -306,14 +384,16 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
         );
       }
 
-      // Load cached chat history
+      // Load cached chat history (trim in case a prior build stored more)
       final chatJson = box.get(_chatHistoryKey) as String?;
       if (chatJson != null) {
         final chatList = jsonDecode(chatJson) as List<dynamic>;
-        final messages = chatList
-            .map((m) =>
-                SidekickMessage.fromJson(m as Map<String, dynamic>))
-            .toList();
+        final messages = trimChatHistory(
+          chatList
+              .map((m) =>
+                  SidekickMessage.fromJson(m as Map<String, dynamic>))
+              .toList(),
+        );
         state = state.copyWith(chatHistory: messages);
       }
     } catch (_) {
@@ -332,8 +412,12 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
 
   Future<void> _cacheChatHistory() async {
     try {
+      final trimmed = trimChatHistory(state.chatHistory);
+      if (trimmed.length != state.chatHistory.length) {
+        state = state.copyWith(chatHistory: trimmed);
+      }
       final box = Hive.box(_cacheBoxName);
-      final jsonList = state.chatHistory.map((m) => m.toJson()).toList();
+      final jsonList = trimmed.map((m) => m.toJson()).toList();
       await box.put(_chatHistoryKey, jsonEncode(jsonList));
     } catch (_) {
       // Cache write failure is non-fatal

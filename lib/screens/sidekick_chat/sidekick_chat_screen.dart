@@ -41,16 +41,43 @@ class SidekickChatScreen extends ConsumerStatefulWidget {
   ConsumerState<SidekickChatScreen> createState() => _SidekickChatScreenState();
 }
 
-class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
+class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _inputFocusNode = FocusNode();
 
   bool _hasAutoSentInitial = false;
 
+  /// Brief title banner — collapses so chat gets the real estate.
+  late final AnimationController _titleBannerController;
+  late final Animation<double> _titleBannerFactor;
+
   @override
   void initState() {
     super.initState();
+    _titleBannerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+      value: 1.0,
+    );
+    _titleBannerFactor = CurvedAnimation(
+      parent: _titleBannerController,
+      curve: Curves.easeInOut,
+    );
+    // Show "Acquiring Spiritual Knowledge" briefly, then fold it away.
+    // Skip entirely if a conversation is already in progress.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (ref.read(chatHistoryProvider).isNotEmpty) {
+        _titleBannerController.value = 0;
+        return;
+      }
+      Future.delayed(const Duration(milliseconds: 2200), () {
+        if (mounted) _titleBannerController.reverse();
+      });
+    });
+
     // If opened with a question or scripture context, auto-send it
     if ((widget.initialMessage != null || widget.initialScriptureId != null) &&
         !_hasAutoSentInitial) {
@@ -84,6 +111,7 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
 
   @override
   void dispose() {
+    _titleBannerController.dispose();
     _messageController.dispose();
     _scrollController.dispose();
     _inputFocusNode.dispose();
@@ -100,6 +128,41 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
     _messageController.clear();
     ref.read(sidekickProvider.notifier).sendMessage(text);
     _scrollToBottom();
+  }
+
+  Future<void> _confirmNewConversation() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Start a new conversation?'),
+        content: const Text(
+          'This clears the current chat. You can always start fresh — '
+          'your study progress is unchanged.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('New conversation'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    ref.read(hapticProvider).light();
+    ref.read(sidekickProvider.notifier).clearChat();
+    _messageController.clear();
+    // Bring the title banner back for the empty state.
+    _titleBannerController.forward();
+    Future.delayed(const Duration(milliseconds: 2200), () {
+      if (mounted && ref.read(chatHistoryProvider).isEmpty) {
+        _titleBannerController.reverse();
+      }
+    });
   }
 
   void _scrollToBottom() {
@@ -121,15 +184,35 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
     final error = ref.watch(sidekickProvider).error;
     final isPremium = ref.watch(isPremiumProvider);
 
-    // Auto-scroll when new messages arrive
+    // Auto-scroll when new messages arrive; fold the title as soon as
+    // a conversation is underway so it never competes with bubbles.
     ref.listen(chatHistoryProvider, (prev, next) {
       if (next.length > (prev?.length ?? 0)) {
         _scrollToBottom();
+        if (_titleBannerController.value > 0) {
+          _titleBannerController.reverse();
+        }
+      }
+    });
+
+    // After a 403, the provider pulls the bubble and stashes the text —
+    // put it back in the input so the user doesn't lose what they typed.
+    ref.listen(sidekickProvider, (prev, next) {
+      final pending = next.pendingRetryMessage;
+      if (pending != null && pending != prev?.pendingRetryMessage) {
+        _messageController.text = pending;
+        _messageController.selection = TextSelection.collapsed(
+          offset: pending.length,
+        );
       }
     });
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      // Lift the input above the keyboard. The shell turns off extendBody on
+      // this tab so the column is already laid out above the tab bar — no
+      // hardcoded nav-height padding needed (flex, not overlay).
+      resizeToAvoidBottomInset: true,
       body: Column(
         children: [
           // Editorial header
@@ -139,37 +222,46 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
           if (error != null) _buildErrorBanner(context),
 
           // Chat messages — free users always see the premium teaser state.
+          // Tap empty space / drag scroll dismisses the keyboard so the
+          // bottom nav can return.
           Expanded(
-            child: !isPremium || (chatHistory.isEmpty && !isLoading)
-                ? ChatEmptyState(
-                    isPremium: isPremium,
-                    onSuggestionTap: (suggestion) {
-                      _messageController.text = suggestion;
-                      _sendMessage();
-                    },
-                    onUpgradeTap: () => context.push('/upgrade'),
-                  )
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppTheme.spacingMd,
-                      vertical: AppTheme.spacingMd,
+            child: GestureDetector(
+              onTap: () => _inputFocusNode.unfocus(),
+              behavior: HitTestBehavior.opaque,
+              child: !isPremium || (chatHistory.isEmpty && !isLoading)
+                  ? ChatEmptyState(
+                      isPremium: isPremium,
+                      onSuggestionTap: (suggestion) {
+                        _messageController.text = suggestion;
+                        _sendMessage();
+                      },
+                      onUpgradeTap: () => context.push('/upgrade'),
+                    )
+                  : ListView.builder(
+                      controller: _scrollController,
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacingMd,
+                        vertical: AppTheme.spacingMd,
+                      ),
+                      itemCount: chatHistory.length + (isLoading ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index == chatHistory.length && isLoading) {
+                          return const TypingIndicator();
+                        }
+                        final msg = chatHistory[index];
+                        return ChatBubble(
+                          message: msg,
+                          onScriptureTap: _navigateToScripture,
+                          onSaveToJournal: msg.role == 'assistant'
+                              ? () => _saveMessageToJournal(index)
+                              : null,
+                        );
+                      },
                     ),
-                    itemCount: chatHistory.length + (isLoading ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == chatHistory.length && isLoading) {
-                        return const TypingIndicator();
-                      }
-                      final msg = chatHistory[index];
-                      return ChatBubble(
-                        message: msg,
-                        onScriptureTap: _navigateToScripture,
-                        onSaveToJournal: msg.role == 'assistant'
-                            ? () => _saveMessageToJournal(index)
-                            : null,
-                      );
-                    },
-                  ),
+            ),
           ),
 
           // Input area — locked for free users, routes to upgrade.
@@ -192,11 +284,11 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
   Widget _buildLockedInput(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacingMd,
-        vertical: AppTheme.spacingMd,
-      ).copyWith(
-        bottom: MediaQuery.of(context).padding.bottom + AppTheme.spacingMd,
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.spacingMd,
+        AppTheme.spacingSm,
+        AppTheme.spacingMd,
+        AppTheme.spacingSm,
       ),
       color: isDark
           ? AppTheme.darkBackground
@@ -246,102 +338,92 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
     );
   }
 
+  /// Slim chrome: optional back, a brief title that auto-collapses, and
+  /// Journal / New conversation (when history exists).
+  ///
+  /// When this screen is a bottom-nav tab, the shell already owns the top
+  /// chrome — skip SafeArea so we don't double-pad under the status bar.
   Widget _buildEditorialHeader(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final canPop = Navigator.of(context).canPop();
+    final hasHistory = ref.watch(chatHistoryProvider).isNotEmpty;
+    final isPremium = ref.watch(isPremiumProvider);
+    final journalButton = IconButton(
+      onPressed: () => context.push('/journal'),
+      icon: const Icon(Icons.auto_stories_outlined, size: 22),
+      color: AppTheme.sidekickColor(context),
+      tooltip: 'Journal',
+      visualDensity: VisualDensity.compact,
+    );
+
     return Container(
       color: isDark
           ? AppTheme.darkBackground
           : Theme.of(context).colorScheme.surface,
       padding: EdgeInsets.fromLTRB(
         canPop ? AppTheme.spacingSm : AppTheme.spacingMd,
-        AppTheme.spacingMd,
-        AppTheme.spacingMd,
-        AppTheme.spacingLg,
+        AppTheme.spacingSm,
+        AppTheme.spacingSm,
+        0,
       ),
       child: SafeArea(
+        // Tab mode sits under the shell header — don't re-apply top inset.
+        top: canPop,
         bottom: false,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            if (canPop)
-              Padding(
-                padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  color: Theme.of(context).colorScheme.onSurface,
-                  onPressed: () => Navigator.of(context).pop(),
-                  padding: EdgeInsets.zero,
-                  visualDensity: VisualDensity.compact,
-                  constraints: const BoxConstraints(),
-                  tooltip: 'Back',
-                ),
-              ),
+            // Persistent slim row: back (if pushed) + new chat + Journal
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Label
-                      Text(
-                        'Your Spiritual Guide',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: AppTheme.secondary,
-                              letterSpacing: 2.0,
-                            ),
-                      ),
-                      const SizedBox(height: AppTheme.spacingSm),
-                      // Title
-                      Text(
-                        'Walking in the Light',
-                        style: GoogleFonts.merriweather(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w700,
-                          color: Theme.of(context).colorScheme.onSurface,
-                          height: 1.2,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ],
+                if (canPop)
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    color: Theme.of(context).colorScheme.onSurface,
+                    onPressed: () => Navigator.of(context).pop(),
+                    visualDensity: VisualDensity.compact,
+                    tooltip: 'Back',
                   ),
-                ),
-                const SizedBox(width: AppTheme.spacingSm),
-                // Journal — the Sidekick's companion surface. This is the
-                // journal's one persistent entry point in the app.
-                TextButton.icon(
-                  onPressed: () => context.push('/journal'),
-                  icon: const Icon(Icons.auto_stories_outlined, size: 18),
-                  label: const Text('Journal'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.sidekickColor(context),
-                    backgroundColor:
-                        AppTheme.sidekickColor(context).withValues(alpha: 0.10),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppTheme.spacingMd,
-                      vertical: AppTheme.spacingSm,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppTheme.radiusRound),
-                    ),
-                    textStyle: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
+                const Spacer(),
+                if (isPremium && hasHistory)
+                  IconButton(
+                    onPressed: _confirmNewConversation,
+                    icon: const Icon(Icons.add_comment_outlined, size: 22),
+                    color: AppTheme.sidekickColor(context),
+                    tooltip: 'New conversation',
+                    visualDensity: VisualDensity.compact,
                   ),
-                ),
+                journalButton,
               ],
             ),
-            const SizedBox(height: AppTheme.spacingSm),
-            // Subtitle
-            Text(
-              'Your Sidekick is here to help you bridge the gap between ancient scripture and modern life.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    height: 1.5,
+            // Title banner — shows briefly, then folds away.
+            SizeTransition(
+              sizeFactor: _titleBannerFactor,
+              axisAlignment: -1,
+              child: FadeTransition(
+                opacity: _titleBannerFactor,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppTheme.spacingSm,
+                    0,
+                    AppTheme.spacingSm,
+                    AppTheme.spacingMd,
                   ),
-              maxLines: 2,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Acquiring Spiritual Knowledge',
+                      style: GoogleFonts.merriweather(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        fontStyle: FontStyle.italic,
+                        color: Theme.of(context).colorScheme.onSurface,
+                        height: 1.25,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
           ],
         ),
@@ -350,7 +432,9 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
   }
 
   Widget _buildErrorBanner(BuildContext context) {
-    final error = ref.watch(sidekickProvider).error;
+    final sidekick = ref.watch(sidekickProvider);
+    final error = sidekick.error;
+    final isEntitlement = sidekick.isEntitlementError;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
@@ -376,16 +460,62 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen> {
                   ),
             ),
           ),
-          GestureDetector(
-            onTap: () => ref.read(sidekickProvider.notifier).clearError(),
-            child: const Padding(
-              padding: EdgeInsets.only(top: 2, left: 4),
-              child: Icon(Icons.close, size: 16, color: AppTheme.error),
+          if (isEntitlement)
+            TextButton(
+              onPressed: _refreshEntitlementAndRetry,
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.error,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+              ),
+              child: Text(
+                'Refresh',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: AppTheme.error,
+                    ),
+              ),
+            )
+          else
+            GestureDetector(
+              onTap: () => ref.read(sidekickProvider.notifier).clearError(),
+              child: const Padding(
+                padding: EdgeInsets.only(top: 2, left: 4),
+                child: Icon(Icons.close, size: 16, color: AppTheme.error),
+              ),
             ),
-          ),
         ],
       ),
     );
+  }
+
+  /// Re-sync RevenueCat after a proxy 403; retry the message if still premium,
+  /// otherwise send the user to the upgrade screen (TASK-067).
+  Future<void> _refreshEntitlementAndRetry() async {
+    final notifier = ref.read(sidekickProvider.notifier);
+    final pending = ref.read(sidekickProvider).pendingRetryMessage;
+    notifier.clearError();
+
+    final stillPremium =
+        await ref.read(subscriptionProvider.notifier).refreshEntitlement();
+    if (!mounted) return;
+
+    if (!stillPremium) {
+      if (pending != null) {
+        _messageController.text = pending;
+        notifier.clearPendingRetry();
+      }
+      context.push('/upgrade');
+      return;
+    }
+
+    if (pending != null && pending.isNotEmpty) {
+      notifier.clearPendingRetry();
+      _messageController.clear();
+      await notifier.sendMessage(pending);
+      _scrollToBottom();
+    }
   }
 
   void _navigateToScripture(String scriptureId) {

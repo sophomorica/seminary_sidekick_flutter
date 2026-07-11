@@ -208,11 +208,12 @@ These tasks are **code-complete** and summarized in the Completed tables above; 
 
 ### TASK-068: Sidekick chat history policy + context-window bugs
 
-- **status**: `in_progress`
+- **status**: `done`
 - **priority**: P1 (two live bugs degrade chat quality today; unbounded history is a privacy + UX liability)
 - **estimated_effort**: Small
 - **claimed_by**: cursor-agent
 - **started**: 2026-07-11T14:22:52Z
+- **completed**: 2026-07-11T14:30:00Z
 - **files_to_touch**: `lib/services/sidekick_service.dart`, `lib/providers/sidekick_provider.dart`, `lib/screens/sidekick_chat/sidekick_chat_screen.dart`
 - **description**: Found during chat review (2026-07-11). Chat history currently **never clears**: every message is cached to Hive (`sidekick_cache` → `chat_history`) after each send, reloaded on every launch, with no cap, no expiry, and no user-facing clear action (only Settings → "Delete All My Data" wipes it). Worst case is the current behavior — an ever-growing scroll and Hive blob. Additionally, two bugs in what gets sent to the model:
   1. **Wrong end of the window**: `sidekick_service.dart` `chat()` uses `history.take(20)`, which takes the **first** 20 messages, not the most recent 20 (despite the "Include recent chat history" comment). Once a conversation passes 20 messages, the model permanently sees only the oldest 20 and loses all recent context.
@@ -221,16 +222,17 @@ These tasks are **code-complete** and summarized in the Completed tables above; 
   - **Do NOT auto-clear on launch** — losing yesterday's conversation mid-thought feels bad. Bound growth with a rolling cap instead.
   - Rationale for less retention generally: the session snapshot (progress context) is rebuilt every launch anyway, so old history has little functional value; the Sidekick is a daily study companion, not a long-term confidant; and chats can contain personal spiritual content from minors.
 - **acceptance_criteria**:
-  - [ ] API context window fixed: send the **last** 20 history messages (e.g. `history.skip(max(0, history.length - 20))` or a sublist), not the first 20
-  - [ ] Newest user message sent exactly once (pass history *without* the just-added message, or stop appending it separately in the service)
-  - [ ] **Rolling storage cap**: on every cache write, trim persisted + in-state history to the most recent ~50 messages (constant, easy to tune)
-  - [ ] **"New conversation" action** in the chat screen app bar (menu or icon) that clears history (state + Hive) with a confirm dialog; empty state reappears
-  - [ ] "Delete All My Data" still clears chat history (should be free — it wipes all Hive boxes; just verify)
-  - [ ] `flutter analyze` clean; existing tests green; add provider tests for the trim + the last-20 window if practical
+  - [x] API context window fixed: send the **last** 20 history messages (e.g. `history.skip(max(0, history.length - 20))` or a sublist), not the first 20
+  - [x] Newest user message sent exactly once (pass history *without* the just-added message, or stop appending it separately in the service)
+  - [x] **Rolling storage cap**: on every cache write, trim persisted + in-state history to the most recent ~50 messages (constant, easy to tune)
+  - [x] **"New conversation" action** in the chat screen app bar (menu or icon) that clears history (state + Hive) with a confirm dialog; empty state reappears
+  - [x] "Delete All My Data" still clears chat history (should be free — it wipes all Hive boxes; just verify)
+  - [x] `flutter analyze` clean; existing tests green; add provider tests for the trim + the last-20 window if practical
 - **notes**:
   - Keep the cap and window as named constants (`_maxStoredMessages = 50`, `_apiHistoryWindow = 20`) — likely to be tuned.
   - No schema/model changes needed; `SidekickMessage` already has `toJson`/`fromJson`.
   - Privacy: never log or Sentry-report chat content while touching these paths (existing rule).
+  - **Done 2026-07-11**: `selectRecentChatHistory` (last-N, not first-N) + provider passes prior history so the newest user turn is appended once; `trimChatHistory` / `maxStoredMessages = 50` on load + every cache write; header "New conversation" icon with confirm → `clearChat()`; `DataResetService` already clears `sidekick_cache`; tests in `test/providers/sidekick_chat_history_test.dart`.
 
 ### TASK-067: Graceful handling of sidekick-proxy 403 (lapsed subscription) in chat
 

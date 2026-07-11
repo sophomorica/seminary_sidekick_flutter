@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 import '../config/app_config.dart';
+import '../services/crash_reporting_service.dart';
 import 'dev_mode_provider.dart';
 
 /// Subscription tier for the app.
@@ -184,10 +185,21 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
   /// cancelling the native sheet is treated as a non-error (`false`, no error
   /// message).
   Future<bool> purchasePlan(PremiumPlan plan) async {
+    CrashReportingService.addBreadcrumb(
+      'Subscribe tapped: ${plan.id}',
+      category: 'purchase',
+    );
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
       if (!await _isConfigured()) {
+        // RevenueCat SDK never configured — REVENUECAT_IOS_KEY dart-define
+        // missing from this build, or configure() threw at startup.
+        await CrashReportingService.recordError(
+          StateError('purchasePlan tapped but RevenueCat is not configured'),
+          StackTrace.current,
+          hint: 'Subscribe tapped, SDK unconfigured (missing dart-define?)',
+        );
         state = state.copyWith(
           isLoading: false,
           error: 'Purchases aren\'t available right now. Please try again later.',
@@ -198,6 +210,15 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
       final offerings = await Purchases.getOfferings();
       final package = _packageForPlan(offerings, plan);
       if (package == null) {
+        // Store products failed to load — commonly a Paid Apps Agreement /
+        // banking issue in App Store Connect, or offering misconfiguration.
+        await CrashReportingService.recordError(
+          StateError('No package for ${plan.id}; '
+              'offering=${offerings.current?.identifier ?? 'null'}, '
+              'packages=${offerings.current?.availablePackages.map((p) => p.storeProduct.identifier).join(',') ?? '-'}'),
+          StackTrace.current,
+          hint: 'Subscribe tapped, no matching store product',
+        );
         state = state.copyWith(
           isLoading: false,
           error: 'That plan isn\'t available right now. Please try again later.',
@@ -218,19 +239,29 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
       );
       await _persist();
       return isPremium;
-    } on PlatformException catch (e) {
+    } on PlatformException catch (e, st) {
       final code = PurchasesErrorHelper.getErrorCode(e);
       if (code == PurchasesErrorCode.purchaseCancelledError) {
         // User backed out of the native purchase sheet — not an error.
         state = state.copyWith(isLoading: false);
         return false;
       }
+      await CrashReportingService.recordError(
+        e,
+        st,
+        hint: 'purchasePlan(${plan.id}) failed: ${code.name}',
+      );
       state = state.copyWith(
         isLoading: false,
         error: 'Purchase failed. Please try again.',
       );
       return false;
-    } catch (e) {
+    } catch (e, st) {
+      await CrashReportingService.recordError(
+        e,
+        st,
+        hint: 'purchasePlan(${plan.id}) failed (unexpected)',
+      );
       state = state.copyWith(
         isLoading: false,
         error: 'Purchase failed. Please try again.',
@@ -257,6 +288,30 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
         isLoading: false,
         error: 'Could not restore purchases. Please try again.',
       );
+    }
+  }
+
+  /// Re-sync entitlement with the store after a sidekick-proxy 403 (TASK-067).
+  ///
+  /// Tries [Purchases.restorePurchases] first (re-validates with Apple/Google),
+  /// then falls back to [Purchases.getCustomerInfo]. Returns whether `premium`
+  /// is active afterward.
+  Future<bool> refreshEntitlement() async {
+    try {
+      if (!await _isConfigured()) return false;
+      try {
+        final info = await Purchases.restorePurchases();
+        _applyCustomerInfo(info);
+        await _persist();
+        return _isEntitled(info);
+      } catch (_) {
+        final info = await Purchases.getCustomerInfo();
+        _applyCustomerInfo(info);
+        await _persist();
+        return _isEntitled(info);
+      }
+    } catch (_) {
+      return state.isPremium;
     }
   }
 
