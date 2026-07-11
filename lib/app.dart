@@ -228,6 +228,11 @@ class _AppShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    // Sidekick is a sticky chat column — let Scaffold allocate space above
+    // the tab bar (flex layout) instead of overlaying the nav on the body.
+    // Other tabs keep extendBody so content can scroll under the glass nav.
+    final isSidekickTab = navigationShell.currentIndex == 4;
     final navBg = isDark
         ? AppTheme.darkBackground.withValues(alpha: 0.9)
         : AppTheme.surface.withValues(alpha: 0.8);
@@ -236,6 +241,11 @@ class _AppShell extends ConsumerWidget {
         : AppTheme.surface.withValues(alpha: 0.8);
 
     return Scaffold(
+      // Let the active tab (e.g. chat) own keyboard insets. Keeping the shell
+      // from resizing avoids squashing the header + stacking the bottom nav
+      // on top of the keyboard.
+      resizeToAvoidBottomInset: false,
+      extendBody: !isSidekickTab && !keyboardOpen,
       body: Column(
         children: [
           // ─── Sacred Editorial Header ─────────────────────────
@@ -303,8 +313,11 @@ class _AppShell extends ConsumerWidget {
           Expanded(child: navigationShell),
         ],
       ),
-      extendBody: true,
-      bottomNavigationBar: ClipRRect(
+      // Hide the tab bar while the keyboard is up so chat (and any other
+      // text field) isn't trapped above a nav stack the user can't reach.
+      bottomNavigationBar: keyboardOpen
+          ? null
+          : ClipRRect(
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(AppTheme.radiusXxl),
         ),

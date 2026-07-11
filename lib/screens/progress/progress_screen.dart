@@ -55,7 +55,8 @@ class ProgressScreen extends ConsumerWidget {
 
             // CTA
             _buildDeepFoundationCTA(context),
-            const SizedBox(height: 80),
+            // Clear the floating bottom nav (extendBody) so the CTA isn't clipped.
+            const SizedBox(height: 120),
           ],
         ),
       ),

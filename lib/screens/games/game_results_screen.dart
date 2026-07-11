@@ -112,14 +112,20 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
             .round()
         : 0;
 
+    // Quiz awards 3 stars at 90%+ (not only at 100%), so "flawless" copy
+    // must key off actual mistakes — not starRating alone.
+    final isFlawless = widget.incorrectAttempts == 0;
+
     final message = switch (widget.starRating) {
-      3 => 'Perfect!',
+      3 => isFlawless ? 'Perfect!' : 'Excellent!',
       2 => 'Great Job!',
       _ => 'Keep Practicing!',
     };
 
     final subtitle = switch (widget.starRating) {
-      3 => 'Flawless victory — no mistakes!',
+      3 => isFlawless
+          ? 'Flawless victory — no mistakes!'
+          : 'Outstanding score — can you hit zero misses?',
       2 => 'Almost perfect. Try for zero misses next time!',
       _ => 'Practice makes perfect. You\'re getting there!',
     };

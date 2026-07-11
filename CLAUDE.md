@@ -565,8 +565,10 @@ Wired through `lib/services/crash_reporting_service.dart`, enabled only when a D
 
 ```bash
 flutter run --dart-define=SENTRY_DSN=https://...@oXXXX.ingest.sentry.io/XXXX
-# Optional: tag releases for crash grouping
-flutter build ipa --dart-define=SENTRY_DSN=... --dart-define=APP_RELEASE=seminary_sidekick@1.0.0+2
+# Release builds: ALWAYS use ./scripts/build_ios_release.sh — it loads .env,
+# validates every required dart-define (RevenueCat/Supabase, warns on Sentry),
+# and tags APP_RELEASE automatically. Never run `flutter build ipa` by hand
+# (a bare build shipped as 1.0.0+3 → broken purchases → 2.1(b) rejection).
 ```
 
 Without `SENTRY_DSN` the service is a silent no-op (dev/CI/tests send nothing).

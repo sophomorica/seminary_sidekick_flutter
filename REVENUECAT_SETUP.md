@@ -129,18 +129,17 @@ The app reads the keys from `--dart-define` at build/run time (same pattern as S
 
 ```bash
 # Local run (iOS) — sources .env and passes everything through
+# (xAI key no longer passed — it lives server-side in the sidekick-proxy)
 export $(grep -v '^#' .env | xargs) && flutter run \
   --dart-define=REVENUECAT_IOS_KEY=$REVENUECAT_IOS_KEY \
   --dart-define=SUPABASE_URL=$SUPABASE_URL \
-  --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
-  --dart-define=XAI_API_KEY=$XAI_API_KEY
+  --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
 
-# Release build (iOS) — add SENTRY_DSN if you use it
-export $(grep -v '^#' .env | xargs) && flutter build ipa \
-  --dart-define=REVENUECAT_IOS_KEY=$REVENUECAT_IOS_KEY \
-  --dart-define=SUPABASE_URL=$SUPABASE_URL \
-  --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
-  --dart-define=XAI_API_KEY=$XAI_API_KEY
+# Release build (iOS) — ⛔ ALWAYS use the script, never `flutter build ipa` by hand.
+# It validates .env has every required key and fails loudly if one is missing
+# (build 1.0.0+3 shipped without REVENUECAT_IOS_KEY → broken purchases →
+# App Review rejection 2.1(b) on 2026-07-10).
+./scripts/build_ios_release.sh
 
 # Android — once REVENUECAT_ANDROID_KEY is in .env (Step 2)
 export $(grep -v '^#' .env | xargs) && flutter build appbundle \

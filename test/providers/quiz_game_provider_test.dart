@@ -26,14 +26,26 @@ void main() {
       expect(notifier.state.isComplete, false);
     });
 
-    test('starRating returns 3 for 90%+', () {
+    test('starRating returns 3 only for a perfect score', () {
+      final state = QuizGameState(
+        difficulty: DifficultyLevel.beginner,
+        questions: List.generate(10, (_) => _dummyQuestion()),
+        correctAnswers: 10,
+        incorrectAnswers: 0,
+        startTime: DateTime.now(),
+      );
+      expect(state.starRating, 3);
+    });
+
+    test('starRating returns 2 for 90% with mistakes', () {
       final state = QuizGameState(
         difficulty: DifficultyLevel.beginner,
         questions: List.generate(10, (_) => _dummyQuestion()),
         correctAnswers: 9,
+        incorrectAnswers: 1,
         startTime: DateTime.now(),
       );
-      expect(state.starRating, 3);
+      expect(state.starRating, 2);
     });
 
     test('starRating returns 2 for 70-89%', () {
@@ -41,6 +53,7 @@ void main() {
         difficulty: DifficultyLevel.beginner,
         questions: List.generate(10, (_) => _dummyQuestion()),
         correctAnswers: 7,
+        incorrectAnswers: 3,
         startTime: DateTime.now(),
       );
       expect(state.starRating, 2);
@@ -51,6 +64,7 @@ void main() {
         difficulty: DifficultyLevel.beginner,
         questions: List.generate(10, (_) => _dummyQuestion()),
         correctAnswers: 5,
+        incorrectAnswers: 5,
         startTime: DateTime.now(),
       );
       expect(state.starRating, 1);

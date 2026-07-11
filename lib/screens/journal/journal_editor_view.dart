@@ -21,9 +21,11 @@ class JournalEditorView extends ConsumerStatefulWidget {
 class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
   late final TextEditingController _titleController;
   late final TextEditingController _contentController;
+  final FocusNode _contentFocusNode = FocusNode();
   late List<String> _taggedScriptureIds;
   late List<String> _taggedScriptureReferences;
   bool _hasChanges = false;
+  bool _isSaving = false;
 
   // Voice-to-journal state
   bool _isListening = false;
@@ -45,6 +47,11 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
     if (!_hasChanges) setState(() => _hasChanges = true);
   }
 
+  void _dismissKeyboard() {
+    _contentFocusNode.unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
   @override
   void dispose() {
     // Stop listening if active
@@ -53,27 +60,79 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
     }
     _titleController.dispose();
     _contentController.dispose();
+    _contentFocusNode.dispose();
     super.dispose();
   }
 
-  Future<void> _save() async {
-    await ref.read(journalProvider.notifier).saveEntry(
-          title: _titleController.text,
-          content: _contentController.text,
-          scriptureIds: _taggedScriptureIds,
-          scriptureReferences: _taggedScriptureReferences,
+  Future<void> _save({bool closeAfter = true}) async {
+    if (_isSaving) return;
+    final content = _contentController.text.trim();
+    if (content.isEmpty && _titleController.text.trim().isEmpty) {
+      _dismissKeyboard();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Write something before saving'),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
-    ref.read(hapticProvider).light();
-    setState(() => _hasChanges = false);
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    _dismissKeyboard();
+
+    try {
+      await ref.read(journalProvider.notifier).saveEntry(
+            title: _titleController.text,
+            content: _contentController.text,
+            scriptureIds: _taggedScriptureIds,
+            scriptureReferences: _taggedScriptureReferences,
+          );
+      ref.read(hapticProvider).light();
+      if (!mounted) return;
+      setState(() {
+        _hasChanges = false;
+        _isSaving = false;
+      });
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Entry saved'),
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
+
+      if (closeAfter) {
+        ref.read(journalProvider.notifier).closeEditor();
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Could not save entry. Please try again.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+    }
   }
 
   Future<bool> _onWillPop() async {
+    _dismissKeyboard();
     if (_isListening) {
       await SpeechService.instance.stopListening();
       setState(() => _isListening = false);
     }
     if (_hasChanges && _contentController.text.trim().isNotEmpty) {
-      await _save();
+      await _save(closeAfter: false);
     }
     ref.read(journalProvider.notifier).closeEditor();
     return false; // We handle navigation ourselves
@@ -318,9 +377,15 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
             // Save button
             if (_hasChanges)
               IconButton(
-                icon: const Icon(Icons.check),
+                icon: _isSaving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.check),
                 tooltip: 'Save',
-                onPressed: _save,
+                onPressed: _isSaving ? null : () => _save(),
               ),
           ],
         ),
@@ -379,9 +444,14 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
               ),
 
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppTheme.spacingLg),
-                child: Column(
+              child: GestureDetector(
+                onTap: _dismissKeyboard,
+                behavior: HitTestBehavior.deferToChild,
+                child: SingleChildScrollView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.all(AppTheme.spacingLg),
+                  child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // "DAILY REFLECTION" label + Hero Heading
@@ -494,10 +564,12 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
                               children: [
                                 TextField(
                                   controller: _contentController,
+                                  focusNode: _contentFocusNode,
                                   textCapitalization:
                                       TextCapitalization.sentences,
                                   maxLines: null,
                                   minLines: 8,
+                                  onTapOutside: (_) => _dismissKeyboard(),
                                   style: Theme.of(context)
                                       .textTheme
                                       .bodyLarge
@@ -545,58 +617,64 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
                           Align(
                             alignment: Alignment.centerRight,
                             // Save button with gradient (primary -> primaryContainer)
-                            child: Container(
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    AppTheme.primary,
-                                    AppTheme.primaryContainer,
-                                  ],
-                                ),
-                                borderRadius:
-                                    BorderRadius.circular(AppTheme.radiusRound),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color:
-                                        AppTheme.primary.withValues(alpha: 0.2),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 4),
+                            child: Opacity(
+                              opacity: _isSaving ? 0.6 : 1,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      AppTheme.primary,
+                                      AppTheme.primaryContainer,
+                                    ],
                                   ),
-                                ],
-                              ),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: _hasChanges ? _save : null,
                                   borderRadius: BorderRadius.circular(
                                       AppTheme.radiusRound),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: AppTheme.spacingLg,
-                                      vertical: AppTheme.spacingMd,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppTheme.primary
+                                          .withValues(alpha: 0.2),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
                                     ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Text(
-                                          'Save Entry',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
+                                  ],
+                                ),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap:
+                                        _isSaving ? null : () => _save(),
+                                    borderRadius: BorderRadius.circular(
+                                        AppTheme.radiusRound),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: AppTheme.spacingLg,
+                                        vertical: AppTheme.spacingMd,
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            _isSaving
+                                                ? 'Saving…'
+                                                : 'Save Entry',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(
-                                            width: AppTheme.spacingMd),
-                                        Icon(
-                                          Icons.arrow_upward,
-                                          size: 18,
-                                          color: Colors.white
-                                              .withValues(alpha: 0.8),
-                                        ),
-                                      ],
+                                          const SizedBox(
+                                              width: AppTheme.spacingMd),
+                                          Icon(
+                                            Icons.arrow_upward,
+                                            size: 18,
+                                            color: Colors.white
+                                                .withValues(alpha: 0.8),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -727,6 +805,7 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
                     const SizedBox(height: AppTheme.spacingXl),
                   ],
                 ),
+              ),
               ),
             ),
           ],

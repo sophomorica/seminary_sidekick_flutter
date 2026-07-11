@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/subscription_provider.dart';
 import '../theme/app_theme.dart';
@@ -315,13 +316,38 @@ class _UpgradeViewState extends State<_UpgradeView> {
 
                 const SizedBox(height: AppTheme.spacingMd),
 
-                // Legal fine print
+                // Legal fine print (App Review 3.1.2(c): subscription terms +
+                // functional Privacy Policy and Terms of Use links must appear
+                // in the purchase flow)
                 Text(
-                  'Cancel anytime. Payment charged through your App Store account.',
+                  'Subscription auto-renews until canceled. Cancel anytime in '
+                  'your App Store account settings. Payment charged through '
+                  'your App Store account.',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         fontSize: 11,
                       ),
                   textAlign: TextAlign.center,
+                ),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const _LegalLink(
+                      label: 'Privacy Policy',
+                      url: 'https://seminarysidekick.com/privacy',
+                    ),
+                    Text(
+                      '·',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontSize: 11,
+                          ),
+                    ),
+                    const _LegalLink(
+                      label: 'Terms of Use',
+                      url:
+                          'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/',
+                    ),
+                  ],
                 ),
 
                 const SizedBox(height: AppTheme.spacingXl),
@@ -341,6 +367,48 @@ class _UpgradeViewState extends State<_UpgradeView> {
     if (success && context.mounted) {
       Navigator.of(context).pop();
     }
+  }
+}
+
+// ─── Legal Link ─────────────────────────────────────────────────────────────
+
+/// Small underlined link for the purchase-flow legal footer.
+/// Required by App Review Guideline 3.1.2(c): the purchase flow must contain
+/// functional links to the privacy policy and Terms of Use (EULA).
+class _LegalLink extends StatelessWidget {
+  final String label;
+  final String url;
+
+  const _LegalLink({required this.label, required this.url});
+
+  Future<void> _open(BuildContext context) async {
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open $label.')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      onPressed: () => _open(context),
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontSize: 11,
+              decoration: TextDecoration.underline,
+            ),
+      ),
+    );
   }
 }
 

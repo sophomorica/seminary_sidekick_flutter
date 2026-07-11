@@ -74,8 +74,9 @@ class QuizGameState {
 
   int get starRating {
     if (totalQuestions == 0) return 1;
+    // Match Matching / Scripture Builder: 3 stars only for zero mistakes.
+    if (incorrectAnswers == 0 && correctAnswers == totalQuestions) return 3;
     final pct = correctAnswers / totalQuestions;
-    if (pct >= 0.9) return 3;
     if (pct >= 0.7) return 2;
     return 1;
   }

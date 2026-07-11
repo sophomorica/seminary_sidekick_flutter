@@ -7,6 +7,7 @@ import '../../models/group_play_state.dart';
 import '../../models/group_player.dart';
 import '../../models/group_room.dart';
 import '../../providers/group_play_provider.dart';
+import '../../providers/user_preferences_provider.dart';
 import '../../services/nickname_validator.dart';
 import '../../theme/app_theme.dart';
 
@@ -37,6 +38,19 @@ class _JoinLobbyScreenState extends ConsumerState<JoinLobbyScreen> {
   final _formKey = GlobalKey<FormState>();
   final _codeFocus = FocusNode();
   final _nicknameFocus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    // Default the player's nickname from their saved greeting name.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final defaultName = ref.read(greetingNameProvider);
+      if (_nicknameController.text.isEmpty && defaultName.isNotEmpty) {
+        _nicknameController.text = defaultName;
+      }
+    });
+  }
 
   @override
   void dispose() {
