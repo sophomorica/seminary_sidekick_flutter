@@ -48,7 +48,10 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
   // Speech-to-text
   final _speechService = SpeechService.instance;
   bool _isSpeechListening = false;
-  String _lastRecognizedText = '';
+  /// Character offset in [ScriptureBuilderState.typedChars] when listening
+  /// started. Each STT result is re-applied from this baseline so partial
+  /// hypothesis revisions (e.g. "a" → "and") don't break matching.
+  int _speechBaselineCharCount = 0;
 
   // Chunk colors for visual distinction
   static const _chunkPalette = [
@@ -961,10 +964,13 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
       return;
     }
 
-    // Start listening
+    // Snapshot progress so each STT result can re-apply from this point.
+    // Recognizers send the *full* session hypothesis (often revising earlier
+    // words), not an append-only delta.
+    final currentState = ref.read(scriptureBuilderProvider);
     setState(() {
       _isSpeechListening = true;
-      _lastRecognizedText = '';
+      _speechBaselineCharCount = currentState.typedChars.length;
     });
 
     await _speechService.startListening(
@@ -988,25 +994,22 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
   }
 
   /// Called whenever the speech recognizer has new text.
-  /// Extracts only the newly recognized words and feeds them through the
-  /// word-based speech input handler, which handles homophones, punctuation,
-  /// and capitalization automatically.
-  void _onSpeechResult(String recognizedText) {
+  ///
+  /// Re-applies the full recognized hypothesis from the listen baseline via
+  /// the word-based speech handler (homophones, punctuation, capitalization).
+  /// Partial results may end mid-word — those prefixes must not count as
+  /// wrong answers on Master, or the mic appears to "do nothing" (immediate
+  /// reset + stop).
+  void _onSpeechResult(String recognizedText, bool isFinal) {
     if (!mounted) return;
-
-    // The recognizer sends the full cumulative text each time.
-    // Extract only the new portion since our last callback.
-    final newText = recognizedText.length > _lastRecognizedText.length
-        ? recognizedText.substring(_lastRecognizedText.length).trim()
-        : '';
-    _lastRecognizedText = recognizedText;
-
-    if (newText.isEmpty) return;
 
     final notifier = ref.read(scriptureBuilderProvider.notifier);
 
-    // Use word-based speech processing (handles homophones, case, punctuation)
-    final didReset = notifier.onSpeechInput(newText);
+    final didReset = notifier.onSpeechInput(
+      recognizedText,
+      baselineCharCount: _speechBaselineCharCount,
+      isFinal: isFinal,
+    );
 
     if (didReset) {
       // Master reset happened — stop listening immediately to prevent
@@ -1038,7 +1041,6 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
         Future.delayed(const Duration(milliseconds: 1000), () {
           if (mounted) {
             _typingController.clear();
-            _lastRecognizedText = '';
             ref.read(scriptureBuilderProvider.notifier).nextScripture();
           }
         });

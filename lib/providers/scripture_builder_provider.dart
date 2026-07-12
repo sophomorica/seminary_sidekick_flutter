@@ -578,37 +578,50 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
   // ═══════════════════════════════════════════════════════════════
 
   /// Process speech-to-text input word-by-word instead of character-by-character.
-  /// This handles homophones (e.g. STT "four" vs target "for"), capitalization,
-  /// spaces, and punctuation automatically. Returns true if a Master reset occurred.
-  bool onSpeechInput(String newWords) {
+  ///
+  /// [fullRecognizedText] is the recognizer's full session hypothesis (not a
+  /// delta). Each call re-applies from [baselineCharCount] so in-place
+  /// revisions like partial "a" → final "and" work correctly.
+  ///
+  /// When [isFinal] is false, a trailing word that is only a prefix of the
+  /// next target word is treated as still-in-progress (not a mismatch). That
+  /// prevents Master difficulty from resetting on mid-word partials — which
+  /// previously made speech appear to never activate the game.
+  ///
+  /// Returns true if a Master reset occurred.
+  bool onSpeechInput(
+    String fullRecognizedText, {
+    int baselineCharCount = 0,
+    bool isFinal = true,
+  }) {
     if (state.isScriptureComplete || state.mode != ScriptureBuilderMode.typing) {
       return false;
     }
 
-    // Split the new speech input into words
-    final speechWords = newWords.trim().split(RegExp(r'\s+'));
-    if (speechWords.isEmpty || (speechWords.length == 1 && speechWords[0].isEmpty)) {
-      return false;
-    }
+    final speechWords = fullRecognizedText
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .toList();
+    if (speechWords.isEmpty) return false;
 
-    for (final speechWord in speechWords) {
-      if (state.isScriptureComplete) break;
+    final baseline = baselineCharCount.clamp(0, state.targetText.length);
+    // Rebuild from the listen baseline using target characters (all correct
+    // up to this point on Master; Advanced speech starts from typed progress).
+    final newChars = <TypedChar>[
+      for (int i = 0; i < baseline; i++)
+        TypedChar(char: state.targetText[i], isCorrect: true),
+    ];
+
+    for (var wordIndex = 0; wordIndex < speechWords.length; wordIndex++) {
+      final speechWord = speechWords[wordIndex];
+      final isLastSpeechWord = wordIndex == speechWords.length - 1;
 
       // Auto-fill any leading punctuation and spaces at current position
-      final newChars = List<TypedChar>.from(state.typedChars);
-      int pos = newChars.length;
-
-      // Skip spaces at current position
-      while (pos < state.targetText.length && state.targetText[pos] == ' ') {
-        newChars.add(const TypedChar(char: ' ', isCorrect: true));
-        pos++;
-      }
-
-      // Auto-fill punctuation
       _autoFillNonLetters(newChars, '');
-      pos = newChars.length;
+      var pos = newChars.length;
 
-      // Extract the next target word (letters only, up to next space/end)
+      // Extract the next target word (up to next space/end)
       final targetWordStart = pos;
       var targetWordEnd = pos;
       while (targetWordEnd < state.targetText.length &&
@@ -617,93 +630,104 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
       }
       if (targetWordStart >= state.targetText.length) break;
 
-      // Get the target word without punctuation for comparison
-      final targetWordRaw = state.targetText.substring(targetWordStart, targetWordEnd);
-      final targetWordClean = targetWordRaw.replaceAll(_punctuation, '').toLowerCase();
-      final speechWordClean = speechWord.replaceAll(_punctuation, '').toLowerCase();
+      final targetWordRaw =
+          state.targetText.substring(targetWordStart, targetWordEnd);
+      final targetWordClean =
+          targetWordRaw.replaceAll(_punctuation, '').toLowerCase();
+      final speechWordClean =
+          speechWord.replaceAll(_punctuation, '').toLowerCase();
 
-      // Check if speech word matches target word:
-      // 1. Direct match (case-insensitive, punctuation-stripped)
-      // 2. Number word match (e.g. "four" matches target "for" — NO, but "4" matches "four")
-      bool wordMatches = speechWordClean == targetWordClean;
-
-      // Check if STT gave a number word where target has the same-sounding word or vice versa
-      if (!wordMatches) {
-        // STT said a number word, check if its digit form matches target
-        final digitForm = _numberWords[speechWordClean];
-        if (digitForm != null && digitForm == targetWordClean) {
-          wordMatches = true;
-        }
-        // STT said digits, check if the word form matches target
-        final wordForm = _numberWords.entries
-            .where((e) => e.value == speechWordClean)
-            .map((e) => e.key)
-            .firstOrNull;
-        if (wordForm != null && wordForm == targetWordClean) {
-          wordMatches = true;
-        }
-        // Handle homophones: if target word sounds like speech word
-        // e.g. "for"/"four", "to"/"too"/"two", "their"/"there"/"they're"
-        if (!wordMatches) {
-          wordMatches = _areHomophones(speechWordClean, targetWordClean);
-        }
+      if (targetWordClean.isEmpty) {
+        // Shouldn't happen after auto-fill; skip rather than loop forever.
+        break;
       }
+
+      final wordMatches = _speechWordMatches(speechWordClean, targetWordClean);
 
       if (wordMatches) {
-        // Feed the actual target characters (preserving original case/punctuation)
         for (int i = targetWordStart; i < targetWordEnd; i++) {
-          final ch = state.targetText[i];
-          if (_punctuation.hasMatch(ch)) {
-            newChars.add(TypedChar(char: ch, isCorrect: true));
-          } else {
-            newChars.add(TypedChar(char: ch, isCorrect: true));
-          }
+          newChars.add(TypedChar(char: state.targetText[i], isCorrect: true));
         }
-
-        // Auto-fill trailing punctuation
         _autoFillNonLetters(newChars, '');
-
-        final totalFilled = newChars.length - state.typedChars.length;
-        final newCorrectAcross = state.correctUnitsAcrossAll + totalFilled;
-        final done = newChars.length >= state.targetText.length;
-
-        state = state.copyWith(
-          typedText: state.targetText.substring(0, newChars.length),
-          typedChars: newChars,
-          correctPlacements: state.correctPlacements + totalFilled,
-          correctUnitsAcrossAll: newCorrectAcross,
-          lastFeedback: done ? 'correct' : null,
-          isScriptureComplete: done,
-          clearFeedback: !done,
-        );
-      } else {
-        // Word doesn't match
-        if (state.difficulty == DifficultyLevel.master) {
-          // Master: full reset
-          state = state.copyWith(
-            typedText: '',
-            typedChars: [],
-            incorrectAttempts: state.incorrectAttempts + 1,
-            resetCount: state.resetCount + 1,
-            correctUnitsAcrossAll:
-                state.correctUnitsAcrossAll - state.correctPlacements,
-            correctPlacements: 0,
-            hasActiveError: false,
-            lastFeedback: 'reset',
-          );
-          return true; // Signal reset so speech can stop
-        } else {
-          // Advanced: mark as incorrect
-          state = state.copyWith(
-            incorrectAttempts: state.incorrectAttempts + 1,
-            hasActiveError: true,
-            lastFeedback: 'incorrect',
-          );
-          return false;
-        }
+        continue;
       }
+
+      // Partial hypothesis often ends mid-word ("a" while targeting "and").
+      // Wait for more audio instead of treating it as a wrong answer.
+      if (!isFinal &&
+          isLastSpeechWord &&
+          targetWordClean.startsWith(speechWordClean) &&
+          speechWordClean.isNotEmpty) {
+        break;
+      }
+
+      // Word doesn't match
+      if (state.difficulty == DifficultyLevel.master) {
+        state = state.copyWith(
+          typedText: '',
+          typedChars: [],
+          incorrectAttempts: state.incorrectAttempts + 1,
+          resetCount: state.resetCount + 1,
+          correctUnitsAcrossAll:
+              state.correctUnitsAcrossAll - state.correctPlacements,
+          correctPlacements: 0,
+          hasActiveError: false,
+          lastFeedback: 'reset',
+        );
+        return true;
+      }
+
+      // Advanced: mark as incorrect; keep prior committed progress (baseline)
+      state = state.copyWith(
+        typedText: baseline == 0
+            ? ''
+            : state.targetText.substring(0, baseline),
+        typedChars: [
+          for (int i = 0; i < baseline; i++)
+            TypedChar(char: state.targetText[i], isCorrect: true),
+        ],
+        correctPlacements: baseline,
+        correctUnitsAcrossAll:
+            state.correctUnitsAcrossAll - state.correctPlacements + baseline,
+        incorrectAttempts: state.incorrectAttempts + 1,
+        hasActiveError: true,
+        lastFeedback: 'incorrect',
+      );
+      return false;
     }
+
+    final done = newChars.length >= state.targetText.length;
+    final newCorrectPlacements = newChars.length;
+    state = state.copyWith(
+      typedText: state.targetText.substring(0, newChars.length),
+      typedChars: newChars,
+      correctPlacements: newCorrectPlacements,
+      correctUnitsAcrossAll:
+          state.correctUnitsAcrossAll - state.correctPlacements + newCorrectPlacements,
+      lastFeedback: done ? 'correct' : null,
+      isScriptureComplete: done,
+      hasActiveError: false,
+      clearFeedback: !done,
+    );
     return false;
+  }
+
+  /// Whether a cleaned speech token matches a cleaned target word.
+  bool _speechWordMatches(String speechWordClean, String targetWordClean) {
+    if (speechWordClean == targetWordClean) return true;
+
+    // STT said a number word, check if its digit form matches target
+    final digitForm = _numberWords[speechWordClean];
+    if (digitForm != null && digitForm == targetWordClean) return true;
+
+    // STT said digits, check if the word form matches target
+    final wordForm = _numberWords.entries
+        .where((e) => e.value == speechWordClean)
+        .map((e) => e.key)
+        .firstOrNull;
+    if (wordForm != null && wordForm == targetWordClean) return true;
+
+    return _areHomophones(speechWordClean, targetWordClean);
   }
 
   /// Check if two words are homophones (sound alike but spelled differently).

@@ -858,4 +858,141 @@ void main() {
       expect(notifier.state.typedChars[dashIndex].isCorrect, isTrue);
     });
   });
+
+  group('Scripture Builder — Speech-to-text', () {
+    test(
+        'Master: partial prefix of first word does not reset (regression)',
+        () {
+      // Bug: STT partials like "a" while targeting "And" were treated as wrong
+      // words, immediately resetting Master and stopping the mic — speech
+      // appeared to never activate the game.
+      notifier.startGame(
+        difficulty: DifficultyLevel.master,
+        scriptures: [testScriptures[0]],
+      );
+
+      final didReset = notifier.onSpeechInput(
+        'a',
+        baselineCharCount: 0,
+        isFinal: false,
+      );
+
+      expect(didReset, isFalse);
+      expect(notifier.state.resetCount, 0);
+      expect(notifier.state.typedChars, isEmpty);
+      expect(notifier.state.lastFeedback, isNull);
+    });
+
+    test('Master: growing partials then final commit progress', () {
+      notifier.startGame(
+        difficulty: DifficultyLevel.master,
+        scriptures: [testScriptures[0]],
+      );
+
+      // Simulate recognizer revising in place: "a" → "and" → "and it"
+      notifier.onSpeechInput('a', baselineCharCount: 0, isFinal: false);
+      expect(notifier.state.typedChars, isEmpty);
+
+      notifier.onSpeechInput('and', baselineCharCount: 0, isFinal: false);
+      expect(notifier.state.typedChars.isNotEmpty, isTrue);
+      expect(notifier.state.resetCount, 0);
+      final afterAnd = notifier.state.typedChars.length;
+
+      notifier.onSpeechInput('and it', baselineCharCount: 0, isFinal: false);
+      expect(notifier.state.typedChars.length, greaterThan(afterAnd));
+      expect(notifier.state.resetCount, 0);
+
+      notifier.onSpeechInput('and it', baselineCharCount: 0, isFinal: true);
+      expect(notifier.state.typedChars.length, greaterThan(afterAnd));
+      expect(notifier.state.resetCount, 0);
+    });
+
+    test('Master: wrong final word resets', () {
+      notifier.startGame(
+        difficulty: DifficultyLevel.master,
+        scriptures: [testScriptures[0]],
+      );
+
+      final didReset = notifier.onSpeechInput(
+        'Nope',
+        baselineCharCount: 0,
+        isFinal: true,
+      );
+
+      expect(didReset, isTrue);
+      expect(notifier.state.resetCount, 1);
+      expect(notifier.state.typedChars, isEmpty);
+      expect(notifier.state.lastFeedback, 'reset');
+    });
+
+    test('Master: full correct speech completes scripture', () {
+      notifier.startGame(
+        difficulty: DifficultyLevel.master,
+        scriptures: [testScriptures[0]],
+      );
+
+      // Strip punctuation from target for spoken words
+      final spoken = notifier.state.targetText
+          .replaceAll(RegExp(r'''[,;:!?\-\—\–\.\'\"\'\'\"\"\(\)\[\]]'''), '')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+
+      final didReset = notifier.onSpeechInput(
+        spoken,
+        baselineCharCount: 0,
+        isFinal: true,
+      );
+
+      expect(didReset, isFalse);
+      expect(notifier.state.isScriptureComplete, isTrue);
+      expect(notifier.state.resetCount, 0);
+    });
+
+    test('Master: speech continues from typed baseline', () {
+      notifier.startGame(
+        difficulty: DifficultyLevel.master,
+        scriptures: [testScriptures[0]],
+      );
+
+      // Type first word "And" manually
+      String typed = '';
+      for (final ch in 'And'.split('')) {
+        typed += ch;
+        notifier.onType(typed);
+      }
+      final baseline = notifier.state.typedChars.length;
+      expect(baseline, greaterThan(0));
+
+      notifier.onSpeechInput(
+        'it came',
+        baselineCharCount: baseline,
+        isFinal: true,
+      );
+
+      expect(notifier.state.resetCount, 0);
+      expect(notifier.state.typedChars.length, greaterThan(baseline));
+      expect(
+        notifier.state.typedText.toLowerCase().startsWith('and it came'),
+        isTrue,
+      );
+    });
+
+    test('Master: homophone four/for accepted', () {
+      // Target starts "For God..." (test-2)
+      notifier.startGame(
+        difficulty: DifficultyLevel.master,
+        scriptures: [testScriptures[1]],
+      );
+
+      final didReset = notifier.onSpeechInput(
+        'four God',
+        baselineCharCount: 0,
+        isFinal: true,
+      );
+
+      expect(didReset, isFalse);
+      expect(notifier.state.resetCount, 0);
+      expect(notifier.state.typedChars.isNotEmpty, isTrue);
+    });
+  });
 }
