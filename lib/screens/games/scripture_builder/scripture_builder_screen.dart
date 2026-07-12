@@ -908,9 +908,17 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
                     _isSpeechListening ? Icons.mic_off : Icons.mic,
                     color: _isSpeechListening
                         ? AppTheme.error
-                        : _getDifficultyColor(widget.difficulty),
+                        : state.hasActiveError
+                            ? Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.35)
+                            : _getDifficultyColor(widget.difficulty),
                   ),
-                  onPressed: _toggleSpeechListening,
+                  onPressed: state.hasActiveError &&
+                          widget.difficulty == DifficultyLevel.advanced
+                      ? null
+                      : _toggleSpeechListening,
                 ),
               ),
               onChanged: (value) {
@@ -964,10 +972,16 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
       return;
     }
 
+    final currentState = ref.read(scriptureBuilderProvider);
+    // Advanced blocks new input until the red error is deleted — same for mic.
+    if (currentState.hasActiveError &&
+        widget.difficulty == DifficultyLevel.advanced) {
+      return;
+    }
+
     // Snapshot progress so each STT result can re-apply from this point.
     // Recognizers send the *full* session hypothesis (often revising earlier
     // words), not an append-only delta.
-    final currentState = ref.read(scriptureBuilderProvider);
     setState(() {
       _isSpeechListening = true;
       _speechBaselineCharCount = currentState.typedChars.length;
@@ -997,11 +1011,13 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
   ///
   /// Re-applies the full recognized hypothesis from the listen baseline via
   /// the word-based speech handler (homophones, punctuation, capitalization).
-  /// Partial results may end mid-word — those prefixes must not count as
-  /// wrong answers on Master, or the mic appears to "do nothing" (immediate
-  /// reset + stop).
+  /// Non-final hypotheses are never penalized — only finals can reset Master.
   void _onSpeechResult(String recognizedText, bool isFinal) {
     if (!mounted) return;
+    // Ignore stale callbacks after we stopped/cancelled (stop() can still
+    // deliver a pending final; cancel() clears the callback, and this guard
+    // is belt-and-suspenders against cascading Master resets).
+    if (!_isSpeechListening) return;
 
     final notifier = ref.read(scriptureBuilderProvider.notifier);
 
@@ -1012,11 +1028,12 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
     );
 
     if (didReset) {
-      // Master reset happened — stop listening immediately to prevent
-      // stale speech text from replaying and causing cascading resets.
-      _typingController.clear();
-      _speechService.stopListening();
+      // Drop listening first so any late final from stop/cancel is ignored.
       setState(() => _isSpeechListening = false);
+      _typingController.clear();
+      // cancel() (not stop) clears the result callback and avoids delivering
+      // the pending final that would re-apply against an empty board.
+      _speechService.cancel();
 
       ref.read(hapticProvider).heavy();
       ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
@@ -1031,9 +1048,14 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
       offset: _typingController.text.length,
     );
 
+    if (stateAfter.lastFeedback == 'incorrect') {
+      ref.read(hapticProvider).medium();
+      ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
+    }
+
     if (stateAfter.isScriptureComplete) {
-      _speechService.stopListening();
       setState(() => _isSpeechListening = false);
+      _speechService.cancel();
 
       ref.read(hapticProvider).heavy();
       _typingFocusNode.unfocus();

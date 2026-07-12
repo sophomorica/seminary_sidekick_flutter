@@ -994,5 +994,85 @@ void main() {
       expect(notifier.state.resetCount, 0);
       expect(notifier.state.typedChars.isNotEmpty, isTrue);
     });
+
+    test(
+        'Master: non-prefix partial mismatch does not reset (in→and)',
+        () {
+      // Recognizers emit transient non-prefix words they later revise.
+      notifier.startGame(
+        difficulty: DifficultyLevel.master,
+        scriptures: [testScriptures[0]],
+      );
+
+      final didReset = notifier.onSpeechInput(
+        'in',
+        baselineCharCount: 0,
+        isFinal: false,
+      );
+
+      expect(didReset, isFalse);
+      expect(notifier.state.resetCount, 0);
+      expect(notifier.state.typedChars, isEmpty);
+
+      // Later revision to the correct word commits progress.
+      notifier.onSpeechInput('and', baselineCharCount: 0, isFinal: false);
+      expect(notifier.state.resetCount, 0);
+      expect(notifier.state.typedChars.isNotEmpty, isTrue);
+    });
+
+    test('Advanced: speech blocked while hasActiveError', () {
+      notifier.startGame(
+        difficulty: DifficultyLevel.advanced,
+        scriptures: [testScriptures[0]],
+      );
+
+      // Type a wrong first character to create an active error.
+      notifier.onType('Z');
+      expect(notifier.state.hasActiveError, isTrue);
+      final charsBefore = notifier.state.typedChars.length;
+      final incorrectBefore = notifier.state.incorrectAttempts;
+
+      final didReset = notifier.onSpeechInput(
+        'And it came',
+        baselineCharCount: charsBefore,
+        isFinal: true,
+      );
+
+      expect(didReset, isFalse);
+      expect(notifier.state.hasActiveError, isTrue);
+      expect(notifier.state.typedChars.length, charsBefore);
+      expect(notifier.state.incorrectAttempts, incorrectBefore);
+      // Must not have laundered the wrong char into a correct target char.
+      expect(notifier.state.typedChars.first.isCorrect, isFalse);
+    });
+
+    test('Master: mid-word typed baseline snaps to word start', () {
+      notifier.startGame(
+        difficulty: DifficultyLevel.master,
+        scriptures: [testScriptures[0]],
+      );
+
+      // Type only "An" of "And", then speak the full word.
+      String typed = '';
+      for (final ch in 'An'.split('')) {
+        typed += ch;
+        notifier.onType(typed);
+      }
+      final midWordBaseline = notifier.state.typedChars.length;
+      expect(midWordBaseline, 2);
+
+      final didReset = notifier.onSpeechInput(
+        'and',
+        baselineCharCount: midWordBaseline,
+        isFinal: true,
+      );
+
+      expect(didReset, isFalse);
+      expect(notifier.state.resetCount, 0);
+      expect(
+        notifier.state.typedText.toLowerCase().startsWith('and'),
+        isTrue,
+      );
+    });
   });
 }
