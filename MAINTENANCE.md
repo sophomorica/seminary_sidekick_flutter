@@ -17,7 +17,8 @@
 | MAINT-001 | Lock down `bump_host_usage` — `0006_lock_bump_host_usage.sql` revokes implicit `PUBLIC` grant + adds internal `auth.uid()` guard; signature/behavior preserved for legitimate callers. `supabase db push` done (0001–0006 local+remote in sync, 2026-06-13); dashboard-linter re-check folded into MAINT-002. | 2026-05-27 |
 | MAINT-004 | Scripture Builder typing mode: a user-typed punctuation char (e.g. the comma in "world,") counted as a wrong character — and triggered a full reset on Master difficulty. Found live during App Store screenshot capture. Fix: `onType` now ignores every `_isAutoFillChar` (spaces AND punctuation) typed by the user, since auto-fill already inserts them. Two regression tests added in `scripture_builder_provider_test.dart` (advanced: no error/no attempt increment; master: no reset). | 2026-07-03 |
 | MAINT-005 | `share_plus` ^7.2.2 → ^10.1.4 after Apple rejected build 1 in processing (**ITMS-91061 Missing privacy manifest** — 7.2.2 predates the required `PrivacyInfo.xcprivacy`; included since 8.0.2). Same `Share.share()`/`shareXFiles()` API, zero code changes; app version bumped 1.0.0+1 → 1.0.0+2, build 2 resubmitted 2026-07-05. Lesson for future bumps: any SDK on Apple's [required-manifest list](https://developer.apple.com/support/third-party-SDK-requirements) must ship a privacy manifest or upload processing rejects the binary. | 2026-07-05 |
-| MAINT-006 | Scripture Builder Advanced typing display was revealing the next correct letter as a "cursor" highlight, defeating first-letter-only hints. Untyped Advanced positions now stay first-letter hints + underscores; cursor chrome highlights the slot without disclosing non-hint letters. Master blanking unchanged. | 2026-07-12 |
+| MAINT-006 | Quick Win "Practice Now" dead-ended on "Scripture not found": Grok's `quickWin.scriptureId` flowed unvalidated from the API response into `context.push('/scripture/$id')` (home quick-win card, `nextBestWinProvider`, `quickSessionPromptsProvider` tiles), so a hallucinated ID (e.g. a reference string like "Mosiah 3:19") 404'd on `ScriptureDetailScreen`. Fix: `SidekickResponse.sanitized(validIds)` strips AI-supplied scripture IDs not in the real 100 (quickWin → nulled, goal `relatedScriptureIds` → filtered, invalid `starterQuestions` → dropped), applied in `SidekickNotifier` on BOTH fresh responses and cache load (bad IDs were persisted in Hive); `fromJson` casts hardened (`?.toString()` — bare-number IDs no longer throw); session system prompt now instructs Grok to copy `scriptureId` exactly from the snapshot or omit it. 6 tests added in `sidekick_response_test.dart`. | 2026-07-11 |
+| MAINT-007 | Scripture Builder Advanced typing display was revealing the next correct letter as a "cursor" highlight, defeating first-letter-only hints. Untyped Advanced positions now stay first-letter hints + underscores; cursor chrome highlights the slot without disclosing non-hint letters. Master blanking unchanged. | 2026-07-12 |
 
 ---
 
@@ -62,7 +63,7 @@
 - **notes**:
   - Group play uses anonymous auth, so this only kicks in if/when we add email+password signup (currently we don't have one). Still worth flipping on now so it's already in place when we do.
 
-### MAINT-006: Scripture Builder Advanced — stop revealing next letter
+### MAINT-007: Scripture Builder Advanced — stop revealing next letter
 
 - **status**: `done`
 - **completed**: `2026-07-12T15:30:00Z`
@@ -80,6 +81,7 @@
   - Reported by owner: Advanced always shows the next correct letter while typing.
   - Fix: removed the spoiler branch that painted `target[i]` at the cursor; Advanced now always uses first-letter/underscore rules, with a subtle background highlight on the current typing slot.
   - Verified: `flutter analyze` clean; `scripture_builder_provider_test.dart` 45/45 green.
+  - Renumbered from MAINT-006 → MAINT-007 on merge: main already shipped MAINT-006 (Quick Win scriptureId sanitization).
 
 ---
 

@@ -116,6 +116,12 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
 
   SidekickNotifier(this._ref) : super(const SidekickState());
 
+  /// The real scripture IDs ('1'..'100'). AI-supplied IDs are validated
+  /// against this set before they can reach navigation — Grok occasionally
+  /// hallucinates IDs, which used to dead-end on "Scripture not found".
+  Set<String> get _validScriptureIds =>
+      _ref.read(scripturesProvider).map((s) => s.id).toSet();
+
   /// Initialize: load cached data, then trigger a session refresh if premium.
   Future<void> init() async {
     await _loadCache();
@@ -137,7 +143,8 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
       final snapshot = _buildSnapshot();
       state = state.copyWith(lastSnapshot: snapshot);
 
-      final response = await _service.getSessionResponse(snapshot);
+      final response = (await _service.getSessionResponse(snapshot))
+          .sanitized(_validScriptureIds);
 
       state = state.copyWith(
         sessionResponse: response,
@@ -379,8 +386,11 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
       final cachedJson = box.get(_responseCacheKey) as String?;
       if (cachedJson != null) {
         final parsed = jsonDecode(cachedJson) as Map<String, dynamic>;
+        // Sanitize cached responses too — a bad ID cached before this
+        // validation existed would otherwise keep resurfacing.
         state = state.copyWith(
-          sessionResponse: SidekickResponse.fromJson(parsed),
+          sessionResponse:
+              SidekickResponse.fromJson(parsed).sanitized(_validScriptureIds),
         );
       }
 
@@ -456,6 +466,21 @@ final quickWinProvider = Provider<QuickWin?>((ref) {
 /// Convenience: reflection prompts for the journal.
 final reflectionPromptsProvider = Provider<List<String>>((ref) {
   return ref.watch(sidekickResponseProvider)?.reflectionPrompts ?? const [];
+});
+
+/// Convenience: AI-generated starter question for a specific scripture, if
+/// the current session response included one. Null → caller falls back to
+/// local templates.
+final starterQuestionForScriptureProvider =
+    Provider.family<String?, String>((ref, scriptureId) {
+  final questions =
+      ref.watch(sidekickResponseProvider)?.starterQuestions ?? const [];
+  for (final q in questions) {
+    if (q.scriptureId == scriptureId && q.question.isNotEmpty) {
+      return q.question;
+    }
+  }
+  return null;
 });
 
 /// Convenience: chat messages.
