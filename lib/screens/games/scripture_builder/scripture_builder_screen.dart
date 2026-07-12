@@ -691,7 +691,8 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
     final isMaster = widget.difficulty == DifficultyLevel.master;
 
     // For Advanced: pre-compute which indices are "first letter of a word"
-    // so we can show those as hints.
+    // so we can show those as hints. Never reveal any other untyped letter —
+    // including the cursor position (that used to spoil the next character).
     final firstLetterIndices = <int>{};
     if (!isMaster) {
       bool prevWasSpace = true; // treat start of text as word boundary
@@ -702,6 +703,13 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
         prevWasSpace = target[i] == ' ';
       }
     }
+
+    // Subtle cursor chrome for Advanced: highlight the next letter slot the
+    // user must type, without disclosing the character (unless it's already
+    // a first-letter hint).
+    final cursorIndex = isMaster
+        ? -1
+        : _nextLetterIndex(target, typed.length);
 
     for (int i = 0; i < target.length; i++) {
       if (i < typed.length) {
@@ -719,67 +727,57 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
             decorationColor: AppTheme.error,
           ),
         ));
-      } else if (i >= typed.length &&
-          !isMaster &&
-          i == _nextLetterIndex(target, typed.length)) {
-        // Cursor position (Advanced only) — highlight the next letter the user
-        // needs to type (skipping auto-filled punctuation/spaces)
-        spans.add(TextSpan(
-          text: target[i],
-          style: TextStyle(
-            color: AppTheme.accent,
-            fontWeight: FontWeight.w700,
-            backgroundColor: AppTheme.accent.withValues(alpha: 0.15),
-          ),
-        ));
-      } else {
-        // Not yet reached
-        if (isMaster) {
-          // Master: show nothing — just an underscore for letters,
-          // but preserve spaces so word boundaries are visible.
-          final ch = target[i];
-          if (ch == ' ') {
-            spans.add(const TextSpan(text: ' '));
-          } else if (ch == '\n') {
-            spans.add(const TextSpan(text: '\n'));
-          } else {
-            spans.add(TextSpan(
-              text: '_',
-              style: TextStyle(
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.25),
-                letterSpacing: 1,
-              ),
-            ));
-          }
+      } else if (isMaster) {
+        // Master: show nothing — just an underscore for letters,
+        // but preserve spaces so word boundaries are visible.
+        final ch = target[i];
+        if (ch == ' ') {
+          spans.add(const TextSpan(text: ' '));
+        } else if (ch == '\n') {
+          spans.add(const TextSpan(text: '\n'));
         } else {
-          // Advanced: show first letter of each word, hide the rest
-          final ch = target[i];
-          if (ch == ' ' || ch == '\n') {
-            spans.add(TextSpan(text: ch));
-          } else if (firstLetterIndices.contains(i)) {
-            // First letter hint — show it dimly
-            spans.add(TextSpan(
-              text: ch,
-              style: TextStyle(
-                color: AppTheme.accent.withValues(alpha: 0.7),
-                fontWeight: FontWeight.w600,
-              ),
-            ));
-          } else {
-            spans.add(TextSpan(
-              text: '_',
-              style: TextStyle(
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.25),
-                letterSpacing: 1,
-              ),
-            ));
-          }
+          spans.add(TextSpan(
+            text: '_',
+            style: TextStyle(
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.25),
+              letterSpacing: 1,
+            ),
+          ));
+        }
+      } else {
+        // Advanced: first-letter hints only; everything else stays hidden.
+        final ch = target[i];
+        final atCursor = i == cursorIndex;
+        final cursorBg = atCursor
+            ? AppTheme.accent.withValues(alpha: 0.15)
+            : null;
+        if (ch == ' ' || ch == '\n') {
+          spans.add(TextSpan(text: ch));
+        } else if (firstLetterIndices.contains(i)) {
+          // First letter hint — show it dimly (bolden slightly at cursor)
+          spans.add(TextSpan(
+            text: ch,
+            style: TextStyle(
+              color: AppTheme.accent.withValues(alpha: atCursor ? 0.95 : 0.7),
+              fontWeight: atCursor ? FontWeight.w700 : FontWeight.w600,
+              backgroundColor: cursorBg,
+            ),
+          ));
+        } else {
+          spans.add(TextSpan(
+            text: '_',
+            style: TextStyle(
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: atCursor ? 0.45 : 0.25),
+              letterSpacing: 1,
+              backgroundColor: cursorBg,
+            ),
+          ));
         }
       }
     }

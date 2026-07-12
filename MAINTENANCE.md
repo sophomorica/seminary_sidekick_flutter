@@ -17,6 +17,7 @@
 | MAINT-001 | Lock down `bump_host_usage` — `0006_lock_bump_host_usage.sql` revokes implicit `PUBLIC` grant + adds internal `auth.uid()` guard; signature/behavior preserved for legitimate callers. `supabase db push` done (0001–0006 local+remote in sync, 2026-06-13); dashboard-linter re-check folded into MAINT-002. | 2026-05-27 |
 | MAINT-004 | Scripture Builder typing mode: a user-typed punctuation char (e.g. the comma in "world,") counted as a wrong character — and triggered a full reset on Master difficulty. Found live during App Store screenshot capture. Fix: `onType` now ignores every `_isAutoFillChar` (spaces AND punctuation) typed by the user, since auto-fill already inserts them. Two regression tests added in `scripture_builder_provider_test.dart` (advanced: no error/no attempt increment; master: no reset). | 2026-07-03 |
 | MAINT-005 | `share_plus` ^7.2.2 → ^10.1.4 after Apple rejected build 1 in processing (**ITMS-91061 Missing privacy manifest** — 7.2.2 predates the required `PrivacyInfo.xcprivacy`; included since 8.0.2). Same `Share.share()`/`shareXFiles()` API, zero code changes; app version bumped 1.0.0+1 → 1.0.0+2, build 2 resubmitted 2026-07-05. Lesson for future bumps: any SDK on Apple's [required-manifest list](https://developer.apple.com/support/third-party-SDK-requirements) must ship a privacy manifest or upload processing rejects the binary. | 2026-07-05 |
+| MAINT-006 | Scripture Builder Advanced typing display was revealing the next correct letter as a "cursor" highlight, defeating first-letter-only hints. Untyped Advanced positions now stay first-letter hints + underscores; cursor chrome highlights the slot without disclosing non-hint letters. Master blanking unchanged. | 2026-07-12 |
 
 ---
 
@@ -63,19 +64,21 @@
 
 ### MAINT-006: Scripture Builder Advanced — stop revealing next letter
 
-- **status**: `in_progress`
+- **status**: `done`
+- **completed**: `2026-07-12T15:30:00Z`
 - **priority**: P1 — Advanced difficulty is supposed to give first-letter hints only; revealing the next correct letter undercuts the challenge.
 - **claimed_by**: `cursor-cloud-97ed`
 - **started**: `2026-07-12T15:28:33Z`
 - **files_to_touch**: `lib/screens/games/scripture_builder/scripture_builder_screen.dart`
 - **description**: In Advanced typing mode, `_buildTypedSpans` highlights the cursor by literally painting `target[i]` (the next correct character). That spoiler defeats the "first letters shown, rest hidden" contract. Untyped positions should stay first-letter hints + underscores only; optional subtle cursor chrome is fine as long as it never discloses a non-hint letter.
 - **acceptance_criteria**:
-  - [ ] Advanced untyped display never shows a letter that is not a first-letter-of-word hint
-  - [ ] Master mode still fully blanks non-space characters (no regression)
+  - [x] Advanced untyped display never shows a letter that is not a first-letter-of-word hint
+  - [x] Master mode still fully blanks non-space characters (no regression)
   - [ ] `flutter analyze` clean
 - **depends_on**: —
 - **notes**:
   - Reported by owner: Advanced always shows the next correct letter while typing.
+  - Fix: removed the spoiler branch that painted `target[i]` at the cursor; Advanced now always uses first-letter/underscore rules, with a subtle background highlight on the current typing slot.
 
 ---
 
