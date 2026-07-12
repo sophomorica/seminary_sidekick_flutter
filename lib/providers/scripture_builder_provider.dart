@@ -583,10 +583,11 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
   /// delta). Each call re-applies from [baselineCharCount] so in-place
   /// revisions like partial "a" → final "and" work correctly.
   ///
-  /// When [isFinal] is false, a trailing word that is only a prefix of the
-  /// next target word is treated as still-in-progress (not a mismatch). That
-  /// prevents Master difficulty from resetting on mid-word partials — which
-  /// previously made speech appear to never activate the game.
+  /// Non-final results are never penalized: matched words are committed and
+  /// any mismatch simply waits for more audio / the final hypothesis.
+  /// Only a wrong word in a *final* result resets Master (or flags Advanced).
+  /// That prevents transient STT revisions (`"in"` → `"and"`) from looking
+  /// like speech never activated the game.
   ///
   /// Returns true if a Master reset occurred.
   bool onSpeechInput(
@@ -598,6 +599,14 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
       return false;
     }
 
+    // Match onType: Advanced blocks new input until the red error is deleted.
+    // Rebuilding the baseline from target text would silently "launder" the
+    // wrong character into a correct one.
+    if (state.hasActiveError &&
+        state.difficulty == DifficultyLevel.advanced) {
+      return false;
+    }
+
     final speechWords = fullRecognizedText
         .trim()
         .split(RegExp(r'\s+'))
@@ -605,7 +614,13 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
         .toList();
     if (speechWords.isEmpty) return false;
 
-    final baseline = baselineCharCount.clamp(0, state.targetText.length);
+    // Snap mid-word baselines back to the start of the current word so speech
+    // is compared against full target words (typing "An" then mic → "And").
+    var baseline = baselineCharCount.clamp(0, state.targetText.length);
+    while (baseline > 0 && state.targetText[baseline - 1] != ' ') {
+      baseline--;
+    }
+
     // Rebuild from the listen baseline using target characters (all correct
     // up to this point on Master; Advanced speech starts from typed progress).
     final newChars = <TypedChar>[
@@ -613,13 +628,10 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
         TypedChar(char: state.targetText[i], isCorrect: true),
     ];
 
-    for (var wordIndex = 0; wordIndex < speechWords.length; wordIndex++) {
-      final speechWord = speechWords[wordIndex];
-      final isLastSpeechWord = wordIndex == speechWords.length - 1;
-
+    for (final speechWord in speechWords) {
       // Auto-fill any leading punctuation and spaces at current position
       _autoFillNonLetters(newChars, '');
-      var pos = newChars.length;
+      final pos = newChars.length;
 
       // Extract the next target word (up to next space/end)
       final targetWordStart = pos;
@@ -638,7 +650,7 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
           speechWord.replaceAll(_punctuation, '').toLowerCase();
 
       if (targetWordClean.isEmpty) {
-        // Shouldn't happen after auto-fill; skip rather than loop forever.
+        // Shouldn't happen after auto-fill; stop and commit progress so far.
         break;
       }
 
@@ -652,16 +664,14 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
         continue;
       }
 
-      // Partial hypothesis often ends mid-word ("a" while targeting "and").
-      // Wait for more audio instead of treating it as a wrong answer.
-      if (!isFinal &&
-          isLastSpeechWord &&
-          targetWordClean.startsWith(speechWordClean) &&
-          speechWordClean.isNotEmpty) {
+      // Partial hypotheses revise in place ("a" → "eight" → "and it"), so a
+      // mismatch in a non-final result is not evidence of a wrong answer.
+      // Commit the matched prefix and wait for more audio / the final result.
+      if (!isFinal) {
         break;
       }
 
-      // Word doesn't match
+      // Word doesn't match (final result only)
       if (state.difficulty == DifficultyLevel.master) {
         state = state.copyWith(
           typedText: '',
