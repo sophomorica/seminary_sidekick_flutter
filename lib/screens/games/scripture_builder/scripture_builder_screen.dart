@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../models/enums.dart';
@@ -9,7 +10,6 @@ import '../../../providers/progress_provider.dart';
 import '../../../providers/scripture_builder_provider.dart';
 import '../../../services/audio_service.dart';
 import '../../../services/haptic_service.dart';
-import '../../../services/speech_service.dart';
 import '../../../theme/app_theme.dart';
 import '../game_results_screen.dart';
 import 'typed_display_rules.dart';
@@ -45,14 +45,6 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
   final _typingController = TextEditingController();
   final _typingFocusNode = FocusNode();
   bool _isResetting = false; // Guard against onChanged re-triggers during reset
-
-  // Speech-to-text
-  final _speechService = SpeechService.instance;
-  bool _isSpeechListening = false;
-  /// Character offset in [ScriptureBuilderState.typedChars] when listening
-  /// started. Each STT result is re-applied from this baseline so partial
-  /// hypothesis revisions (e.g. "a" → "and") don't break matching.
-  int _speechBaselineCharCount = 0;
 
   // Chunk colors for visual distinction
   static const _chunkPalette = [
@@ -121,7 +113,6 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
     _pulseController.dispose();
     _typingController.dispose();
     _typingFocusNode.dispose();
-    _speechService.stopListening();
     super.dispose();
   }
 
@@ -834,6 +825,19 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
               autocorrect: false,
               enableSuggestions: false,
               textCapitalization: TextCapitalization.none,
+              // Paste would bypass character-by-character mastery checking.
+              inputFormatters: const [_NoPasteFormatter()],
+              contextMenuBuilder: (context, editableTextState) {
+                final items = editableTextState.contextMenuButtonItems
+                    .where(
+                      (item) => item.type != ContextMenuButtonType.paste,
+                    )
+                    .toList();
+                return AdaptiveTextSelectionToolbar.buttonItems(
+                  anchors: editableTextState.contextMenuAnchors,
+                  buttonItems: items,
+                );
+              },
               style: const TextStyle(fontSize: 14),
               decoration: InputDecoration(
                 isDense: true,
@@ -867,23 +871,6 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: AppTheme.spacingSm,
                   vertical: AppTheme.spacingSm,
-                ),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _isSpeechListening ? Icons.mic_off : Icons.mic,
-                    color: _isSpeechListening
-                        ? AppTheme.error
-                        : state.hasActiveError
-                            ? Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.35)
-                            : _getDifficultyColor(widget.difficulty),
-                  ),
-                  onPressed: state.hasActiveError &&
-                          widget.difficulty == DifficultyLevel.advanced
-                      ? null
-                      : _toggleSpeechListening,
                 ),
               ),
               onChanged: (value) {
@@ -924,115 +911,6 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
         ],
       ),
     );
-  }
-
-  // ═══════════════════════════════════════════════════════════════
-  // SPEECH-TO-TEXT
-  // ═══════════════════════════════════════════════════════════════
-
-  Future<void> _toggleSpeechListening() async {
-    if (_isSpeechListening) {
-      await _speechService.stopListening();
-      setState(() => _isSpeechListening = false);
-      return;
-    }
-
-    final currentState = ref.read(scriptureBuilderProvider);
-    // Advanced blocks new input until the red error is deleted — same for mic.
-    if (currentState.hasActiveError &&
-        widget.difficulty == DifficultyLevel.advanced) {
-      return;
-    }
-
-    // Snapshot progress so each STT result can re-apply from this point.
-    // Recognizers send the *full* session hypothesis (often revising earlier
-    // words), not an append-only delta.
-    setState(() {
-      _isSpeechListening = true;
-      _speechBaselineCharCount = currentState.typedChars.length;
-    });
-
-    await _speechService.startListening(
-      onResult: _onSpeechResult,
-      onError: (errorMessage) {
-        if (!mounted) return;
-        setState(() => _isSpeechListening = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      },
-    );
-
-    // If initialization failed (service set _isListening back to false)
-    if (!_speechService.isListening && mounted) {
-      setState(() => _isSpeechListening = false);
-    }
-  }
-
-  /// Called whenever the speech recognizer has new text.
-  ///
-  /// Re-applies the full recognized hypothesis from the listen baseline via
-  /// the word-based speech handler (homophones, punctuation, capitalization).
-  /// Non-final hypotheses are never penalized — only finals can reset Master.
-  void _onSpeechResult(String recognizedText, bool isFinal) {
-    if (!mounted) return;
-    // Ignore stale callbacks after we stopped/cancelled (stop() can still
-    // deliver a pending final; cancel() clears the callback, and this guard
-    // is belt-and-suspenders against cascading Master resets).
-    if (!_isSpeechListening) return;
-
-    final notifier = ref.read(scriptureBuilderProvider.notifier);
-
-    final didReset = notifier.onSpeechInput(
-      recognizedText,
-      baselineCharCount: _speechBaselineCharCount,
-      isFinal: isFinal,
-    );
-
-    if (didReset) {
-      // Drop listening first so any late final from stop/cancel is ignored.
-      setState(() => _isSpeechListening = false);
-      _typingController.clear();
-      // cancel() (not stop) clears the result callback and avoids delivering
-      // the pending final that would re-apply against an empty board.
-      _speechService.cancel();
-
-      ref.read(hapticProvider).heavy();
-      ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
-      return;
-    }
-
-    final stateAfter = ref.read(scriptureBuilderProvider);
-
-    // Keep text controller in sync with provider state
-    _typingController.text = stateAfter.typedText;
-    _typingController.selection = TextSelection.collapsed(
-      offset: _typingController.text.length,
-    );
-
-    if (stateAfter.lastFeedback == 'incorrect') {
-      ref.read(hapticProvider).medium();
-      ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
-    }
-
-    if (stateAfter.isScriptureComplete) {
-      setState(() => _isSpeechListening = false);
-      _speechService.cancel();
-
-      ref.read(hapticProvider).heavy();
-      _typingFocusNode.unfocus();
-      if (!stateAfter.isComplete) {
-        Future.delayed(const Duration(milliseconds: 1000), () {
-          if (mounted) {
-            _typingController.clear();
-            ref.read(scriptureBuilderProvider.notifier).nextScripture();
-          }
-        });
-      }
-    }
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -1204,5 +1082,27 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
       ),
     );
     return result ?? false;
+  }
+}
+
+/// Rejects multi-character insertions (paste / clipboard) while allowing
+/// single keystrokes and deletions. Used by Advanced & Master typing fields.
+class _NoPasteFormatter extends TextInputFormatter {
+  const _NoPasteFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final selectionLength = oldValue.selection.isValid
+        ? oldValue.selection.end - oldValue.selection.start
+        : 0;
+    final insertedLength =
+        newValue.text.length - (oldValue.text.length - selectionLength);
+    if (insertedLength > 1) {
+      return oldValue;
+    }
+    return newValue;
   }
 }

@@ -210,18 +210,8 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
   final _random = Random();
 
   /// Punctuation characters that are auto-filled during typing mode
-  /// so speech-to-text input (which omits punctuation) works seamlessly.
+  /// so the user only has to type letters and digits.
   static final _punctuation = RegExp(r'''[,;:!?\-\—\–\.\'\"\'\'\"\"\(\)\[\]]''');
-
-  /// Common number-word to digit mappings for speech-to-text normalization.
-  static const _numberWords = <String, String>{
-    'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4',
-    'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9',
-    'ten': '10', 'eleven': '11', 'twelve': '12', 'thirteen': '13',
-    'fourteen': '14', 'fifteen': '15', 'sixteen': '16', 'seventeen': '17',
-    'eighteen': '18', 'nineteen': '19', 'twenty': '20',
-    'thirty': '30', 'forty': '40', 'fifty': '50',
-  };
 
   // ── Chunk colors for visual distinction ──
   static const _chunkColors = [0, 1, 2, 3, 4, 5, 6, 7];
@@ -460,8 +450,8 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
   }
 
   /// User types a character. Called on every keystroke.
-  /// Punctuation in the target text is auto-filled so that speech-to-text
-  /// (which typically omits punctuation) works seamlessly.
+  /// Punctuation in the target text is auto-filled so the user only
+  /// has to type letters and digits.
   void onType(String newText) {
     if (state.isScriptureComplete || state.mode != ScriptureBuilderMode.typing) {
       return;
@@ -571,213 +561,6 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
         }
       }
     }
-  }
-
-  // ═══════════════════════════════════════════════════════════════
-  // SPEECH-TO-TEXT INPUT
-  // ═══════════════════════════════════════════════════════════════
-
-  /// Process speech-to-text input word-by-word instead of character-by-character.
-  ///
-  /// [fullRecognizedText] is the recognizer's full session hypothesis (not a
-  /// delta). Each call re-applies from [baselineCharCount] so in-place
-  /// revisions like partial "a" → final "and" work correctly.
-  ///
-  /// Non-final results are never penalized: matched words are committed and
-  /// any mismatch simply waits for more audio / the final hypothesis.
-  /// Only a wrong word in a *final* result resets Master (or flags Advanced).
-  /// That prevents transient STT revisions (`"in"` → `"and"`) from looking
-  /// like speech never activated the game.
-  ///
-  /// Returns true if a Master reset occurred.
-  bool onSpeechInput(
-    String fullRecognizedText, {
-    int baselineCharCount = 0,
-    bool isFinal = true,
-  }) {
-    if (state.isScriptureComplete || state.mode != ScriptureBuilderMode.typing) {
-      return false;
-    }
-
-    // Match onType: Advanced blocks new input until the red error is deleted.
-    // Rebuilding the baseline from target text would silently "launder" the
-    // wrong character into a correct one.
-    if (state.hasActiveError &&
-        state.difficulty == DifficultyLevel.advanced) {
-      return false;
-    }
-
-    final speechWords = fullRecognizedText
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((w) => w.isNotEmpty)
-        .toList();
-    if (speechWords.isEmpty) return false;
-
-    // Snap mid-word baselines back to the start of the current word so speech
-    // is compared against full target words (typing "An" then mic → "And").
-    var baseline = baselineCharCount.clamp(0, state.targetText.length);
-    while (baseline > 0 && state.targetText[baseline - 1] != ' ') {
-      baseline--;
-    }
-
-    // Rebuild from the listen baseline using target characters (all correct
-    // up to this point on Master; Advanced speech starts from typed progress).
-    final newChars = <TypedChar>[
-      for (int i = 0; i < baseline; i++)
-        TypedChar(char: state.targetText[i], isCorrect: true),
-    ];
-
-    for (final speechWord in speechWords) {
-      // Auto-fill any leading punctuation and spaces at current position
-      _autoFillNonLetters(newChars, '');
-      final pos = newChars.length;
-
-      // Extract the next target word (up to next space/end)
-      final targetWordStart = pos;
-      var targetWordEnd = pos;
-      while (targetWordEnd < state.targetText.length &&
-          state.targetText[targetWordEnd] != ' ') {
-        targetWordEnd++;
-      }
-      if (targetWordStart >= state.targetText.length) break;
-
-      final targetWordRaw =
-          state.targetText.substring(targetWordStart, targetWordEnd);
-      final targetWordClean =
-          targetWordRaw.replaceAll(_punctuation, '').toLowerCase();
-      final speechWordClean =
-          speechWord.replaceAll(_punctuation, '').toLowerCase();
-
-      if (targetWordClean.isEmpty) {
-        // Shouldn't happen after auto-fill; stop and commit progress so far.
-        break;
-      }
-
-      final wordMatches = _speechWordMatches(speechWordClean, targetWordClean);
-
-      if (wordMatches) {
-        for (int i = targetWordStart; i < targetWordEnd; i++) {
-          newChars.add(TypedChar(char: state.targetText[i], isCorrect: true));
-        }
-        _autoFillNonLetters(newChars, '');
-        continue;
-      }
-
-      // Partial hypotheses revise in place ("a" → "eight" → "and it"), so a
-      // mismatch in a non-final result is not evidence of a wrong answer.
-      // Commit the matched prefix and wait for more audio / the final result.
-      if (!isFinal) {
-        break;
-      }
-
-      // Word doesn't match (final result only)
-      if (state.difficulty == DifficultyLevel.master) {
-        state = state.copyWith(
-          typedText: '',
-          typedChars: [],
-          incorrectAttempts: state.incorrectAttempts + 1,
-          resetCount: state.resetCount + 1,
-          correctUnitsAcrossAll:
-              state.correctUnitsAcrossAll - state.correctPlacements,
-          correctPlacements: 0,
-          hasActiveError: false,
-          lastFeedback: 'reset',
-        );
-        return true;
-      }
-
-      // Advanced: mark as incorrect; keep prior committed progress (baseline)
-      state = state.copyWith(
-        typedText: baseline == 0
-            ? ''
-            : state.targetText.substring(0, baseline),
-        typedChars: [
-          for (int i = 0; i < baseline; i++)
-            TypedChar(char: state.targetText[i], isCorrect: true),
-        ],
-        correctPlacements: baseline,
-        correctUnitsAcrossAll:
-            state.correctUnitsAcrossAll - state.correctPlacements + baseline,
-        incorrectAttempts: state.incorrectAttempts + 1,
-        hasActiveError: true,
-        lastFeedback: 'incorrect',
-      );
-      return false;
-    }
-
-    final done = newChars.length >= state.targetText.length;
-    final newCorrectPlacements = newChars.length;
-    state = state.copyWith(
-      typedText: state.targetText.substring(0, newChars.length),
-      typedChars: newChars,
-      correctPlacements: newCorrectPlacements,
-      correctUnitsAcrossAll:
-          state.correctUnitsAcrossAll - state.correctPlacements + newCorrectPlacements,
-      lastFeedback: done ? 'correct' : null,
-      isScriptureComplete: done,
-      hasActiveError: false,
-      clearFeedback: !done,
-    );
-    return false;
-  }
-
-  /// Whether a cleaned speech token matches a cleaned target word.
-  bool _speechWordMatches(String speechWordClean, String targetWordClean) {
-    if (speechWordClean == targetWordClean) return true;
-
-    // STT said a number word, check if its digit form matches target
-    final digitForm = _numberWords[speechWordClean];
-    if (digitForm != null && digitForm == targetWordClean) return true;
-
-    // STT said digits, check if the word form matches target
-    final wordForm = _numberWords.entries
-        .where((e) => e.value == speechWordClean)
-        .map((e) => e.key)
-        .firstOrNull;
-    if (wordForm != null && wordForm == targetWordClean) return true;
-
-    return _areHomophones(speechWordClean, targetWordClean);
-  }
-
-  /// Check if two words are homophones (sound alike but spelled differently).
-  static bool _areHomophones(String a, String b) {
-    const homophones = <Set<String>>{
-      {'for', 'four', 'fore'},
-      {'to', 'too', 'two'},
-      {'their', 'there', 'theyre'},
-      {'your', 'youre'},
-      {'no', 'know'},
-      {'by', 'buy', 'bye'},
-      {'hear', 'here'},
-      {'right', 'write', 'rite'},
-      {'sea', 'see'},
-      {'son', 'sun'},
-      {'one', 'won'},
-      {'would', 'wood'},
-      {'which', 'witch'},
-      {'peace', 'piece'},
-      {'pray', 'prey'},
-      {'soul', 'sole'},
-      {'whole', 'hole'},
-      {'holy', 'wholly'},
-      {'prophet', 'profit'},
-      {'reign', 'rain', 'rein'},
-      {'altar', 'alter'},
-      {'born', 'borne'},
-      {'council', 'counsel'},
-      {'might', 'mite'},
-      {'night', 'knight'},
-      {'way', 'weigh'},
-      {'week', 'weak'},
-      {'wait', 'weight'},
-      {'eye', 'i'},
-      {'thee', 'the'},
-    };
-    for (final set in homophones) {
-      if (set.contains(a) && set.contains(b)) return true;
-    }
-    return false;
   }
 
   // ═══════════════════════════════════════════════════════════════

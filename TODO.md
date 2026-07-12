@@ -412,3 +412,28 @@ These tasks are **code-complete** and summarized in the Completed tables above; 
 |------|------|--------|
 | TASK-014 | Legacy social features placeholder (superseded by TASK-048/050) | — |
 | TASK-015 | Localization (i18n) | Large |
+| TASK-069 | Premium AI voice recite for Scripture Builder (Advanced + Master) | Large |
+
+### TASK-069: Premium AI voice recite for Scripture Builder (Advanced + Master)
+
+- **status**: open (backlog — not prioritized)
+- **priority**: P2
+- **context**: On-device speech-to-text was removed from Scripture Builder on 2026-07-12 (typing-only now on Advanced + Master). The OS recognizer mangled proper nouns (`Nephi` → "knee five") and client-side homophone matching could never cover scripture vocabulary. Journal voice dictation was kept — `SpeechService`, the `speech_to_text` package, and mic/speech Info.plist permission strings are all still in place.
+- **target design**:
+  - UI: record a voice memo (tap start/stop) — NOT live STT word-matching
+  - Upload audio + target scripture text/id to a new Supabase edge function (mirror `sidekick-proxy`: JWT verification, CORS, server-side transcription/AI secret, **RevenueCat premium gate**)
+  - AI judges the recitation and returns **pass/fail** (not word-by-word fill-in)
+  - Premium-only; free users see an upgrade teaser or no mic at all
+  - A pass counts toward the same Mastered rules as a perfect typing run (3 consecutive Master perfects) unless product revisits
+- **scaffolding reference** (recover the old, mature STT implementation via git):
+  - `git show 555ccf6:<path>` — "address PR review: never penalize STT partials" (latest STT polish; ancestor of current HEAD). Related prior: `b599740` (Master STT reset/cancel fix).
+  - Key paths at that commit:
+    - `lib/screens/games/scripture_builder/scripture_builder_screen.dart` (mic UI, `_toggleSpeechListening` / `_onSpeechResult`)
+    - `lib/providers/scripture_builder_provider.dart` (`onSpeechInput`, `_speechWordMatches`, `_areHomophones`, `_numberWords`)
+    - `test/providers/scripture_builder_provider_test.dart` (`Scripture Builder — Speech-to-text` group)
+  - Removal commit: `REMOVAL_SHA` — the pre-removal tree is one `git show REMOVAL_SHA^:<path>` away.
+- **acceptance_criteria** (rough):
+  - [ ] Record → analyze → pass/fail flow on Advanced + Master
+  - [ ] Premium gate enforced server-side (RevenueCat entitlement, like sidekick-proxy)
+  - [ ] Group play never writes personal mastery (unchanged rule)
+  - [ ] `flutter analyze` clean + tests green
