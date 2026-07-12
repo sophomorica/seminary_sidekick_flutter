@@ -556,30 +556,35 @@ class _DetailTabGroup extends StatelessWidget {
         color: colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _DetailTabSegment(
-              label: 'Study',
-              isActive: activeTab == _DetailTab.study,
-              onPressed: () => onTabChanged(_DetailTab.study),
+      // IntrinsicHeight + stretch keeps every pill full-height when the
+      // "Scripture Builder" label wraps to two lines on narrow widths.
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: _DetailTabSegment(
+                label: 'Study',
+                isActive: activeTab == _DetailTab.study,
+                onPressed: () => onTabChanged(_DetailTab.study),
+              ),
             ),
-          ),
-          Expanded(
-            child: _DetailTabSegment(
-              label: 'Scripture Builder',
-              isActive: activeTab == _DetailTab.scriptureBuilder,
-              onPressed: () => onTabChanged(_DetailTab.scriptureBuilder),
+            Expanded(
+              child: _DetailTabSegment(
+                label: 'Scripture Builder',
+                isActive: activeTab == _DetailTab.scriptureBuilder,
+                onPressed: () => onTabChanged(_DetailTab.scriptureBuilder),
+              ),
             ),
-          ),
-          Expanded(
-            child: _DetailTabSegment(
-              label: 'Progress',
-              isActive: activeTab == _DetailTab.progress,
-              onPressed: () => onTabChanged(_DetailTab.progress),
+            Expanded(
+              child: _DetailTabSegment(
+                label: 'Progress',
+                isActive: activeTab == _DetailTab.progress,
+                onPressed: () => onTabChanged(_DetailTab.progress),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -598,11 +603,17 @@ class _DetailTabSegment extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    // In the dark scheme surfaceContainerLowest is the *darkest* surface, so
+    // the "lifted pill" trick inverts — lift with a higher container instead.
+    final activePillColor = theme.brightness == Brightness.dark
+        ? colorScheme.surfaceContainerHigh
+        : colorScheme.surfaceContainerLowest;
 
     return Material(
-      color: colorScheme.surfaceContainer.withValues(alpha: 0),
+      type: MaterialType.transparency,
       child: InkWell(
         onTap: onPressed,
         borderRadius: BorderRadius.circular(AppTheme.radiusSm),
@@ -614,7 +625,7 @@ class _DetailTabSegment extends StatelessWidget {
             vertical: AppTheme.spacingSm,
           ),
           decoration: BoxDecoration(
-            color: isActive ? colorScheme.surfaceContainerLowest : null,
+            color: isActive ? activePillColor : null,
             borderRadius: BorderRadius.circular(AppTheme.radiusSm),
             boxShadow: isActive ? AppTheme.editorialShadow : null,
           ),
