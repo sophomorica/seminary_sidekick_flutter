@@ -170,7 +170,9 @@ class _WbRaceBoardState extends ConsumerState<SbRaceBoard>
     final tapped = _pool[poolIndex];
     final expected = _targetChunks[_nextSlot];
 
-    if (!tapped.isDistractor && tapped.startIndex == expected.startIndex) {
+    // Text equality (not startIndex): identical duplicate chunks are
+    // interchangeable, matching solo Scripture Builder behavior.
+    if (!tapped.isDistractor && tapped.text == expected.text) {
       // Correct
       setState(() {
         _placedChunks[_nextSlot] = tapped;

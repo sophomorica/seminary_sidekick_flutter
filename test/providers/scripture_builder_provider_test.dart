@@ -145,6 +145,50 @@ void main() {
       expect(notifier.state.nextChunkIndex, nextIdxSnapshot);
     });
 
+    test(
+        'selectChunk — identical duplicate chunks are interchangeable (text match, not startIndex)',
+        () {
+      // 6 words → two identical beginner chunks: "words of God" at
+      // startIndex 0 and startIndex 3.
+      final scripture = Scripture(
+        id: 'test-dup',
+        book: ScriptureBook.bookOfMormon,
+        volume: '2 Nephi',
+        reference: '2 Nephi 32:3',
+        name: 'Duplicate Chunks',
+        keyPhrase: 'words of God',
+        fullText: 'words of God words of God',
+      );
+      notifier.startGame(
+          difficulty: DifficultyLevel.beginner, scriptures: [scripture]);
+
+      expect(notifier.state.targetChunks.length, 2);
+      expect(notifier.state.targetChunks[0].text,
+          notifier.state.targetChunks[1].text);
+
+      // Slot 0 expects startIndex 0 — deliberately tap the duplicate tile
+      // whose startIndex differs (3) but whose text matches.
+      final expectedStart = notifier.state.targetChunks[0].startIndex;
+      int dupIndex = -1;
+      for (int i = 0; i < notifier.state.availablePool.length; i++) {
+        final c = notifier.state.availablePool[i];
+        if (!c.isDistractor && c.startIndex != expectedStart) {
+          dupIndex = i;
+          break;
+        }
+      }
+      expect(dupIndex, isNot(-1), reason: 'Should find the duplicate tile');
+
+      notifier.selectChunk(dupIndex);
+
+      expect(notifier.state.lastFeedback, 'correct');
+      expect(notifier.state.placedChunks[0], isNotNull);
+      expect(notifier.state.placedChunks[0]!.text, 'words of God');
+      expect(notifier.state.usedPoolIndices.contains(dupIndex), isTrue);
+      expect(notifier.state.correctPlacements, 1);
+      expect(notifier.state.incorrectAttempts, 0);
+    });
+
     test('selectChunk — wrong — incorrectAttempts increments, pool unchanged',
         () {
       notifier.startGame(

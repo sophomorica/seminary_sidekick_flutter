@@ -381,8 +381,10 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
 
     final expectedChunk = state.targetChunks[targetSlot];
 
-    // Check correctness: same start index and not a distractor
-    if (!tapped.isDistractor && tapped.startIndex == expectedChunk.startIndex) {
+    // Check correctness: same text and not a distractor. Text equality (not
+    // startIndex) so identical duplicate chunks are interchangeable — e.g.
+    // two "words of" tiles in 2 Nephi 32:3 both count for either slot.
+    if (!tapped.isDistractor && tapped.text == expectedChunk.text) {
       // Correct! Mark the pool index as used instead of removing it,
       // so the chip layout stays stable (no reflow) and users can tap
       // remaining chunks without the bubbles shifting under their finger.
