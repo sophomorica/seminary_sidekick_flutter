@@ -3,7 +3,7 @@
 /// Extracted from the screen so the display contract is unit-testable
 /// without pumping widgets: Advanced may reveal only first-letter-of-word
 /// hints, Master reveals nothing, and no untyped position ever discloses
-/// a hidden letter (MAINT-006).
+/// a hidden letter (MAINT-007).
 class TypedDisplayRules {
   TypedDisplayRules._();
 

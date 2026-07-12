@@ -60,7 +60,7 @@ void main() {
   group('untypedGlyph', () {
     const target = '"For God—so loved," he\nsaid';
 
-    test('Advanced never discloses a non-hint letter (MAINT-006)', () {
+    test('Advanced never discloses a non-hint letter (MAINT-007)', () {
       final hints = TypedDisplayRules.firstLetterIndices(target);
       for (var i = 0; i < target.length; i++) {
         final glyph = TypedDisplayRules.untypedGlyph(
