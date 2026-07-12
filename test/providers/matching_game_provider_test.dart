@@ -292,29 +292,6 @@ void main() {
     });
   });
 
-  group('attemptDragMatch', () {
-    test('correct drag match works same as tap match', () {
-      notifier.startGame(difficulty: DifficultyLevel.beginner);
-      final id = notifier.state.pairs.first.scripture.id;
-
-      notifier.attemptDragMatch(draggedId: id, targetId: id);
-
-      expect(notifier.state.correctMatches, 1);
-      expect(notifier.state.lastFeedback, 'correct');
-      expect(notifier.isMatched(id), true);
-    });
-
-    test('incorrect drag match works same as tap mismatch', () {
-      notifier.startGame(difficulty: DifficultyLevel.beginner);
-      final ids = notifier.state.pairs.map((p) => p.scripture.id).toList();
-
-      notifier.attemptDragMatch(draggedId: ids[0], targetId: ids[1]);
-
-      expect(notifier.state.incorrectAttempts, 1);
-      expect(notifier.state.lastFeedback, 'incorrect');
-    });
-  });
-
   group('game completion', () {
     test('matching all pairs sets isComplete to true', () {
       notifier.startGame(difficulty: DifficultyLevel.beginner);

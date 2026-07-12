@@ -251,7 +251,6 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
                 lastMatchedId: gameState.lastMatchedId,
                 shakeAnimation: _shakeAnimation,
                 pulseAnimation: _pulseAnimation,
-                onDragStarted: () => ref.read(hapticProvider).selection(),
                 onTap: () {
                   if (isMatched) return;
                   ref.read(hapticProvider).selection();
@@ -259,20 +258,6 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
                     notifier.selectPhrase(id);
                   } else {
                     notifier.selectReference(id);
-                  }
-                },
-                onDragAccepted: (draggedId) {
-                  ref.read(hapticProvider).selection();
-                  if (isLeft) {
-                    notifier.attemptDragMatch(
-                      draggedId: draggedId,
-                      targetId: id,
-                    );
-                  } else {
-                    notifier.attemptDragMatch(
-                      draggedId: id,
-                      targetId: draggedId,
-                    );
                   }
                 },
               );
@@ -498,8 +483,6 @@ class _MatchTile extends StatelessWidget {
   final Animation<double> shakeAnimation;
   final Animation<double> pulseAnimation;
   final VoidCallback onTap;
-  final VoidCallback? onDragStarted;
-  final void Function(String draggedId) onDragAccepted;
 
   const _MatchTile({
     required this.scripture,
@@ -512,8 +495,6 @@ class _MatchTile extends StatelessWidget {
     required this.shakeAnimation,
     required this.pulseAnimation,
     required this.onTap,
-    this.onDragStarted,
-    required this.onDragAccepted,
   });
 
   @override
@@ -527,83 +508,34 @@ class _MatchTile extends StatelessWidget {
       );
     }
 
-    // Draggable tile — immediate drag (no long press required)
-    final draggable = Draggable<String>(
-      data: scripture.id,
-      feedback: Material(
-        elevation: 8,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        child: Container(
-          width: MediaQuery.of(context).size.width * 0.42,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppTheme.primary.withValues(alpha: 0.95),
-            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.primary.withValues(alpha: 0.3),
-                blurRadius: 16,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Text(
-            isLeft ? scripture.keyPhrase : scripture.reference,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ),
-      childWhenDragging: Opacity(
-        opacity: 0.3,
-        child: _buildTileContent(context),
-      ),
-      onDragStarted: onDragStarted,
-      child: DragTarget<String>(
-        onWillAcceptWithDetails: (details) => !isMatched,
-        onAcceptWithDetails: (details) => onDragAccepted(details.data),
-        builder: (context, candidateData, rejectedData) {
-          final isHovering = candidateData.isNotEmpty;
-          return AnimatedBuilder(
-            animation: isSelected && lastFeedback == 'incorrect'
-                ? shakeAnimation
-                : const AlwaysStoppedAnimation(0),
-            builder: (context, child) {
-              return Transform.translate(
-                offset: Offset(
-                  isSelected && lastFeedback == 'incorrect'
-                      ? shakeAnimation.value * (scripture.id.hashCode.isEven ? 1 : -1)
-                      : 0,
-                  0,
-                ),
-                child: GestureDetector(
-                  onTap: onTap,
-                  child: _buildTileContent(
-                    context,
-                    isHovering: isHovering,
-                  ),
-                ),
-              );
-            },
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: AnimatedBuilder(
+        animation: isSelected && lastFeedback == 'incorrect'
+            ? shakeAnimation
+            : const AlwaysStoppedAnimation(0),
+        builder: (context, child) {
+          return Transform.translate(
+            offset: Offset(
+              isSelected && lastFeedback == 'incorrect'
+                  ? shakeAnimation.value *
+                      (scripture.id.hashCode.isEven ? 1 : -1)
+                  : 0,
+              0,
+            ),
+            child: GestureDetector(
+              onTap: onTap,
+              child: _buildTileContent(context),
+            ),
           );
         },
       ),
-    );
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: draggable,
     );
   }
 
   Widget _buildTileContent(
     BuildContext context, {
     bool matched = false,
-    bool isHovering = false,
   }) {
     Color bgColor;
     Color borderColor;
@@ -613,10 +545,6 @@ class _MatchTile extends StatelessWidget {
       bgColor = AppTheme.success.withValues(alpha: 0.15);
       borderColor = AppTheme.success;
       textColor = AppTheme.success;
-    } else if (isHovering) {
-      bgColor = AppTheme.accent.withValues(alpha: 0.15);
-      borderColor = AppTheme.accent;
-      textColor = Theme.of(context).colorScheme.onSurface;
     } else if (isSelected) {
       bgColor =
           Theme.of(context).colorScheme.primary.withValues(alpha: 0.12);
@@ -654,19 +582,6 @@ class _MatchTile extends StatelessWidget {
           if (matched) ...[
             const Icon(Icons.check_circle, color: AppTheme.success, size: 18),
             const SizedBox(width: 8),
-          ],
-          if (!matched) ...[
-            Icon(
-              Icons.drag_indicator,
-              size: 16,
-              color: isSelected
-                  ? Theme.of(context)
-                      .colorScheme
-                      .primary
-                      .withValues(alpha: 0.7)
-                  : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
-            ),
-            const SizedBox(width: 6),
           ],
           Expanded(
             child: Text(

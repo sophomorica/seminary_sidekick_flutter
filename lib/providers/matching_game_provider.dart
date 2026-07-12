@@ -212,14 +212,6 @@ class MatchingGameNotifier extends StateNotifier<MatchingGameState> {
     }
   }
 
-  /// Handle a drag-and-drop match attempt.
-  void attemptDragMatch({
-    required String draggedId,
-    required String targetId,
-  }) {
-    _tryMatch(draggedId, targetId);
-  }
-
   /// Core matching logic.
   void _tryMatch(String phraseId, String referenceId) {
     if (phraseId == referenceId) {

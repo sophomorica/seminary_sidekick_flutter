@@ -17,6 +17,6 @@ Study aid accessed from scripture detail. Two modes: First Letter (progressive s
 
 These help with recognition and comprehension but do NOT drive mastery. They live in a "Practice" or "Quizzes" tab (currently called "Games" — rename planned).
 
-- **Scripture Match**: Two columns — key phrases vs references. Tap-to-select or drag-and-drop to match. Tests reference recognition.
+- **Scripture Match**: Two columns — key phrases vs references. Tap-to-select to match. Tests reference recognition.
 - **Quick Quiz**: Given a passage/reference, select correct key phrase/reference from 4 choices. Three question types rotate. Tests comprehension.
 
