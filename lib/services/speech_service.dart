@@ -4,8 +4,12 @@ import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 
 /// Callback fired whenever new recognized words arrive.
-/// [text] is the full recognized string so far for this listening session.
-typedef SpeechResultCallback = void Function(String text);
+///
+/// [text] is the full recognized string so far for this listening session
+/// (not a delta — callers should replace/reapply from their own baseline).
+/// [isFinal] is true when the recognizer has finalized the current hypothesis
+/// (partial results revise in place; acting on them as complete words is unsafe).
+typedef SpeechResultCallback = void Function(String text, bool isFinal);
 
 /// Callback fired when an error occurs (permission denied, no match, etc.).
 typedef SpeechErrorCallback = void Function(String errorMessage);
@@ -18,7 +22,7 @@ typedef SpeechErrorCallback = void Function(String errorMessage);
 /// final available = await service.initialize();
 /// if (available) {
 ///   service.startListening(
-///     onResult: (text) => print('Heard: $text'),
+///     onResult: (text, isFinal) => print('Heard: $text (final=$isFinal)'),
 ///     onError: (err) => print('Error: $err'),
 ///   );
 /// }
@@ -64,7 +68,8 @@ class SpeechService {
   /// Start listening for speech input.
   ///
   /// [onResult] is called with the full recognized text whenever new words
-  /// are detected (both partial and final results).
+  /// are detected. The second argument is `true` for final results and
+  /// `false` for partial hypotheses that may still be revised.
   ///
   /// [onError] is called if something goes wrong (permission issues, etc.).
   ///
@@ -120,7 +125,7 @@ class SpeechService {
   // ── Internal handlers ─────────────────────────────────────────
 
   void _handleResult(SpeechRecognitionResult result) {
-    _onResult?.call(result.recognizedWords);
+    _onResult?.call(result.recognizedWords, result.finalResult);
   }
 
   void _handleError(SpeechRecognitionError error) {
