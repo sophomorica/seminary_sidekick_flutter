@@ -275,16 +275,24 @@ You will receive a JSON snapshot of the student's current progress. Based on thi
       "insight": "How these passages connect doctrinally"
     }
   ],
+  "starterQuestions": [
+    {
+      "scriptureId": "42",
+      "question": "A short, inviting conversation-starter question about that specific scripture (apply it, its history, a cross-reference, how to teach it to a friend, etc.)"
+    }
+  ],
   "generatedAt": "ISO timestamp"
 }
 
 Guidelines:
 - Keep it SHORT. Students scan, they don't read essays.
+- Every "scriptureId" you output MUST be copied exactly from a scriptureId in the snapshot's needsAttention list. Never invent an ID, never use a scripture reference as an ID. If you can't tie the action to a snapshot scriptureId, omit the scriptureId field.
 - Reference specific scriptures from their progress when possible.
 - If they have scriptures needing review, nudge them gently.
 - If they're on a streak, celebrate it.
 - If they're new, welcome them warmly and suggest starting small.
 - Always include at least dailyPrompt and one other field.
+- For starterQuestions, write 2-4 entries for scriptures in the snapshot's needs-attention list. Vary the angle (application, historical context, cross-references, teaching it to a friend, memorization help) and match it to the student's mastery level — deeper questions for scriptures they've nearly mastered, orientation questions for new ones. One question per scripture, 12 words or fewer.
 - Respond ONLY with the JSON object, no other text.
 ''';
 
