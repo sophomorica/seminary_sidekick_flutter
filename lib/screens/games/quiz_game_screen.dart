@@ -31,7 +31,11 @@ class QuizGameScreen extends ConsumerStatefulWidget {
 
 class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
   Timer? _elapsedTimer;
+  Timer? _autoAdvanceTimer;
   Duration _elapsed = Duration.zero;
+
+  /// Brief pause after a correct answer before advancing automatically.
+  static const _correctAutoAdvanceDelay = Duration(milliseconds: 900);
 
   @override
   void initState() {
@@ -59,9 +63,18 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
     });
   }
 
+  void _scheduleAutoAdvance() {
+    _autoAdvanceTimer?.cancel();
+    _autoAdvanceTimer = Timer(_correctAutoAdvanceDelay, () {
+      if (!mounted) return;
+      ref.read(quizGameProvider.notifier).nextQuestion();
+    });
+  }
+
   @override
   void dispose() {
     _elapsedTimer?.cancel();
+    _autoAdvanceTimer?.cancel();
     super.dispose();
   }
 
@@ -82,13 +95,19 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
             correct: next.isCorrect,
             difficultyCompleted: widget.difficulty,
           );
-          // Play audio feedback
-          ref.read(audioProvider.notifier).play(
-            next.isCorrect ? SoundEffect.correct : SoundEffect.incorrect,
-          );
+          // Play audio + haptic feedback
+          if (next.isCorrect) {
+            ref.read(hapticProvider).medium();
+            ref.read(audioProvider.notifier).play(SoundEffect.correct);
+            _scheduleAutoAdvance();
+          } else {
+            ref.read(hapticProvider).heavy();
+            ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
+          }
         }
       }
       if (next.isComplete && !(prev?.isComplete ?? false)) {
+        _autoAdvanceTimer?.cancel();
         _onGameComplete(next);
       }
     });
@@ -214,7 +233,8 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
                           );
                         }),
                         const SizedBox(height: 16),
-                        // Action button
+                        // Action button — submit before answer; next only after
+                        // an incorrect answer (correct auto-advances).
                         if (!gameState.isAnswered)
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
@@ -226,14 +246,13 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
                             ),
                             onPressed: gameState.selectedAnswer != null
                                 ? () {
-                                    ref.read(hapticProvider).medium();
                                     notifier.submitAnswer();
                                   }
                                 : null,
                             child: const Text('Submit Answer',
                                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                           )
-                        else
+                        else if (!gameState.isCorrect)
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppTheme.accent,
@@ -250,7 +269,9 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
                               style: const TextStyle(fontSize: 16),
                             ),
                           ),
-                        // Feedback text after answering
+                        // Feedback after answering — options already highlight
+                        // the correct choice, so wrong answers only say
+                        // "Incorrect!" (no redundant answer text).
                         if (gameState.isAnswered) ...[
                           const SizedBox(height: 16),
                           Container(
@@ -278,7 +299,7 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
                                   child: Text(
                                     gameState.isCorrect
                                         ? 'Correct!'
-                                        : 'The answer was: ${question.correctAnswer}',
+                                        : 'Incorrect!',
                                     style: TextStyle(
                                       color: gameState.isCorrect
                                           ? AppTheme.success
