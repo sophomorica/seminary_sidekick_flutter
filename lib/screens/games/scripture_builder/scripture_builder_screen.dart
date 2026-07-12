@@ -1176,14 +1176,23 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
           totalPairs: state.totalUnitsAcrossAll,
           completionTime: state.completionTime ?? _elapsed,
           starRating: state.starRating,
-          onTryAgain: (_) => ScriptureBuilderScreen(
-            difficulty: widget.difficulty,
-            bookFilter: widget.bookFilter,
-            scriptures: widget.scriptures,
-          ),
+          tryAgainBuilder: _sessionBuilder(),
         ),
       ),
     );
+  }
+
+  /// Captures this session's config while mounted so Try Again can rebuild
+  /// the same game after this State is disposed by [Navigator.pushReplacement].
+  WidgetBuilder _sessionBuilder() {
+    final difficulty = widget.difficulty;
+    final bookFilter = widget.bookFilter;
+    final scriptures = widget.scriptures;
+    return (_) => ScriptureBuilderScreen(
+          difficulty: difficulty,
+          bookFilter: bookFilter,
+          scriptures: scriptures,
+        );
   }
 
   Future<bool> _onWillPop() async {

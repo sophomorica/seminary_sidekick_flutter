@@ -359,17 +359,28 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
             totalPairs: finalState.totalPairs,
             completionTime: finalState.completionTime ?? _elapsed,
             starRating: finalState.starRating,
-            onTryAgain: (_) => MatchingGameScreen(
-              difficulty: widget.difficulty,
-              bookFilter: widget.bookFilter,
-              bookFilters: widget.bookFilters,
-              scriptures: widget.scriptures,
-              targetPairCount: widget.targetPairCount,
-            ),
+            tryAgainBuilder: _sessionBuilder(),
           ),
         ),
       );
     });
+  }
+
+  /// Captures this session's config while mounted so Try Again can rebuild
+  /// the same game after this State is disposed by [Navigator.pushReplacement].
+  WidgetBuilder _sessionBuilder() {
+    final difficulty = widget.difficulty;
+    final bookFilter = widget.bookFilter;
+    final bookFilters = widget.bookFilters;
+    final scriptures = widget.scriptures;
+    final targetPairCount = widget.targetPairCount;
+    return (_) => MatchingGameScreen(
+          difficulty: difficulty,
+          bookFilter: bookFilter,
+          bookFilters: bookFilters,
+          scriptures: scriptures,
+          targetPairCount: targetPairCount,
+        );
   }
 
   void _showExitDialog(BuildContext context) {

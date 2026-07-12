@@ -352,16 +352,26 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
             completionTime:
                 finalState.completionTime ?? _elapsed,
             starRating: finalState.starRating,
-            onTryAgain: (_) => QuizGameScreen(
-              difficulty: widget.difficulty,
-              bookFilters: widget.bookFilters,
-              scriptures: widget.scriptures,
-              targetQuestionCount: widget.targetQuestionCount,
-            ),
+            tryAgainBuilder: _sessionBuilder(),
           ),
         ),
       );
     });
+  }
+
+  /// Captures this session's config while mounted so Try Again can rebuild
+  /// the same game after this State is disposed by [Navigator.pushReplacement].
+  WidgetBuilder _sessionBuilder() {
+    final difficulty = widget.difficulty;
+    final bookFilters = widget.bookFilters;
+    final scriptures = widget.scriptures;
+    final targetQuestionCount = widget.targetQuestionCount;
+    return (_) => QuizGameScreen(
+          difficulty: difficulty,
+          bookFilters: bookFilters,
+          scriptures: scriptures,
+          targetQuestionCount: targetQuestionCount,
+        );
   }
 
   void _showExitDialog(BuildContext context) {
