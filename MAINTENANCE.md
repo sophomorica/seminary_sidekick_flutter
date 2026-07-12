@@ -61,6 +61,22 @@
 - **notes**:
   - Group play uses anonymous auth, so this only kicks in if/when we add email+password signup (currently we don't have one). Still worth flipping on now so it's already in place when we do.
 
+### MAINT-006: Scripture Builder Advanced — stop revealing next letter
+
+- **status**: `in_progress`
+- **priority**: P1 — Advanced difficulty is supposed to give first-letter hints only; revealing the next correct letter undercuts the challenge.
+- **claimed_by**: `cursor-cloud-97ed`
+- **started**: `2026-07-12T15:28:33Z`
+- **files_to_touch**: `lib/screens/games/scripture_builder/scripture_builder_screen.dart`
+- **description**: In Advanced typing mode, `_buildTypedSpans` highlights the cursor by literally painting `target[i]` (the next correct character). That spoiler defeats the "first letters shown, rest hidden" contract. Untyped positions should stay first-letter hints + underscores only; optional subtle cursor chrome is fine as long as it never discloses a non-hint letter.
+- **acceptance_criteria**:
+  - [ ] Advanced untyped display never shows a letter that is not a first-letter-of-word hint
+  - [ ] Master mode still fully blanks non-space characters (no regression)
+  - [ ] `flutter analyze` clean
+- **depends_on**: —
+- **notes**:
+  - Reported by owner: Advanced always shows the next correct letter while typing.
+
 ---
 
 ## Recurring buckets (no active tasks yet — log here as they come up)
