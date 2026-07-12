@@ -352,6 +352,12 @@ class _QuizGameScreenState extends ConsumerState<QuizGameScreen> {
             completionTime:
                 finalState.completionTime ?? _elapsed,
             starRating: finalState.starRating,
+            onTryAgain: (_) => QuizGameScreen(
+              difficulty: widget.difficulty,
+              bookFilters: widget.bookFilters,
+              scriptures: widget.scriptures,
+              targetQuestionCount: widget.targetQuestionCount,
+            ),
           ),
         ),
       );

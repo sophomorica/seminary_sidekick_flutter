@@ -17,6 +17,10 @@ class GameResultsScreen extends ConsumerStatefulWidget {
   final Duration completionTime;
   final int starRating; // 1-3
   final bool isNewMastery; // True when user first reaches "Mastered" level
+  /// Rebuilds the same game session so "Try Again" can relaunch immediately.
+  /// Games reach this screen via [Navigator.pushReplacement], so a plain pop
+  /// cannot restart — callers must supply the original game screen.
+  final WidgetBuilder? onTryAgain;
 
   const GameResultsScreen({
     super.key,
@@ -28,6 +32,7 @@ class GameResultsScreen extends ConsumerStatefulWidget {
     required this.completionTime,
     required this.starRating,
     this.isNewMastery = false,
+    this.onTryAgain,
   });
 
   @override
@@ -252,7 +257,14 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        Navigator.of(context).pop();
+                        final builder = widget.onTryAgain;
+                        if (builder != null) {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(builder: builder),
+                          );
+                        } else {
+                          Navigator.of(context).pop();
+                        }
                       },
                       icon: const Icon(Icons.replay),
                       label: const Text('Try Again'),

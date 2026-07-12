@@ -1176,6 +1176,11 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
           totalPairs: state.totalUnitsAcrossAll,
           completionTime: state.completionTime ?? _elapsed,
           starRating: state.starRating,
+          onTryAgain: (_) => ScriptureBuilderScreen(
+            difficulty: widget.difficulty,
+            bookFilter: widget.bookFilter,
+            scriptures: widget.scriptures,
+          ),
         ),
       ),
     );

@@ -359,6 +359,13 @@ class _MatchingGameScreenState extends ConsumerState<MatchingGameScreen>
             totalPairs: finalState.totalPairs,
             completionTime: finalState.completionTime ?? _elapsed,
             starRating: finalState.starRating,
+            onTryAgain: (_) => MatchingGameScreen(
+              difficulty: widget.difficulty,
+              bookFilter: widget.bookFilter,
+              bookFilters: widget.bookFilters,
+              scriptures: widget.scriptures,
+              targetPairCount: widget.targetPairCount,
+            ),
           ),
         ),
       );
