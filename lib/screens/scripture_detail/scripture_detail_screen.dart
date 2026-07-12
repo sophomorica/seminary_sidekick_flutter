@@ -91,18 +91,17 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
     }
 
     return Scaffold(
-      // SafeArea keeps the breadcrumb below the status bar/notch — without it
-      // the tap target sits where touches never reach the app.
-      body: SafeArea(
-        bottom: false,
-        child: SingleChildScrollView(
+      // Shell already owns the status-bar inset via the app header; don't
+      // double-pad. Bottom false so content can clear the floating tab bar
+      // with its own spacer (same pattern as Library / Home).
+      body: SingleChildScrollView(
           child: Column(
             children: [
               // Header with breadcrumb, reference, topic, and action buttons
               Padding(
                 padding: const EdgeInsets.fromLTRB(
                   AppTheme.spacingLg,
-                  AppTheme.spacingXl,
+                  AppTheme.spacingMd,
                   AppTheme.spacingLg,
                   AppTheme.spacingXl,
                 ),
@@ -290,7 +289,6 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
               const SizedBox(height: 120),
             ],
           ),
-        ),
       ),
     );
   }
@@ -327,42 +325,64 @@ class _MainContent extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Scripture text container
+        // Scripture text card — passage + footer into Memorize
         Container(
-          padding: const EdgeInsets.all(AppTheme.spacingXl),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(AppTheme.radiusXl),
           ),
-          child: Stack(
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Hide Words button
-              Positioned(
-                top: 0,
-                right: 0,
-                child: TextButton.icon(
-                  onPressed: () {
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppTheme.spacingXl,
+                  AppTheme.spacingXl,
+                  AppTheme.spacingXl,
+                  AppTheme.spacingMd,
+                ),
+                child: _ScriptureTextWidget(scripture: scripture),
+              ),
+              Material(
+                color: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.08),
+                child: InkWell(
+                  onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => MemorizeScreen(scripture: scripture),
                       ),
                     );
                   },
-                  icon: const Icon(Icons.visibility_off, size: 16),
-                  label: const Text('Hide Words'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Theme.of(context)
-                        .colorScheme
-                        .primary
-                        .withValues(alpha: 0.6),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingLg,
+                      vertical: AppTheme.spacingMd,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.psychology_alt_outlined,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: AppTheme.spacingSm),
+                        Text(
+                          'Open Memorization Tool',
+                          style:
+                              Theme.of(context).textTheme.labelLarge?.copyWith(
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ),
-              // Scripture text
-              Padding(
-                padding: const EdgeInsets.only(top: AppTheme.spacingXl),
-                child: _ScriptureTextWidget(
-                  scripture: scripture,
                 ),
               ),
             ],
@@ -403,27 +423,6 @@ class _MainContent extends ConsumerWidget {
             controller: controller,
             focusNode: focusNode,
             currentNote: currentNote,
-          ),
-          const SizedBox(height: AppTheme.spacingXl),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => MemorizeScreen(scripture: scripture),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.psychology_alt, size: 20),
-              label: const Text('Study with Memorize Tool'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.secondary,
-                padding: const EdgeInsets.symmetric(
-                  vertical: AppTheme.spacingMd,
-                ),
-              ),
-            ),
           ),
           if (ref.watch(isPremiumProvider)) ...[
             const SizedBox(height: AppTheme.spacingXl),

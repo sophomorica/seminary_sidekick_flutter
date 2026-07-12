@@ -90,6 +90,14 @@ class _SeminarySidekickAppState extends ConsumerState<SeminarySidekickApp> {
                   path: '/library',
                   builder: (context, state) => const ScriptureLibraryScreen(),
                 ),
+                // Lives in the Library branch so scripture detail keeps the
+                // bottom tab bar — same flex chrome as the rest of the app.
+                GoRoute(
+                  path: '/scripture/:id',
+                  builder: (context, state) => ScriptureDetailScreen(
+                    scriptureId: state.pathParameters['id']!,
+                  ),
+                ),
               ],
             ),
             StatefulShellBranch(
@@ -123,12 +131,6 @@ class _SeminarySidekickAppState extends ConsumerState<SeminarySidekickApp> {
           path: '/scriptures/:bookId',
           builder: (context, state) => ScriptureListScreen(
             bookId: state.pathParameters['bookId']!,
-          ),
-        ),
-        GoRoute(
-          path: '/scripture/:id',
-          builder: (context, state) => ScriptureDetailScreen(
-            scriptureId: state.pathParameters['id']!,
           ),
         ),
         GoRoute(
