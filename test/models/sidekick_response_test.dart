@@ -317,4 +317,90 @@ void main() {
       expect(parsed.timestamp, ts);
     });
   });
+
+  group('sanitized (AI-hallucinated scripture IDs)', () {
+    const validIds = {'1', '2', '42'};
+
+    test('nulls quickWin.scriptureId when not a real ID, keeps suggestion',
+        () {
+      final response = SidekickResponse.fromJson({
+        'quickWin': {
+          'suggestion': 'Spend 2 minutes reviewing Mosiah 3:19',
+          'scriptureId': 'Mosiah 3:19', // hallucinated reference, not an ID
+          'actionType': 'review',
+        },
+      }).sanitized(validIds);
+
+      expect(response.quickWin, isNotNull);
+      expect(response.quickWin!.suggestion, contains('Mosiah'));
+      expect(response.quickWin!.scriptureId, isNull);
+      expect(response.quickWin!.actionType, 'review');
+    });
+
+    test('keeps quickWin.scriptureId when valid', () {
+      final response = SidekickResponse.fromJson({
+        'quickWin': {'suggestion': 'Review it', 'scriptureId': '42'},
+      }).sanitized(validIds);
+
+      expect(response.quickWin!.scriptureId, '42');
+    });
+
+    test('filters invalid relatedScriptureIds from suggestedGoal', () {
+      final response = SidekickResponse.fromJson({
+        'suggestedGoal': {
+          'title': 'Goal',
+          'description': 'Desc',
+          'relatedScriptureIds': ['1', '999', 'John 3:16'],
+        },
+      }).sanitized(validIds);
+
+      expect(response.suggestedGoal!.relatedScriptureIds, ['1']);
+    });
+
+    test('drops starterQuestions with invalid IDs', () {
+      final response = SidekickResponse.fromJson({
+        'starterQuestions': [
+          {'scriptureId': '2', 'question': 'Valid?'},
+          {'scriptureId': '101', 'question': 'Invalid.'},
+        ],
+      }).sanitized(validIds);
+
+      expect(response.starterQuestions, hasLength(1));
+      expect(response.starterQuestions.first.scriptureId, '2');
+    });
+
+    test('passes through untouched fields', () {
+      final response = SidekickResponse.fromJson({
+        'dailyPrompt': 'Hi',
+        'reminder': 'Review soon',
+        'reflectionPrompts': ['Think about it'],
+        'encouragement': 'Nice work',
+        'generatedAt': '2026-07-11T08:00:00.000',
+      }).sanitized(validIds);
+
+      expect(response.dailyPrompt, 'Hi');
+      expect(response.reminder, 'Review soon');
+      expect(response.reflectionPrompts, ['Think about it']);
+      expect(response.encouragement, 'Nice work');
+      expect(response.generatedAt, '2026-07-11T08:00:00.000');
+    });
+
+    test('fromJson tolerates numeric scriptureId (coerces to string)', () {
+      final response = SidekickResponse.fromJson({
+        'quickWin': {'suggestion': 'Review', 'scriptureId': 42},
+        'starterQuestions': [
+          {'scriptureId': 2, 'question': 'Q?'},
+        ],
+        'suggestedGoal': {
+          'title': 'T',
+          'description': 'D',
+          'relatedScriptureIds': [1, '2'],
+        },
+      });
+
+      expect(response.quickWin!.scriptureId, '42');
+      expect(response.starterQuestions.first.scriptureId, '2');
+      expect(response.suggestedGoal!.relatedScriptureIds, ['1', '2']);
+    });
+  });
 }

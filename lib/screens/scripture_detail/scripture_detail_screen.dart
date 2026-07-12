@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../models/enums.dart';
 import '../../models/scripture.dart';
 import '../../providers/scripture_provider.dart';
+import '../../providers/sidekick_provider.dart';
 import '../../providers/notes_provider.dart';
 import '../../providers/scripture_mastery_provider.dart';
 import '../../providers/study_streak_provider.dart';
@@ -39,37 +41,11 @@ class ScriptureDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
-  late final TextEditingController _notesController;
-  bool _isEditingNotes = false;
-  final FocusNode _notesFocusNode = FocusNode();
   _DetailTab _activeTab = _DetailTab.study;
-
-  @override
-  void initState() {
-    super.initState();
-    final existingNote = ref.read(noteByScriptureProvider(widget.scriptureId));
-    _notesController = TextEditingController(text: existingNote ?? '');
-  }
-
-  @override
-  void dispose() {
-    _notesController.dispose();
-    _notesFocusNode.dispose();
-    super.dispose();
-  }
-
-  void _saveNotes() {
-    ref
-        .read(notesProvider.notifier)
-        .saveNote(widget.scriptureId, _notesController.text);
-    setState(() => _isEditingNotes = false);
-    _notesFocusNode.unfocus();
-  }
 
   @override
   Widget build(BuildContext context) {
     final scripture = ref.watch(scriptureByIdProvider(widget.scriptureId));
-    final note = ref.watch(noteByScriptureProvider(widget.scriptureId));
 
     if (scripture == null) {
       return Scaffold(
@@ -227,19 +203,6 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                               onTabChanged: (tab) {
                                 setState(() => _activeTab = tab);
                               },
-                              isEditingNotes: _isEditingNotes,
-                              onEditToggle: (editing) {
-                                setState(() => _isEditingNotes = editing);
-                                if (editing) {
-                                  _notesFocusNode.requestFocus();
-                                } else {
-                                  _notesFocusNode.unfocus();
-                                }
-                              },
-                              onSave: _saveNotes,
-                              controller: _notesController,
-                              focusNode: _notesFocusNode,
-                              currentNote: note,
                             ),
                           ),
                           // Sidebar
@@ -262,19 +225,6 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                             onTabChanged: (tab) {
                               setState(() => _activeTab = tab);
                             },
-                            isEditingNotes: _isEditingNotes,
-                            onEditToggle: (editing) {
-                              setState(() => _isEditingNotes = editing);
-                              if (editing) {
-                                _notesFocusNode.requestFocus();
-                              } else {
-                                _notesFocusNode.unfocus();
-                              }
-                            },
-                            onSave: _saveNotes,
-                            controller: _notesController,
-                            focusNode: _notesFocusNode,
-                            currentNote: note,
                           ),
                           const SizedBox(height: AppTheme.spacingXl),
                           _Sidebar(
@@ -300,32 +250,23 @@ class _MainContent extends ConsumerWidget {
   final String scriptureId;
   final _DetailTab activeTab;
   final Function(_DetailTab) onTabChanged;
-  final bool isEditingNotes;
-  final Function(bool) onEditToggle;
-  final VoidCallback onSave;
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  final String? currentNote;
 
   const _MainContent({
     required this.scripture,
     required this.scriptureId,
     required this.activeTab,
     required this.onTabChanged,
-    required this.isEditingNotes,
-    required this.onEditToggle,
-    required this.onSave,
-    required this.controller,
-    required this.focusNode,
-    required this.currentNote,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final note = ref.watch(noteByScriptureProvider(scriptureId));
+    final hasNote = note != null && note.trim().isNotEmpty;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Scripture text card — passage + footer into Memorize
+        // Scripture text card — notes icon + passage + Memorize footer
         Container(
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surfaceContainerLow,
@@ -335,14 +276,47 @@ class _MainContent extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppTheme.spacingXl,
-                  AppTheme.spacingXl,
-                  AppTheme.spacingXl,
-                  AppTheme.spacingMd,
-                ),
-                child: _ScriptureTextWidget(scripture: scripture),
+              Stack(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppTheme.spacingXl,
+                      AppTheme.spacingXl,
+                      AppTheme.spacingXl + 36,
+                      AppTheme.spacingMd,
+                    ),
+                    child: _ScriptureTextWidget(scripture: scripture),
+                  ),
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: IconButton(
+                      tooltip: hasNote ? 'Edit notes' : 'Add notes',
+                      onPressed: () => showScriptureNotesSheet(
+                        context,
+                        scriptureId: scriptureId,
+                        reference: scripture.reference,
+                      ),
+                      icon: Badge(
+                        isLabelVisible: hasNote,
+                        smallSize: 8,
+                        backgroundColor: AppTheme.secondary,
+                        child: Icon(
+                          hasNote
+                              ? Icons.sticky_note_2
+                              : Icons.sticky_note_2_outlined,
+                          size: 22,
+                          color: hasNote
+                              ? AppTheme.secondary
+                              : Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant
+                                  .withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               Material(
                 color: Theme.of(context)
@@ -398,15 +372,6 @@ class _MainContent extends ConsumerWidget {
         // Tab content
         if (activeTab == _DetailTab.study) ...[
           _KeyPhraseCard(scripture: scripture),
-          const SizedBox(height: AppTheme.spacingXl),
-          _NotesSection(
-            isEditing: isEditingNotes,
-            onEditToggle: onEditToggle,
-            onSave: onSave,
-            controller: controller,
-            focusNode: focusNode,
-            currentNote: currentNote,
-          ),
           if (ref.watch(isPremiumProvider)) ...[
             const SizedBox(height: AppTheme.spacingXl),
             _ReflectLink(
@@ -773,25 +738,79 @@ class _AskSidekickCard extends ConsumerWidget {
 
   const _AskSidekickCard({required this.scriptureId});
 
-  /// A suggested question about THIS scripture. Picked deterministically by
-  /// scripture ID so it stays stable across rebuilds but varies across
-  /// scriptures.
-  String _suggestedQuestion(Scripture scripture) {
-    final templates = [
-      'What does "${scripture.name}" mean in ${scripture.reference}?',
-      'How can I apply ${scripture.reference} in my life?',
-      'What\'s the background of ${scripture.reference}?',
-      'Help me understand ${scripture.reference} in simple terms.',
+  /// Template starter questions for THIS scripture, tuned to how far along
+  /// the mastery path the user is. Seeded by scripture ID + day-of-year so
+  /// the same scripture rotates day to day but stays stable across rebuilds.
+  List<String> _templateQuestions(Scripture scripture, MasteryLevel level) {
+    final ref_ = scripture.reference;
+    final common = <String>[
+      'What does "${scripture.name}" mean in $ref_?',
+      'How can I apply $ref_ in my life this week?',
+      'What\'s the historical background of $ref_?',
+      'Help me understand $ref_ in simple terms.',
+      'What other scriptures connect to $ref_?',
+      'Why does "${scripture.keyPhrase}" matter?',
+      'Give me a memory trick for $ref_.',
+      'What would a prophet say about $ref_?',
     ];
-    final index = (int.tryParse(scripture.id) ?? 0) % templates.length;
-    return templates[index];
+    final byLevel = switch (level) {
+      MasteryLevel.newScripture || MasteryLevel.learning => <String>[
+          'Where do I start with $ref_?',
+          'Break $ref_ into pieces I can memorize.',
+          'What\'s the one big idea in $ref_?',
+        ],
+      MasteryLevel.familiar || MasteryLevel.memorized => <String>[
+          'Quiz me on $ref_.',
+          'What details of $ref_ do people miss?',
+          'How does $ref_ fit the rest of ${scripture.volume}?',
+        ],
+      MasteryLevel.mastered || MasteryLevel.eternal => <String>[
+          'How would I teach $ref_ to a friend?',
+          'What deeper meaning is in $ref_?',
+          'Challenge me: hardest question about $ref_.',
+        ],
+    };
+    final pool = [...byLevel, ...common];
+
+    // Deterministic daily rotation: scripture ID + day-of-year as seed.
+    final now = DateTime.now();
+    final dayOfYear = now.difference(DateTime(now.year)).inDays;
+    final seed = (int.tryParse(scripture.id) ?? scripture.id.hashCode) * 31 +
+        dayOfYear;
+    final picks = <String>[];
+    for (var i = 0; picks.length < 3 && i < pool.length; i++) {
+      final candidate = pool[(seed + i * 7) % pool.length];
+      if (!picks.contains(candidate)) picks.add(candidate);
+    }
+    return picks;
+  }
+
+  void _openChat(BuildContext context, String? question) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SidekickChatScreen(
+          initialScriptureId: scriptureId,
+          initialMessage: question,
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scripture = ref.watch(scriptureByIdProvider(scriptureId));
     if (scripture == null) return const SizedBox.shrink();
-    final question = _suggestedQuestion(scripture);
+
+    final masteryLevel = ref.watch(scriptureMasteryProvider(scriptureId)).level;
+    final aiQuestion =
+        ref.watch(starterQuestionForScriptureProvider(scriptureId));
+
+    // AI question (when the session response has one for this scripture)
+    // leads; templates fill the remaining chips.
+    final questions = <String>[
+      if (aiQuestion != null) aiQuestion,
+      ..._templateQuestions(scripture, masteryLevel),
+    ].take(3).toList();
 
     return Container(
       padding: const EdgeInsets.all(AppTheme.spacingXl),
@@ -851,50 +870,104 @@ class _AskSidekickCard extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: AppTheme.spacingXl),
-              // Question
-              Text(
-                question,
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
               const SizedBox(height: AppTheme.spacingMd),
-              // Description
+              // Lead-in
               Text(
-                'Your AI companion can explain linguistic roots, cross-reference other scriptures, or help you memorize.',
+                'Tap a question to start a conversation:',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
               ),
-              const SizedBox(height: AppTheme.spacingXl),
-              // Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => SidekickChatScreen(
-                          initialScriptureId: scriptureId,
-                          initialMessage: question,
-                        ),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.tertiaryContainer,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: AppTheme.spacingMd,
+              const SizedBox(height: AppTheme.spacingMd),
+              // Suggestion chips
+              Wrap(
+                spacing: AppTheme.spacingSm,
+                runSpacing: AppTheme.spacingSm,
+                children: [
+                  for (var i = 0; i < questions.length; i++)
+                    _StarterChip(
+                      question: questions[i],
+                      // The AI-generated starter gets a sparkle so its
+                      // provenance is visible.
+                      isAi: aiQuestion != null && i == 0,
+                      onTap: () => _openChat(context, questions[i]),
                     ),
+                ],
+              ),
+              const SizedBox(height: AppTheme.spacingMd),
+              // Freeform entry
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => _openChat(context, null),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.tertiary,
                   ),
-                  child: const Text('Start Conversation'),
+                  child: const Text('Or ask anything →'),
                 ),
               ),
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+// Private widget: a tappable starter-question chip on the Ask Sidekick card.
+class _StarterChip extends StatelessWidget {
+  final String question;
+  final bool isAi;
+  final VoidCallback onTap;
+
+  const _StarterChip({
+    required this.question,
+    required this.isAi,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTheme.spacingMd,
+            vertical: AppTheme.spacingSm,
+          ),
+          decoration: BoxDecoration(
+            color: AppTheme.tertiary.withValues(alpha: 0.08),
+            border: Border.all(
+              color: AppTheme.tertiary.withValues(alpha: 0.3),
+            ),
+            borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isAi) ...[
+                const Icon(
+                  Icons.auto_awesome,
+                  size: 14,
+                  color: AppTheme.tertiary,
+                ),
+                const SizedBox(width: 6),
+              ],
+              Flexible(
+                child: Text(
+                  question,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.tertiary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1003,101 +1076,226 @@ class _KeyPhraseCard extends StatelessWidget {
   }
 }
 
-// Private widget: Notes section
-class _NotesSection extends StatelessWidget {
-  final bool isEditing;
-  final Function(bool) onEditToggle;
-  final VoidCallback onSave;
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  final String? currentNote;
+/// Opens a notes bottom sheet for a scripture (same slide-up pattern as
+/// game setup sheets).
+void showScriptureNotesSheet(
+  BuildContext context, {
+  required String scriptureId,
+  required String reference,
+}) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _ScriptureNotesSheet(
+      scriptureId: scriptureId,
+      reference: reference,
+    ),
+  );
+}
 
-  const _NotesSection({
-    required this.isEditing,
-    required this.onEditToggle,
-    required this.onSave,
-    required this.controller,
-    required this.focusNode,
-    required this.currentNote,
+class _ScriptureNotesSheet extends ConsumerStatefulWidget {
+  final String scriptureId;
+  final String reference;
+
+  const _ScriptureNotesSheet({
+    required this.scriptureId,
+    required this.reference,
   });
 
   @override
+  ConsumerState<_ScriptureNotesSheet> createState() =>
+      _ScriptureNotesSheetState();
+}
+
+class _ScriptureNotesSheetState extends ConsumerState<_ScriptureNotesSheet> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+  bool _didSave = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing =
+        ref.read(noteByScriptureProvider(widget.scriptureId)) ?? '';
+    _controller = TextEditingController(text: existing);
+    _focusNode = FocusNode();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focusNode.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _persist() {
+    if (_didSave) return;
+    _didSave = true;
+    ref
+        .read(notesProvider.notifier)
+        .saveNote(widget.scriptureId, _controller.text);
+  }
+
+  void _saveAndClose() {
+    _persist();
+    FocusManager.instance.primaryFocus?.unfocus();
+    Navigator.of(context).pop();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppTheme.spacingLg),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Notes',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) _persist();
+      },
+      child: Padding(
+        padding: EdgeInsets.only(bottom: bottomInset),
+        child: DraggableScrollableSheet(
+          initialChildSize: 0.55,
+          minChildSize: 0.35,
+          maxChildSize: 0.92,
+          expand: false,
+          builder: (ctx, scrollController) {
+            return Container(
+              decoration: BoxDecoration(
+                color: Theme.of(ctx).colorScheme.surface,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
+                ),
               ),
-              if (isEditing)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+              child: SafeArea(
+                top: false,
+                child: Column(
                   children: [
-                    TextButton(
-                      onPressed: () {
-                        controller.text = currentNote ?? '';
-                        onEditToggle(false);
-                      },
-                      child: const Text('Cancel'),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Center(
+                            child: Container(
+                              width: 40,
+                              height: 4,
+                              margin: const EdgeInsets.only(bottom: 12),
+                              decoration: BoxDecoration(
+                                color: Theme.of(ctx)
+                                    .colorScheme
+                                    .onSurfaceVariant
+                                    .withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.secondary
+                                      .withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(
+                                      AppTheme.radiusSm),
+                                ),
+                                child: const Icon(
+                                  Icons.sticky_note_2_outlined,
+                                  size: 20,
+                                  color: AppTheme.secondary,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Notes',
+                                      style: Theme.of(ctx)
+                                          .textTheme
+                                          .titleMedium
+                                          ?.copyWith(
+                                              fontWeight: FontWeight.w600),
+                                    ),
+                                    Text(
+                                      widget.reference,
+                                      style: Theme.of(ctx)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: Theme.of(ctx)
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: _saveAndClose,
+                                child: const Text('Save'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    TextButton(
-                      onPressed: onSave,
-                      child: const Text('Save'),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        controller: scrollController,
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                        keyboardDismissBehavior:
+                            ScrollViewKeyboardDismissBehavior.onDrag,
+                        child: TextField(
+                          controller: _controller,
+                          focusNode: _focusNode,
+                          maxLines: null,
+                          minLines: 8,
+                          textCapitalization: TextCapitalization.sentences,
+                          onTapOutside: (_) => _focusNode.unfocus(),
+                          style: Theme.of(ctx).textTheme.bodyLarge?.copyWith(
+                                height: 1.6,
+                              ),
+                          decoration: InputDecoration(
+                            hintText:
+                                'Jot a thought, cross-reference, or reminder…',
+                            hintStyle:
+                                Theme.of(ctx).textTheme.bodyLarge?.copyWith(
+                                      color: Theme.of(ctx)
+                                          .colorScheme
+                                          .onSurfaceVariant
+                                          .withValues(alpha: 0.5),
+                                      height: 1.6,
+                                    ),
+                            filled: true,
+                            fillColor: Theme.of(ctx)
+                                .colorScheme
+                                .surfaceContainerLowest,
+                            border: OutlineInputBorder(
+                              borderRadius:
+                                  BorderRadius.circular(AppTheme.radiusMd),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.all(
+                              AppTheme.spacingMd,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ],
-                )
-              else
-                IconButton(
-                  icon: const Icon(Icons.edit, size: 20),
-                  onPressed: () => onEditToggle(true),
-                ),
-            ],
-          ),
-          const SizedBox(height: AppTheme.spacingMd),
-          if (isEditing)
-            TextField(
-              controller: controller,
-              focusNode: focusNode,
-              maxLines: null,
-              minLines: 3,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(
-                hintText: 'Add your notes about this scripture...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                 ),
               ),
-            )
-          else
-            GestureDetector(
-              onTap: () => onEditToggle(true),
-              child: Text(
-                currentNote ?? 'Tap to add notes...',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: currentNote != null
-                          ? null
-                          : Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.5),
-                      height: 1.6,
-                    ),
-              ),
-            ),
-        ],
+            );
+          },
+        ),
       ),
     );
   }

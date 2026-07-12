@@ -30,6 +30,10 @@ class SidekickResponse {
   /// relevant to the user's current study.
   final List<ScriptureConnection> connections;
 
+  /// AI-generated conversation starters tied to specific scriptures
+  /// (surfaced on the scripture detail "Ask Your Sidekick" card).
+  final List<StarterQuestion> starterQuestions;
+
   /// ISO timestamp of when this response was generated.
   final String generatedAt;
 
@@ -42,6 +46,7 @@ class SidekickResponse {
     this.reflectionPrompts = const [],
     this.encouragement,
     this.connections = const [],
+    this.starterQuestions = const [],
     required this.generatedAt,
   });
 
@@ -66,6 +71,11 @@ class SidekickResponse {
                   ScriptureConnection.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      starterQuestions: (json['starterQuestions'] as List<dynamic>?)
+              ?.map(
+                  (e) => StarterQuestion.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       generatedAt:
           json['generatedAt'] as String? ?? DateTime.now().toIso8601String(),
     );
@@ -82,8 +92,54 @@ class SidekickResponse {
         if (encouragement != null) 'encouragement': encouragement,
         if (connections.isNotEmpty)
           'connections': connections.map((c) => c.toJson()).toList(),
+        if (starterQuestions.isNotEmpty)
+          'starterQuestions':
+              starterQuestions.map((q) => q.toJson()).toList(),
         'generatedAt': generatedAt,
       };
+
+  /// Returns a copy with every AI-supplied scripture ID validated against
+  /// [validScriptureIds] (the real IDs in the app's data set).
+  ///
+  /// Grok occasionally hallucinates IDs (a reference like "Mosiah 3:19", an
+  /// out-of-range number). An invalid ID that reaches navigation dead-ends on
+  /// the "Scripture not found" screen, so we strip them here:
+  /// - [quickWin.scriptureId] → nulled (card still renders, no broken nav)
+  /// - [suggestedGoal.relatedScriptureIds] → filtered
+  /// - [starterQuestions] with invalid IDs → dropped (they're keyed lookups)
+  SidekickResponse sanitized(Set<String> validScriptureIds) {
+    bool valid(String? id) => id != null && validScriptureIds.contains(id);
+
+    return SidekickResponse(
+      dailyPrompt: dailyPrompt,
+      suggestedGoal: suggestedGoal == null
+          ? null
+          : SidekickGoal(
+              title: suggestedGoal!.title,
+              description: suggestedGoal!.description,
+              relatedScriptureIds: suggestedGoal!.relatedScriptureIds
+                  .where(valid)
+                  .toList(),
+            ),
+      quickWin: quickWin == null
+          ? null
+          : QuickWin(
+              suggestion: quickWin!.suggestion,
+              scriptureId: valid(quickWin!.scriptureId)
+                  ? quickWin!.scriptureId
+                  : null,
+              actionType: quickWin!.actionType,
+            ),
+      timelineInsight: timelineInsight,
+      reminder: reminder,
+      reflectionPrompts: reflectionPrompts,
+      encouragement: encouragement,
+      connections: connections,
+      starterQuestions:
+          starterQuestions.where((q) => valid(q.scriptureId)).toList(),
+      generatedAt: generatedAt,
+    );
+  }
 
   /// Fallback response when offline or API fails.
   factory SidekickResponse.offlineFallback() {
@@ -115,8 +171,10 @@ class SidekickGoal {
     return SidekickGoal(
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
+      // toString(): Grok sometimes emits bare numbers where the schema says
+      // string — don't let a cast failure kill the whole response parse.
       relatedScriptureIds: (json['relatedScriptureIds'] as List<dynamic>?)
-              ?.map((e) => e as String)
+              ?.map((e) => e.toString())
               .toList() ??
           const [],
     );
@@ -151,7 +209,8 @@ class QuickWin {
   factory QuickWin.fromJson(Map<String, dynamic> json) {
     return QuickWin(
       suggestion: json['suggestion'] as String? ?? '',
-      scriptureId: json['scriptureId'] as String?,
+      // toString(): tolerate Grok emitting a bare number for the ID.
+      scriptureId: json['scriptureId']?.toString(),
       actionType: json['actionType'] as String?,
     );
   }
@@ -160,6 +219,30 @@ class QuickWin {
         'suggestion': suggestion,
         if (scriptureId != null) 'scriptureId': scriptureId,
         if (actionType != null) 'actionType': actionType,
+      };
+}
+
+/// An AI-generated conversation starter tied to a specific scripture.
+class StarterQuestion {
+  final String scriptureId;
+  final String question;
+
+  const StarterQuestion({
+    required this.scriptureId,
+    required this.question,
+  });
+
+  factory StarterQuestion.fromJson(Map<String, dynamic> json) {
+    return StarterQuestion(
+      // toString(): tolerate Grok emitting a bare number for the ID.
+      scriptureId: json['scriptureId']?.toString() ?? '',
+      question: json['question'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'scriptureId': scriptureId,
+        'question': question,
       };
 }
 
