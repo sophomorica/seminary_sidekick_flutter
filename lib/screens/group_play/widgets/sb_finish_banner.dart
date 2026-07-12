@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../models/group_sb_finish.dart';
 import '../../../theme/app_theme.dart';
 
 /// Per-player finish summary: "✓ Finished — 8.2s, 1 mistake".
@@ -43,6 +44,9 @@ class SbFinishBanner extends StatelessWidget {
         : (mistakeCount == 0
             ? '${seconds}s · clean'
             : '${seconds}s · $mistakeCount ${mistakeCount == 1 ? "mistake" : "mistakes"}');
+
+    // Same thresholds as the solo Scripture Builder results screen.
+    final stars = isDnf ? 0 : GroupSbFinish.starRatingFor(mistakeCount);
 
     final iconWidget = Icon(
       isDnf ? Icons.timer_off : Icons.check_circle,
@@ -91,6 +95,22 @@ class SbFinishBanner extends StatelessWidget {
               ],
             ),
           ),
+          if (!isDnf)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(3, (index) {
+                final isFilled = index < stars;
+                return Icon(
+                  isFilled
+                      ? Icons.star_rounded
+                      : Icons.star_outline_rounded,
+                  size: prominent ? 24 : 16,
+                  color: isFilled
+                      ? AppTheme.gold
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                );
+              }),
+            ),
         ],
       ),
     );

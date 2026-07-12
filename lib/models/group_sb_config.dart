@@ -1,3 +1,5 @@
+import 'enums.dart';
+
 /// Chunk-tap difficulty for the Group Scripture Builder race.
 ///
 /// Mirrors the solo `DifficultyLevel.beginner` / `intermediate` chunk-tap
@@ -21,6 +23,13 @@ enum GroupSbChunkDifficulty {
   /// Whether the chunk pool includes distractor tiles drawn from
   /// other in-scope scriptures.
   bool get hasDistractors => this == GroupSbChunkDifficulty.intermediate;
+
+  /// Number of distractor tiles mixed into the pool. Derived from the solo
+  /// [DifficultyLevel.extraDistractors] so the race stays in lockstep with
+  /// solo difficulty tuning instead of drifting on a hardcoded constant.
+  int get extraDistractors => this == GroupSbChunkDifficulty.intermediate
+      ? DifficultyLevel.intermediate.extraDistractors
+      : DifficultyLevel.beginner.extraDistractors;
 }
 
 /// How the race progresses across the set of scriptures.

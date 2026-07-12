@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:seminary_sidekick/models/enums.dart';
 import 'package:seminary_sidekick/models/group_room.dart';
 import 'package:seminary_sidekick/models/group_sb_config.dart';
+import 'package:seminary_sidekick/models/group_sb_finish.dart';
 
 void main() {
   group('GroupSbChunkDifficulty', () {
@@ -14,6 +16,13 @@ void main() {
       expect(GroupSbChunkDifficulty.intermediate.hasDistractors, isTrue);
     });
 
+    test('extraDistractors tracks the solo DifficultyLevel enum', () {
+      expect(GroupSbChunkDifficulty.beginner.extraDistractors,
+          DifficultyLevel.beginner.extraDistractors);
+      expect(GroupSbChunkDifficulty.intermediate.extraDistractors,
+          DifficultyLevel.intermediate.extraDistractors);
+    });
+
     test('fromName falls back to beginner for unknown names', () {
       expect(GroupSbChunkDifficulty.fromName('alien'),
           GroupSbChunkDifficulty.beginner);
@@ -21,6 +30,42 @@ void main() {
           GroupSbChunkDifficulty.beginner);
       expect(GroupSbChunkDifficulty.fromName('intermediate'),
           GroupSbChunkDifficulty.intermediate);
+    });
+  });
+
+  group('GroupSbFinish scoring parity with solo', () {
+    test('starRatingFor matches solo thresholds', () {
+      expect(GroupSbFinish.starRatingFor(0), 3);
+      expect(GroupSbFinish.starRatingFor(1), 2);
+      expect(GroupSbFinish.starRatingFor(3), 2);
+      expect(GroupSbFinish.starRatingFor(4), 1);
+      expect(GroupSbFinish.starRatingFor(GroupSbFinish.dnfMistakeCount), 0);
+    });
+
+    test('accuracyFor matches solo formula and handles DNF', () {
+      final finish = GroupSbFinish(
+        id: 'f1',
+        roomId: 'r1',
+        playerId: 'p1',
+        scriptureIndex: 0,
+        elapsedMs: 8200,
+        mistakeCount: 2,
+        completedAt: DateTime.utc(2026, 7, 12),
+      );
+      expect(finish.accuracyFor(8), 8 / 10);
+      expect(finish.starRating, 2);
+
+      final dnf = GroupSbFinish(
+        id: 'f2',
+        roomId: 'r1',
+        playerId: 'p1',
+        scriptureIndex: 0,
+        elapsedMs: 60000,
+        mistakeCount: GroupSbFinish.dnfMistakeCount,
+        completedAt: DateTime.utc(2026, 7, 12),
+      );
+      expect(dnf.accuracyFor(8), 0.0);
+      expect(dnf.starRating, 0);
     });
   });
 

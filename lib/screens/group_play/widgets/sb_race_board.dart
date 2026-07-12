@@ -139,9 +139,10 @@ class _WbRaceBoardState extends ConsumerState<SbRaceBoard>
     final pool = List<_RaceChunk>.from(chunks);
     if (widget.chunkDifficulty.hasDistractors &&
         widget.distractorPool.isNotEmpty) {
-      // Match solo Intermediate's extraDistractors count (3) so the race
-      // feels equivalent to the solo experience at the same difficulty.
-      const distractorCount = 3;
+      // Derived from the solo DifficultyLevel enum (via GroupSbChunkDifficulty)
+      // so the race stays equivalent to solo at the same difficulty even if
+      // solo tuning changes.
+      final distractorCount = widget.chunkDifficulty.extraDistractors;
       final others = List<Scripture>.from(widget.distractorPool)
         ..shuffle(rng);
       for (final s in others) {

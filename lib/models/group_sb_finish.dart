@@ -30,6 +30,27 @@ class GroupSbFinish {
 
   bool get isDnf => mistakeCount == dnfMistakeCount;
 
+  /// Star rating using the same thresholds as solo Scripture Builder
+  /// (`ScriptureBuilderState.starRating`): 0 mistakes → 3 stars,
+  /// 1–3 mistakes → 2 stars, more → 1 star. DNF → 0 stars.
+  static int starRatingFor(int mistakeCount) {
+    if (mistakeCount == dnfMistakeCount) return 0;
+    if (mistakeCount == 0) return 3;
+    if (mistakeCount <= 3) return 2;
+    return 1;
+  }
+
+  int get starRating => starRatingFor(mistakeCount);
+
+  /// Accuracy matching the solo formula
+  /// (`correct / (correct + incorrectAttempts)`), where `correctChunks` is
+  /// the number of chunks in the raced scripture (every finish placed all
+  /// of them). Returns 0 for DNF.
+  double accuracyFor(int correctChunks) {
+    if (isDnf || correctChunks + mistakeCount == 0) return 0.0;
+    return correctChunks / (correctChunks + mistakeCount);
+  }
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'room_id': roomId,
