@@ -193,42 +193,52 @@ class HolisticMasterySection extends ConsumerWidget {
         ),
 
         // ── Prominent CTA: Launch Scripture Builder ──
-        const SizedBox(height: 12),
+        const SizedBox(height: AppTheme.spacingMd),
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
             onPressed: () => _launchScriptureBuilder(context, nextDifficulty),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primary,
-              padding: const EdgeInsets.symmetric(vertical: 18),
+              foregroundColor: AppTheme.onPrimary,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTheme.spacingLg,
+                vertical: AppTheme.spacingMd,
+              ),
+              alignment: Alignment.center,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppTheme.radiusMd),
               ),
             ),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Icon(Icons.sort_by_alpha, size: 22),
-                    const SizedBox(width: 10),
-                    Text(
-                      _ctaLabel(mastery),
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
+                    const SizedBox(width: AppTheme.spacingSm),
+                    Flexible(
+                      child: Text(
+                        _ctaLabel(mastery),
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: AppTheme.onPrimary,
+                              fontWeight: FontWeight.w700,
+                            ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppTheme.spacingXs),
                 Text(
                   _ctaSubtitle(mastery, nextDifficulty),
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.white.withValues(alpha: 0.8),
-                  ),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.onPrimary.withValues(alpha: 0.8),
+                        fontWeight: FontWeight.w400,
+                      ),
                 ),
               ],
             ),

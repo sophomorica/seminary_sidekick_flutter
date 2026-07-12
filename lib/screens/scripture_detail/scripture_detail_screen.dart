@@ -364,26 +364,9 @@ class _MainContent extends ConsumerWidget {
         ),
         const SizedBox(height: AppTheme.spacingXl),
         // Tab navigation
-        Row(
-          children: [
-            _TabButton(
-              label: 'Study',
-              isActive: activeTab == _DetailTab.study,
-              onPressed: () => onTabChanged(_DetailTab.study),
-            ),
-            const SizedBox(width: AppTheme.spacingXl),
-            _TabButton(
-              label: 'Scripture Builder',
-              isActive: activeTab == _DetailTab.scriptureBuilder,
-              onPressed: () => onTabChanged(_DetailTab.scriptureBuilder),
-            ),
-            const SizedBox(width: AppTheme.spacingXl),
-            _TabButton(
-              label: 'Progress',
-              isActive: activeTab == _DetailTab.progress,
-              onPressed: () => onTabChanged(_DetailTab.progress),
-            ),
-          ],
+        _DetailTabGroup(
+          activeTab: activeTab,
+          onTabChanged: onTabChanged,
         ),
         const SizedBox(height: AppTheme.spacingXl),
         // Tab content
@@ -517,13 +500,67 @@ class _ScriptureTextWidget extends StatelessWidget {
   }
 }
 
-// Tab button widget
-class _TabButton extends StatelessWidget {
+/// Segmented tab group for Study / Scripture Builder / Progress.
+class _DetailTabGroup extends StatelessWidget {
+  final _DetailTab activeTab;
+  final ValueChanged<_DetailTab> onTabChanged;
+
+  const _DetailTabGroup({
+    required this.activeTab,
+    required this.onTabChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppTheme.spacingXs),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+      ),
+      // IntrinsicHeight + stretch keeps every pill full-height when the
+      // "Scripture Builder" label wraps to two lines on narrow widths.
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: _DetailTabSegment(
+                label: 'Study',
+                isActive: activeTab == _DetailTab.study,
+                onPressed: () => onTabChanged(_DetailTab.study),
+              ),
+            ),
+            Expanded(
+              child: _DetailTabSegment(
+                label: 'Scripture Builder',
+                isActive: activeTab == _DetailTab.scriptureBuilder,
+                onPressed: () => onTabChanged(_DetailTab.scriptureBuilder),
+              ),
+            ),
+            Expanded(
+              child: _DetailTabSegment(
+                label: 'Progress',
+                isActive: activeTab == _DetailTab.progress,
+                onPressed: () => onTabChanged(_DetailTab.progress),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailTabSegment extends StatelessWidget {
   final String label;
   final bool isActive;
   final VoidCallback onPressed;
 
-  const _TabButton({
+  const _DetailTabSegment({
     required this.label,
     required this.isActive,
     required this.onPressed,
@@ -531,29 +568,46 @@ class _TabButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onPressed,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    // In the dark scheme surfaceContainerLowest is the *darkest* surface, so
+    // the "lifted pill" trick inverts — lift with a higher container instead.
+    final activePillColor = theme.brightness == Brightness.dark
+        ? colorScheme.surfaceContainerHigh
+        : colorScheme.surfaceContainerLowest;
+
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTheme.spacingSm,
+            vertical: AppTheme.spacingSm,
+          ),
+          decoration: BoxDecoration(
+            color: isActive ? activePillColor : null,
+            borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+            boxShadow: isActive ? AppTheme.editorialShadow : null,
+          ),
+          alignment: Alignment.center,
+          child: Text(
             label,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: isActive
-                      ? Theme.of(context).colorScheme.primary
-                      : AppTheme.secondary,
-                  fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.labelLarge?.copyWith(
+              color: isActive
+                  ? colorScheme.primary
+                  : colorScheme.onSurfaceVariant,
+              fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+            ),
           ),
-          const SizedBox(height: 8),
-          Container(
-            height: 2,
-            width: 40,
-            color: isActive
-                ? Theme.of(context).colorScheme.primary
-                : Colors.transparent,
-          ),
-        ],
+        ),
       ),
     );
   }
