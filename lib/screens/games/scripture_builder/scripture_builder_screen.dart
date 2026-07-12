@@ -12,6 +12,7 @@ import '../../../services/haptic_service.dart';
 import '../../../services/speech_service.dart';
 import '../../../theme/app_theme.dart';
 import '../game_results_screen.dart';
+import 'typed_display_rules.dart';
 
 class ScriptureBuilderScreen extends ConsumerStatefulWidget {
   final DifficultyLevel difficulty;
@@ -693,23 +694,17 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
     // For Advanced: pre-compute which indices are "first letter of a word"
     // so we can show those as hints. Never reveal any other untyped letter —
     // including the cursor position (that used to spoil the next character).
-    final firstLetterIndices = <int>{};
-    if (!isMaster) {
-      bool prevWasSpace = true; // treat start of text as word boundary
-      for (int i = 0; i < target.length; i++) {
-        if (prevWasSpace && target[i] != ' ') {
-          firstLetterIndices.add(i);
-        }
-        prevWasSpace = target[i] == ' ';
-      }
-    }
+    final firstLetterIndices = isMaster
+        ? const <int>{}
+        : TypedDisplayRules.firstLetterIndices(target);
 
     // Subtle cursor chrome for Advanced: highlight the next letter slot the
     // user must type, without disclosing the character (unless it's already
-    // a first-letter hint).
-    final cursorIndex = isMaster
+    // a first-letter hint). Hidden while a red error is active — the required
+    // action there is backspacing, not typing the next letter.
+    final cursorIndex = isMaster || state.hasActiveError
         ? -1
-        : _nextLetterIndex(target, typed.length);
+        : TypedDisplayRules.nextLetterIndex(target, typed.length);
 
     for (int i = 0; i < target.length; i++) {
       if (i < typed.length) {
@@ -727,46 +722,24 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
             decorationColor: AppTheme.error,
           ),
         ));
-      } else if (isMaster) {
-        // Master: show nothing — just an underscore for letters,
-        // but preserve spaces so word boundaries are visible.
-        final ch = target[i];
-        if (ch == ' ') {
-          spans.add(const TextSpan(text: ' '));
-        } else if (ch == '\n') {
-          spans.add(const TextSpan(text: '\n'));
-        } else {
-          spans.add(TextSpan(
-            text: '_',
-            style: TextStyle(
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withValues(alpha: 0.25),
-              letterSpacing: 1,
-            ),
-          ));
-        }
       } else {
-        // Advanced: first-letter hints only; everything else stays hidden.
-        final ch = target[i];
+        // Untyped — the glyph choice is centralized in TypedDisplayRules
+        // (unit-tested) so this branch can never disclose a hidden letter:
+        // spaces/newlines verbatim, first-letter hints on Advanced,
+        // underscores for everything else (all of Master).
+        final glyph = TypedDisplayRules.untypedGlyph(
+          target,
+          i,
+          isMaster: isMaster,
+          hintIndices: firstLetterIndices,
+        );
         final atCursor = i == cursorIndex;
         final cursorBg = atCursor
             ? AppTheme.accent.withValues(alpha: 0.15)
             : null;
-        if (ch == ' ' || ch == '\n') {
-          spans.add(TextSpan(text: ch));
-        } else if (firstLetterIndices.contains(i)) {
-          // First letter hint — show it dimly (bolden slightly at cursor)
-          spans.add(TextSpan(
-            text: ch,
-            style: TextStyle(
-              color: AppTheme.accent.withValues(alpha: atCursor ? 0.95 : 0.7),
-              fontWeight: atCursor ? FontWeight.w700 : FontWeight.w600,
-              backgroundColor: cursorBg,
-            ),
-          ));
-        } else {
+        if (glyph == ' ' || glyph == '\n') {
+          spans.add(TextSpan(text: glyph));
+        } else if (glyph == '_') {
           spans.add(TextSpan(
             text: '_',
             style: TextStyle(
@@ -778,27 +751,21 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
               backgroundColor: cursorBg,
             ),
           ));
+        } else {
+          // First letter hint — show it dimly (bolden slightly at cursor)
+          spans.add(TextSpan(
+            text: glyph,
+            style: TextStyle(
+              color: AppTheme.accent.withValues(alpha: atCursor ? 0.95 : 0.7),
+              fontWeight: atCursor ? FontWeight.w700 : FontWeight.w600,
+              backgroundColor: cursorBg,
+            ),
+          ));
         }
       }
     }
 
     return spans;
-  }
-
-  /// Find the index of the next actual letter/digit in the target,
-  /// skipping spaces and punctuation (which are auto-filled).
-  int _nextLetterIndex(String target, int from) {
-    int i = from;
-    while (i < target.length) {
-      final ch = target[i];
-      if (ch != ' ' &&
-          ch != '\n' &&
-          !RegExp(r'''[,;:!?\-\—\–\.\'\"\'\'\"\"\(\)\[\]]''').hasMatch(ch)) {
-        return i;
-      }
-      i++;
-    }
-    return from; // fallback
   }
 
   Widget _buildResetBanner({bool visible = true}) {
