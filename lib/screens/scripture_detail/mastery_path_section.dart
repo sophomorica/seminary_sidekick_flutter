@@ -212,11 +212,10 @@ class HolisticMasterySection extends ConsumerWidget {
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.sort_by_alpha, size: 22),
                     const SizedBox(width: AppTheme.spacingSm),
