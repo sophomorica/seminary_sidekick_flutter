@@ -431,7 +431,7 @@ These tasks are **code-complete** and summarized in the Completed tables above; 
     - `lib/screens/games/scripture_builder/scripture_builder_screen.dart` (mic UI, `_toggleSpeechListening` / `_onSpeechResult`)
     - `lib/providers/scripture_builder_provider.dart` (`onSpeechInput`, `_speechWordMatches`, `_areHomophones`, `_numberWords`)
     - `test/providers/scripture_builder_provider_test.dart` (`Scripture Builder — Speech-to-text` group)
-  - Removal commit: `REMOVAL_SHA` — the pre-removal tree is one `git show REMOVAL_SHA^:<path>` away.
+  - Removal commit: `4181cfb` — the pre-removal tree is one `git show 4181cfb^:<path>` away.
 - **acceptance_criteria** (rough):
   - [ ] Record → analyze → pass/fail flow on Advanced + Master
   - [ ] Premium gate enforced server-side (RevenueCat entitlement, like sidekick-proxy)
