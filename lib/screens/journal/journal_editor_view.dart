@@ -182,7 +182,7 @@ class _JournalEditorViewState extends ConsumerState<JournalEditorView> {
     ref.read(hapticProvider).light();
 
     await speech.startListening(
-      onResult: (text) {
+      onResult: (text, _) {
         if (!mounted) return;
         setState(() {
           _partialSpeechText = text;
