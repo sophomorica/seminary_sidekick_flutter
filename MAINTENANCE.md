@@ -74,11 +74,12 @@
 - **acceptance_criteria**:
   - [x] Advanced untyped display never shows a letter that is not a first-letter-of-word hint
   - [x] Master mode still fully blanks non-space characters (no regression)
-  - [ ] `flutter analyze` clean
+  - [x] `flutter analyze` clean
 - **depends_on**: —
 - **notes**:
   - Reported by owner: Advanced always shows the next correct letter while typing.
   - Fix: removed the spoiler branch that painted `target[i]` at the cursor; Advanced now always uses first-letter/underscore rules, with a subtle background highlight on the current typing slot.
+  - Verified: `flutter analyze` clean; `scripture_builder_provider_test.dart` 45/45 green.
 
 ---
 
