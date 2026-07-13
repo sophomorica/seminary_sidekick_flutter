@@ -23,5 +23,7 @@ Without `SENTRY_DSN` the service is a silent no-op (dev/CI/tests send nothing).
 
 **Privacy rules** — never put user-generated content in breadcrumbs, tags, or contexts: no journal entries, scripture notes, chat messages, or nicknames. Scripture IDs and tab/route names are fine. `sendDefaultPii`, screenshots, and view hierarchy are disabled in the service; do not turn them on.
 
+**Transient HTTP filtering** — Sentry's default failed-request capture treats 5xx responses as `HTTPClientError`. Upstream overload codes (`429` / `502` / `503` / `529`, e.g. xAI via `sidekick-proxy`) are dropped in `beforeSend` and native iOS failed-request capture is off (`captureNativeFailedRequests = false`) so expected Sidekick blips do not open crash issues (FLUTTER-6). Real app defects and non-transient 5xx still report.
+
 For handled exceptions worth field visibility, call `CrashReportingService.recordError(e, st, hint: '...')` in the catch block. Use `CrashReportingService.addBreadcrumb(...)` for notable user actions (categories: `navigation`, `game`, `purchase`, ...).
 

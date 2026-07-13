@@ -539,7 +539,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onChanged: onChanged,
             activeTrackColor:
                 Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
-            activeThumbColor: Theme.of(context).colorScheme.primary,
+            activeColor: Theme.of(context).colorScheme.primary,
           ),
         ],
       ),

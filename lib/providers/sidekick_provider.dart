@@ -169,6 +169,22 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
           sessionResponse: SidekickResponse.offlineFallback(),
         );
       }
+    } on SidekickUnavailableException catch (e, stack) {
+      developer.log(
+        'Sidekick session refresh blocked by transient upstream',
+        name: 'sidekick',
+        error: e,
+        stackTrace: stack,
+      );
+      state = state.copyWith(
+        isLoadingSession: false,
+        error: e.message,
+      );
+      if (state.sessionResponse == null) {
+        state = state.copyWith(
+          sessionResponse: SidekickResponse.offlineFallback(),
+        );
+      }
     } catch (e, stack) {
       developer.log(
         'Sidekick session refresh failed',
@@ -253,6 +269,24 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
         isLoadingChat: false,
         error: e.message,
         isEntitlementError: true,
+        pendingRetryMessage: trimmed,
+      );
+      await _cacheChatHistory();
+    } on SidekickUnavailableException catch (e, stack) {
+      developer.log(
+        'Sidekick chat blocked by transient upstream',
+        name: 'sidekick',
+        error: e,
+        stackTrace: stack,
+      );
+      // Keep the typed text retryable — same UX path as entitlement, without
+      // the Refresh action (generic banner dismiss / re-send).
+      final withoutFailedSend = List<SidekickMessage>.of(updatedHistory)
+        ..removeLast();
+      state = state.copyWith(
+        chatHistory: withoutFailedSend,
+        isLoadingChat: false,
+        error: e.message,
         pendingRetryMessage: trimmed,
       );
       await _cacheChatHistory();

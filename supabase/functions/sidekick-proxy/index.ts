@@ -154,8 +154,24 @@ Deno.serve(async (req: Request) => {
     });
 
     const text = await upstream.text();
-    // Pass the upstream status + body straight through so the client can
-    // surface real errors (rate limits, auth, etc.).
+    // Normalize provider overload / rate-limit responses so the client can
+    // treat them as retryable (FLUTTER-6: raw 529 was reported as a crash).
+    if (upstream.status === 429 ||
+      upstream.status === 502 ||
+      upstream.status === 503 ||
+      upstream.status === 529) {
+      return json(
+        {
+          error:
+            "The Sidekick is briefly unavailable. Please try again in a moment.",
+          code: "upstream_unavailable",
+          retryable: true,
+        },
+        503,
+      );
+    }
+    // Pass other upstream statuses + bodies through so the client can
+    // surface real errors (auth, validation, etc.).
     return new Response(text, {
       status: upstream.status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
