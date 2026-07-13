@@ -159,11 +159,28 @@ class SidekickService {
         );
         throw const SidekickEntitlementException();
       }
+      if (isTransientSidekickStatus(e.status)) {
+        // Upstream overload / gateway blip (incl. xAI 529). Expected and
+        // retryable — breadcrumb only; do not open a Sentry issue (FLUTTER-6).
+        CrashReportingService.addBreadcrumb(
+          'sidekick-proxy transient upstream ${e.status}',
+          category: 'sidekick',
+        );
+        throw const SidekickUnavailableException();
+      }
       throw SidekickServiceException(
         'Sidekick request failed (status ${e.status}): ${e.details}',
       );
     }
   }
+
+  /// True for retryable upstream / gateway statuses from `sidekick-proxy`.
+  ///
+  /// Includes Cloudflare / provider overload `529` (FLUTTER-6).
+  static bool isTransientSidekickStatus(int? status) =>
+      status != null && _transientUpstreamStatuses.contains(status);
+
+  static const Set<int> _transientUpstreamStatuses = {429, 502, 503, 529};
 
   /// Parse a structured SidekickResponse from the API's JSON output.
   SidekickResponse _parseResponse(Map<String, dynamic> apiResponse) {
@@ -342,4 +359,18 @@ class SidekickEntitlementException extends SidekickServiceException {
 
   @override
   String toString() => 'SidekickEntitlementException: $message';
+}
+
+/// Proxy / upstream temporarily unavailable (429, 502, 503, 529).
+///
+/// Distinct from entitlement and generic failures so the UI can ask the
+/// student to retry without surfacing raw status strings (FLUTTER-6).
+class SidekickUnavailableException extends SidekickServiceException {
+  const SidekickUnavailableException([
+    super.message =
+        'Your Sidekick is briefly unavailable. Please try again in a moment.',
+  ]);
+
+  @override
+  String toString() => 'SidekickUnavailableException: $message';
 }

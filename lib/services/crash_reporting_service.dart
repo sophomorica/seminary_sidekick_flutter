@@ -16,11 +16,25 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 ///   no journal entries, scripture notes, chat messages, or nicknames.
 /// - Allowed context: current tab/route names, premium status, scripture IDs
 ///   (they identify one of the 100 public scriptures, not the user).
+///
+/// **Transient HTTP noise** (FLUTTER-6): Sentry's default failed-request
+/// capture treats every 5xx as `HTTPClientError`. Upstream overload codes
+/// (429 / 502 / 503 / 529) from Sidekick / xAI are expected and already
+/// handled in-app — [shouldDropTransientHttpClientError] filters them out
+/// so they do not open crash issues.
 class CrashReportingService {
   CrashReportingService._();
 
   static const String _dsn =
       String.fromEnvironment('SENTRY_DSN', defaultValue: '');
+
+  /// HTTP statuses that mean "try again shortly", not an app defect.
+  @visibleForTesting
+  static const Set<int> transientHttpStatusCodes = {429, 502, 503, 529};
+
+  static final RegExp _httpClientStatusRe = RegExp(
+    r'HTTP Client Error with status code:\s*(\d+)',
+  );
 
   /// Whether crash reporting is active for this build.
   static bool get isEnabled => isDsnConfigured(_dsn);
@@ -28,6 +42,37 @@ class CrashReportingService {
   /// True when [dsn] is a usable (non-blank) DSN. Split out for testability.
   @visibleForTesting
   static bool isDsnConfigured(String dsn) => dsn.trim().isNotEmpty;
+
+  /// True when [status] is a transient upstream / gateway overload code.
+  @visibleForTesting
+  static bool isTransientHttpStatus(int? status) =>
+      status != null && transientHttpStatusCodes.contains(status);
+
+  /// Drop Sentry auto-captured HTTP client failures for transient statuses.
+  ///
+  /// Matches both Dart (`SentryHttpClientError`) and native iOS
+  /// (`HTTPClientError`) failed-request events whose message embeds the
+  /// status code.
+  @visibleForTesting
+  static bool shouldDropTransientHttpClientError(SentryEvent event) {
+    final exceptions = event.exceptions;
+    if (exceptions == null || exceptions.isEmpty) return false;
+
+    for (final ex in exceptions) {
+      final type = ex.type ?? '';
+      final value = ex.value ?? '';
+      final isHttpClientError = type == 'HTTPClientError' ||
+          type == 'SentryHttpClientError' ||
+          value.contains('HTTP Client Error with status code:');
+      if (!isHttpClientError) continue;
+
+      final match = _httpClientStatusRe.firstMatch(value);
+      if (match == null) continue;
+      final status = int.tryParse(match.group(1)!);
+      if (isTransientHttpStatus(status)) return true;
+    }
+    return false;
+  }
 
   /// Initialize Sentry and run [appRunner] inside its error-capturing zone.
   ///
@@ -63,6 +108,14 @@ class CrashReportingService {
         options.tracesSampleRate = null;
         // Keep enough breadcrumbs to reconstruct the path to a crash.
         options.maxBreadcrumbs = 60;
+        // Native iOS failed-request capture duplicates handled Sidekick /
+        // Supabase 5xx noise (FLUTTER-6). Dart-side capture stays on;
+        // beforeSend still drops known-transient statuses from either path.
+        options.captureNativeFailedRequests = false;
+        options.beforeSend = (event, hint) {
+          if (shouldDropTransientHttpClientError(event)) return null;
+          return event;
+        };
       },
       appRunner: appRunner,
     );
