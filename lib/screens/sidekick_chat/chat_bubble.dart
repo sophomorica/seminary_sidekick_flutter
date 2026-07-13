@@ -2,10 +2,10 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../utils/scripture_reference_resolver.dart';
 import '../../models/sidekick_response.dart';
 import '../../services/haptic_service.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/scripture_reference_resolver.dart';
 
 class ChatBubble extends ConsumerWidget {
   final SidekickMessage message;
@@ -48,7 +48,10 @@ class ChatBubble extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(18),
                 boxShadow: [
                   BoxShadow(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.08),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurfaceVariant
+                        .withValues(alpha: 0.08),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -77,7 +80,9 @@ class ChatBubble extends ConsumerWidget {
                         ? AppTheme.primary
                         : (isDark
                             ? AppTheme.darkSurfaceContainerLow
-                            : Theme.of(context).colorScheme.surfaceContainerLow),
+                            : Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerLow),
                     borderRadius: isUser
                         ? BorderRadius.circular(AppTheme.radiusXl).copyWith(
                             bottomRight:
@@ -87,7 +92,10 @@ class ChatBubble extends ConsumerWidget {
                                 const Radius.circular(AppTheme.radiusSm)),
                     boxShadow: [
                       BoxShadow(
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.06),
                         blurRadius: 12,
                         offset: const Offset(0, 2),
                       ),
@@ -131,10 +139,6 @@ class ChatBubble extends ConsumerWidget {
 
 // ─── Rich Text with Tappable Scripture References ──────────────────────────
 
-/// Regex pattern that matches common scripture references in the 100 DM list.
-// Moved to scripture_reference_resolver.dart — re-exported here for tests.
-final _scriptureRefPattern = scriptureRefPattern;
-
 class RichMessageText extends ConsumerWidget {
   final String text;
   final void Function(String scriptureId) onScriptureTap;
@@ -162,7 +166,7 @@ class RichMessageText extends ConsumerWidget {
         );
 
     int lastEnd = 0;
-    for (final match in _scriptureRefPattern.allMatches(text)) {
+    for (final match in scriptureRefPattern.allMatches(text)) {
       // Text before this match
       if (match.start > lastEnd) {
         spans.add(TextSpan(
@@ -285,8 +289,8 @@ class _SuggestionChip extends ConsumerWidget {
             borderRadius: BorderRadius.circular(AppTheme.radiusRound),
             border: highlighted
                 ? Border.all(
-                    color: AppTheme.sidekickColor(context)
-                        .withValues(alpha: 0.35),
+                    color:
+                        AppTheme.sidekickColor(context).withValues(alpha: 0.35),
                     width: 0.5,
                   )
                 : null,
