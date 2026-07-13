@@ -67,7 +67,7 @@ AppTheme.radiusSm (8), radiusMd (12), radiusLg (16)
    - Confetti `colors:` lists mixing `Theme.of(context)` with hex literals: the *list* can't be const, but each literal can — `const Color(0xFFFFD54F)`
 2. **Unused imports** (`unused_import`) — after moving/extracting widgets or trimming a build method, re-check the file's imports (`app_theme.dart` is the usual leftover).
 3. **Deprecated members** (`deprecated_member_use`) — after any `pub get`/dependency bump, run analyze and migrate renamed params instead of suppressing (e.g. Supabase `anonKey` → `publishableKey`, 2026-07-01).
-4. **Wrong named params on animation widgets** — `SizeTransition` now takes `alignment` (`AlignmentGeometry`, e.g. `Alignment.topLeft` for a vertical fold from the top). The old `axisAlignment` (`double`) is deprecated as of Flutter 3.41+ and fails analyze as `deprecated_member_use`. Don't confuse this with `Align`'s `alignment` — same name, different widgets; check the constructor you're calling.
+4. **Wrong named params on animation widgets** — `SizeTransition` takes `axisAlignment` (`double`, `-1.0` = top/start), **not** `alignment: Alignment.topLeft` (that's `Align`). It fails analyze as `undefined_named_parameter` on this repo's SDK. (A prior version of this doc claimed the opposite — that was wrong and caused repeated agent errors, fixed 2026-07-12.) Always check the real constructor; don't invent Align-style params on size/fade/slide transitions.
 
 Shared Flutter floors + the full analyze-pitfall list also live in
 `../narrow-road-hq/standards/FLUTTER_APP_STANDARDS.md` — keep that file and
@@ -107,11 +107,12 @@ Scripture Builder follows this same pattern but is launched from scripture detai
 | Route type         | Method                                                  | When                      |
 | ------------------ | ------------------------------------------------------- | ------------------------- |
 | Tab navigation     | GoRouter `context.go('/path')`                          | Main tabs                 |
-| Scripture browsing | GoRouter `context.go('/scripture/$id')`                 | Detail screens            |
-| Game screens       | `Navigator.of(context).push()`                          | Transient overlays        |
-| Game results       | `Navigator.of(context).pushReplacement()`               | Replace game with results |
-| Memorize tool      | `Navigator.of(context).push()`                          | From scripture detail     |
-| Upgrade screen     | GoRouter `context.go('/upgrade')` or `Navigator.push()` | From teasers/prompts      |
+| Scripture browsing | GoRouter `context.push('/scripture/$id')`               | Detail (Library branch)   |
+| Fullscreen overlays | `pushFullscreen(context, page)` from `lib/navigation/fullscreen.dart` | Memorize, Journal-with-args, Sidekick chat with initial message, games |
+| Upgrade / Settings / bare Journal | `pushUpgrade(context)` / `context.push('/upgrade')` etc. | Sibling GoRoutes *outside* the shell |
+| Game results       | `Navigator.pushReplacement` (already on root nav)       | Replace game with results |
+
+**Shell trap (repeat offender):** The bottom-nav shell uses a nested navigator. Plain `Navigator.of(context).push(MaterialPageRoute(...))` stacks *under* the "Seminary Sidekick" header + tab bar and creates a huge gap above the page's own AppBar/SafeArea. Always use `pushFullscreen` / `rootNavigator: true`, or a GoRouter sibling route (`/upgrade`, `/settings`, `/journal`). Solo games already do this via `game_setup_sheet.dart`.
 
 ### Feedback on Every Action
 

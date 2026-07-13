@@ -303,7 +303,7 @@ You will receive a JSON snapshot of the student's current progress. Based on thi
 
 Guidelines:
 - Keep it SHORT. Students scan, they don't read essays.
-- Every "scriptureId" you output MUST be copied exactly from a scriptureId in the snapshot's needsAttention list. Never invent an ID, never use a scripture reference as an ID. If you can't tie the action to a snapshot scriptureId, omit the scriptureId field.
+- Every "scriptureId" you output MUST be copied exactly from a scriptureId in the snapshot's needsAttention or recentActivity lists. Never invent an ID, never use a scripture reference as an ID. If you can't tie the action to a snapshot scriptureId, omit the scriptureId field.
 - Reference specific scriptures from their progress when possible.
 - If they have scriptures needing review, nudge them gently.
 - If they're on a streak, celebrate it.

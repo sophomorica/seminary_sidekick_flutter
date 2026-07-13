@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../navigation/fullscreen.dart';
 import '../../models/enums.dart';
 import '../../models/scripture.dart';
 import '../../models/scripture_mastery.dart';
@@ -62,12 +63,11 @@ class HolisticMasterySection extends ConsumerWidget {
   }
 
   void _launchScriptureBuilder(BuildContext context, DifficultyLevel difficulty) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ScriptureBuilderScreen(
-          difficulty: difficulty,
-          scriptures: [scripture],
-        ),
+    pushFullscreen(
+      context,
+      ScriptureBuilderScreen(
+        difficulty: difficulty,
+        scriptures: [scripture],
       ),
     );
   }

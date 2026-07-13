@@ -95,11 +95,25 @@ void main() {
     });
   });
 
+  group('ActivitySummary', () {
+    test('toJson includes scriptureId, reference, and summary', () {
+      final json = const ActivitySummary(
+        scriptureId: '63',
+        reference: 'Alma 39:9',
+        summary: 'Alma 39:9: quiz medium — score 90',
+      ).toJson();
+
+      expect(json['scriptureId'], '63');
+      expect(json['reference'], 'Alma 39:9');
+      expect(json['summary'], 'Alma 39:9: quiz medium — score 90');
+    });
+  });
+
   group('SidekickSnapshot', () {
     SidekickSnapshot makeSnapshot({
       MasteryStats? stats,
       List<ScriptureProgressSummary>? needsAttention,
-      List<String>? recentActivity,
+      List<ActivitySummary>? recentActivity,
       List<String>? goals,
       int curriculumWeek = 12,
       int daysActive = 30,
@@ -119,7 +133,14 @@ void main() {
               overallAccuracy: 0.0,
             ),
         needsAttention: needsAttention ?? [],
-        recentActivity: recentActivity ?? ['Practiced 1 Nephi 3:7'],
+        recentActivity: recentActivity ??
+            [
+              const ActivitySummary(
+                scriptureId: '1',
+                reference: '1 Nephi 3:7',
+                summary: '1 Nephi 3:7: first attempt!',
+              ),
+            ],
         curriculumWeek: curriculumWeek,
         goals: goals ?? [],
         daysActive: daysActive,
@@ -160,6 +181,7 @@ void main() {
       expect(json['goals'], ['Master BOM', 'Daily review']);
       expect(json['generatedAt'], '2026-04-09T12:00:00.000');
       expect(json['recentActivity'], hasLength(1));
+      expect((json['recentActivity'] as List).first['scriptureId'], '1');
       expect(json['needsAttention'], hasLength(1));
       expect((json['needsAttention'] as List).first['scriptureId'], '42');
 

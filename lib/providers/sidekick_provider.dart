@@ -15,6 +15,7 @@ import '../providers/scripture_provider.dart';
 import '../providers/spaced_repetition_provider.dart';
 import '../providers/subscription_provider.dart';
 import '../services/sidekick_service.dart';
+import '../utils/scripture_reference_resolver.dart';
 
 // ─── Chat history helpers (TASK-068) ────────────────────────────────────────
 
@@ -143,8 +144,10 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
       final snapshot = _buildSnapshot();
       state = state.copyWith(lastSnapshot: snapshot);
 
-      final response = (await _service.getSessionResponse(snapshot))
-          .sanitized(_validScriptureIds);
+      final response = (await _service.getSessionResponse(snapshot)).sanitized(
+        _validScriptureIds,
+        resolveIdFromText: findScriptureIdInText,
+      );
 
       state = state.copyWith(
         sessionResponse: response,
@@ -331,41 +334,72 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
 
     // Build "needs attention" list: due scriptures + decaying ones
     final needsAttention = <ScriptureProgressSummary>[];
-    for (final scripture in dueScriptures.take(8)) {
-      final mastery = _ref.read(scriptureMasteryProvider(scripture.id));
+    final attentionIds = <String>{};
+
+    ScriptureProgressSummary summarize(
+        String id, String reference, String topic) {
+      final mastery = _ref.read(scriptureMasteryProvider(id));
       final daysSince = mastery.lastPracticedAny != null
           ? DateTime.now().difference(mastery.lastPracticedAny!).inDays
           : 999;
-
-      needsAttention.add(ScriptureProgressSummary(
-        scriptureId: scripture.id,
-        reference: scripture.reference,
-        topic: scripture.name,
+      return ScriptureProgressSummary(
+        scriptureId: id,
+        reference: reference,
+        topic: topic,
         masteryLevel: mastery.level.label,
         accuracy: mastery.overallAccuracy,
         needsReview: mastery.needsReview,
         daysSinceLastPractice: daysSince,
-      ));
+      );
     }
 
-    // Build recent activity summaries (human-readable strings)
+    for (final scripture in dueScriptures.take(8)) {
+      if (attentionIds.add(scripture.id)) {
+        needsAttention.add(
+          summarize(scripture.id, scripture.reference, scripture.name),
+        );
+      }
+    }
+
+    // Also include recently practiced scriptures so the Sidekick has valid
+    // IDs for "build on your recent quiz"-style suggestions, not just the
+    // SR-due subset.
+    for (final a in activities) {
+      if (needsAttention.length >= 12) break;
+      if (a.scriptureId.isEmpty || !attentionIds.add(a.scriptureId)) continue;
+      final scripture = _ref.read(scriptureByIdProvider(a.scriptureId));
+      if (scripture == null) continue;
+      needsAttention.add(
+        summarize(scripture.id, scripture.reference, scripture.name),
+      );
+    }
+
+    // Build recent activity summaries (structured, with scripture IDs)
     final recentActivity = activities.take(10).map((a) {
       final meta = a.metadata;
+      final String summary;
       switch (a.type.name) {
         case 'gameCompleted':
-          return '${a.scriptureReference}: ${meta['gameType'] ?? 'game'} '
+          summary = '${a.scriptureReference}: ${meta['gameType'] ?? 'game'} '
               '${meta['difficulty'] ?? ''} — score ${meta['score'] ?? '?'}';
         case 'masteryLevelUp':
-          return '${a.scriptureReference}: leveled up to ${meta['newLevel'] ?? '?'}';
+          summary =
+              '${a.scriptureReference}: leveled up to ${meta['newLevel'] ?? '?'}';
         case 'perfectRun':
-          return '${a.scriptureReference}: perfect run on ${meta['difficulty'] ?? '?'}';
+          summary =
+              '${a.scriptureReference}: perfect run on ${meta['difficulty'] ?? '?'}';
         case 'streakMilestone':
-          return 'Streak milestone: ${meta['streakCount'] ?? '?'} in a row';
+          summary = 'Streak milestone: ${meta['streakCount'] ?? '?'} in a row';
         case 'firstAttempt':
-          return '${a.scriptureReference}: first attempt!';
+          summary = '${a.scriptureReference}: first attempt!';
         default:
-          return '${a.scriptureReference}: ${a.type.displayName}';
+          summary = '${a.scriptureReference}: ${a.type.displayName}';
       }
+      return ActivitySummary(
+        scriptureId: a.scriptureId,
+        reference: a.scriptureReference,
+        summary: summary,
+      );
     }).toList();
 
     // Estimate seminary curriculum week (Sept start, 36 weeks)
@@ -397,9 +431,8 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
       recentActivity: recentActivity,
       curriculumWeek: curriculumWeek,
       goals: goalTitles,
-      daysActive: _estimateDaysActive(activities.isNotEmpty
-          ? activities.last.timestamp
-          : now),
+      daysActive: _estimateDaysActive(
+          activities.isNotEmpty ? activities.last.timestamp : now),
       currentStreak: userStats.currentStreak,
       generatedAt: now.toIso8601String(),
     );
@@ -423,8 +456,10 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
         // Sanitize cached responses too — a bad ID cached before this
         // validation existed would otherwise keep resurfacing.
         state = state.copyWith(
-          sessionResponse:
-              SidekickResponse.fromJson(parsed).sanitized(_validScriptureIds),
+          sessionResponse: SidekickResponse.fromJson(parsed).sanitized(
+            _validScriptureIds,
+            resolveIdFromText: findScriptureIdInText,
+          ),
         );
       }
 
@@ -434,8 +469,7 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
         final chatList = jsonDecode(chatJson) as List<dynamic>;
         final messages = trimChatHistory(
           chatList
-              .map((m) =>
-                  SidekickMessage.fromJson(m as Map<String, dynamic>))
+              .map((m) => SidekickMessage.fromJson(m as Map<String, dynamic>))
               .toList(),
         );
         state = state.copyWith(chatHistory: messages);
@@ -477,8 +511,7 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
 
 // ─── Providers ──────────────────────────────────────────────────────────────
 
-final sidekickProvider =
-    StateNotifierProvider<SidekickNotifier, SidekickState>(
+final sidekickProvider = StateNotifierProvider<SidekickNotifier, SidekickState>(
   (ref) => SidekickNotifier(ref),
 );
 
@@ -571,7 +604,8 @@ final nextBestWinProvider = Provider<NextBestWin?>((ref) {
   if (nearlyMastered.isNotEmpty) {
     final best = nearlyMastered.first;
     return NextBestWin(
-      message: '${best.reference} is almost at the next level — one more session could do it!',
+      message:
+          '${best.reference} is almost at the next level — one more session could do it!',
       scriptureId: best.id,
       actionType: 'scriptureBuilder',
     );
@@ -582,7 +616,8 @@ final nextBestWinProvider = Provider<NextBestWin?>((ref) {
 
 /// Scriptures that are close to leveling up (subProgress >= 0.6 and not yet at target).
 /// Sorted by closest-to-leveling-up first.
-final nearlyMasteredScripturesProvider = Provider<List<NearlyMasteredInfo>>((ref) {
+final nearlyMasteredScripturesProvider =
+    Provider<List<NearlyMasteredInfo>>((ref) {
   final allScriptures = ref.watch(scripturesProvider);
   final results = <NearlyMasteredInfo>[];
 
@@ -667,7 +702,8 @@ final quickSessionPromptsProvider = Provider<List<QuickSessionPrompt>>((ref) {
     final progressPct = (top.subProgress * 100).toInt();
     prompts.add(QuickSessionPrompt(
       title: 'Almost There',
-      subtitle: '${top.reference} is $progressPct% to ${_nextLevelName(top.level)}',
+      subtitle:
+          '${top.reference} is $progressPct% to ${_nextLevelName(top.level)}',
       scriptureId: top.id,
       actionType: 'scriptureBuilder',
     ));

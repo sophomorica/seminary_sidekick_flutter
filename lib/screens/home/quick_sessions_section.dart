@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../navigation/fullscreen.dart';
 import '../../providers/sidekick_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/scripture_reference_resolver.dart';
 import '../journal/journal_screen.dart';
 
 // ─── Engagement: "Got a Minute?" Quick Sessions (TASK-040) ───────────────────
@@ -85,13 +87,18 @@ class _QuickSessionTile extends ConsumerWidget {
       child: InkWell(
         onTap: () {
           if (prompt.actionType == 'reflect') {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => JournalScreen(initialPrompt: prompt.subtitle),
-              ),
+            pushFullscreen(
+              context,
+              JournalScreen(initialPrompt: prompt.subtitle),
             );
-          } else if (prompt.scriptureId != null) {
-            context.push('/scripture/${prompt.scriptureId}');
+          } else {
+            final scriptureId = resolveScriptureId(
+              scriptureId: prompt.scriptureId,
+              suggestionText: prompt.subtitle,
+            );
+            if (scriptureId != null) {
+              context.push('/scripture/$scriptureId');
+            }
           }
         },
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),

@@ -321,8 +321,7 @@ void main() {
   group('sanitized (AI-hallucinated scripture IDs)', () {
     const validIds = {'1', '2', '42'};
 
-    test('nulls quickWin.scriptureId when not a real ID, keeps suggestion',
-        () {
+    test('nulls quickWin.scriptureId when not a real ID, keeps suggestion', () {
       final response = SidekickResponse.fromJson({
         'quickWin': {
           'suggestion': 'Spend 2 minutes reviewing Mosiah 3:19',
@@ -343,6 +342,56 @@ void main() {
       }).sanitized(validIds);
 
       expect(response.quickWin!.scriptureId, '42');
+    });
+
+    test('resolves quickWin ID from suggestion text when ID is missing', () {
+      final response = SidekickResponse.fromJson({
+        'quickWin': {
+          'suggestion': 'Spend 2 minutes reviewing Alma 39:9',
+          'actionType': 'review',
+        },
+      }).sanitized(
+        validIds,
+        resolveIdFromText: (text) => text.contains('Alma 39:9') ? '42' : null,
+      );
+
+      expect(response.quickWin!.scriptureId, '42');
+    });
+
+    test('resolves quickWin ID from suggestion text when ID is invalid', () {
+      final response = SidekickResponse.fromJson({
+        'quickWin': {
+          'suggestion': 'Review Alma 39:9 today',
+          'scriptureId': 'Alma 39:9', // hallucinated reference, not an ID
+        },
+      }).sanitized(
+        validIds,
+        resolveIdFromText: (text) => text.contains('Alma 39:9') ? '42' : null,
+      );
+
+      expect(response.quickWin!.scriptureId, '42');
+    });
+
+    test('drops a resolved ID that is not in validScriptureIds', () {
+      final response = SidekickResponse.fromJson({
+        'quickWin': {'suggestion': 'Review Alma 39:9'},
+      }).sanitized(
+        validIds,
+        resolveIdFromText: (_) => '999',
+      );
+
+      expect(response.quickWin!.scriptureId, isNull);
+    });
+
+    test('does not resolve when explicit ID is already valid', () {
+      final response = SidekickResponse.fromJson({
+        'quickWin': {'suggestion': 'Review Alma 39:9', 'scriptureId': '1'},
+      }).sanitized(
+        validIds,
+        resolveIdFromText: (_) => '42',
+      );
+
+      expect(response.quickWin!.scriptureId, '1');
     });
 
     test('filters invalid relatedScriptureIds from suggestedGoal', () {

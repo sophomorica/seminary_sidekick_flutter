@@ -8,11 +8,13 @@ class SidekickSnapshot {
   /// Mastery counts by level.
   final MasteryStats masteryStats;
 
-  /// Top scriptures needing attention (due for SR review or decaying).
+  /// Top scriptures needing attention (due for SR review, decaying, or
+  /// recently practiced).
   final List<ScriptureProgressSummary> needsAttention;
 
-  /// Recent activity log (last ~10 entries, human-readable).
-  final List<String> recentActivity;
+  /// Recent activity log (last ~10 entries), each carrying the real
+  /// scriptureId so the Sidekick can echo it back in quickWin etc.
+  final List<ActivitySummary> recentActivity;
 
   /// Current seminary curriculum week (1–36, estimated from date).
   final int curriculumWeek;
@@ -43,12 +45,33 @@ class SidekickSnapshot {
   Map<String, dynamic> toJson() => {
         'masteryStats': masteryStats.toJson(),
         'needsAttention': needsAttention.map((s) => s.toJson()).toList(),
-        'recentActivity': recentActivity,
+        'recentActivity': recentActivity.map((a) => a.toJson()).toList(),
         'curriculumWeek': curriculumWeek,
         'goals': goals,
         'daysActive': daysActive,
         'currentStreak': currentStreak,
         'generatedAt': generatedAt,
+      };
+}
+
+/// One recent-activity entry. Structured (not a bare string) so the AI has a
+/// valid scriptureId to copy into quickWin/starterQuestions when it suggests
+/// building on recent work.
+class ActivitySummary {
+  final String scriptureId;
+  final String reference;
+  final String summary;
+
+  const ActivitySummary({
+    required this.scriptureId,
+    required this.reference,
+    required this.summary,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'scriptureId': scriptureId,
+        'reference': reference,
+        'summary': summary,
       };
 }
 

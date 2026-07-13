@@ -72,8 +72,7 @@ class SidekickResponse {
               .toList() ??
           const [],
       starterQuestions: (json['starterQuestions'] as List<dynamic>?)
-              ?.map(
-                  (e) => StarterQuestion.fromJson(e as Map<String, dynamic>))
+              ?.map((e) => StarterQuestion.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
       generatedAt:
@@ -93,8 +92,7 @@ class SidekickResponse {
         if (connections.isNotEmpty)
           'connections': connections.map((c) => c.toJson()).toList(),
         if (starterQuestions.isNotEmpty)
-          'starterQuestions':
-              starterQuestions.map((q) => q.toJson()).toList(),
+          'starterQuestions': starterQuestions.map((q) => q.toJson()).toList(),
         'generatedAt': generatedAt,
       };
 
@@ -107,8 +105,21 @@ class SidekickResponse {
   /// - [quickWin.scriptureId] → nulled (card still renders, no broken nav)
   /// - [suggestedGoal.relatedScriptureIds] → filtered
   /// - [starterQuestions] with invalid IDs → dropped (they're keyed lookups)
-  SidekickResponse sanitized(Set<String> validScriptureIds) {
+  ///
+  /// When [resolveIdFromText] is provided, a quickWin whose ID was missing or
+  /// stripped gets a second chance: the suggestion text is parsed for a known
+  /// reference (e.g. "Review Alma 39:9") and that scripture's ID is used.
+  SidekickResponse sanitized(
+    Set<String> validScriptureIds, {
+    String? Function(String text)? resolveIdFromText,
+  }) {
     bool valid(String? id) => id != null && validScriptureIds.contains(id);
+
+    String? quickWinId() {
+      if (valid(quickWin!.scriptureId)) return quickWin!.scriptureId;
+      final resolved = resolveIdFromText?.call(quickWin!.suggestion);
+      return valid(resolved) ? resolved : null;
+    }
 
     return SidekickResponse(
       dailyPrompt: dailyPrompt,
@@ -117,17 +128,14 @@ class SidekickResponse {
           : SidekickGoal(
               title: suggestedGoal!.title,
               description: suggestedGoal!.description,
-              relatedScriptureIds: suggestedGoal!.relatedScriptureIds
-                  .where(valid)
-                  .toList(),
+              relatedScriptureIds:
+                  suggestedGoal!.relatedScriptureIds.where(valid).toList(),
             ),
       quickWin: quickWin == null
           ? null
           : QuickWin(
               suggestion: quickWin!.suggestion,
-              scriptureId: valid(quickWin!.scriptureId)
-                  ? quickWin!.scriptureId
-                  : null,
+              scriptureId: quickWinId(),
               actionType: quickWin!.actionType,
             ),
       timelineInsight: timelineInsight,
