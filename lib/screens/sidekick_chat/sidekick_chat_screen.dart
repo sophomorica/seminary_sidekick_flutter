@@ -399,7 +399,12 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen>
             // Title banner — shows briefly, then folds away.
             SizeTransition(
               sizeFactor: _titleBannerFactor,
-              // Vertical fold from the top.
+              // Vertical fold from the top. Deprecated on Flutter >=3.42 in
+              // favor of `alignment`, but `alignment` doesn't exist on older
+              // SDKs still in use locally — keep axisAlignment until the
+              // local toolchain matches CI (3.44+), then migrate to
+              // `alignment: AlignmentDirectional.topStart`.
+              // ignore: deprecated_member_use
               axisAlignment: -1.0,
               child: FadeTransition(
                 opacity: _titleBannerFactor,
