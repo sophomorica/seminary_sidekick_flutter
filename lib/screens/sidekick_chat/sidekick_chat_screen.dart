@@ -399,8 +399,8 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen>
             // Title banner — shows briefly, then folds away.
             SizeTransition(
               sizeFactor: _titleBannerFactor,
-              // Vertical fold from the top.
-              axisAlignment: -1.0,
+              // Vertical fold from the top (was axisAlignment: -1.0).
+              alignment: Alignment.topLeft,
               child: FadeTransition(
                 opacity: _titleBannerFactor,
                 child: Padding(
