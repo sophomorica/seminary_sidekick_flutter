@@ -148,7 +148,7 @@ class _FakeGroupPlayService extends GroupPlayService {
   }
 
   @override
-  Stream<GroupRoom?> watchRoom(String roomId) {
+  Stream<GroupRoom?> watchRoom(String roomId, {bool asHost = false}) {
     // Push the current room immediately so the notifier doesn't have to wait.
     Future.microtask(() => _roomController.add(room));
     return _roomController.stream;

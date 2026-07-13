@@ -113,6 +113,9 @@ class GroupRoom {
   final DateTime? startedAt;
   final DateTime? endedAt;
 
+  /// Server clock stamp for the current question (set by `advance_question`).
+  final DateTime? questionStartedAt;
+
   const GroupRoom({
     required this.id,
     required this.code,
@@ -126,6 +129,7 @@ class GroupRoom {
     required this.createdAt,
     this.startedAt,
     this.endedAt,
+    this.questionStartedAt,
   });
 
   bool get isLobby => status == GroupRoomStatus.lobby;
@@ -139,6 +143,7 @@ class GroupRoom {
     int? playerCap,
     DateTime? startedAt,
     DateTime? endedAt,
+    DateTime? questionStartedAt,
   }) {
     return GroupRoom(
       id: id,
@@ -153,6 +158,7 @@ class GroupRoom {
       createdAt: createdAt,
       startedAt: startedAt ?? this.startedAt,
       endedAt: endedAt ?? this.endedAt,
+      questionStartedAt: questionStartedAt ?? this.questionStartedAt,
     );
   }
 
@@ -169,6 +175,8 @@ class GroupRoom {
         'created_at': createdAt.toIso8601String(),
         if (startedAt != null) 'started_at': startedAt!.toIso8601String(),
         if (endedAt != null) 'ended_at': endedAt!.toIso8601String(),
+        if (questionStartedAt != null)
+          'question_started_at': questionStartedAt!.toIso8601String(),
       };
 
   factory GroupRoom.fromJson(Map<String, dynamic> json) {
@@ -192,6 +200,9 @@ class GroupRoom {
           : null,
       endedAt: json['ended_at'] != null
           ? DateTime.parse(json['ended_at'] as String)
+          : null,
+      questionStartedAt: json['question_started_at'] != null
+          ? DateTime.parse(json['question_started_at'] as String)
           : null,
     );
   }

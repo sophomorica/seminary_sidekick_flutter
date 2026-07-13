@@ -226,12 +226,26 @@ class _GroupQuizScreenState extends ConsumerState<GroupQuizScreen> {
 
     final timeoutSeconds = room.scope.questionTimeoutSeconds;
 
+    // Anchor the countdown to the server's question_started_at stamp so all
+    // devices agree with submit_answer's timing math. Fall back to local
+    // now() only if the stamp hasn't arrived yet.
+    final serverStartedAt = room.questionStartedAt;
+    final initialRemaining = serverStartedAt != null
+        ? (timeoutSeconds -
+                DateTime.now()
+                    .toUtc()
+                    .difference(serverStartedAt.toUtc())
+                    .inSeconds)
+            .clamp(0, timeoutSeconds)
+            .toInt()
+        : timeoutSeconds;
+
     setState(() {
       _trackedQuestionIndex = room.currentQuestionIndex;
       _previousRanks = snapshot;
       _phase = _LocalPhase.question;
-      _questionStartedAt = DateTime.now();
-      _remainingSeconds = timeoutSeconds;
+      _questionStartedAt = serverStartedAt ?? DateTime.now();
+      _remainingSeconds = initialRemaining;
       _firedFeedbackForCurrentQuestion = false;
     });
 
@@ -276,11 +290,9 @@ class _GroupQuizScreenState extends ConsumerState<GroupQuizScreen> {
     if (state.currentQuestionAnswered) return;
     if (_questionStartedAt == null) return;
 
-    final elapsed = DateTime.now().difference(_questionStartedAt!);
     ref.read(hapticProvider).selection();
     await ref.read(groupPlayProvider.notifier).submitAnswer(
           selectedChoice: choice,
-          elapsed: elapsed,
         );
   }
 

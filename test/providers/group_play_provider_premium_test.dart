@@ -57,7 +57,8 @@ class _GatingFakeService extends GroupPlayService {
   @override
   String? get currentUserId => 'host-uid';
   @override
-  Stream<GroupRoom?> watchRoom(String roomId) => const Stream.empty();
+  Stream<GroupRoom?> watchRoom(String roomId, {bool asHost = false}) =>
+      const Stream.empty();
   @override
   Stream<List<GroupPlayer>> watchPlayers(String roomId) => const Stream.empty();
   @override

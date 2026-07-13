@@ -229,12 +229,9 @@ class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
     }
   }
 
-  /// Submit the current question's answer. Computes points server-side
-  /// (well, in the service which is the same process — but sourced from the
-  /// authoritative room.questionSet).
+  /// Submit the current question's answer via server-side `submit_answer` RPC.
   Future<void> submitAnswer({
     required int selectedChoice,
-    required Duration elapsed,
   }) async {
     final room = state.room;
     final me = state.me;
@@ -252,10 +249,8 @@ class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
     try {
       await _service.submitAnswer(
         room: room,
-        player: me,
         questionIndex: qIndex,
         selectedChoice: selectedChoice,
-        responseTimeMs: elapsed.inMilliseconds,
       );
     } catch (e) {
       _handleError(e);
@@ -308,10 +303,10 @@ class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
       clearMySelection: true,
     );
 
-    _subscribeStreams(room);
+    _subscribeStreams(room, asHost: self.isHost);
   }
 
-  void _subscribeStreams(GroupRoom room) {
+  void _subscribeStreams(GroupRoom room, {required bool asHost}) {
     _roomSub?.cancel();
     _playersSub?.cancel();
     _answersSub?.cancel();
@@ -326,7 +321,7 @@ class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
       state = state.copyWith(isReconnecting: reconnecting);
     });
 
-    _roomSub = _service.watchRoom(room.id).listen((updated) {
+    _roomSub = _service.watchRoom(room.id, asHost: asHost).listen((updated) {
       if (!mounted) return;
       if (updated == null) {
         // Room was deleted — treat like it ended.
@@ -360,6 +355,20 @@ class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
       final me = myUserId == null
           ? null
           : players.firstWhereOrNull((p) => p.userId == myUserId);
+      // Kick detection: our row disappeared while room is still live.
+      if (me == null &&
+          state.me != null &&
+          !state.me!.isHost &&
+          state.room != null &&
+          !state.room!.isEnded) {
+        _disposeStreams();
+        state = state.copyWith(
+          phase: GroupPlayPhase.error,
+          error: 'You were removed from this room.',
+          clearRoom: true,
+        );
+        return;
+      }
       state = state.copyWith(
         players: players,
         me: me ?? state.me,

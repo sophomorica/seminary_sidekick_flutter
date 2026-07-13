@@ -203,21 +203,41 @@ class GroupPlayService {
       );
     }
 
-    final code = await _generateUniqueCode();
     final cap = isPremiumHost ? premiumHostCap : freeHostCap;
 
-    final roomRow = await _client
-        .from('rooms')
-        .insert({
-          'code': code,
-          'host_id': hostId,
-          'status': GroupRoomStatus.lobby.name,
-          'scope': scope.toJson(),
-          'player_cap': cap,
-          'is_premium_host': isPremiumHost,
-        })
-        .select()
-        .single();
+    // Rooms SELECT is host-only under RLS (0007), so a pre-insert code
+    // lookup can't see other hosts' rooms. Instead, rely on the unique
+    // constraint on rooms.code: insert and retry with a fresh code on a
+    // Postgres 23505 (unique violation) collision.
+    Map<String, dynamic>? roomRow;
+    for (var attempt = 0; attempt < 5; attempt++) {
+      final code = _generateCode();
+      try {
+        roomRow = await _client
+            .from('rooms')
+            .insert({
+              'code': code,
+              'host_id': hostId,
+              'status': GroupRoomStatus.lobby.name,
+              'scope': scope.toJson(),
+              'player_cap': cap,
+              'is_premium_host': isPremiumHost,
+            })
+            .select()
+            .single();
+        break;
+      } on PostgrestException catch (e) {
+        final isCodeCollision = e.code == '23505' ||
+            e.message.contains('duplicate key');
+        if (!isCodeCollision) rethrow;
+        // Collision — loop and try a new code.
+      }
+    }
+    if (roomRow == null) {
+      throw const GroupPlayException(
+        'Could not generate a unique room code after 5 attempts. Try again.',
+      );
+    }
 
     final room = GroupRoom.fromJson(roomRow);
 
@@ -261,22 +281,18 @@ class GroupPlayService {
       update['question_set'] = questions.map((q) => q.toJson()).toList();
     }
 
-    final updated = await _client
-        .from('rooms')
-        .update(update)
-        .eq('id', room.id)
-        .select()
-        .single();
+    await _client.from('rooms').update(update).eq('id', room.id);
 
-    // Notify all subscribers via Broadcast (ephemeral, faster than waiting
-    // for Postgres Changes to fan out).
+    // Stamp question_started_at with DB now() via advance_question RPC.
+    final stamped = await _rpcAdvanceQuestion(roomId: room.id, newIndex: 0);
+
     await _broadcast(
       room.code,
       event: 'question_advanced',
       payload: {'index': 0},
     );
 
-    return GroupRoom.fromJson(updated);
+    return stamped;
   }
 
   /// Total advanceable units in a room — questions for quiz mode, scriptures
@@ -290,7 +306,7 @@ class GroupPlayService {
     return wb?.scriptureIds.length ?? 0;
   }
 
-  /// Advance to the next question. Pushes Broadcast + updates the row.
+  /// Advance to the next question via `advance_question` RPC (server clock).
   /// If we're past the last question, calls [endRoom] instead.
   Future<GroupRoom> advanceQuestion(GroupRoom room) async {
     final nextIndex = room.currentQuestionIndex + 1;
@@ -300,12 +316,10 @@ class GroupPlayService {
       return endRoom(room);
     }
 
-    final updated = await _client
-        .from('rooms')
-        .update({'current_question_index': nextIndex})
-        .eq('id', room.id)
-        .select()
-        .single();
+    final updated = await _rpcAdvanceQuestion(
+      roomId: room.id,
+      newIndex: nextIndex,
+    );
 
     await _broadcast(
       room.code,
@@ -313,7 +327,25 @@ class GroupPlayService {
       payload: {'index': nextIndex},
     );
 
-    return GroupRoom.fromJson(updated);
+    return updated;
+  }
+
+  Future<GroupRoom> _rpcAdvanceQuestion({
+    required String roomId,
+    required int newIndex,
+  }) async {
+    try {
+      final raw = await _client.rpc(
+        'advance_question',
+        params: {
+          'p_room_id': roomId,
+          'p_new_index': newIndex,
+        },
+      );
+      return GroupRoom.fromJson(Map<String, dynamic>.from(raw as Map));
+    } catch (e) {
+      throw _mapRpcError(e);
+    }
   }
 
   /// Word-Builder-flavored alias of [advanceQuestion]. The on-the-wire column
@@ -346,63 +378,35 @@ class GroupPlayService {
 
   // ─── Player: join / leave / submit ─────────────────────────────────────
 
-  /// Look up a room by its 4-letter code. Returns null if not found.
-  Future<GroupRoom?> findRoomByCode(String code) async {
-    final normalized = code.trim().toUpperCase();
-    final row = await _client
-        .from('rooms')
-        .select()
-        .eq('code', normalized)
-        .maybeSingle();
-    if (row == null) return null;
-    return GroupRoom.fromJson(row);
-  }
-
-  /// Join a room as a non-host player.
-  ///
-  /// Validates the room is in lobby, has capacity, and the nickname is free.
-  /// Throws specific exceptions for each failure mode so the UI can render
-  /// good copy.
+  /// Join a room as a non-host player via `join_room` RPC (atomic cap + ban).
   Future<({GroupRoom room, GroupPlayer self})> joinRoom({
     required String code,
     required String nickname,
   }) async {
-    final userId = _requireUserId();
-    final room = await findRoomByCode(code);
-    if (room == null) {
-      throw const RoomNotFoundException();
+    _requireUserId();
+    try {
+      final raw = await _client.rpc(
+        'join_room',
+        params: {
+          'p_code': code,
+          'p_nickname': nickname,
+        },
+      );
+      final map = Map<String, dynamic>.from(raw as Map);
+      final room = GroupRoom.fromJson(
+        Map<String, dynamic>.from(map['room'] as Map),
+      );
+      final self = GroupPlayer.fromJson(
+        Map<String, dynamic>.from(map['player'] as Map),
+      );
+      return (room: room, self: self);
+    } catch (e) {
+      throw _mapRpcError(e);
     }
-    if (room.isEnded) {
-      throw const RoomEndedException();
-    }
-    if (room.isActive) {
-      throw const RoomAlreadyStartedException();
-    }
-
-    final players = await _fetchPlayers(room.id);
-    if (players.length >= room.playerCap) {
-      throw const RoomFullException();
-    }
-    if (players.any((p) => p.nickname.toLowerCase() == nickname.toLowerCase())) {
-      throw const NicknameTakenException();
-    }
-
-    final row = await _client
-        .from('players')
-        .insert({
-          'room_id': room.id,
-          'user_id': userId,
-          'nickname': nickname,
-          'is_host': false,
-        })
-        .select()
-        .single();
-
-    return (room: room, self: GroupPlayer.fromJson(row));
   }
 
   /// Leave a room (self-deletion). Players can rejoin if the room is still
-  /// in lobby.
+  /// in lobby (unless banned via [kickPlayer]).
   Future<void> leaveRoom(String roomId) async {
     final userId = _requireUserId();
     await _client
@@ -412,72 +416,49 @@ class GroupPlayService {
         .eq('user_id', userId);
   }
 
-  /// Host kicks a player.
-  ///
-  /// Supabase v2 returns an empty array (not an error) when RLS blocks a
-  /// delete, so we follow the delete with `.select()` and check the result.
-  /// If nothing was deleted, throw [KickFailedException] so the UI can show a
-  /// real message instead of silently doing nothing — that's the bug we hit
-  /// during testing where tapping the X looked like a no-op.
+  /// Host kicks a player via `kick_player` RPC (writes `room_bans` + DELETE).
   Future<void> kickPlayer({
     required String roomId,
     required String playerId,
   }) async {
-    final deleted = await _client
-        .from('players')
-        .delete()
-        .eq('id', playerId)
-        .select();
-    if ((deleted as List).isEmpty) {
-      throw const KickFailedException(
-        'Could not kick that player. Are you still the host of this room?',
+    try {
+      await _client.rpc(
+        'kick_player',
+        params: {
+          'p_room_id': roomId,
+          'p_player_id': playerId,
+        },
       );
+    } catch (e) {
+      final mapped = _mapRpcError(e);
+      if (mapped is KickFailedException) rethrow;
+      throw KickFailedException(mapped.message);
     }
   }
 
-  /// Submit an answer for the current question. Computes points client-side
-  /// using the speed-weighted formula. Persists to `answers` and updates the
-  /// player's score on `players`.
+  /// Submit an answer via `submit_answer` RPC. Server validates, scores, and
+  /// updates `players.score`. Client never sends points or response time.
   Future<GroupAnswer> submitAnswer({
     required GroupRoom room,
-    required GroupPlayer player,
     required int questionIndex,
     required int selectedChoice,
-    required int responseTimeMs,
   }) async {
-    final question = (room.questionSet ?? const [])[questionIndex];
-    final correctIndex = question['correctIndex'] as int;
-    final isCorrect = selectedChoice == correctIndex;
-    final points = computeSpeedWeightedPoints(
-      isCorrect: isCorrect,
-      responseTimeMs: responseTimeMs,
-      questionTimeoutSeconds: room.scope.questionTimeoutSeconds,
-    );
-
-    final row = await _client
-        .from('answers')
-        .insert({
-          'room_id': room.id,
-          'player_id': player.id,
-          'question_index': questionIndex,
-          'selected_choice': selectedChoice,
-          'is_correct': isCorrect,
-          'response_time_ms': responseTimeMs,
-          'points_earned': points,
-        })
-        .select()
-        .single();
-
-    if (points > 0) {
-      // Increment score atomically. We refetch the player to get the new
-      // value rather than computing client-side to avoid drift.
-      await _client
-          .from('players')
-          .update({'score': player.score + points})
-          .eq('id', player.id);
+    try {
+      final raw = await _client.rpc(
+        'submit_answer',
+        params: {
+          'p_room_id': room.id,
+          'p_question_index': questionIndex,
+          'p_choice_index': selectedChoice,
+        },
+      );
+      final map = Map<String, dynamic>.from(raw as Map);
+      return GroupAnswer.fromJson(
+        Map<String, dynamic>.from(map['answer'] as Map),
+      );
+    } catch (e) {
+      throw _mapRpcError(e);
     }
-
-    return GroupAnswer.fromJson(row);
   }
 
   // ─── Scripture Builder race: submit + watch finishes ────────────────────────
@@ -556,14 +537,19 @@ class GroupPlayService {
   // ─── Realtime streams ──────────────────────────────────────────────────
 
   /// Watch a single room row for status / question_index transitions.
-  /// Emits null if the room is deleted.
-  Stream<GroupRoom?> watchRoom(String roomId) {
+  ///
+  /// [asHost] true → base `rooms` table (includes `correctIndex`).
+  /// [asHost] false → `rooms_player_view` (sanitized). Players also rely on
+  /// broadcast `question_advanced` / `room_ended` to trigger [onLive] refetch
+  /// because Realtime on `rooms` is RLS-filtered to the host.
+  Stream<GroupRoom?> watchRoom(String roomId, {bool asHost = false}) {
     final controller = StreamController<GroupRoom?>();
+    final table = asHost ? 'rooms' : 'rooms_player_view';
 
     Future<void> refetch() async {
       try {
         final row = await _client
-            .from('rooms')
+            .from(table)
             .select()
             .eq('id', roomId)
             .maybeSingle();
@@ -575,39 +561,40 @@ class GroupPlayService {
     }
 
     final dispose = _subscribeResilient(
-      description: 'rooms:$roomId',
-      buildChannel: () => _client
-          .channel('public:rooms:id=$roomId')
-          .onPostgresChanges(
-            event: PostgresChangeEvent.all,
-            schema: 'public',
-            table: 'rooms',
-            filter: PostgresChangeFilter(
-              type: PostgresChangeFilterType.eq,
-              column: 'id',
-              value: roomId,
-            ),
-            callback: (payload) {
-              if (controller.isClosed) return;
-              if (payload.eventType == PostgresChangeEvent.delete) {
-                controller.add(null);
-                return;
-              }
-              final newRow = payload.newRecord;
-              controller.add(GroupRoom.fromJson(newRow));
-            },
+      description: '$table:$roomId',
+      buildChannel: () {
+        final channel = _client.channel('public:$table:id=$roomId');
+        // Hosts get Postgres Changes on rooms. Players: also subscribe to
+        // rooms changes (may be empty under RLS) and always refetch on live.
+        return channel.onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'rooms',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id',
+            value: roomId,
           ),
-      // Refetch on every (re)subscribe — catches a phase flip or question
-      // advance that happened while this device's channel was down.
+          callback: (payload) {
+            if (controller.isClosed) return;
+            if (payload.eventType == PostgresChangeEvent.delete) {
+              controller.add(null);
+              return;
+            }
+            if (asHost) {
+              controller.add(GroupRoom.fromJson(payload.newRecord));
+            } else {
+              // Strip answer key — refetch sanitized view.
+              refetch();
+            }
+          },
+        );
+      },
       onLive: refetch,
     );
 
     controller.onCancel = dispose;
-
-    // Emit current state immediately so subscribers don't wait for the
-    // first change event.
     refetch();
-
     return controller.stream;
   }
 
@@ -741,12 +728,11 @@ class GroupPlayService {
     return rows.map(GroupPlayer.fromJson).toList();
   }
 
-  /// Generate a unique 4-letter code. Retries up to 10 times if a collision
-  /// happens (essentially never with 30^4 = 810k codes and concurrent rooms
-  /// in the low thousands).
-  Future<String> _generateUniqueCode() async {
-    for (var attempt = 0; attempt < 10; attempt++) {
-      final code = String.fromCharCodes(
+  /// Generate a random 4-letter code. Uniqueness is enforced by the DB's
+  /// unique constraint on rooms.code — createRoom retries on collision
+  /// (essentially never with 30^4 = 810k codes and concurrent rooms in the
+  /// low thousands).
+  String _generateCode() => String.fromCharCodes(
         List.generate(
           _codeLength,
           (_) => _codeAlphabet.codeUnitAt(
@@ -754,17 +740,6 @@ class GroupPlayService {
           ),
         ),
       );
-      final existing = await _client
-          .from('rooms')
-          .select('id')
-          .eq('code', code)
-          .maybeSingle();
-      if (existing == null) return code;
-    }
-    throw const GroupPlayException(
-      'Could not generate a unique room code after 10 attempts. Try again.',
-    );
-  }
 
   Future<void> _broadcast(
     String roomCode, {
@@ -860,4 +835,40 @@ class FreeTierLimitException extends GroupPlayException {
 
 class KickFailedException extends GroupPlayException {
   const KickFailedException(super.message);
+}
+
+class BannedFromRoomException extends GroupPlayException {
+  const BannedFromRoomException()
+      : super('You were removed from this room and cannot rejoin.');
+}
+
+class AnswerRejectedException extends GroupPlayException {
+  const AnswerRejectedException(super.message);
+}
+
+/// Map Postgrest / RPC error messages to typed [GroupPlayException]s.
+GroupPlayException _mapRpcError(Object e) {
+  final text = e.toString();
+  if (text.contains('ROOM_NOT_FOUND')) return const RoomNotFoundException();
+  if (text.contains('ROOM_FULL')) return const RoomFullException();
+  if (text.contains('NICKNAME_TAKEN')) return const NicknameTakenException();
+  if (text.contains('ROOM_ALREADY_STARTED')) {
+    return const RoomAlreadyStartedException();
+  }
+  if (text.contains('ROOM_ENDED')) return const RoomEndedException();
+  if (text.contains('BANNED_FROM_ROOM')) return const BannedFromRoomException();
+  if (text.contains('NOT_HOST') || text.contains('PLAYER_NOT_FOUND')) {
+    return const KickFailedException(
+      'Could not kick that player. Are you still the host of this room?',
+    );
+  }
+  if (text.contains('DUPLICATE_ANSWER') ||
+      text.contains('ANSWER_TOO_LATE') ||
+      text.contains('WRONG_QUESTION') ||
+      text.contains('QUESTION_NOT_STARTED') ||
+      text.contains('INVALID_QUESTION')) {
+    return AnswerRejectedException(text);
+  }
+  if (e is GroupPlayException) return e;
+  return GroupPlayException(text);
 }

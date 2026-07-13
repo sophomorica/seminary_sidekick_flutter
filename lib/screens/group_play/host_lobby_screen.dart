@@ -804,7 +804,7 @@ class _LobbyView extends ConsumerWidget {
               boxShadow: AppTheme.editorialShadow,
             ),
             child: QrImageView(
-              data: 'seminary-sidekick://group-play/join?code=${room.code}',
+              data: 'https://seminarysidekick.com/join/${room.code}',
               size: 140,
               backgroundColor: Colors.white,
             ),

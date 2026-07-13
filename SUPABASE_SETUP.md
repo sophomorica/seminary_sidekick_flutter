@@ -12,14 +12,19 @@
 | Thing | Value |
 |---|---|
 | Project | `seminary-sidekick` (ref `feqxdylouvoulhqwsffp`, West US / N. California) |
-| Migrations | `0001`–`0006` applied; local and remote in sync (`supabase migration list`) |
-| Anonymous auth | Enabled (required for Group Play join-by-code) |
+| Migrations | `0001`–`0007` applied; local and remote in sync (`supabase migration list`) |
+| Anonymous auth | Enabled (required for Group Play join-by-code). **Enable CAPTCHA** on anonymous sign-in before public `/join` traffic (Auth → Attack Protection / CAPTCHA). |
 | Realtime | Enabled — `rooms`, `players`, `answers`, `group_sb_finishes` in the `supabase_realtime` publication |
 | Edge function | `sidekick-proxy` deployed, ACTIVE (powers premium Sidekick AI) |
 | Secret | `XAI_API_KEY` set on the project (server-side only) |
+| Web join | Players join at `https://seminarysidekick.com/join/{CODE}` via RPC surface (`join_room`, `submit_answer`, `advance_question`, `kick_player`). Protocol: `docs/GROUP_PLAY_PROTOCOL.md`. |
 
 The free/solo side of the app (Scripture Builder, quizzes, mastery, journal) does **not**
 touch Supabase. Only **Group Play** and the **premium Sidekick AI** do.
+
+**Anon hygiene:** every web QR scan creates an anonymous auth user. Schedule periodic purge of
+stale anonymous users (Supabase docs: delete `auth.users` with `is_anonymous` older than N days
+and no recent Group Play rows).
 
 ---
 
@@ -33,6 +38,7 @@ touch Supabase. Only **Group Play** and the **premium Sidekick AI** do.
 | `0004_replica_identity_full.sql` | `REPLICA IDENTITY FULL` so Realtime can filter DELETE events (e.g. host kicking a player) |
 | `0005_group_sb_finishes.sql` | `group_sb_finishes` table + RLS + realtime for the Scripture Builder race (TASK-062) |
 | `0006_lock_bump_host_usage.sql` | MAINT-001 — revokes the implicit `PUBLIC` grant on `bump_host_usage()`, adds an `auth.uid()` guard |
+| `0007_group_play_rpc_strict_rls.sql` | Web join v3 — `join_room` / `submit_answer` / `advance_question` / `kick_player` RPCs, `room_bans`, `question_started_at`, `rooms_player_view`, strict RLS |
 
 Apply new migrations with `supabase db push`; check sync with `supabase migration list`.
 (`supabase db reset --linked` re-applies from scratch — **never** run it against prod with real users.)
