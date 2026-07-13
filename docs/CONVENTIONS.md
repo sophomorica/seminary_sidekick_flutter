@@ -107,11 +107,12 @@ Scripture Builder follows this same pattern but is launched from scripture detai
 | Route type         | Method                                                  | When                      |
 | ------------------ | ------------------------------------------------------- | ------------------------- |
 | Tab navigation     | GoRouter `context.go('/path')`                          | Main tabs                 |
-| Scripture browsing | GoRouter `context.go('/scripture/$id')`                 | Detail screens            |
-| Game screens       | `Navigator.of(context).push()`                          | Transient overlays        |
-| Game results       | `Navigator.of(context).pushReplacement()`               | Replace game with results |
-| Memorize tool      | `Navigator.of(context).push()`                          | From scripture detail     |
-| Upgrade screen     | GoRouter `context.go('/upgrade')` or `Navigator.push()` | From teasers/prompts      |
+| Scripture browsing | GoRouter `context.push('/scripture/$id')`               | Detail (Library branch)   |
+| Fullscreen overlays | `pushFullscreen(context, page)` from `lib/navigation/fullscreen.dart` | Memorize, Journal-with-args, Sidekick chat with initial message, games |
+| Upgrade / Settings / bare Journal | `pushUpgrade(context)` / `context.push('/upgrade')` etc. | Sibling GoRoutes *outside* the shell |
+| Game results       | `Navigator.pushReplacement` (already on root nav)       | Replace game with results |
+
+**Shell trap (repeat offender):** The bottom-nav shell uses a nested navigator. Plain `Navigator.of(context).push(MaterialPageRoute(...))` stacks *under* the "Seminary Sidekick" header + tab bar and creates a huge gap above the page's own AppBar/SafeArea. Always use `pushFullscreen` / `rootNavigator: true`, or a GoRouter sibling route (`/upgrade`, `/settings`, `/journal`). Solo games already do this via `game_setup_sheet.dart`.
 
 ### Feedback on Every Action
 

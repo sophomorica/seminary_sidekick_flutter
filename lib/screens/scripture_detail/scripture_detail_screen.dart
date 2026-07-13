@@ -12,11 +12,11 @@ import '../../providers/notes_provider.dart';
 import '../../providers/scripture_mastery_provider.dart';
 import '../../providers/study_streak_provider.dart';
 import '../../providers/subscription_provider.dart';
+import '../../navigation/fullscreen.dart';
 import '../../theme/app_theme.dart';
 import '../journal/journal_screen.dart';
 import '../memorize_screen.dart';
 import '../sidekick_chat/sidekick_chat_screen.dart';
-import '../upgrade_screen.dart';
 import 'encouragement_card.dart';
 import 'mastery_path_section.dart';
 import 'scripture_connections_card.dart';
@@ -325,12 +325,9 @@ class _MainContent extends ConsumerWidget {
                     .withValues(alpha: 0.08),
                 child: InkWell(
                   onTap: () {
-                    // Root navigator so Memorize sits above the shell header /
-                    // tab bar — same pattern as solo game launches.
-                    Navigator.of(context, rootNavigator: true).push(
-                      MaterialPageRoute(
-                        builder: (_) => MemorizeScreen(scripture: scripture),
-                      ),
+                    pushFullscreen(
+                      context,
+                      MemorizeScreen(scripture: scripture),
                     );
                   },
                   child: Padding(
@@ -788,12 +785,11 @@ class _AskSidekickCard extends ConsumerWidget {
   }
 
   void _openChat(BuildContext context, String? question) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => SidekickChatScreen(
-          initialScriptureId: scriptureId,
-          initialMessage: question,
-        ),
+    pushFullscreen(
+      context,
+      SidekickChatScreen(
+        initialScriptureId: scriptureId,
+        initialMessage: question,
       ),
     );
   }
@@ -1021,13 +1017,7 @@ class _SidekickUpgradeCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const UpgradeScreen(),
-                  ),
-                );
-              },
+              onPressed: () => pushUpgrade(context),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.sidekickColor(context),
               ),
@@ -1321,12 +1311,11 @@ class _ReflectLink extends StatelessWidget {
       width: double.infinity,
       child: OutlinedButton.icon(
         onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => JournalScreen(
-                initialScriptureId: scriptureId,
-                initialScriptureReference: reference,
-              ),
+          pushFullscreen(
+            context,
+            JournalScreen(
+              initialScriptureId: scriptureId,
+              initialScriptureReference: reference,
             ),
           );
         },

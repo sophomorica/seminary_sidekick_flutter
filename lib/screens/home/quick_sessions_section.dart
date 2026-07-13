@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../navigation/fullscreen.dart';
 import '../../providers/sidekick_provider.dart';
 import '../../theme/app_theme.dart';
 import '../journal/journal_screen.dart';
@@ -85,10 +86,9 @@ class _QuickSessionTile extends ConsumerWidget {
       child: InkWell(
         onTap: () {
           if (prompt.actionType == 'reflect') {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => JournalScreen(initialPrompt: prompt.subtitle),
-              ),
+            pushFullscreen(
+              context,
+              JournalScreen(initialPrompt: prompt.subtitle),
             );
           } else if (prompt.scriptureId != null) {
             context.push('/scripture/${prompt.scriptureId}');

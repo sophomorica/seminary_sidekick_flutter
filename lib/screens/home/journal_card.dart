@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../navigation/fullscreen.dart';
 import '../../providers/journal_provider.dart';
 import '../../providers/sidekick_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../services/haptic_service.dart';
 import '../../theme/app_theme.dart';
 import '../journal/journal_screen.dart';
-import '../upgrade_screen.dart';
 
 /// Always-present journal card on the Home screen (TASK-066).
 ///
@@ -45,9 +46,7 @@ class _PremiumJournalCard extends ConsumerWidget {
     return _JournalCardShell(
       onTap: () {
         ref.read(hapticProvider).light();
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const JournalScreen()),
-        );
+        context.push('/journal');
       },
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,12 +93,9 @@ class _PremiumJournalCard extends ConsumerWidget {
             child: ElevatedButton.icon(
               onPressed: () {
                 ref.read(hapticProvider).light();
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    // Launching with the prompt drops straight into the
-                    // editor with the prompt pre-seeded.
-                    builder: (_) => JournalScreen(initialPrompt: prompt),
-                  ),
+                pushFullscreen(
+                  context,
+                  JournalScreen(initialPrompt: prompt),
                 );
               },
               icon: const Icon(Icons.edit_note, size: 20),
@@ -141,9 +137,7 @@ class _LockedJournalCard extends ConsumerWidget {
       ),
       onTap: () {
         ref.read(hapticProvider).light();
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const UpgradeScreen()),
-        );
+        pushUpgrade(context);
       },
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,9 +165,7 @@ class _LockedJournalCard extends ConsumerWidget {
             child: OutlinedButton.icon(
               onPressed: () {
                 ref.read(hapticProvider).light();
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const UpgradeScreen()),
-                );
+                pushUpgrade(context);
               },
               icon: const Icon(Icons.auto_awesome, size: 18),
               label: Text(

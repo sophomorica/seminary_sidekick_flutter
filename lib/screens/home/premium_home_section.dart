@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../navigation/fullscreen.dart';
 import '../../providers/goals_provider.dart';
 import '../../providers/sidekick_provider.dart';
 import '../../theme/app_theme.dart';
@@ -319,10 +320,9 @@ class ReflectNowCard extends ConsumerWidget {
         ),
         child: InkWell(
           onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => JournalScreen(initialPrompt: prompt),
-              ),
+            pushFullscreen(
+              context,
+              JournalScreen(initialPrompt: prompt),
             );
           },
           borderRadius: BorderRadius.circular(AppTheme.radiusMd),

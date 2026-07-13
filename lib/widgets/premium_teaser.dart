@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../navigation/fullscreen.dart';
 import '../providers/subscription_provider.dart';
-import '../screens/upgrade_screen.dart';
 import '../theme/app_theme.dart';
 
 /// A compact, dismissible card that teases premium features at natural moments.
@@ -145,9 +145,7 @@ class PremiumTeaser extends ConsumerWidget {
   }
 
   void _openUpgrade(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const UpgradeScreen()),
-    );
+    pushUpgrade(context);
   }
 }
 
@@ -171,11 +169,7 @@ class PremiumInlineLink extends ConsumerWidget {
     if (isPremium) return const SizedBox.shrink();
 
     return GestureDetector(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const UpgradeScreen()),
-        );
-      },
+      onTap: () => pushUpgrade(context),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingXs),
         child: Row(
