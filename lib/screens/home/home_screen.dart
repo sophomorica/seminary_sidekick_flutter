@@ -11,6 +11,7 @@ import '../../providers/spaced_repetition_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../providers/user_preferences_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/scripture_reference_resolver.dart';
 import '../../widgets/game_setup_sheet.dart';
 import '../../widgets/group_play_card.dart';
 import 'journal_card.dart';
@@ -161,13 +162,10 @@ class HomeScreen extends ConsumerWidget {
                 _buildQuickWinCard(
                   context,
                   sidekickResponse!.quickWin!,
-                  onTap: () {
-                    if (sidekickResponse.quickWin!.scriptureId != null) {
-                      context.push(
-                        '/scripture/${sidekickResponse.quickWin!.scriptureId}',
-                      );
-                    }
-                  },
+                  onTap: () => _handleQuickWinTap(
+                    context,
+                    sidekickResponse.quickWin!,
+                  ),
                 ),
               ],
 
@@ -421,6 +419,20 @@ class HomeScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// Navigates to the scripture named in a Quick Win suggestion.
+  ///
+  /// Uses the explicit [QuickWin.scriptureId] when valid; otherwise parses the
+  /// suggestion text (e.g. "Review Alma 39:9") for a tappable reference.
+  static void _handleQuickWinTap(BuildContext context, QuickWin quickWin) {
+    final scriptureId = resolveScriptureId(
+      scriptureId: quickWin.scriptureId,
+      suggestionText: quickWin.suggestion,
+    );
+    if (scriptureId != null) {
+      context.push('/scripture/$scriptureId');
+    }
   }
 
   /// Quick Win card — AI-generated nudge from the Sidekick. Premium-only.
