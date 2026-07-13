@@ -2,7 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/scriptures_data.dart';
+import '../../utils/scripture_reference_resolver.dart';
 import '../../models/sidekick_response.dart';
 import '../../services/haptic_service.dart';
 import '../../theme/app_theme.dart';
@@ -132,20 +132,8 @@ class ChatBubble extends ConsumerWidget {
 // ─── Rich Text with Tappable Scripture References ──────────────────────────
 
 /// Regex pattern that matches common scripture references in the 100 DM list.
-final _scriptureRefPattern = RegExp(
-  r'\b('
-  r'[1-4]\s?(?:Nephi|John|Corinthians|Thessalonians|Timothy|Peter|Samuel|Kings|Chronicles)'
-  r'|'
-  r'(?:Genesis|Exodus|Leviticus|Deuteronomy|Joshua|Judges|Ruth|Psalms?|Proverbs|Ecclesiastes|Isaiah|Jeremiah|Ezekiel|Daniel|Hosea|Joel|Amos|Obadiah|Jonah|Micah|Nahum|Habakkuk|Zephaniah|Haggai|Zechariah|Malachi'
-  r'|Matthew|Mark|Luke|John|Acts|Romans|Galatians|Ephesians|Philippians|Colossians|Hebrews|James|Jude|Revelation'
-  r'|Mosiah|Alma|Helaman|Mormon|Ether|Moroni|Jacob|Enos|Jarom|Omni|Words of Mormon'
-  r'|Moses|Abraham|Joseph Smith[—–\-]History|JS[—–\-]H|Articles of Faith'
-  r'|D&C|Doctrine and Covenants)'
-  r')'
-  r'\s+\d+:\d+(?:\s?[–—\-]\s?\d+)?'
-  r'\b',
-  caseSensitive: false,
-);
+// Moved to scripture_reference_resolver.dart — re-exported here for tests.
+final _scriptureRefPattern = scriptureRefPattern;
 
 class RichMessageText extends ConsumerWidget {
   final String text;
@@ -185,7 +173,7 @@ class RichMessageText extends ConsumerWidget {
 
       // The scripture reference — tappable
       final refText = match.group(0)!;
-      final scriptureId = _findScriptureIdByReference(refText);
+      final scriptureId = findScriptureIdByReference(refText);
 
       if (scriptureId != null) {
         spans.add(TextSpan(
@@ -224,18 +212,6 @@ class RichMessageText extends ConsumerWidget {
     }
 
     return spans;
-  }
-
-  static String? _findScriptureIdByReference(String refText) {
-    final normalised = refText.trim().toLowerCase();
-    for (final s in allScriptures) {
-      if (s.reference.toLowerCase() == normalised) return s.id;
-      if (s.reference.toLowerCase().startsWith(normalised) ||
-          normalised.startsWith(s.reference.toLowerCase())) {
-        return s.id;
-      }
-    }
-    return null;
   }
 }
 
