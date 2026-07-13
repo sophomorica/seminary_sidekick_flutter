@@ -325,7 +325,9 @@ class _MainContent extends ConsumerWidget {
                     .withValues(alpha: 0.08),
                 child: InkWell(
                   onTap: () {
-                    Navigator.of(context).push(
+                    // Root navigator so Memorize sits above the shell header /
+                    // tab bar — same pattern as solo game launches.
+                    Navigator.of(context, rootNavigator: true).push(
                       MaterialPageRoute(
                         builder: (_) => MemorizeScreen(scripture: scripture),
                       ),

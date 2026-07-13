@@ -67,7 +67,7 @@ AppTheme.radiusSm (8), radiusMd (12), radiusLg (16)
    - Confetti `colors:` lists mixing `Theme.of(context)` with hex literals: the *list* can't be const, but each literal can — `const Color(0xFFFFD54F)`
 2. **Unused imports** (`unused_import`) — after moving/extracting widgets or trimming a build method, re-check the file's imports (`app_theme.dart` is the usual leftover).
 3. **Deprecated members** (`deprecated_member_use`) — after any `pub get`/dependency bump, run analyze and migrate renamed params instead of suppressing (e.g. Supabase `anonKey` → `publishableKey`, 2026-07-01).
-4. **Wrong named params on animation widgets** — `SizeTransition` now takes `alignment` (`AlignmentGeometry`, e.g. `Alignment.topLeft` for a vertical fold from the top). The old `axisAlignment` (`double`) is deprecated as of Flutter 3.41+ and fails analyze as `deprecated_member_use`. Don't confuse this with `Align`'s `alignment` — same name, different widgets; check the constructor you're calling.
+4. **Wrong named params on animation widgets** — `SizeTransition` takes `axisAlignment` (`double`, `-1.0` = top/start), **not** `alignment: Alignment.topLeft` (that's `Align`). It fails analyze as `undefined_named_parameter` on this repo's SDK. (A prior version of this doc claimed the opposite — that was wrong and caused repeated agent errors, fixed 2026-07-12.) Always check the real constructor; don't invent Align-style params on size/fade/slide transitions.
 
 Shared Flutter floors + the full analyze-pitfall list also live in
 `../narrow-road-hq/standards/FLUTTER_APP_STANDARDS.md` — keep that file and
