@@ -61,6 +61,10 @@ void main() {
       container.dispose();
     });
 
+    Future<void> flushMicrotasks() async {
+      await Future<void>.delayed(Duration.zero);
+    }
+
     test(
         'clearChat during in-flight send discards stale completion '
         'and allows a fresh hot-button send', () async {
@@ -68,8 +72,8 @@ void main() {
       fake.enqueueReply('fresh sidekick reply');
 
       // Start an in-flight send (optimistic user bubble + loading).
-      final staleFuture = notifier.sendMessage('old question');
-      await Future<void>.delayed(Duration.zero);
+      expect(notifier.sendMessage('old question'), isTrue);
+      await flushMicrotasks();
       expect(container.read(sidekickProvider).isLoadingChat, isTrue);
       expect(
         container.read(sidekickProvider).chatHistory.single.content,
@@ -83,8 +87,8 @@ void main() {
       expect(container.read(sidekickProvider).chatHistory, isEmpty);
       expect(container.read(sidekickProvider).isLoadingChat, isFalse);
 
-      final freshFuture = notifier.sendMessage('hot button starter');
-      await Future<void>.delayed(Duration.zero);
+      expect(notifier.sendMessage('hot button starter'), isTrue);
+      await flushMicrotasks();
       expect(
         container.read(sidekickProvider).chatHistory.first.content,
         'hot button starter',
@@ -99,7 +103,7 @@ void main() {
 
       // Stale in-flight completes — must not resurrect old thread.
       stale.complete('stale sidekick reply');
-      await staleFuture;
+      await flushMicrotasks();
       expect(
         container.read(sidekickProvider).chatHistory.any(
               (m) => m.content.contains('old') || m.content.contains('stale'),
@@ -107,7 +111,7 @@ void main() {
         isFalse,
       );
 
-      await freshFuture;
+      // Fresh reply should have landed (immediate completer).
       final history = container.read(sidekickProvider).chatHistory;
       expect(history, hasLength(2));
       expect(history[0].content, 'hot button starter');
@@ -117,6 +121,13 @@ void main() {
       expect(container.read(sidekickProvider).isLoadingChat, isFalse);
       expect(fake.chatCallCount, 2);
       expect(fake.lastUserMessages, ['old question', 'hot button starter']);
+    });
+
+    test('sendMessage returns false while another send is loading', () async {
+      fake.enqueueHang();
+      expect(notifier.sendMessage('first'), isTrue);
+      expect(notifier.sendMessage('second'), isFalse);
+      expect(fake.chatCallCount, 1);
     });
 
     test('clearChat bumps epoch even when idle', () {

@@ -122,13 +122,14 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen>
     if ((widget.initialMessage != null || widget.initialScriptureId != null) &&
         !_hasAutoSentInitial) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         _sendInitialContextMessage();
       });
     }
   }
 
   void _sendInitialContextMessage() {
-    if (_hasAutoSentInitial) return;
+    if (!mounted || _hasAutoSentInitial) return;
 
     final action = decideSidekickAutoOpen(
       isPremium: ref.read(isPremiumProvider),
@@ -142,22 +143,24 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen>
         return;
       case SidekickAutoOpenAction.clearAndSendStarter:
         final message = widget.initialMessage!.trim();
-        _hasAutoSentInitial = true;
         // clearChat bumps the in-flight epoch so a mid-flight reply cannot
         // resurrect the old thread, and clears isLoadingChat so send proceeds.
         ref.read(sidekickProvider.notifier).clearChat();
-        ref.read(sidekickProvider.notifier).sendMessage(message);
+        final accepted =
+            ref.read(sidekickProvider.notifier).sendMessage(message);
+        // Only lock out retries if the send was actually accepted.
+        if (accepted) _hasAutoSentInitial = true;
         return;
       case SidekickAutoOpenAction.sendGenericIfEmpty:
         final scriptureId = widget.initialScriptureId;
         if (scriptureId == null) return;
         final scripture = ref.read(scriptureByIdProvider(scriptureId));
         if (scripture == null) return;
-        _hasAutoSentInitial = true;
-        ref.read(sidekickProvider.notifier).sendMessage(
+        final accepted = ref.read(sidekickProvider.notifier).sendMessage(
               'Can you help me understand ${scripture.reference}? '
               'I\'ve been studying "${scripture.keyPhrase}"',
             );
+        if (accepted) _hasAutoSentInitial = true;
     }
   }
 
@@ -574,7 +577,7 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen>
     if (pending != null && pending.isNotEmpty) {
       notifier.clearPendingRetry();
       _messageController.clear();
-      await notifier.sendMessage(pending);
+      notifier.sendMessage(pending);
       _scrollToBottom();
     }
   }

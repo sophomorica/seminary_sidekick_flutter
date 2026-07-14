@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
 
@@ -222,8 +223,13 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
   }
 
   /// Send a chat message to the Sidekick and get a reply.
-  Future<void> sendMessage(String userMessage) async {
-    if (state.isLoadingChat || userMessage.trim().isEmpty) return;
+  ///
+  /// Returns `true` immediately if the send was accepted (optimistic bubble
+  /// written, request kicked off). Returns `false` if skipped (empty text or
+  /// another send already loading). Callers that need the network outcome
+  /// should watch [SidekickState] instead of awaiting this.
+  bool sendMessage(String userMessage) {
+    if (state.isLoadingChat || userMessage.trim().isEmpty) return false;
 
     final trimmed = userMessage.trim();
     final epoch = _chatEpoch;
@@ -247,6 +253,23 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
       clearPendingRetry: true,
     );
 
+    unawaited(
+      _completeSend(
+        epoch: epoch,
+        priorHistory: priorHistory,
+        updatedHistory: updatedHistory,
+        trimmed: trimmed,
+      ),
+    );
+    return true;
+  }
+
+  Future<void> _completeSend({
+    required int epoch,
+    required List<SidekickMessage> priorHistory,
+    required List<SidekickMessage> updatedHistory,
+    required String trimmed,
+  }) async {
     try {
       // Build a fresh snapshot for context
       final snapshot = state.lastSnapshot ?? _buildSnapshot();
