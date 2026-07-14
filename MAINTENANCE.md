@@ -64,6 +64,22 @@
 - **notes**:
   - Group play uses anonymous auth, so this only kicks in if/when we add email+password signup (currently we don't have one). Still worth flipping on now so it's already in place when we do.
 
+### MAINT-009: bump_host_usage before room insert can false-lock free hosts
+
+- **status**: `open`
+- **priority**: P2 — pre-existing server behavior; the proactive Group Play card lock makes false locks more visible to free users who never actually hosted.
+- **estimated_effort**: Medium (needs a transactional bump-with-create or compensating decrement path)
+- **claimed_by**: —
+- **files_to_touch**: `lib/services/group_play_service.dart` (`createRoom` / `_bumpHostUsage`), possibly a new Supabase migration replacing or wrapping `bump_host_usage`
+- **description**: `createRoom` calls `bump_host_usage` **before** inserting the room. If create fails after the bump (code-collision exhaustion after 5 attempts, network blip on insert, etc.), `rooms_this_week` is already incremented with no room row. Free hosts then see the home-card weekly lock ("Next host session available next week") and get blocked on the next create attempt even though they never hosted. Server remains source of truth; UI correctly reads the stored count.
+- **acceptance_criteria**:
+  - [ ] A failed create after bump does not permanently consume the free weekly slot (transactional create+bump, or compensating decrement / unused-bump tombstone).
+  - [ ] Successful free host still leaves `rooms_this_week = 1` for the current ISO week.
+  - [ ] Regression coverage for collision-exhaustion / post-bump failure paths.
+- **depends_on**: —
+- **notes**:
+  - Surfaced while adding the proactive weekly-limit indicator on `GroupPlayCard` (2026-07-14). Out of scope for that UI change; tracked here so it does not get forgotten.
+
 ### MAINT-007: Scripture Builder Advanced — stop revealing next letter
 
 - **status**: `done`

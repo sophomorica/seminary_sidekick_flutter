@@ -11,6 +11,7 @@ import '../models/group_player.dart';
 import '../models/group_question.dart';
 import '../models/group_room.dart';
 import '../models/group_sb_finish.dart';
+import '../models/host_usage.dart';
 import '../models/scripture.dart';
 import 'quiz_question_factory.dart';
 
@@ -180,6 +181,26 @@ class GroupPlayService {
       );
     }
     return id;
+  }
+
+  // ─── Host usage (read-only) ────────────────────────────────────────────
+
+  /// Fetch the caller's `host_usage` row without bumping the counter.
+  ///
+  /// Returns `null` when the user has never hosted (no row) or is not signed
+  /// in. Used by the Group Play card to show the free-tier weekly lock;
+  /// [createRoom] remains the source of truth via `bump_host_usage`.
+  Future<HostUsage?> fetchHostUsage() async {
+    final hostId = currentUserId;
+    if (hostId == null) return null;
+
+    final row = await _client
+        .from('host_usage')
+        .select('rooms_this_week, week_starts_at')
+        .eq('host_id', hostId)
+        .maybeSingle();
+    if (row == null) return null;
+    return HostUsage.fromJson(row);
   }
 
   // ─── Host: create / start / advance / end ──────────────────────────────
