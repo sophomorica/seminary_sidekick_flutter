@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -106,7 +107,7 @@ class SidekickState {
 /// - Manages chat history
 class SidekickNotifier extends StateNotifier<SidekickState> {
   final Ref _ref;
-  final SidekickService _service = SidekickService();
+  final SidekickService _service;
 
   static const String _cacheBoxName = 'sidekick_cache';
   static const String _responseCacheKey = 'last_session_response';
@@ -115,7 +116,17 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
   /// Rolling cap for persisted + in-memory chat history. Tunable.
   static const int maxStoredMessages = 50;
 
-  SidekickNotifier(this._ref) : super(const SidekickState());
+  /// Bumped on every [clearChat] so an in-flight [sendMessage] that finishes
+  /// afterward cannot resurrect the wiped thread (hot-button race).
+  int _chatEpoch = 0;
+
+  SidekickNotifier(this._ref, {SidekickService? service})
+      : _service = service ?? SidekickService(),
+        super(const SidekickState());
+
+  /// Test/inspection seam for the clear-vs-in-flight generation counter.
+  @visibleForTesting
+  int get chatEpoch => _chatEpoch;
 
   /// The real scripture IDs ('1'..'100'). AI-supplied IDs are validated
   /// against this set before they can reach navigation — Grok occasionally
@@ -215,6 +226,7 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
     if (state.isLoadingChat || userMessage.trim().isEmpty) return;
 
     final trimmed = userMessage.trim();
+    final epoch = _chatEpoch;
 
     // Prior turns only — the service appends [trimmed] once. Passing the
     // optimistic history (which already includes the new user bubble) would
@@ -245,6 +257,9 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
         userMessage: trimmed,
       );
 
+      // Conversation was cleared (e.g. hot-button open) while we were waiting.
+      if (epoch != _chatEpoch) return;
+
       final assistantMsg = SidekickMessage(
         role: 'assistant',
         content: reply,
@@ -258,6 +273,7 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
 
       await _cacheChatHistory();
     } on SidekickEntitlementException catch (e, stack) {
+      if (epoch != _chatEpoch) return;
       developer.log(
         'Sidekick chat blocked by entitlement gate',
         name: 'sidekick',
@@ -276,6 +292,7 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
       );
       await _cacheChatHistory();
     } on SidekickUnavailableException catch (e, stack) {
+      if (epoch != _chatEpoch) return;
       developer.log(
         'Sidekick chat blocked by transient upstream',
         name: 'sidekick',
@@ -294,6 +311,7 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
       );
       await _cacheChatHistory();
     } catch (e, stack) {
+      if (epoch != _chatEpoch) return;
       developer.log(
         'Sidekick chat failed',
         name: 'sidekick',
@@ -308,8 +326,18 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
   }
 
   /// Clear chat history.
+  ///
+  /// Also cancels the effect of any in-flight [sendMessage]: bumps
+  /// [_chatEpoch] and clears [SidekickState.isLoadingChat] so a hot-button
+  /// open can immediately start a fresh send instead of early-returning.
   void clearChat() {
-    state = state.copyWith(chatHistory: [], clearPendingRetry: true);
+    _chatEpoch++;
+    state = state.copyWith(
+      chatHistory: [],
+      isLoadingChat: false,
+      clearPendingRetry: true,
+      clearError: true,
+    );
     _cacheChatHistory();
   }
 
