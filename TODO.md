@@ -182,6 +182,23 @@
 
 ## Active Tasks
 
+### TASK-070: Ask Sidekick hot buttons + dark-mode contrast
+
+- **status**: `in_progress`
+- **priority**: P1 (hot buttons open chat but never send; dark mode Ask card / chat hard to read)
+- **estimated_effort**: Small
+- **claimed_by**: cursor-agent-3eb0
+- **started**: 2026-07-14T17:22:00Z
+- **files_to_touch**: `lib/screens/sidekick_chat/sidekick_chat_screen.dart`, `lib/screens/scripture_detail/scripture_detail_screen.dart`, `lib/screens/sidekick_chat/chat_bubble.dart`, `lib/screens/sidekick_chat/chat_input.dart`, `test/screens/sidekick_chat_auto_send_test.dart` (or equivalent)
+- **description**: From scripture detail "Ask Your Sidekick", tapping a starter chip opens `SidekickChatScreen` with `initialMessage`, but `_sendInitialContextMessage` bails when persisted chat history is non-empty — so the question never sends. Separately, the Ask card hardcodes `AppTheme.tertiary` (#6F5A10) which is nearly invisible on midnight dark surfaces; user chat bubbles also use light-mode navy on dark navy.
+- **acceptance_criteria**:
+  - [ ] Tapping a scripture-detail starter chip always sends that question (even when prior chat history exists)
+  - [ ] "Or ask anything" / scripture-only open still only auto-sends when chat is empty
+  - [ ] Ask Sidekick card + chips use dark-mode-aware `sidekickColor` (readable on dark)
+  - [ ] Chat user bubbles / send affordance / timestamps readable in dark mode
+  - [ ] `flutter analyze` clean; tests cover auto-send decision
+- **notes**: Do not invent architecture — keep shared `sidekickProvider` history; explicit hot-button messages append to the thread.
+
 > **Group Play status (2026-06-13)**: Quiz-mode v1 + Scripture Builder Race SHIPPED end-to-end, plus Phase 4.5 polish (TASK-064: stream reconnection, answer-distribution reveal, reveal animations) and real audio (TASK-045, done — incl. group-play sounds: countdown tick, lobby join, streak milestone). Remaining: TASK-059 (saved rosters), TASK-061 (analytics), and the TASK-051 owner smoke test.
 >
 > | Phase | Tasks | Status | Parallel? |
