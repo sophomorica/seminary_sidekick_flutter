@@ -45,13 +45,13 @@ class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
   GroupPlayNotifier(
     this._service,
     this._readIsPremium, {
-    void Function()? onHostRoomCreated,
-  })  : _onHostRoomCreated = onHostRoomCreated,
+    void Function()? onHostUsageChanged,
+  })  : _onHostUsageChanged = onHostUsageChanged,
         super(const GroupPlayState());
 
   final GroupPlayService _service;
   final bool Function() _readIsPremium;
-  final void Function()? _onHostRoomCreated;
+  final void Function()? _onHostUsageChanged;
 
   StreamSubscription<GroupRoom?>? _roomSub;
   StreamSubscription<List<GroupPlayer>>? _playersSub;
@@ -82,7 +82,7 @@ class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
       _enterRoom(room: result.room, self: result.hostPlayer);
       // Refresh the home-card usage cache so free hosts see the lock
       // without restarting the app.
-      _onHostRoomCreated?.call();
+      _onHostUsageChanged?.call();
     } on FreeTierLimitException catch (e) {
       // Don't flip phase to error — the host stays on the setup view and
       // sees a tasteful upgrade dialog driven by [freeHostWeeklyLimitHit].
@@ -91,7 +91,7 @@ class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
       // Server already bumped usage before throwing. Refresh the card cache
       // so a stale/fail-open unlocked Host button doesn't keep inviting
       // creates that will fail again (other device, prior failed fetch, etc.).
-      _onHostRoomCreated?.call();
+      _onHostUsageChanged?.call();
     } catch (e) {
       _handleError(e);
     } finally {
@@ -462,7 +462,7 @@ final groupPlayProvider =
   return GroupPlayNotifier(
     service,
     () => ref.read(isPremiumProvider),
-    onHostRoomCreated: () => ref.invalidate(hostUsageProvider),
+    onHostUsageChanged: () => ref.invalidate(hostUsageProvider),
   );
 });
 
