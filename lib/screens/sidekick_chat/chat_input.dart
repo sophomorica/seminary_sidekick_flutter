@@ -19,6 +19,16 @@ class ChatInput extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+    final sendGradient = isDark
+        ? [
+            colorScheme.primary,
+            colorScheme.secondary,
+          ]
+        : const [
+            AppTheme.primary,
+            AppTheme.primaryContainer,
+          ];
 
     return Container(
       padding: const EdgeInsets.fromLTRB(
@@ -30,20 +40,20 @@ class ChatInput extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark
             ? AppTheme.darkBackground
-            : Theme.of(context).colorScheme.surface,
+            : colorScheme.surface,
       ),
       child: Container(
         decoration: BoxDecoration(
           color: isDark
-              ? AppTheme.darkSurfaceContainerLow
-              : Theme.of(context).colorScheme.surfaceContainerLow,
+              ? AppTheme.darkSurfaceContainer
+              : colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+          border: isDark
+              ? Border.all(color: colorScheme.outlineVariant)
+              : null,
           boxShadow: [
             BoxShadow(
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withValues(alpha: 0.08),
+              color: colorScheme.onSurface.withValues(alpha: 0.08),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -63,11 +73,12 @@ class ChatInput extends StatelessWidget {
                 onTapOutside: (_) => focusNode.unfocus(),
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w500,
+                      color: colorScheme.onSurface,
                     ),
                 decoration: InputDecoration(
                   hintText: 'Ask about scripture, history, or your journey...',
                   hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.outlineVariant,
+                        color: colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w400,
                       ),
                   border: InputBorder.none,
@@ -81,6 +92,7 @@ class ChatInput extends StatelessWidget {
             ),
             _SendButton(
               isLoading: isLoading,
+              gradientColors: sendGradient,
               onTap: isLoading ? null : onSend,
             ),
           ],
@@ -92,15 +104,18 @@ class ChatInput extends StatelessWidget {
 
 class _SendButton extends StatelessWidget {
   final bool isLoading;
+  final List<Color> gradientColors;
   final VoidCallback? onTap;
 
   const _SendButton({
     required this.isLoading,
+    required this.gradientColors,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -111,19 +126,16 @@ class _SendButton extends StatelessWidget {
           height: 48,
           margin: const EdgeInsets.only(right: AppTheme.spacingSm),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
+            gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                AppTheme.primary,
-                AppTheme.primaryContainer,
-              ],
+              colors: gradientColors,
             ),
             borderRadius: BorderRadius.circular(18),
             boxShadow: !isLoading
                 ? [
                     BoxShadow(
-                      color: AppTheme.primary.withValues(alpha: 0.3),
+                      color: gradientColors.first.withValues(alpha: 0.35),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -133,7 +145,9 @@ class _SendButton extends StatelessWidget {
           child: Center(
             child: Icon(
               isLoading ? Icons.hourglass_empty : Icons.send,
-              color: Colors.white,
+              color: isDark
+                  ? Theme.of(context).colorScheme.onPrimary
+                  : AppTheme.onPrimary,
               size: 20,
             ),
           ),

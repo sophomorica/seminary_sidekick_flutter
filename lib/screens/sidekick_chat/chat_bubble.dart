@@ -27,6 +27,13 @@ class ChatBubble extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+    // Light: deep navy brand bubble. Dark: colorScheme.primary is the
+    // lifted fixed-dim navy — readable against midnight scaffold.
+    final userBubbleColor =
+        isDark ? colorScheme.primary : AppTheme.primary;
+    final userTextColor =
+        isDark ? colorScheme.onPrimary : AppTheme.onPrimary;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppTheme.spacingLg),
@@ -43,24 +50,23 @@ class ChatBubble extends ConsumerWidget {
               margin: const EdgeInsets.only(top: 4, right: AppTheme.spacingMd),
               decoration: BoxDecoration(
                 color: isDark
-                    ? AppTheme.secondaryContainer
+                    ? AppTheme.secondaryDark
                     : AppTheme.secondaryContainer,
                 borderRadius: BorderRadius.circular(18),
                 boxShadow: [
                   BoxShadow(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurfaceVariant
-                        .withValues(alpha: 0.08),
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.08),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.explore,
                 size: 18,
-                color: AppTheme.onSecondaryContainer,
+                color: isDark
+                    ? AppTheme.secondaryFixed
+                    : AppTheme.onSecondaryContainer,
               ),
             ),
           ],
@@ -77,12 +83,10 @@ class ChatBubble extends ConsumerWidget {
                   constraints: const BoxConstraints(maxWidth: 280),
                   decoration: BoxDecoration(
                     color: isUser
-                        ? AppTheme.primary
+                        ? userBubbleColor
                         : (isDark
-                            ? AppTheme.darkSurfaceContainerLow
-                            : Theme.of(context)
-                                .colorScheme
-                                .surfaceContainerLow),
+                            ? AppTheme.darkSurfaceContainerHigh
+                            : colorScheme.surfaceContainerLow),
                     borderRadius: isUser
                         ? BorderRadius.circular(AppTheme.radiusXl).copyWith(
                             bottomRight:
@@ -92,10 +96,7 @@ class ChatBubble extends ConsumerWidget {
                                 const Radius.circular(AppTheme.radiusSm)),
                     boxShadow: [
                       BoxShadow(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.06),
+                        color: colorScheme.onSurface.withValues(alpha: 0.06),
                         blurRadius: 12,
                         offset: const Offset(0, 2),
                       ),
@@ -106,7 +107,7 @@ class ChatBubble extends ConsumerWidget {
                           message.content,
                           style:
                               Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: Colors.white,
+                                    color: userTextColor,
                                     height: 1.6,
                                   ),
                         )
@@ -123,7 +124,7 @@ class ChatBubble extends ConsumerWidget {
                 Text(
                   isUser ? 'You • 10:26 AM' : 'Sidekick • 10:24 AM',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppTheme.outline,
+                        color: colorScheme.onSurfaceVariant,
                         letterSpacing: 1.5,
                       ),
                 ),
@@ -160,9 +161,11 @@ class RichMessageText extends ConsumerWidget {
 
   List<InlineSpan> _buildSpans(BuildContext context, WidgetRef ref) {
     final spans = <InlineSpan>[];
+    final colorScheme = Theme.of(context).colorScheme;
+    final linkColor = AppTheme.sidekickColor(context);
     final textStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
           height: 1.6,
-          color: Theme.of(context).colorScheme.onSurface,
+          color: colorScheme.onSurface,
         );
 
     int lastEnd = 0;
@@ -183,10 +186,10 @@ class RichMessageText extends ConsumerWidget {
         spans.add(TextSpan(
           text: refText,
           style: textStyle?.copyWith(
-            color: AppTheme.accent,
+            color: linkColor,
             fontWeight: FontWeight.w600,
             decoration: TextDecoration.underline,
-            decorationColor: AppTheme.accent.withValues(alpha: 0.4),
+            decorationColor: linkColor.withValues(alpha: 0.45),
           ),
           recognizer: (TapGestureRecognizer()
             ..onTap = () {
