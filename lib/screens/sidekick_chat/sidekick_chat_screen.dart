@@ -14,6 +14,23 @@ import 'chat_empty_state.dart';
 import 'chat_input.dart';
 import 'typing_indicator.dart';
 
+/// Whether navigation args should trigger an automatic first send.
+///
+/// Explicit starter questions (scripture-detail hot buttons) always send —
+/// even when prior chat history exists. A scripture-only open (no message)
+/// only auto-sends when the thread is empty, so "Or ask anything" does not
+/// spam a generic opener into an existing conversation.
+@visibleForTesting
+bool shouldAutoSendInitialMessage({
+  required String? initialMessage,
+  required bool chatIsEmpty,
+}) {
+  final hasExplicit =
+      initialMessage != null && initialMessage.trim().isNotEmpty;
+  if (hasExplicit) return true;
+  return chatIsEmpty;
+}
+
 /// "Walking in the Light" — The Seminary Sidekick chat interface.
 ///
 /// Premium-only screen. Users can ask questions about scriptures, their
@@ -91,21 +108,26 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen>
     if (_hasAutoSentInitial) return;
     // Chat is premium-only — never auto-spend an API call for free users.
     if (!ref.read(isPremiumProvider)) return;
-    _hasAutoSentInitial = true;
 
-    // Only auto-send if chat is empty (don't re-send on rebuild)
     final chatHistory = ref.read(chatHistoryProvider);
-    if (chatHistory.isNotEmpty) return;
+    if (!shouldAutoSendInitialMessage(
+      initialMessage: widget.initialMessage,
+      chatIsEmpty: chatHistory.isEmpty,
+    )) {
+      return;
+    }
 
-    var message = widget.initialMessage;
-    if (message == null) {
-      final scripture =
-          ref.read(scriptureByIdProvider(widget.initialScriptureId!));
+    var message = widget.initialMessage?.trim();
+    if (message == null || message.isEmpty) {
+      final scriptureId = widget.initialScriptureId;
+      if (scriptureId == null) return;
+      final scripture = ref.read(scriptureByIdProvider(scriptureId));
       if (scripture == null) return;
       message = 'Can you help me understand ${scripture.reference}? '
           'I\'ve been studying "${scripture.keyPhrase}"';
     }
 
+    _hasAutoSentInitial = true;
     ref.read(sidekickProvider.notifier).sendMessage(message);
   }
 
@@ -399,8 +421,8 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen>
             // Title banner — shows briefly, then folds away.
             SizeTransition(
               sizeFactor: _titleBannerFactor,
-              // Vertical fold from the top (was axisAlignment: -1.0).
-              alignment: Alignment.topLeft,
+              // Vertical fold from the top (−1.0 = start of the axis).
+              axisAlignment: -1.0,
               child: FadeTransition(
                 opacity: _titleBannerFactor,
                 child: Padding(
@@ -436,19 +458,26 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen>
     final sidekick = ref.watch(sidekickProvider);
     final error = sidekick.error;
     final isEntitlement = sidekick.isEntitlementError;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bannerBg = isDark
+        ? AppTheme.error.withValues(alpha: 0.18)
+        : AppTheme.errorLight;
+    final bannerFg = isDark
+        ? Theme.of(context).colorScheme.onSurface
+        : AppTheme.error;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
         horizontal: AppTheme.spacingMd,
         vertical: AppTheme.spacingSm,
       ),
-      color: AppTheme.errorLight,
+      color: bannerBg,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 2),
-            child: Icon(Icons.warning_amber, size: 16, color: AppTheme.error),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(Icons.warning_amber, size: 16, color: bannerFg),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -457,7 +486,7 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen>
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.error,
+                    color: bannerFg,
                   ),
             ),
           ),
@@ -465,7 +494,7 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen>
             TextButton(
               onPressed: _refreshEntitlementAndRetry,
               style: TextButton.styleFrom(
-                foregroundColor: AppTheme.error,
+                foregroundColor: bannerFg,
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -474,16 +503,16 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen>
               child: Text(
                 'Refresh',
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: AppTheme.error,
+                      color: bannerFg,
                     ),
               ),
             )
           else
             GestureDetector(
               onTap: () => ref.read(sidekickProvider.notifier).clearError(),
-              child: const Padding(
-                padding: EdgeInsets.only(top: 2, left: 4),
-                child: Icon(Icons.close, size: 16, color: AppTheme.error),
+              child: Padding(
+                padding: const EdgeInsets.only(top: 2, left: 4),
+                child: Icon(Icons.close, size: 16, color: bannerFg),
               ),
             ),
         ],

@@ -43,7 +43,9 @@ class _TypingIndicatorState extends State<TypingIndicator>
             height: 36,
             margin: const EdgeInsets.only(top: 4, right: AppTheme.spacingMd),
             decoration: BoxDecoration(
-              color: AppTheme.secondaryContainer,
+              color: isDark
+                  ? AppTheme.secondaryDark
+                  : AppTheme.secondaryContainer,
               borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
@@ -53,10 +55,12 @@ class _TypingIndicatorState extends State<TypingIndicator>
                 ),
               ],
             ),
-            child: const Icon(
+            child: Icon(
               Icons.explore,
               size: 18,
-              color: AppTheme.onSecondaryContainer,
+              color: isDark
+                  ? AppTheme.secondaryFixed
+                  : AppTheme.onSecondaryContainer,
             ),
           ),
           // Typing bubble
@@ -68,7 +72,7 @@ class _TypingIndicatorState extends State<TypingIndicator>
             constraints: const BoxConstraints(maxWidth: 280),
             decoration: BoxDecoration(
               color: isDark
-                  ? AppTheme.darkSurfaceContainerLow
+                  ? AppTheme.darkSurfaceContainerHigh
                   : Theme.of(context).colorScheme.surfaceContainerLow,
               borderRadius: BorderRadius.circular(AppTheme.radiusXl).copyWith(
                   bottomLeft: const Radius.circular(AppTheme.radiusSm)),

@@ -141,6 +141,8 @@ class _SuggestionChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+    final accent = AppTheme.sidekickColor(context);
 
     return Material(
       color: Colors.transparent,
@@ -154,11 +156,13 @@ class _SuggestionChip extends StatelessWidget {
           ),
           decoration: BoxDecoration(
             color: isDark
-                ? AppTheme.darkSurfaceContainerLow
-                : Theme.of(context).colorScheme.surfaceContainerLow,
+                ? AppTheme.darkSurfaceContainer
+                : colorScheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(AppTheme.radiusRound),
             border: Border.all(
-              color: AppTheme.outlineVariant.withValues(alpha: 0.3),
+              color: isDark
+                  ? accent.withValues(alpha: 0.4)
+                  : colorScheme.outlineVariant,
               width: 1,
             ),
           ),
@@ -166,6 +170,7 @@ class _SuggestionChip extends StatelessWidget {
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w500,
+                  color: colorScheme.onSurface,
                 ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,

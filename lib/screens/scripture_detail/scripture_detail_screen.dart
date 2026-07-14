@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -802,6 +800,7 @@ class _AskSidekickCard extends ConsumerWidget {
     final masteryLevel = ref.watch(scriptureMasteryProvider(scriptureId)).level;
     final aiQuestion =
         ref.watch(starterQuestionForScriptureProvider(scriptureId));
+    final accent = AppTheme.sidekickColor(context);
 
     // AI question (when the session response has one for this scripture)
     // leads; templates fill the remaining chips.
@@ -817,18 +816,18 @@ class _AskSidekickCard extends ConsumerWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppTheme.tertiary.withValues(alpha: 0.1),
-            AppTheme.tertiaryContainer.withValues(alpha: 0.2),
+            accent.withValues(alpha: 0.12),
+            accent.withValues(alpha: 0.05),
           ],
         ),
         border: Border.all(
-          color: AppTheme.tertiary.withValues(alpha: 0.2),
+          color: accent.withValues(alpha: 0.35),
         ),
         borderRadius: BorderRadius.circular(AppTheme.radiusXl),
       ),
       child: Stack(
         children: [
-          // Blurred decorative circle
+          // Soft decorative wash — no BackdropFilter (reads muddy in dark).
           Positioned(
             top: -12,
             right: -12,
@@ -837,11 +836,7 @@ class _AskSidekickCard extends ConsumerWidget {
               height: 96,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppTheme.tertiary.withValues(alpha: 0.05),
-              ),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-                child: Container(),
+                color: accent.withValues(alpha: 0.08),
               ),
             ),
           ),
@@ -852,16 +847,16 @@ class _AskSidekickCard extends ConsumerWidget {
               // Header with icon
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.auto_awesome,
-                    color: AppTheme.tertiary,
+                    color: accent,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     'Ask Your Sidekick',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppTheme.tertiary,
+                          color: accent,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1.0,
                         ),
@@ -899,7 +894,7 @@ class _AskSidekickCard extends ConsumerWidget {
                 child: TextButton(
                   onPressed: () => _openChat(context, null),
                   style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.tertiary,
+                    foregroundColor: accent,
                   ),
                   child: const Text('Or ask anything →'),
                 ),
@@ -926,6 +921,7 @@ class _StarterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = AppTheme.sidekickColor(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -937,9 +933,9 @@ class _StarterChip extends StatelessWidget {
             vertical: AppTheme.spacingSm,
           ),
           decoration: BoxDecoration(
-            color: AppTheme.tertiary.withValues(alpha: 0.08),
+            color: accent.withValues(alpha: 0.14),
             border: Border.all(
-              color: AppTheme.tertiary.withValues(alpha: 0.3),
+              color: accent.withValues(alpha: 0.45),
             ),
             borderRadius: BorderRadius.circular(AppTheme.radiusLg),
           ),
@@ -947,10 +943,10 @@ class _StarterChip extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (isAi) ...[
-                const Icon(
+                Icon(
                   Icons.auto_awesome,
                   size: 14,
-                  color: AppTheme.tertiary,
+                  color: accent,
                 ),
                 const SizedBox(width: 6),
               ],
@@ -958,7 +954,7 @@ class _StarterChip extends StatelessWidget {
                 child: Text(
                   question,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.tertiary,
+                        color: accent,
                         fontWeight: FontWeight.w600,
                       ),
                 ),
