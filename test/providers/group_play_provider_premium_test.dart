@@ -5,6 +5,7 @@ import 'package:seminary_sidekick/models/group_play_state.dart';
 import 'package:seminary_sidekick/models/group_player.dart';
 import 'package:seminary_sidekick/models/group_room.dart';
 import 'package:seminary_sidekick/models/group_sb_finish.dart';
+import 'package:seminary_sidekick/models/host_usage.dart';
 import 'package:seminary_sidekick/providers/group_play_provider.dart';
 import 'package:seminary_sidekick/providers/subscription_provider.dart';
 import 'package:seminary_sidekick/services/group_play_service.dart';
@@ -22,6 +23,8 @@ class _GatingFakeService extends GroupPlayService {
         );
 
   Object? createRoomError;
+  HostUsage? usageToReturn;
+  int fetchHostUsageCalls = 0;
 
   @override
   Future<({GroupRoom room, GroupPlayer hostPlayer})> createRoom({
@@ -50,6 +53,12 @@ class _GatingFakeService extends GroupPlayService {
       createdAt: DateTime.now(),
     );
     return (room: room, hostPlayer: host);
+  }
+
+  @override
+  Future<HostUsage?> fetchHostUsage() async {
+    fetchHostUsageCalls++;
+    return usageToReturn;
   }
 
   // Subscriptions called by _enterRoom — return empty streams so the notifier
@@ -179,6 +188,53 @@ void main() {
       final s = container.read(groupPlayProvider);
       expect(s.freeHostWeeklyLimitHit, isFalse);
       expect(s.phase, GroupPlayPhase.inLobby);
+    });
+  });
+
+  group('hostUsageProvider', () {
+    test('premium short-circuits without calling fetchHostUsage', () async {
+      container.dispose();
+      container = ProviderContainer(overrides: [
+        groupPlayServiceProvider.overrideWithValue(fake),
+        isPremiumProvider.overrideWith((ref) => true),
+      ]);
+
+      final usage = await container.read(hostUsageProvider.future);
+      expect(usage, isNull);
+      expect(fake.fetchHostUsageCalls, 0);
+    });
+
+    test('free tier returns the raw usage row', () async {
+      fake.usageToReturn = HostUsage(
+        roomsThisWeek: 1,
+        weekStartsAt: DateTime.utc(2026, 7, 13),
+      );
+
+      final usage = await container.read(hostUsageProvider.future);
+      expect(usage?.roomsThisWeek, 1);
+      expect(fake.fetchHostUsageCalls, 1);
+    });
+
+    test('successful hostCreateRoom invalidates hostUsageProvider', () async {
+      fake.usageToReturn = null;
+      await container.read(hostUsageProvider.future);
+      expect(fake.fetchHostUsageCalls, 1);
+
+      fake.usageToReturn = HostUsage(
+        roomsThisWeek: 1,
+        weekStartsAt: DateTime.utc(2026, 7, 13),
+      );
+      await container.read(groupPlayProvider.notifier).hostCreateRoom(
+            scope: const GroupRoomScope(
+              difficultyName: 'beginner',
+              questionCount: 5,
+            ),
+            hostNickname: 'Coach',
+          );
+
+      final refreshed = await container.read(hostUsageProvider.future);
+      expect(refreshed?.roomsThisWeek, 1);
+      expect(fake.fetchHostUsageCalls, greaterThan(1));
     });
   });
 }

@@ -2,14 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../models/host_usage.dart';
+import '../providers/group_play_provider.dart';
 import '../providers/subscription_provider.dart';
+import '../services/group_play_service.dart';
 import '../theme/app_theme.dart';
 
 /// The single entry point to Group Play — used by both Home and the Practice
 /// Hub so hosts and joiners always see the same Host + Join card.
 ///
 /// Joining is always free. The subtitle reflects the host's tier (free hosts
-/// get up to 6 players; premium hosts get full class rooms).
+/// get up to 6 players; premium hosts get full class rooms). When a free host
+/// has already used their weekly slot, Host routes to `/upgrade` and the
+/// footer shows Premium + next-week copy.
 class GroupPlayCard extends ConsumerWidget {
   /// When true (Home), shows a small "NEW" flag in the corner.
   final bool showNewFlag;
@@ -19,9 +24,46 @@ class GroupPlayCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isPremium = ref.watch(isPremiumProvider);
-    final hostSubtitle = isPremium
-        ? 'Up to 30 players · Save your class roster'
-        : 'Up to 6 players free · Premium for class size';
+    // Derive lock in build (not a cached Provider) so a stale usage row from
+    // last week unlocks once `now` crosses Monday 00:00 UTC on rebuild.
+    final hostingLocked = isPremium
+        ? false
+        : ref.watch(hostUsageProvider).when(
+              data: (usage) => FreeHostWeeklyLimit.isLocked(
+                usage: usage,
+                nowUtc: DateTime.now().toUtc(),
+                isPremium: false,
+                weeklyLimit: GroupPlayService.freeHostWeeklyLimit,
+              ),
+              loading: () => false,
+              error: (_, __) => false,
+            );
+
+    final Widget hostFooter;
+    if (hostingLocked) {
+      final footerStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: AppTheme.onPrimary.withValues(alpha: 0.75),
+            fontSize: 11.5,
+          );
+      hostFooter = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Unlimited hosting with Premium', style: footerStyle),
+          Text('Next host session available next week', style: footerStyle),
+        ],
+      );
+    } else {
+      final hostSubtitle = isPremium
+          ? 'Up to 30 players · Save your class roster'
+          : 'Up to 6 players free · Premium for class size';
+      hostFooter = Text(
+        hostSubtitle,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppTheme.onPrimary.withValues(alpha: 0.75),
+              fontSize: 11.5,
+            ),
+      );
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -117,15 +159,21 @@ class GroupPlayCard extends ConsumerWidget {
                 Expanded(
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.onPrimary,
-                      foregroundColor: AppTheme.primary,
+                      backgroundColor: hostingLocked
+                          ? AppTheme.onPrimary.withValues(alpha: 0.55)
+                          : AppTheme.onPrimary,
+                      foregroundColor: hostingLocked
+                          ? AppTheme.primary.withValues(alpha: 0.70)
+                          : AppTheme.primary,
                       padding: const EdgeInsets.symmetric(vertical: 14.0),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(50.0),
                       ),
                       elevation: 0,
                     ),
-                    onPressed: () => context.push('/group-play/host'),
+                    onPressed: () => context.push(
+                      hostingLocked ? '/upgrade' : '/group-play/host',
+                    ),
                     icon: const Icon(Icons.add_circle_outline, size: 20),
                     label: const Text(
                       'Host a Game',
@@ -158,13 +206,7 @@ class GroupPlayCard extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 12.0),
-            Text(
-              hostSubtitle,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.onPrimary.withValues(alpha: 0.75),
-                    fontSize: 11.5,
-                  ),
-            ),
+            hostFooter,
           ],
         ),
       ),

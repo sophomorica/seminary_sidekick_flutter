@@ -10,6 +10,7 @@ import '../models/group_player.dart';
 import '../models/group_question.dart';
 import '../models/group_room.dart';
 import '../models/group_sb_finish.dart';
+import '../models/host_usage.dart';
 import '../services/group_play_service.dart';
 import 'subscription_provider.dart';
 
@@ -17,6 +18,19 @@ import 'subscription_provider.dart';
 /// pattern.
 final groupPlayServiceProvider = Provider<GroupPlayService>((ref) {
   return GroupPlayService();
+});
+
+/// Cached raw `host_usage` row for the signed-in user.
+///
+/// Premium short-circuits without a network call. Free users get the row (or
+/// null). Callers must derive the lock at read/build time via
+/// [FreeHostWeeklyLimit.isLocked] against `DateTime.now()`, so a session that
+/// crosses Monday 00:00 UTC unlocks without refetching. Do not bake a locked
+/// flag into this Future's value — Riverpod would cache it across the week
+/// boundary.
+final hostUsageProvider = FutureProvider<HostUsage?>((ref) async {
+  if (ref.watch(isPremiumProvider)) return null;
+  return ref.watch(groupPlayServiceProvider).fetchHostUsage();
 });
 
 /// State + orchestration for Group Play. Wraps [GroupPlayService] with
@@ -28,11 +42,16 @@ final groupPlayServiceProvider = Provider<GroupPlayService>((ref) {
 ///   - last question or `hostEndGame` → phase becomes `viewingResults`
 ///   - `leave()` from any phase resets to `idle` and disposes streams
 class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
-  GroupPlayNotifier(this._service, this._readIsPremium)
-      : super(const GroupPlayState());
+  GroupPlayNotifier(
+    this._service,
+    this._readIsPremium, {
+    void Function()? onHostRoomCreated,
+  })  : _onHostRoomCreated = onHostRoomCreated,
+        super(const GroupPlayState());
 
   final GroupPlayService _service;
   final bool Function() _readIsPremium;
+  final void Function()? _onHostRoomCreated;
 
   StreamSubscription<GroupRoom?>? _roomSub;
   StreamSubscription<List<GroupPlayer>>? _playersSub;
@@ -61,6 +80,9 @@ class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
         isPremiumHost: _readIsPremium(),
       );
       _enterRoom(room: result.room, self: result.hostPlayer);
+      // Refresh the home-card usage cache so free hosts see the lock
+      // without restarting the app.
+      _onHostRoomCreated?.call();
     } on FreeTierLimitException catch (e) {
       // Don't flip phase to error — the host stays on the setup view and
       // sees a tasteful upgrade dialog driven by [freeHostWeeklyLimitHit].
@@ -436,6 +458,7 @@ final groupPlayProvider =
   return GroupPlayNotifier(
     service,
     () => ref.read(isPremiumProvider),
+    onHostRoomCreated: () => ref.invalidate(hostUsageProvider),
   );
 });
 
