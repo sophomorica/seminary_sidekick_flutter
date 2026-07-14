@@ -296,6 +296,8 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
 
       await _cacheChatHistory();
     } on SidekickEntitlementException catch (e, stack) {
+      // Reachable: a stale send that fails after clearChat must not write
+      // its error/history into the freshly cleared thread — keep this guard.
       if (epoch != _chatEpoch) return;
       developer.log(
         'Sidekick chat blocked by entitlement gate',
@@ -315,6 +317,8 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
       );
       await _cacheChatHistory();
     } on SidekickUnavailableException catch (e, stack) {
+      // Reachable: a stale send that fails after clearChat must not write
+      // its error/history into the freshly cleared thread — keep this guard.
       if (epoch != _chatEpoch) return;
       developer.log(
         'Sidekick chat blocked by transient upstream',
@@ -334,6 +338,8 @@ class SidekickNotifier extends StateNotifier<SidekickState> {
       );
       await _cacheChatHistory();
     } catch (e, stack) {
+      // Reachable: a stale send that fails after clearChat must not write
+      // its error/history into the freshly cleared thread — keep this guard.
       if (epoch != _chatEpoch) return;
       developer.log(
         'Sidekick chat failed',
