@@ -49,9 +49,9 @@ class FreeHostWeeklyLimit {
 
   /// Whether a free host has already used their weekly hosting slot.
   ///
-  /// Locked only when [usage.weekStartsAt] **exactly** matches the current
-  /// Monday 00:00 UTC. Prior weeks (stale row) and future weeks (clock skew /
-  /// weird data) both unlock.
+  /// Locked only when [usage.weekStartsAt] falls on the same UTC calendar-day
+  /// Monday as the current week start (time-of-day ignored). Prior weeks (stale
+  /// row) and future weeks (clock skew / weird data) both unlock.
   static bool isLocked({
     required HostUsage? usage,
     required DateTime nowUtc,
