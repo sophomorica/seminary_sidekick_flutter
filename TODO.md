@@ -193,16 +193,17 @@
 - **files_to_touch**: `lib/screens/sidekick_chat/sidekick_chat_screen.dart`, `lib/screens/scripture_detail/scripture_detail_screen.dart`, `lib/screens/sidekick_chat/chat_bubble.dart`, `lib/screens/sidekick_chat/chat_input.dart`, `lib/screens/sidekick_chat/chat_empty_state.dart`, `lib/screens/sidekick_chat/typing_indicator.dart`, `test/screens/sidekick_chat_auto_send_test.dart`
 - **description**: From scripture detail "Ask Your Sidekick", tapping a starter chip opens `SidekickChatScreen` with `initialMessage`, but `_sendInitialContextMessage` bailed when persisted chat history was non-empty — so the question never sent. Separately, the Ask card hardcoded `AppTheme.tertiary` (#6F5A10) which is nearly invisible on midnight dark surfaces; user chat bubbles also used light-mode navy on dark navy.
 - **acceptance_criteria**:
-  - [x] Tapping a scripture-detail starter chip always sends that question (even when prior chat history exists)
+  - [x] Tapping a scripture-detail starter chip clears prior chat and sends that question (fresh context)
   - [x] "Or ask anything" / scripture-only open still only auto-sends when chat is empty
   - [x] Ask Sidekick card + chips use dark-mode-aware `sidekickColor` (readable on dark)
   - [x] Chat user bubbles / send affordance / timestamps readable in dark mode
   - [x] `flutter analyze` clean; tests cover auto-send decision
 - **notes**:
-  - Extracted `shouldAutoSendInitialMessage` (tested) — explicit hot-button text always dispatches; generic scripture opener only when history is empty.
+  - Hot-button starters **clear chat then send** (fresh context; journal is the keep path).
+  - `isExplicitSidekickStarter` covers the hot-button path; scripture-only / "Or ask anything" still only auto-sends when history is already empty.
   - Ask card / chips / chat chrome switched to `AppTheme.sidekickColor` + colorScheme tokens; user bubbles use `colorScheme.primary` in dark.
   - Also fixed `Switch.adaptive` `activeThumbColor` → `activeColor` (SDK rename; required for analyze clean).
-  - Verified: `flutter analyze` clean, `flutter test` 667/667 green.
+  - Verified: `flutter analyze` clean, `flutter test` green.
 
 > **Group Play status (2026-06-13)**: Quiz-mode v1 + Scripture Builder Race SHIPPED end-to-end, plus Phase 4.5 polish (TASK-064: stream reconnection, answer-distribution reveal, reveal animations) and real audio (TASK-045, done — incl. group-play sounds: countdown tick, lobby join, streak milestone). Remaining: TASK-059 (saved rosters), TASK-061 (analytics), and the TASK-051 owner smoke test.
 >

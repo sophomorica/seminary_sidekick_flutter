@@ -14,21 +14,12 @@ import 'chat_empty_state.dart';
 import 'chat_input.dart';
 import 'typing_indicator.dart';
 
-/// Whether navigation args should trigger an automatic first send.
-///
-/// Explicit starter questions (scripture-detail hot buttons) always send —
-/// even when prior chat history exists. A scripture-only open (no message)
-/// only auto-sends when the thread is empty, so "Or ask anything" does not
-/// spam a generic opener into an existing conversation.
+/// Explicit scripture-detail starter (hot button). These always wipe the
+/// prior thread and send — journal is the keep path; chat history is not
+/// treated as durable context here.
 @visibleForTesting
-bool shouldAutoSendInitialMessage({
-  required String? initialMessage,
-  required bool chatIsEmpty,
-}) {
-  final hasExplicit =
-      initialMessage != null && initialMessage.trim().isNotEmpty;
-  if (hasExplicit) return true;
-  return chatIsEmpty;
+bool isExplicitSidekickStarter(String? initialMessage) {
+  return initialMessage != null && initialMessage.trim().isNotEmpty;
 }
 
 /// "Walking in the Light" — The Seminary Sidekick chat interface.
@@ -109,26 +100,32 @@ class _SidekickChatScreenState extends ConsumerState<SidekickChatScreen>
     // Chat is premium-only — never auto-spend an API call for free users.
     if (!ref.read(isPremiumProvider)) return;
 
-    final chatHistory = ref.read(chatHistoryProvider);
-    if (!shouldAutoSendInitialMessage(
-      initialMessage: widget.initialMessage,
-      chatIsEmpty: chatHistory.isEmpty,
-    )) {
+    final explicit = widget.initialMessage?.trim();
+    if (isExplicitSidekickStarter(explicit)) {
+      // Hot button from scripture detail: refresh to a new conversation,
+      // then send the starter. Prior turns are disposable (journal keeps
+      // anything worth saving).
+      _hasAutoSentInitial = true;
+      ref.read(sidekickProvider.notifier).clearChat();
+      ref.read(sidekickProvider.notifier).sendMessage(explicit!);
       return;
     }
 
-    var message = widget.initialMessage?.trim();
-    if (message == null || message.isEmpty) {
-      final scriptureId = widget.initialScriptureId;
-      if (scriptureId == null) return;
-      final scripture = ref.read(scriptureByIdProvider(scriptureId));
-      if (scripture == null) return;
-      message = 'Can you help me understand ${scripture.reference}? '
-          'I\'ve been studying "${scripture.keyPhrase}"';
-    }
+    // Scripture-only open ("Or ask anything" / deep link): only auto-send
+    // a generic opener when the thread is already empty.
+    final chatHistory = ref.read(chatHistoryProvider);
+    if (chatHistory.isNotEmpty) return;
+
+    final scriptureId = widget.initialScriptureId;
+    if (scriptureId == null) return;
+    final scripture = ref.read(scriptureByIdProvider(scriptureId));
+    if (scripture == null) return;
 
     _hasAutoSentInitial = true;
-    ref.read(sidekickProvider.notifier).sendMessage(message);
+    ref.read(sidekickProvider.notifier).sendMessage(
+          'Can you help me understand ${scripture.reference}? '
+          'I\'ve been studying "${scripture.keyPhrase}"',
+        );
   }
 
   @override
