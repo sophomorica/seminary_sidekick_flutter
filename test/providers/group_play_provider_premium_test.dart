@@ -236,5 +236,32 @@ void main() {
       expect(refreshed?.roomsThisWeek, 1);
       expect(fake.fetchHostUsageCalls, greaterThan(1));
     });
+
+    test('FreeTierLimitException also invalidates hostUsageProvider', () async {
+      // Card may show unlocked (fail-open / other device) while server is
+      // already at the weekly limit. Hitting create must refresh the cache
+      // so Host locks after the upgrade dialog.
+      fake.usageToReturn = null;
+      await container.read(hostUsageProvider.future);
+      expect(fake.fetchHostUsageCalls, 1);
+
+      fake.createRoomError = const FreeTierLimitException('limit');
+      fake.usageToReturn = HostUsage(
+        roomsThisWeek: 1,
+        weekStartsAt: DateTime.utc(2026, 7, 13),
+      );
+      await container.read(groupPlayProvider.notifier).hostCreateRoom(
+            scope: const GroupRoomScope(
+              difficultyName: 'beginner',
+              questionCount: 5,
+            ),
+            hostNickname: 'Coach',
+          );
+
+      expect(container.read(groupPlayProvider).freeHostWeeklyLimitHit, isTrue);
+      final refreshed = await container.read(hostUsageProvider.future);
+      expect(refreshed?.roomsThisWeek, 1);
+      expect(fake.fetchHostUsageCalls, greaterThan(1));
+    });
   });
 }

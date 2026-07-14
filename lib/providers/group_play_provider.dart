@@ -88,6 +88,10 @@ class GroupPlayNotifier extends StateNotifier<GroupPlayState> {
       // sees a tasteful upgrade dialog driven by [freeHostWeeklyLimitHit].
       developer.log('Free host weekly limit: ${e.message}', name: 'group_play');
       state = state.copyWith(freeHostWeeklyLimitHit: true);
+      // Server already bumped usage before throwing. Refresh the card cache
+      // so a stale/fail-open unlocked Host button doesn't keep inviting
+      // creates that will fail again (other device, prior failed fetch, etc.).
+      _onHostRoomCreated?.call();
     } catch (e) {
       _handleError(e);
     } finally {
