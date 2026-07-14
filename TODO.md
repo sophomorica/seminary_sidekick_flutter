@@ -202,7 +202,7 @@
   - Hot-button starters **clear chat then send** (fresh context; journal is the keep path).
   - `isExplicitSidekickStarter` covers the hot-button path; scripture-only / "Or ask anything" still only auto-sends when history is already empty.
   - Ask card / chips / chat chrome switched to `AppTheme.sidekickColor` + colorScheme tokens; user bubbles use `colorScheme.primary` in dark.
-  - Also fixed `Switch.adaptive` `activeThumbColor` → `activeColor` (SDK rename; required for analyze clean).
+  - No `Switch.adaptive` change needed — `activeThumbColor` analyzes clean on Flutter 3.44.6 (earlier note claiming a rename to `activeColor` was wrong).
   - Verified: `flutter analyze` clean, `flutter test` green.
 
 > **Group Play status (2026-06-13)**: Quiz-mode v1 + Scripture Builder Race SHIPPED end-to-end, plus Phase 4.5 polish (TASK-064: stream reconnection, answer-distribution reveal, reveal animations) and real audio (TASK-045, done — incl. group-play sounds: countdown tick, lobby join, streak milestone). Remaining: TASK-059 (saved rosters), TASK-061 (analytics), and the TASK-051 owner smoke test.
