@@ -26,6 +26,9 @@ migrate_working_dir/
 # VS Code
 .vscode/
 
+# Claude Code local config
+.claude/
+
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id
