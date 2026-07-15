@@ -35,7 +35,7 @@ AppTheme.secondary        // Sage green (#618C84) — secondary actions
 AppTheme.accent           // Calm blue (#5B8ABF) — highlights, links
 AppTheme.success          // Correct feedback
 AppTheme.error            // Incorrect feedback
-AppTheme.gold             // Stars, achievements
+AppTheme.gold             // Achievements / Group Play race finish pips (solo results use meter grades)
 AppTheme.dark             // Text
 AppTheme.surface          // Card backgrounds
 AppTheme.offWhite         // Scaffold background

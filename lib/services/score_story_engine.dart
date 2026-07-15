@@ -223,7 +223,7 @@ class ScoreStoryEngine {
                 label: 'Score',
                 points: normalized,
                 isMiss: false,
-                icon: Icons.star_outline,
+                icon: Icons.insights_outlined,
               ),
             ]
           : playable,
@@ -256,7 +256,7 @@ class ScoreStoryEngine {
           label: 'Score',
           points: targetFinal,
           isMiss: false,
-          icon: Icons.star_outline,
+          icon: Icons.insights_outlined,
         ),
         ...mutable.where((e) => e.isMiss),
       ];

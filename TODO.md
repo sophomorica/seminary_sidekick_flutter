@@ -231,9 +231,10 @@ No remaining App Store Connect / banking / EULA / IAP blockers for this submissi
 
 ### TASK-074: Star-copy sweep — align tutorials/pages with meter grades + avatar journey
 
-- **status**: `in_progress`
+- **status**: `done`
 - **claimed_by**: cursor-bc-3c69e6be
 - **started**: 2026-07-15T19:05:53Z
+- **completed**: 2026-07-15T19:10:00Z
 - **priority**: P2 (onboarding currently teaches a rating system that no longer exists on results)
 - **estimated_effort**: Small-Medium
 - **files_to_touch**: `lib/screens/onboarding/mastery_page.dart` (and sibling onboarding pages as found), any other screens/copy that reference results stars (sweep required), `docs/FEATURES.md` / `docs/OVERVIEW.md` if they describe star ratings, affected widget tests
@@ -243,12 +244,15 @@ No remaining App Store Connect / banking / EULA / IAP blockers for this submissi
   - `lib/screens/group_play/widgets/sb_finish_banner.dart` — mid-race per-finish stars (`GroupSbFinish.starRatingFor`). Group Play kept stars intentionally in TASK-073; leave the logic, but if copy anywhere calls it the same system as solo results, decouple the wording. Escalate before changing group visuals.
   - Non-issues found in sweep (icon-only, unrelated): `settings_screen.dart`, `activity_tile.dart`; `book_collections_section.dart` is a known-stale file — skip.
 - **acceptance_criteria**:
-  - [ ] No user-facing copy or tutorial anywhere describes solo game results as stars/three-stars
-  - [ ] Onboarding mastery page teaches: meter + word grade on results, avatar journey as the long-term progression; "3 perfect Master runs = Mastered" mechanic still communicated, just without star iconography
-  - [ ] Where results are referenced for SB, quiz, AND matching (all three share `GameResultsScreen`), framing is grade + avatar stage
-  - [ ] `docs/FEATURES.md`/`docs/OVERVIEW.md` updated if they describe the old rating
-  - [ ] Mastery/progress rules untouched (copy/visual sweep only); `flutter analyze` clean; `flutter test` green (onboarding widget tests updated if they assert stars)
-- **notes**: Avatar stage labels/icons live on `AvatarStage` in `lib/models/enums.dart` — reuse, don't duplicate strings. Escalate if a page seems to need a redesign beyond copy/visual swap.
+  - [x] No user-facing copy or tutorial anywhere describes solo game results as stars/three-stars
+  - [x] Onboarding mastery page teaches: meter + word grade on results, avatar journey as the long-term progression; "3 perfect Master runs = Mastered" mechanic still communicated, just without star iconography
+  - [x] Where results are referenced for SB, quiz, AND matching (all three share `GameResultsScreen`), framing is grade + avatar stage
+  - [x] `docs/FEATURES.md`/`docs/OVERVIEW.md` updated if they describe the old rating
+  - [x] Mastery/progress rules untouched (copy/visual sweep only); `flutter analyze` clean; `flutter test` green (onboarding widget tests updated if they assert stars)
+- **notes**:
+  - Mastery onboarding: check-circle pips for perfect runs; cards for score meter grades + `AvatarStage` strip.
+  - Quizzes onboarding copy points at the shared meter/grade. Group SB finish stars left; comments decoupled from solo results.
+  - Docs: FEATURES/OVERVIEW/CONVENTIONS/TESTING updated.
 
 ### TASK-071: Scripture Builder Master — word-commit typing (autocorrect-friendly)
 

@@ -30,9 +30,10 @@ class GroupSbFinish {
 
   bool get isDnf => mistakeCount == dnfMistakeCount;
 
-  /// Star rating using the same thresholds as solo Scripture Builder
-  /// (`ScriptureBuilderState.starRating`): 0 mistakes → 3 stars,
-  /// 1–3 mistakes → 2 stars, more → 1 star. DNF → 0 stars.
+  /// Mistake-based star pips for Group Play SB race finish banners.
+  /// Thresholds match the solo provider's internal `starRating` getter
+  /// (0 mistakes → 3, 1–3 → 2, else 1; DNF → 0) — not the solo results
+  /// score-meter / word-grade UI.
   static int starRatingFor(int mistakeCount) {
     if (mistakeCount == dnfMistakeCount) return 0;
     if (mistakeCount == 0) return 3;

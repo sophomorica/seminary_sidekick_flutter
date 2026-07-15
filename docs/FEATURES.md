@@ -20,3 +20,9 @@ These help with recognition and comprehension but do NOT drive mastery. They liv
 - **Scripture Match**: Two columns — key phrases vs references. Tap-to-select to match. Tests reference recognition.
 - **Quick Quiz**: Given a passage/reference, select correct key phrase/reference from 4 choices. Three question types rotate. Tests comprehension.
 
+### Results feedback (solo)
+
+Scripture Builder, Scripture Match, and Quick Quiz all share `GameResultsScreen`. After a round the player sees an animated **score meter** (0–1000) with a word grade — **Masterful**, **Strong**, **Getting there**, or **Keep practicing** — not a three-star rating. Below the meter, a **mastery avatar** stage (Quick to Observe → Stalwart → Stripling Warrior → Standard Bearer) advances from how many scriptures they’ve Mastered overall. Provider `starRating` getters remain for internal/legacy call sites; the results UI does not show stars.
+
+Group Play Scripture Builder race finish banners still use mistake-based star pips for that social mode only — separate from the solo meter.
+

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/enums.dart';
+import '../../services/score_story_engine.dart';
 import '../../theme/app_theme.dart';
 
 class MasteredPage extends StatelessWidget {
@@ -12,8 +13,11 @@ class MasteredPage extends StatelessWidget {
     final masteredColor = Color(MasteryLevel.mastered.color);
     final eternalColor = Color(MasteryLevel.eternal.color);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingLg),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacingLg,
+        vertical: AppTheme.spacingMd,
+      ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -70,15 +74,15 @@ class MasteredPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppTheme.spacingLg),
-          // Visual: 3 stars
+          // Visual: three perfect-run pips (not results stars)
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(3, (i) {
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6),
                 child: Icon(
-                  Icons.star_rounded,
-                  size: 44,
+                  Icons.check_circle_rounded,
+                  size: 40,
                   color: masteredColor,
                 ),
               );
@@ -90,6 +94,66 @@ class MasteredPage extends StatelessWidget {
             style: theme.textTheme.titleMedium?.copyWith(
               color: masteredColor,
               fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacingXl),
+          // Results meter + word grades
+          _InfoCard(
+            icon: Icons.speed,
+            iconColor: AppTheme.success,
+            title: 'Your score meter',
+            body:
+                'After Scripture Builder, Match, or Quick Quiz, a score meter '
+                'grades the round — '
+                '${ScoreGrade.masterful.label}, ${ScoreGrade.strong.label}, '
+                '${ScoreGrade.gettingThere.label}, or '
+                '${ScoreGrade.keepPracticing.label}.',
+          ),
+          const SizedBox(height: AppTheme.spacingMd),
+          // Avatar journey
+          _InfoCard(
+            icon: AvatarStage.quickToObserve.icon,
+            iconColor: theme.colorScheme.primary,
+            title: 'Your mastery avatar',
+            body:
+                'As you Master more scriptures, your avatar grows along the journey:',
+            child: Padding(
+              padding: const EdgeInsets.only(top: AppTheme.spacingSm),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                children: AvatarStage.values.map((stage) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircleAvatar(
+                        radius: 18,
+                        backgroundColor:
+                            theme.colorScheme.surfaceContainerHighest,
+                        child: Icon(
+                          stage.icon,
+                          size: 18,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      SizedBox(
+                        width: 72,
+                        child: Text(
+                          stage.label,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ),
             ),
           ),
           const SizedBox(height: AppTheme.spacingXl),
@@ -129,6 +193,68 @@ class MasteredPage extends StatelessWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoCard extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String body;
+  final Widget? child;
+
+  const _InfoCard({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.body,
+    this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = isDark ? AppTheme.darkCard : theme.colorScheme.surface;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppTheme.spacingMd),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: iconColor, size: 22),
+              const SizedBox(width: AppTheme.spacingSm),
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.spacingSm),
+          Text(
+            body,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
+            ),
+          ),
+          if (child != null) child!,
         ],
       ),
     );
