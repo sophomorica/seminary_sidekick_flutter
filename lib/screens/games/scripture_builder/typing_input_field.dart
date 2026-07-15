@@ -76,89 +76,54 @@ class SbTypingInputField extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Mirrors the send-button slot so the pill stays centered.
-              const SizedBox(width: AppTheme.spacingXxl + AppTheme.spacingSm),
-              Flexible(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * 0.6,
+          Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.6,
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      AppTheme.tertiaryContainer,
+                      AppTheme.tertiaryFixedDim,
+                    ],
                   ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [
-                          AppTheme.tertiaryContainer,
-                          AppTheme.tertiaryFixedDim,
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(AppTheme.radiusRound),
-                      boxShadow: AppTheme.floatingShadow,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+                  boxShadow: AppTheme.floatingShadow,
+                ),
+                child: TextField(
+                  key: const ValueKey('sb_typing_field'),
+                  controller: controller,
+                  focusNode: focusNode,
+                  autofocus: true,
+                  autocorrect: true,
+                  enableSuggestions: true,
+                  textCapitalization: TextCapitalization.none,
+                  textInputAction: TextInputAction.done,
+                  textAlign: TextAlign.center,
+                  cursorColor: AppTheme.onTertiaryContainer,
+                  inputFormatters: const [SingleWordFormatter()],
+                  contextMenuBuilder: _noPasteMenu,
+                  style: wordStyle,
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    hintText: 'Type a word',
+                    hintStyle: wordStyle?.copyWith(
+                      color: AppTheme.onTertiaryContainer
+                          .withValues(alpha: 0.5),
+                      fontWeight: FontWeight.w600,
                     ),
-                    child: TextField(
-                      key: const ValueKey('sb_typing_field'),
-                      controller: controller,
-                      focusNode: focusNode,
-                      autofocus: true,
-                      autocorrect: true,
-                      enableSuggestions: true,
-                      textCapitalization: TextCapitalization.none,
-                      textInputAction: TextInputAction.done,
-                      textAlign: TextAlign.center,
-                      cursorColor: AppTheme.onTertiaryContainer,
-                      inputFormatters: const [SingleWordFormatter()],
-                      contextMenuBuilder: _noPasteMenu,
-                      style: wordStyle,
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        hintText: 'Type a word',
-                        hintStyle: wordStyle?.copyWith(
-                          color: AppTheme.onTertiaryContainer
-                              .withValues(alpha: 0.5),
-                          fontWeight: FontWeight.w600,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: AppTheme.spacingLg,
-                          vertical: AppTheme.spacingMd,
-                        ),
-                      ),
-                      onChanged: onChanged,
-                      onSubmitted: onSubmitted,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingLg,
+                      vertical: AppTheme.spacingMd,
                     ),
                   ),
+                  onChanged: onChanged,
+                  onSubmitted: onSubmitted,
                 ),
               ),
-              const SizedBox(width: AppTheme.spacingSm),
-              // Send arrow — appears once there's a word to commit.
-              SizedBox(
-                width: AppTheme.spacingXxl,
-                height: AppTheme.spacingXxl,
-                child: ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: controller,
-                  builder: (context, value, _) {
-                    final hasWord = value.text.trim().isNotEmpty;
-                    return AnimatedScale(
-                      scale: hasWord ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 150),
-                      curve: Curves.easeOut,
-                      child: IconButton(
-                        onPressed: hasWord
-                            ? () => onSubmitted?.call(controller.text)
-                            : null,
-                        style: IconButton.styleFrom(
-                          backgroundColor: AppTheme.tertiaryContainer,
-                          foregroundColor: AppTheme.onTertiary,
-                          disabledBackgroundColor: AppTheme.tertiaryContainer,
-                        ),
-                        icon: const Icon(Icons.arrow_upward),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
+            ),
           ),
           const SizedBox(height: AppTheme.spacingXs),
           Text(
