@@ -161,4 +161,34 @@ void main() {
       expect(r.status, WordCommitStatus.wrongWord);
     });
   });
+
+  group('WordCommitEngine.tryCommit — multi-word spans', () {
+    const target = 'In the beginning was the Word';
+
+    test('an autocorrect-split buffer spanning two words commits both', () {
+      final r = WordCommitEngine.tryCommit(
+          target: target, position: 0, buffer: 'in the ');
+      expect(r.status, WordCommitStatus.committed);
+      expect(r.committedText, 'In the ');
+    });
+
+    test('spans up to maxTokensPerCommit words are accepted', () {
+      final r = WordCommitEngine.tryCommit(
+          target: target, position: 0, buffer: 'in the beginning was ');
+      expect(r.status, WordCommitStatus.committed);
+      expect(r.committedText, 'In the beginning was ');
+    });
+
+    test('spans longer than maxTokensPerCommit are rejected', () {
+      final r = WordCommitEngine.tryCommit(
+          target: target, position: 0, buffer: 'in the beginning was the ');
+      expect(r.status, WordCommitStatus.wrongWord);
+    });
+
+    test('a two-word span with a wrong second word is rejected', () {
+      final r = WordCommitEngine.tryCommit(
+          target: target, position: 0, buffer: 'in thy ');
+      expect(r.status, WordCommitStatus.wrongWord);
+    });
+  });
 }

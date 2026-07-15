@@ -45,6 +45,7 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
   final _typingController = TextEditingController();
   final _typingFocusNode = FocusNode();
   bool _isResetting = false; // Guard against onChanged re-triggers during reset
+  bool _advanceScheduled = false; // Completion handled for current scripture
 
   // Chunk colors for visual distinction
   static const _chunkPalette = [
@@ -151,20 +152,21 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
       }
       // Master word-commit: whenever the provider consumed the word buffer
       // (word committed, or a stray space swallowed), mirror that into the
-      // controller so the field is empty for the next word.
+      // controller so the field is empty for the next word. The guard is
+      // released synchronously — unlike the reset path there is no rebuild
+      // race here, and holding it until the next frame would drop the first
+      // keystrokes of a fast typist's next word.
       if (widget.difficulty == DifficultyLevel.master &&
           next.mode == ScriptureBuilderMode.typing &&
           next.typedText.isEmpty &&
           _typingController.text.isNotEmpty) {
         _isResetting = true;
         _typingController.clear();
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          _isResetting = false;
-        });
+        _isResetting = false;
       }
-      // Reset hint when scripture changes
+      // Reset hint + completion guard when scripture changes
       if (next.currentIndex != (prev?.currentIndex ?? -1)) {
+        _advanceScheduled = false;
         setState(() => _hintRevealed = false);
       }
     });
@@ -797,7 +799,7 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
                   ),
                   const SizedBox(width: AppTheme.spacingSm),
                   Text(
-                    'Wrong character! Starting over...',
+                    'Wrong word! Starting over...',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppTheme.error,
                           fontWeight: FontWeight.w600,
@@ -837,7 +839,7 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
   void _handleTypingSubmitted(String value) {
     if (_isResetting) return;
 
-    ref.read(scriptureBuilderProvider.notifier).submitWord();
+    ref.read(scriptureBuilderProvider.notifier).submitWord(value);
     _afterTypingInput();
 
     // The done key dismisses the keyboard — bring it back unless the verse
@@ -864,7 +866,11 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
       ref.read(audioProvider.notifier).play(SoundEffect.correct);
     }
 
-    if (newState.isScriptureComplete) {
+    // Only handle completion once per scripture: a second input event
+    // arriving while the state is still complete (e.g. a double-tapped done
+    // key) must not schedule a second nextScripture() and skip a verse.
+    if (newState.isScriptureComplete && !_advanceScheduled) {
+      _advanceScheduled = true;
       ref.read(hapticProvider).heavy();
       _typingFocusNode.unfocus();
       if (!newState.isComplete) {

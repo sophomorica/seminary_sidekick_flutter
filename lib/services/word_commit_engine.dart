@@ -34,21 +34,30 @@ class WordCommitEngine {
   static bool _isTokenBoundary(String ch) =>
       _isWhitespace(ch) || ch == '-' || ch == '—' || ch == '–';
 
+  static final _nonAlphanumeric = RegExp(r'[^a-z0-9]');
+
   /// Lowercase and strip everything that is not a letter or digit, leaving
   /// only the characters the user is actually responsible for typing.
   static String normalize(String s) =>
-      s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+      s.toLowerCase().replaceAll(_nonAlphanumeric, '');
+
+  /// The most tokens one commit may span. Covers autocorrect splitting a
+  /// typo into two words ("ofthe" → "of the ") and dash-joined chains typed
+  /// as one word, while keeping paste-per-commit granularity small.
+  static const maxTokensPerCommit = 4;
 
   /// Attempt to commit [buffer] against [target] at [position] (the number
   /// of characters already committed, i.e. `typedChars.length`).
   ///
   /// The buffer is accepted if its normalized form equals the normalized
-  /// next token (up to the next whitespace or dash) or the normalized next
-  /// whitespace-delimited word (so "stiff-necked" typed as one word or as
-  /// "stiff" + "necked" both work). On a match, [WordCommitResult.committedText]
-  /// contains the exact target characters to append — leading auto-fill,
-  /// the matched span in the target's own casing/punctuation, and any
-  /// trailing auto-fill — keeping the display canonical.
+  /// span of the next 1..[maxTokensPerCommit] tokens (dash- or
+  /// whitespace-delimited), shortest span first. So "stiff-necked" typed as
+  /// one word or as "stiff" + "necked" both work, and an autocorrect rewrite
+  /// that splits a typo into two words still commits. On a match,
+  /// [WordCommitResult.committedText] contains the exact target characters
+  /// to append — leading auto-fill, the matched span in the target's own
+  /// casing/punctuation, and any trailing auto-fill — keeping the display
+  /// canonical.
   static WordCommitResult tryCommit({
     required String target,
     required int position,
@@ -68,38 +77,36 @@ class WordCommitEngine {
       return const WordCommitResult._(WordCommitStatus.nothingToCommit, '');
     }
 
-    // Token span: up to the next whitespace or dash.
-    var tokenEnd = start;
-    while (tokenEnd < target.length && !_isTokenBoundary(target[tokenEnd])) {
-      tokenEnd++;
-    }
-    // Word span: up to the next whitespace only (spans dashes).
-    var wordEnd = start;
-    while (wordEnd < target.length && !_isWhitespace(target[wordEnd])) {
-      wordEnd++;
-    }
+    // Grow the candidate span one token at a time, comparing after each.
+    var spanEnd = start;
+    for (var k = 0; k < maxTokensPerCommit; k++) {
+      // Skip auto-fill separating this token from the previous one.
+      while (spanEnd < target.length && isAutoFill(target[spanEnd])) {
+        spanEnd++;
+      }
+      if (spanEnd >= target.length) break;
+      // Consume one token.
+      while (spanEnd < target.length && !_isTokenBoundary(target[spanEnd])) {
+        spanEnd++;
+      }
 
-    var matchEnd = -1;
-    if (typed == normalize(target.substring(start, tokenEnd))) {
-      matchEnd = tokenEnd;
-    } else if (wordEnd != tokenEnd &&
-        typed == normalize(target.substring(start, wordEnd))) {
-      matchEnd = wordEnd;
+      final span = normalize(target.substring(start, spanEnd));
+      if (typed == span) {
+        // Absorb trailing auto-fill (punctuation, dashes, spaces) so the
+        // next expected position always lands on a typeable character.
+        var end = spanEnd;
+        while (end < target.length && isAutoFill(target[end])) {
+          end++;
+        }
+        return WordCommitResult._(
+          WordCommitStatus.committed,
+          target.substring(position, end),
+        );
+      }
+      // Spans only grow — once the span outruns the buffer, no match exists.
+      if (span.length > typed.length) break;
     }
-    if (matchEnd < 0) {
-      return const WordCommitResult._(WordCommitStatus.wrongWord, '');
-    }
-
-    // Absorb trailing auto-fill (punctuation, dashes, spaces) so the next
-    // expected position always lands on a typeable character.
-    var end = matchEnd;
-    while (end < target.length && isAutoFill(target[end])) {
-      end++;
-    }
-    return WordCommitResult._(
-      WordCommitStatus.committed,
-      target.substring(position, end),
-    );
+    return const WordCommitResult._(WordCommitStatus.wrongWord, '');
   }
 }
 

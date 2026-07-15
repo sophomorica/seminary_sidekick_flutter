@@ -80,7 +80,9 @@ class ScriptureBuilderState {
   final bool isScriptureComplete;
   final DateTime startTime;
   final Duration? completionTime;
-  final String? lastFeedback;            // 'correct', 'incorrect', 'reset', null
+  final String? lastFeedback;            // 'correct' (scripture done),
+                                         // 'incorrect', 'reset',
+                                         // 'word' (Master word committed), null
 
   const ScriptureBuilderState({
     required this.difficulty,
@@ -431,21 +433,17 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
   /// Auto-fills punctuation AND spaces in the target text so the user
   /// only needs to type actual letters/digits. This handles em dashes,
   /// commas, periods, quotes, and the spaces around them seamlessly.
-  int _autoFillNonLetters(List<TypedChar> chars, String currentTyped) {
+  int _autoFillNonLetters(List<TypedChar> chars) {
     int filled = 0;
     int pos = chars.length;
     while (pos < state.targetText.length &&
-        _isAutoFillChar(state.targetText[pos])) {
+        WordCommitEngine.isAutoFill(state.targetText[pos])) {
       chars.add(TypedChar(char: state.targetText[pos], isCorrect: true));
       filled++;
       pos++;
     }
     return filled;
   }
-
-  /// Returns true if this character should be auto-filled (not typed by user).
-  /// Punctuation and spaces are both auto-filled.
-  bool _isAutoFillChar(String ch) => WordCommitEngine.isAutoFill(ch);
 
   /// User input changed. Called on every keystroke.
   /// Punctuation in the target text is auto-filled so the user only
@@ -466,15 +464,23 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
 
   /// Master: commit the current word buffer as if the user pressed space.
   /// Wired to the keyboard's done/submit action so the final word of a verse
-  /// doesn't strand the user waiting for a trailing space.
-  void submitWord() {
+  /// can be committed without a trailing space. Pass the field's actual text
+  /// as [buffer] when available — it is more authoritative than the tracked
+  /// state if the two ever drift.
+  void submitWord([String? buffer]) {
     if (state.isScriptureComplete ||
         state.mode != ScriptureBuilderMode.typing ||
         state.difficulty != DifficultyLevel.master) {
       return;
     }
-    _onTypeWord('${state.typedText} ');
+    _onTypeWord('${buffer ?? state.typedText} ');
   }
+
+  /// Trailing whitespace is the commit gesture. Uses `\s` so IME keyboards
+  /// that terminate words with exotic spaces (NBSP etc.) still commit —
+  /// kept consistent with `SingleWordFormatter`, which allows exactly this
+  /// trailing-whitespace shape through.
+  static final _trailingWhitespace = RegExp(r'\s$');
 
   // ── Master: word-commit typing ──
   //
@@ -483,25 +489,12 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
   // keyboard applies autocorrect, so fat-finger typos get fixed before they
   // can trigger a reset. Backspace inside the buffer is always free.
   void _onTypeWord(String newText) {
-    final endsWithWhitespace =
-        newText.endsWith(' ') || newText.endsWith('\n');
-
-    if (!endsWithWhitespace) {
+    if (!_trailingWhitespace.hasMatch(newText)) {
       // In-progress buffer: typing, backspacing, and autocorrect rewrites
-      // are all unjudged. The only exception is the verse's final word —
-      // commit it the moment it matches so completion doesn't require a
-      // trailing space (which many users would never think to type).
-      final result = WordCommitEngine.tryCommit(
-        target: state.targetText,
-        position: state.typedChars.length,
-        buffer: newText,
-      );
-      if (result.status == WordCommitStatus.committed &&
-          state.typedChars.length + result.committedText.length >=
-              state.targetText.length) {
-        _commitWord(result.committedText);
-        return;
-      }
+      // are all unjudged. Even a buffer that happens to match the expected
+      // word is NOT committed early — the user may still be typing a longer
+      // (wrong) word, and judging "amen" while they type "amens" would
+      // award completion for a miss. Space or the done key commits.
       state = state.copyWith(typedText: newText, clearFeedback: true);
       return;
     }
@@ -516,11 +509,9 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
       case WordCommitStatus.committed:
         _commitWord(result.committedText);
       case WordCommitStatus.nothingToCommit:
-        // Stray space with no letters typed — consume it silently.
-        state = state.copyWith(
-          typedText: '',
-          lastFeedback: 'clearfield',
-        );
+        // Stray space with no letters typed — consume it silently. The new
+        // state's empty typedText tells the screen to clear the field.
+        state = state.copyWith(typedText: '', clearFeedback: true);
       case WordCommitStatus.wrongWord:
         // Master: wrong word = full reset.
         state = state.copyWith(
@@ -531,7 +522,6 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
           correctUnitsAcrossAll:
               state.correctUnitsAcrossAll - state.correctPlacements,
           correctPlacements: 0,
-          hasActiveError: false,
           lastFeedback: 'reset',
         );
     }
@@ -567,7 +557,7 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
         // (punctuation and spaces) that preceded it.
         newChars.removeLast();
         while (newChars.isNotEmpty &&
-            _isAutoFillChar(newChars.last.char)) {
+            WordCommitEngine.isAutoFill(newChars.last.char)) {
           newChars.removeLast();
         }
       }
@@ -594,14 +584,14 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
       // auto-filled. The user only needs to type letters and digits.
       // Without this, typing a natural "world," (with the comma) counted
       // the comma as a wrong character.
-      if (_isAutoFillChar(newChar)) {
+      if (WordCommitEngine.isAutoFill(newChar)) {
         state = state.copyWith(typedText: newText);
         return;
       }
 
       // Auto-fill any punctuation/spaces at the current position first
       final newChars = List<TypedChar>.from(state.typedChars);
-      final autoFilled = _autoFillNonLetters(newChars, state.typedText);
+      final autoFilled = _autoFillNonLetters(newChars);
 
       final expectedIndex = newChars.length;
       if (expectedIndex >= state.targetText.length) return;
@@ -614,7 +604,7 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
         newChars.add(TypedChar(char: newChar, isCorrect: true));
 
         // Also auto-fill any trailing punctuation (e.g. end of verse with period)
-        final trailingFilled = _autoFillNonLetters(newChars, '');
+        final trailingFilled = _autoFillNonLetters(newChars);
 
         final totalFilled = 1 + autoFilled + trailingFilled;
         final newCorrectAcross = state.correctUnitsAcrossAll + totalFilled;

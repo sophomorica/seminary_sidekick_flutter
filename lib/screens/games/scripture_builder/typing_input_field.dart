@@ -148,19 +148,28 @@ class NoPasteFormatter extends TextInputFormatter {
   }
 }
 
-/// Keeps the Master field to a single word in progress: whitespace may only
-/// appear as a trailing run (the commit gesture), so autocorrect's
-/// whole-word rewrites ("cjeck" → "check ") pass through while multi-word
-/// pastes are rejected.
+/// Keeps the Master field to the few words currently in progress:
+/// autocorrect's whole-word rewrites ("cjeck" → "check ") and typo splits
+/// ("ofthe" → "of the ") pass through, while pasting a chunk of the verse
+/// is rejected. The 3-word ceiling matches what autocorrect realistically
+/// produces in one rewrite; `WordCommitEngine` can judge multi-word buffers.
 class SingleWordFormatter extends TextInputFormatter {
   const SingleWordFormatter();
+
+  static final _whitespaceRun = RegExp(r'\s+');
+  static const _maxWords = 3;
 
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    if (newValue.text.trimRight().contains(RegExp(r'\s'))) {
+    final words = newValue.text
+        .trim()
+        .split(_whitespaceRun)
+        .where((w) => w.isNotEmpty)
+        .length;
+    if (words > _maxWords) {
       return oldValue;
     }
     return newValue;
