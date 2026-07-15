@@ -1,3 +1,5 @@
+import '../../../services/word_commit_engine.dart';
+
 /// Pure display rules for the Scripture Builder typing-mode passage view.
 ///
 /// Extracted from the screen so the display contract is unit-testable
@@ -8,10 +10,9 @@ class TypedDisplayRules {
   TypedDisplayRules._();
 
   /// Punctuation the provider auto-fills — the user never types it.
-  /// Must stay in sync with `WordCommitEngine.punctuation` in
-  /// `lib/services/word_commit_engine.dart`.
-  static final punctuation =
-      RegExp(r'''[,;:!?\-\—\–\.\'\"\'\'\"\"\(\)\[\]]''');
+  /// References the engine's set directly so display and judgment can
+  /// never drift apart.
+  static final punctuation = WordCommitEngine.punctuation;
 
   static bool _isBoundary(String ch) => ch == ' ' || ch == '\n';
 

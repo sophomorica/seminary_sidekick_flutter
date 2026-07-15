@@ -912,7 +912,7 @@ void main() {
 
       notifier.onType(' ');
 
-      expect(notifier.state.lastFeedback, 'clearfield');
+      expect(notifier.state.lastFeedback, isNull);
       expect(notifier.state.typedText, isEmpty);
       expect(notifier.state.incorrectAttempts, 0);
       expect(notifier.state.resetCount, 0);
@@ -930,7 +930,8 @@ void main() {
       expect(notifier.state.starRating, 2);
     });
 
-    test('final word auto-commits without a trailing space and completes',
+    test(
+        'final word is never judged mid-typing — commits via space or done key',
         () {
       final scripture = Scripture(
         id: 'word-commit-final',
@@ -948,14 +949,36 @@ void main() {
       expect(committed(), 'Be ');
       expect(notifier.state.isScriptureComplete, isFalse);
 
-      // No trailing space needed on the verse's last word
+      // Matching the final word is NOT enough — the user may still be
+      // typing a longer (wrong) word, so nothing is judged until a commit.
       notifier.onType('still');
+      expect(notifier.state.isScriptureComplete, isFalse);
+      expect(notifier.state.typedText, 'still');
+
+      // The done key (submitWord) commits it without a trailing space.
+      notifier.submitWord('still');
 
       expect(notifier.state.isScriptureComplete, isTrue);
       expect(notifier.state.lastFeedback, 'correct');
       expect(committed(), 'Be still');
       expect(notifier.state.typedChars.length,
           notifier.state.targetText.length);
+    });
+
+    test(
+        'autocorrect splitting a typo into two words still commits — "andit" → "and it "',
+        () {
+      // testScriptures[0] starts "And it came to pass..."
+      notifier.startGame(
+          difficulty: DifficultyLevel.master, scriptures: [testScriptures[0]]);
+
+      notifier.onType('andit'); // run-together typo in progress
+      // Autocorrect rewrites the whole buffer into two words + space
+      notifier.onType('and it ');
+
+      expect(committed(), 'And it ');
+      expect(notifier.state.resetCount, 0);
+      expect(notifier.state.incorrectAttempts, 0);
     });
 
     test('submitWord commits the buffer like the keyboard done key', () {
