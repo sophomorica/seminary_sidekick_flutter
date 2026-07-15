@@ -182,6 +182,26 @@
 
 ## Active Tasks
 
+### TASK-071: Scripture Builder Master — word-commit typing (autocorrect-friendly)
+
+- **status**: `in_progress`
+- **priority**: P1 (owner: Master is near-impossible on phone keyboards — typo = full reset, autocorrect disabled)
+- **estimated_effort**: Medium
+- **claimed_by**: claude-pebw48
+- **started**: 2026-07-15T00:00:00Z
+- **files_to_touch**: `lib/services/word_commit_engine.dart` (new), `lib/providers/scripture_builder_provider.dart`, `lib/screens/games/scripture_builder/scripture_builder_screen.dart`, `lib/screens/games/scripture_builder/typing_input_field.dart` (new), `lib/screens/games/scripture_builder/typed_display_rules.dart`, `lib/models/enums.dart`, `lib/screens/onboarding/scripture_builder_page.dart`, `docs/FEATURES.md`, tests
+- **description**: Change Master's unit of judgment from character to word. The field holds only the word in progress with OS autocorrect ON; the word is judged when committed with the spacebar (the moment autocorrect fires), normalized case/punctuation-insensitively. Wrong word = full reset (unchanged penalty). Backspace within the buffer is free. Matching lives in a pure-Dart `WordCommitEngine` so a future Group Play typing tier reuses identical rules (Group Play SB is chunk-tap only today — nothing to change there now).
+- **acceptance_criteria**:
+  - [ ] Master: nothing judged mid-word; space/done commits; autocorrect rewrites ("cjeck" → "check ") pass the single-word formatter and commit cleanly
+  - [ ] Wrong committed word = full verse reset (unchanged); one `incorrectAttempt` per wrong word
+  - [ ] Dash-joined words ("faith—faith") committable one word at a time or as one span; apostrophe/comma words match with or without punctuation
+  - [ ] Final word auto-commits without a trailing space
+  - [ ] Advanced per-character behavior unchanged (regression: existing tests pass)
+  - [ ] Scoring/progress/mastery pathways unchanged (typedChars-based math intact)
+  - [ ] `flutter analyze` clean, `flutter test` green
+- **notes**:
+  - Needs an on-device iOS pass before release: autocorrect fires on space, clear-on-commit vs composing region, reset refocus (widget tests can't cover IME behavior).
+
 ### TASK-070: Ask Sidekick hot buttons + dark-mode contrast
 
 - **status**: `done`
