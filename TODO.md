@@ -231,7 +231,9 @@ No remaining App Store Connect / banking / EULA / IAP blockers for this submissi
 
 ### TASK-074: Star-copy sweep — align tutorials/pages with meter grades + avatar journey
 
-- **status**: `todo`
+- **status**: `in_progress`
+- **claimed_by**: cursor-bc-3c69e6be
+- **started**: 2026-07-15T19:05:53Z
 - **priority**: P2 (onboarding currently teaches a rating system that no longer exists on results)
 - **estimated_effort**: Small-Medium
 - **files_to_touch**: `lib/screens/onboarding/mastery_page.dart` (and sibling onboarding pages as found), any other screens/copy that reference results stars (sweep required), `docs/FEATURES.md` / `docs/OVERVIEW.md` if they describe star ratings, affected widget tests
