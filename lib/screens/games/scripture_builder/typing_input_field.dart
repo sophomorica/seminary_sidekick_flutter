@@ -60,9 +60,11 @@ class SbTypingInputField extends StatelessWidget {
 
   Widget _buildWordPill(BuildContext context) {
     final theme = Theme.of(context);
-    final wordStyle = theme.textTheme.titleLarge?.copyWith(
-      color: AppTheme.onTertiaryContainer,
-      fontWeight: FontWeight.w700,
+    // White + extra-bold on the deeper gold so the typed word pops; the
+    // gradient runs dark-to-mid tertiary to keep white readable end to end.
+    final wordStyle = theme.textTheme.headlineSmall?.copyWith(
+      color: AppTheme.onTertiary,
+      fontWeight: FontWeight.w800,
     );
 
     return Container(
@@ -85,8 +87,8 @@ class SbTypingInputField extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [
+                      AppTheme.tertiary,
                       AppTheme.tertiaryContainer,
-                      AppTheme.tertiaryFixedDim,
                     ],
                   ),
                   borderRadius: BorderRadius.circular(AppTheme.radiusRound),
@@ -102,7 +104,7 @@ class SbTypingInputField extends StatelessWidget {
                   textCapitalization: TextCapitalization.none,
                   textInputAction: TextInputAction.done,
                   textAlign: TextAlign.center,
-                  cursorColor: AppTheme.onTertiaryContainer,
+                  cursorColor: AppTheme.onTertiary,
                   inputFormatters: const [SingleWordFormatter()],
                   contextMenuBuilder: _noPasteMenu,
                   style: wordStyle,
