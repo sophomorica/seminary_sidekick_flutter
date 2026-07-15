@@ -23,6 +23,12 @@ class GameResultsScreen extends ConsumerStatefulWidget {
   final Duration completionTime;
   final int starRating; // 1-3 — kept for callers; UI no longer reads it
   final bool isNewMastery; // True when user first reaches "Mastered" level
+
+  /// Per-scripture avatar staging (Scripture Builder passes these from the
+  /// session scripture's mastery level before/after this round). When null,
+  /// falls back to the app-wide stage from [UserStats.avatarStage].
+  final AvatarStage? avatarStageBefore;
+  final AvatarStage? avatarStageAfter;
   /// Rebuilds the same game session so "Try Again" can relaunch immediately.
   /// Games reach this screen via [Navigator.pushReplacement], so a plain pop
   /// cannot restart — callers must supply the original game screen.
@@ -39,6 +45,8 @@ class GameResultsScreen extends ConsumerStatefulWidget {
     required this.starRating,
     required this.tryAgainBuilder,
     this.isNewMastery = false,
+    this.avatarStageBefore,
+    this.avatarStageAfter,
   });
 
   @override
@@ -111,15 +119,27 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
       duration: const Duration(milliseconds: 500),
     );
 
-    // Stage after this round's progress write (already applied by callers).
-    // When isNewMastery, infer before as after − 1 (constructor unchanged).
+    // Prefer explicit per-scripture stages from the caller (Scripture Builder
+    // — the avatar reflects THIS scripture's journey). Fall back to app-wide
+    // stage from totalMastered (after the round's progress write; when
+    // isNewMastery, infer before as after − 1).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final afterMastered = ref.read(userStatsProvider).totalMastered;
-      final beforeMastered =
-          widget.isNewMastery ? max(0, afterMastered - 1) : afterMastered;
-      _stageBefore = UserStats.avatarStageForMastered(beforeMastered);
-      _finalStage = UserStats.avatarStageForMastered(afterMastered);
+      if (widget.avatarStageBefore != null &&
+          widget.avatarStageAfter != null) {
+        _stageBefore = widget.avatarStageBefore!;
+        _finalStage = widget.avatarStageAfter!;
+      } else {
+        final afterMastered = ref.read(userStatsProvider).totalMastered;
+        final beforeMastered =
+            widget.isNewMastery ? max(0, afterMastered - 1) : afterMastered;
+        _stageBefore = UserStats.avatarStageForMastered(beforeMastered);
+        _finalStage = UserStats.avatarStageForMastered(afterMastered);
+      }
+      // Never animate a demotion — show the higher stage statically.
+      if (_finalStage.index < _stageBefore.index) {
+        _stageBefore = _finalStage;
+      }
       setState(() {});
       _runSequence();
     });

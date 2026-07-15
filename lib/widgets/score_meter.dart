@@ -158,9 +158,11 @@ class _ScoreMeterPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
 
-    // Half-circle from left (π) to right (0), sweeping clockwise via -π.
+    // Half-circle from left (π) over the TOP to right (2π). Flutter canvas
+    // angles run clockwise with y-down, so the upward arc needs a POSITIVE
+    // sweep — a -π sweep bows through the bottom (upside-down gauge).
     const startAngle = math.pi;
-    const fullSweep = -math.pi;
+    const fullSweep = math.pi;
 
     canvas.drawArc(rect, startAngle, fullSweep, false, trackPaint);
 

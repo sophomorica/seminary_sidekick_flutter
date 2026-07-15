@@ -41,6 +41,23 @@ void main() {
     });
   });
 
+  group('AvatarStage.forMasteryLevel (per-scripture staging)', () {
+    test('maps the six mastery levels onto the four stages', () {
+      expect(AvatarStage.forMasteryLevel(MasteryLevel.newScripture),
+          AvatarStage.quickToObserve);
+      expect(AvatarStage.forMasteryLevel(MasteryLevel.learning),
+          AvatarStage.quickToObserve);
+      expect(AvatarStage.forMasteryLevel(MasteryLevel.familiar),
+          AvatarStage.stalwart);
+      expect(AvatarStage.forMasteryLevel(MasteryLevel.memorized),
+          AvatarStage.striplingWarrior);
+      expect(AvatarStage.forMasteryLevel(MasteryLevel.mastered),
+          AvatarStage.standardBearer);
+      expect(AvatarStage.forMasteryLevel(MasteryLevel.eternal),
+          AvatarStage.standardBearer);
+    });
+  });
+
   group('AvatarStage metadata', () {
     test('has four stages numbered 1–4', () {
       expect(AvatarStage.values.length, 4);

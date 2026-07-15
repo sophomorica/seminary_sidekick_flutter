@@ -119,6 +119,24 @@ enum AvatarStage {
   final String assetPath;
 
   String get stageOfLabel => 'Stage $stageNumber of 4';
+
+  /// Per-scripture avatar staging: maps a scripture's [MasteryLevel] to the
+  /// avatar journey (used on Scripture Builder results — the avatar reflects
+  /// where you are on THAT scripture, not an app-wide count).
+  static AvatarStage forMasteryLevel(MasteryLevel level) {
+    switch (level) {
+      case MasteryLevel.newScripture:
+      case MasteryLevel.learning:
+        return AvatarStage.quickToObserve;
+      case MasteryLevel.familiar:
+        return AvatarStage.stalwart;
+      case MasteryLevel.memorized:
+        return AvatarStage.striplingWarrior;
+      case MasteryLevel.mastered:
+      case MasteryLevel.eternal:
+        return AvatarStage.standardBearer;
+    }
+  }
 }
 
 /// Practice types: Scripture Builder is the mastery tool; matching and quiz are supplementary practice quizzes.

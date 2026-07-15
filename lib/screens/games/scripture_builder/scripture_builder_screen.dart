@@ -939,6 +939,13 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
     final progressNotifier = ref.read(progressProvider.notifier);
     final activityNotifier = ref.read(activityProvider.notifier);
     final timeInSeconds = (state.completionTime ?? _elapsed).inSeconds;
+    // True when any scripture in this session first crossed into Mastered —
+    // drives the results screen's mastery banner + avatar level-up morph.
+    var newlyMastered = false;
+    // Per-scripture avatar staging for the results screen: the avatar shows
+    // where you are on THIS scripture (primary = first in queue).
+    AvatarStage? avatarBefore;
+    AvatarStage? avatarAfter;
     for (final scripture in state.scriptureQueue) {
       // Capture previous mastery level before recording
       final prevProgress =
@@ -977,6 +984,14 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
       final newProgress =
           progressNotifier.getProgress(scripture.id, GameType.scriptureBuilder);
       final newMastery = newProgress?.masteryLevel ?? MasteryLevel.newScripture;
+      if (prevMastery.index < MasteryLevel.mastered.index &&
+          newMastery.index >= MasteryLevel.mastered.index) {
+        newlyMastered = true;
+      }
+      if (scripture.id == state.scriptureQueue.first.id) {
+        avatarBefore = AvatarStage.forMasteryLevel(prevMastery);
+        avatarAfter = AvatarStage.forMasteryLevel(newMastery);
+      }
       if (newMastery.index > prevMastery.index) {
         activityNotifier.logMasteryLevelUp(
           scriptureId: scripture.id,
@@ -1019,6 +1034,9 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
           totalPairs: state.totalUnitsAcrossAll,
           completionTime: state.completionTime ?? _elapsed,
           starRating: state.starRating,
+          isNewMastery: newlyMastered,
+          avatarStageBefore: avatarBefore,
+          avatarStageAfter: avatarAfter,
           tryAgainBuilder: _sessionBuilder(),
         ),
       ),
