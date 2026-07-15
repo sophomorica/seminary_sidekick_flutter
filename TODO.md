@@ -184,7 +184,9 @@
 
 ### TASK-072: Game-complete redesign — animated score meter + mastery avatar (solo)
 
-- **status**: `todo`
+- **status**: `in_progress`
+- **claimed_by**: cursor-bc-3c69e6be
+- **started**: 2026-07-15T18:25:06Z
 - **priority**: P2
 - **estimated_effort**: Medium-Large
 - **files_to_touch**: `lib/screens/games/game_results_screen.dart` (rewrite), `lib/services/score_story_engine.dart` (new, pure Dart), `lib/widgets/score_meter.dart` (new), `lib/widgets/mastery_avatar.dart` (new), `lib/providers/progress_provider.dart` (add avatar-stage getter), `lib/models/enums.dart` (⚠️ shared file — new `AvatarStage` enum), `assets/images/avatar_stage*.txt` (already created), `pubspec.yaml` (⚠️ shared — asset entries only if needed), `test/screens/game_results_screen_test.dart` (update), new tests
