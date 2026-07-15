@@ -8,44 +8,35 @@
 
 ---
 
-## 🚀 Launch Status (updated 2026-07-10)
+## 🚀 Launch Status (updated 2026-07-15)
 
-**REJECTED 2026-07-10 — Guideline 2.1(b) (App Completeness): tapping "Subscribe" showed an error message during review** (iPad Air 11" M3, iPadOS 26.5.2, version 1.0 (3)). The 3.1.2(c) EULA fix PASSED — this is a new, separate issue: the sandbox purchase itself failed. Apple's letter pointedly links to the **Paid Apps Agreement** docs.
+**iOS v1.0.1 — SUBMITTED** (in App Store review). Marketing version **1.0.1**. Always archive with `./scripts/build_ios_release.sh` (loads `.env`, hard-fails if `REVENUECAT_IOS_KEY` / `SUPABASE_URL` / `SUPABASE_ANON_KEY` are missing).
 
-**Diagnosis (2026-07-10)** — the upgrade screen can only show one of three errors, each with a distinct root cause:
+**All App Store submission blockers resolved (owner):**
 
-1. *"Purchases aren't available right now"* → RevenueCat SDK never configured → **the build 3 archive was missing `--dart-define=REVENUECAT_IOS_KEY=...`**. Prime suspect if the rebuild for the EULA fix didn't reuse the full command from `APP_STORE_SUBMISSION.md` §0.
-2. *"That plan isn't available right now"* → store products failed to load in sandbox → **Paid Apps Agreement not Active** (banking/tax incomplete — very common for first apps and the thing Apple's letter hints at), or subscriptions detached/`Developer Action Needed` after the rejection, or RevenueCat offering misconfig.
-3. *"Purchase failed"* → the purchase call itself errored → check RevenueCat dashboard + Sentry.
+- [X] **Paid Apps Agreement** Active (banking + tax complete)
+- [X] **3.1.2(c) EULA** — Privacy Policy + Terms of Use links on upgrade screen; standard EULA in App Description (passed review on prior cycle)
+- [X] **2.1(b) Subscribe** — root cause was bare archive without RevenueCat dart-defines; fixed via `./scripts/build_ios_release.sh` + Sentry on purchase failure paths; **1.0.1** built/submitted with defines
+- [X] Subscriptions attached; listing, screenshots, privacy labels, age rating, sidekick-proxy premium gate enforcing
 
-**Code shipped 2026-07-10**: every purchase failure path in `subscription_provider.dart` now reports to Sentry (`recordError` with error code + offering/package context, plus a `purchase` breadcrumb on Subscribe tap) — next time this happens in the field we'll know exactly which path fired.
+No remaining App Store Connect / banking / EULA / IAP blockers for this submission. Watch ASC + email only if review asks a new question.
 
-**Owner checklist before resubmitting:**
+**Owner open items (not submission blockers — post-approval / product hygiene):**
 
-- [ ] **Paid Apps Agreement**: App Store Connect → Business/Agreements → "Paid Apps" must show **Active** (requires completed banking + tax forms). If it's "Pending" or missing, fix this first — nothing else matters until it's Active.
-- [X] **Root cause CONFIRMED (2026-07-10)**: build 3 was archived **without** the dart-defines — RevenueCat never configured, so Subscribe always showed "Purchases aren't available right now." Fix: new `scripts/build_ios_release.sh` loads `.env`, hard-fails if `REVENUECAT_IOS_KEY`/`SUPABASE_URL`/`SUPABASE_ANON_KEY` are missing, and passes all defines. **Always build with the script from now on.**
-- [ ] **Check both subscriptions** in App Store Connect: still attached to the version, not "Developer Action Needed" (IAPs can get bounced alongside an app rejection).
-- [ ] **Xcode → Runner → Signing & Capabilities → add In-App Purchase capability** (not currently in the project; usually implicit but cheap insurance).
-- [ ] **Sandbox-test on a real device**: sandbox Apple ID (Settings → App Store → Sandbox Account), install the actual archive build (TestFlight is easiest), tap Subscribe on iPhone AND iPad, confirm the native purchase sheet appears and completes.
-- [ ] `flutter analyze` + `flutter test`, bump to **1.0.0+4**, archive **with dart-defines**, upload, swap onto version.
-- [ ] Reply to the rejection in App Store Connect describing the root cause + fix, include a screen recording of a successful sandbox purchase, resubmit.
-
-**Previous**: REJECTED 2026-07-09 — Guideline 3.1.2(c): missing functional Terms of Use (EULA) link in the app (fixed same day: upgrade-screen legal footer links + standard EULA in App Description; passed review 2026-07-10). Reviewed on iPad Air 11" (M3), version 1.0 (2), same submission ID as below. Fix shipped in code same day: the upgrade screen legal footer now has tappable **Privacy Policy** (`seminarysidekick.com/privacy`) and **Terms of Use** (Apple standard EULA: `apple.com/legal/internet-services/itunes/dev/stdeula`) links via `url_launcher`, plus expanded auto-renewal fine print. Plan cards already showed subscription title/length/price — the links were the only gap.
-
-**Resubmission checklist (owner):**
-
-**Earlier status**: iOS v1.0.0 (build 2) waiting for review since 2026-07-05 (resubmitted 4:16 PM ET) — screenshots (9× iPhone 6.9", 5× iPad 13"), full listing metadata, privacy labels, age rating, both subscriptions attached and reviewing with the app, priced Free with worldwide availability. The sidekick-proxy premium entitlement gate is **enforcing** (`REVENUECAT_SECRET_KEY` set + redeployed 2026-07-04 — see `SUPABASE_SETUP.md`).
-
-**Build 1 → build 2 history**: build 1 (submitted 2026-07-04) was rejected in post-upload processing with **ITMS-91061 Missing privacy manifest** — `share_plus` 7.2.2 predates the required `PrivacyInfo.xcprivacy`. Fix (2026-07-05): bumped `share_plus` `^7.2.2` → `^10.1.4` (manifest included since 8.0.2; same `Share.share()` API, no code changes) and version `1.0.0+1` → `1.0.0+2`. Build 2 uploaded via Transporter, passed processing, swapped onto the 1.0 version in App Store Connect, and the existing submission (ID `9e3cdac1-11c1-40eb-afcc-84931cd7ef54`) was resubmitted. No other flagged SDKs — remaining plus-family/transitive deps already ship manifests.
-
-**Open items while in / after review:**
-
-- [ ] **Supabase free-tier auto-pause** — the project pauses after ~7 days idle (it already bit us once during screenshot capture), which kills Group Play and Sidekick AI. Upgrade to Pro (~$25/mo) or set up a keep-alive **before real users arrive**.
-- [ ] **After approval — RevenueCat tidy-up**: delete the leftover sample "Seminary Sidekick Pro" entitlement + Test Store products.
+- [ ] **Supabase free-tier auto-pause** — project pauses after ~7 days idle (already bit us during screenshots); kills Group Play and Sidekick AI. Upgrade to Pro (~$25/mo) or keep-alive **before real users arrive**.
+- [ ] **After approval — RevenueCat tidy-up**: delete leftover sample "Seminary Sidekick Pro" entitlement + Test Store products.
 - [ ] **TASK-051 two-instance realtime smoke test** before relying on Group Play at class scale.
 - [ ] **TASK-045 audio ear-check** on device (see sanity-check list below).
-- [ ] **Android launch** (separate effort): Play Console products, `REVENUECAT_ANDROID_KEY`, release signing.
-- [ ] If Apple rejects/asks questions → resolve and resubmit (watch email + App Store Connect).
+- [ ] **Android launch** (separate effort): Play Console products, `REVENUECAT_ANDROID_KEY`, release signing — see `REVENUECAT_SETUP.md` Step 2.
+
+**Rejection / build history (resolved — keep for context):**
+
+| When | Version | Outcome |
+|------|---------|---------|
+| 2026-07-04 | 1.0.0 (1) | Processing reject ITMS-91061 (`share_plus` privacy manifest) → fixed ^10.1.4 |
+| 2026-07-05 | 1.0.0 (2) | Waiting for review; later **3.1.2(c)** EULA link rejection → fixed + resubmitted as build 3 |
+| 2026-07-10 | 1.0.0 (3) | **2.1(b)** Subscribe error (missing RevenueCat dart-defines) → build script + resubmit |
+| 2026-07-15 | **1.0.1** | **Submitted** (current) — all prior blockers resolved for this binary |
 
 ---
 
@@ -169,7 +160,7 @@
 
 **Owner steps (Sidekick / privacy):** ✅ all done — proxy deployed + `XAI_API_KEY` secret set (2026-06-13); premium entitlement gate enforcing via `REVENUECAT_SECRET_KEY` (2026-07-04); privacy policy live at `https://seminarysidekick.com/privacy` and on the App Store listing; `flutter analyze` clean + `flutter test` green (2026-07-03).
 
-**Owner steps (RevenueCat / store):** "Missing Metadata" ✅ cleared 2026-07-04 — build 1.0.0 (1) uploaded, review screenshots on both subscriptions, group localization added, both subs "Ready to Submit" and attached to the version. Still open (also tracked in Launch Status above): Android (Play Console products + `REVENUECAT_ANDROID_KEY` + release signing), optional App Store Connect API key for RevenueCat product sync, post-approval sample-entitlement tidy-up.
+**Owner steps (RevenueCat / store):** "Missing Metadata" ✅ cleared 2026-07-04; iOS subscriptions wired and submitted with the app. **iOS v1.0.1 is submitted** (see Launch Status). Still open (Launch Status): Android (Play Console products + `REVENUECAT_ANDROID_KEY` + release signing), optional App Store Connect API key for RevenueCat product sync, post-approval sample-entitlement tidy-up.
 
 ### Journal Discoverability & App Store Submission (2026-07-02 → 2026-07-04)
 
