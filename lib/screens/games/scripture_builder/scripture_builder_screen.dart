@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../models/enums.dart';
@@ -13,6 +12,7 @@ import '../../../services/haptic_service.dart';
 import '../../../theme/app_theme.dart';
 import '../game_results_screen.dart';
 import 'typed_display_rules.dart';
+import 'typing_input_field.dart';
 
 class ScriptureBuilderScreen extends ConsumerStatefulWidget {
   final DifficultyLevel difficulty;
@@ -147,6 +147,20 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
           if (!_typingFocusNode.hasFocus) {
             _typingFocusNode.requestFocus();
           }
+        });
+      }
+      // Master word-commit: whenever the provider consumed the word buffer
+      // (word committed, or a stray space swallowed), mirror that into the
+      // controller so the field is empty for the next word.
+      if (widget.difficulty == DifficultyLevel.master &&
+          next.mode == ScriptureBuilderMode.typing &&
+          next.typedText.isEmpty &&
+          _typingController.text.isNotEmpty) {
+        _isResetting = true;
+        _typingController.clear();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _isResetting = false;
         });
       }
       // Reset hint when scripture changes
@@ -799,118 +813,72 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
   Widget _buildTypingInput(ScriptureBuilderState state) {
     final isMaster = widget.difficulty == DifficultyLevel.master;
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(
-        AppTheme.spacingMd,
-        AppTheme.spacingSm,
-        AppTheme.spacingMd,
-        AppTheme.spacingSm,
-      ),
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        border: Border(
-          top: BorderSide(
-            color: Theme.of(context).colorScheme.surfaceContainerHigh,
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              key: const ValueKey('sb_typing_field'),
-              controller: _typingController,
-              focusNode: _typingFocusNode,
-              autofocus: true,
-              autocorrect: false,
-              enableSuggestions: false,
-              textCapitalization: TextCapitalization.none,
-              // Paste would bypass character-by-character mastery checking.
-              inputFormatters: const [_NoPasteFormatter()],
-              contextMenuBuilder: (context, editableTextState) {
-                final items = editableTextState.contextMenuButtonItems
-                    .where(
-                      (item) => item.type != ContextMenuButtonType.paste,
-                    )
-                    .toList();
-                return AdaptiveTextSelectionToolbar.buttonItems(
-                  anchors: editableTextState.contextMenuAnchors,
-                  buttonItems: items,
-                );
-              },
-              style: const TextStyle(fontSize: 14),
-              decoration: InputDecoration(
-                isDense: true,
-                hintText: state.hasActiveError
-                    ? 'Delete the error and try again...'
-                    : (isMaster
-                        ? 'Type from memory — no peeking!'
-                        : 'Type the scripture (first letters shown)...'),
-                hintStyle: TextStyle(
-                  fontSize: 13,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.35),
-                ),
-                filled: true,
-                fillColor: Theme.of(context).colorScheme.surfaceContainerLow,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                  borderSide: BorderSide(
-                    color: state.hasActiveError
-                        ? AppTheme.error
-                        : _getDifficultyColor(widget.difficulty),
-                    width: 2,
-                  ),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: AppTheme.spacingSm,
-                  vertical: AppTheme.spacingSm,
-                ),
-              ),
-              onChanged: (value) {
-                // Skip if we're in the middle of a programmatic reset/clear
-                if (_isResetting) return;
-
-                ref.read(scriptureBuilderProvider.notifier).onType(value);
-                final newState = ref.read(scriptureBuilderProvider);
-
-                if (newState.lastFeedback == 'reset') {
-                  ref.read(hapticProvider).heavy();
-                  ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
-                  // Don't do anything else — the listener handles clearing
-                  return;
-                } else if (newState.lastFeedback == 'incorrect') {
-                  ref.read(hapticProvider).medium();
-                  ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
-                }
-
-                if (newState.isScriptureComplete) {
-                  ref.read(hapticProvider).heavy();
-                  _typingFocusNode.unfocus();
-                  if (!newState.isComplete) {
-                    Future.delayed(const Duration(milliseconds: 1000), () {
-                      if (mounted) {
-                        _isResetting = true;
-                        _typingController.clear();
-                        _isResetting = false;
-                        ref.read(scriptureBuilderProvider.notifier).nextScripture();
-                        _typingFocusNode.requestFocus();
-                      }
-                    });
-                  }
-                }
-              },
-            ),
-          ),
-        ],
-      ),
+    return SbTypingInputField(
+      controller: _typingController,
+      focusNode: _typingFocusNode,
+      isMaster: isMaster,
+      hasActiveError: state.hasActiveError,
+      difficultyColor: _getDifficultyColor(widget.difficulty),
+      onChanged: _handleTypingChanged,
+      onSubmitted: isMaster ? _handleTypingSubmitted : null,
     );
+  }
+
+  void _handleTypingChanged(String value) {
+    // Skip if we're in the middle of a programmatic reset/clear
+    if (_isResetting) return;
+
+    ref.read(scriptureBuilderProvider.notifier).onType(value);
+    _afterTypingInput();
+  }
+
+  /// Master only: the keyboard's done key commits the current word, so the
+  /// final word of a verse doesn't require a trailing space.
+  void _handleTypingSubmitted(String value) {
+    if (_isResetting) return;
+
+    ref.read(scriptureBuilderProvider.notifier).submitWord();
+    _afterTypingInput();
+
+    // The done key dismisses the keyboard — bring it back unless the verse
+    // just completed (the completion flow manages focus itself).
+    if (!ref.read(scriptureBuilderProvider).isScriptureComplete) {
+      _typingFocusNode.requestFocus();
+    }
+  }
+
+  void _afterTypingInput() {
+    final newState = ref.read(scriptureBuilderProvider);
+
+    if (newState.lastFeedback == 'reset') {
+      ref.read(hapticProvider).heavy();
+      ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
+      // Don't do anything else — the listener handles clearing
+      return;
+    } else if (newState.lastFeedback == 'incorrect') {
+      ref.read(hapticProvider).medium();
+      ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
+    } else if (newState.lastFeedback == 'word') {
+      // Master: a word was committed correctly.
+      ref.read(hapticProvider).light();
+      ref.read(audioProvider.notifier).play(SoundEffect.correct);
+    }
+
+    if (newState.isScriptureComplete) {
+      ref.read(hapticProvider).heavy();
+      _typingFocusNode.unfocus();
+      if (!newState.isComplete) {
+        Future.delayed(const Duration(milliseconds: 1000), () {
+          if (mounted) {
+            _isResetting = true;
+            _typingController.clear();
+            _isResetting = false;
+            ref.read(scriptureBuilderProvider.notifier).nextScripture();
+            _typingFocusNode.requestFocus();
+          }
+        });
+      }
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -1082,27 +1050,5 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
       ),
     );
     return result ?? false;
-  }
-}
-
-/// Rejects multi-character insertions (paste / clipboard) while allowing
-/// single keystrokes and deletions. Used by Advanced & Master typing fields.
-class _NoPasteFormatter extends TextInputFormatter {
-  const _NoPasteFormatter();
-
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final selectionLength = oldValue.selection.isValid
-        ? oldValue.selection.end - oldValue.selection.start
-        : 0;
-    final insertedLength =
-        newValue.text.length - (oldValue.text.length - selectionLength);
-    if (insertedLength > 1) {
-      return oldValue;
-    }
-    return newValue;
   }
 }

@@ -5,7 +5,7 @@ Scripture Builder is the PRIMARY mastery tool. It lives under each scripture (ac
 - **Beginner** (chunk-tap): 3-word chunks, tap in order → earns **Learning** mastery
 - **Intermediate** (chunk-tap): 2-word chunks + distractors from other scriptures → earns **Familiar** mastery
 - **Advanced** (typing): Type the passage with first-letter hints. Wrong char turns red, must backspace → earns **Memorized** mastery
-- **Master** (typing): Blind typing (all underscores). Any wrong char resets everything. Typing-only (no mic — see TASK-069 for the future premium AI voice recite feature) → 3 consecutive perfect runs earns **Mastered**
+- **Master** (typing): Blind typing (all underscores), judged **per word, not per keystroke**: the field holds one word at a time, OS autocorrect is enabled, and the word is only checked when committed with the spacebar (`WordCommitEngine`). A wrong word resets everything. Typing-only (no mic — see TASK-069 for the future premium AI voice recite feature) → 3 consecutive perfect runs earns **Mastered**
 
 **Shortcut rule**: If a user can complete Master difficulty perfectly, they've proven mastery regardless of whether they did Beginner/Intermediate/Advanced. The system should recognize this (planned — see TODO.md TASK-031).
 
