@@ -861,9 +861,11 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
       ref.read(hapticProvider).medium();
       ref.read(audioProvider.notifier).play(SoundEffect.incorrect);
     } else if (newState.lastFeedback == 'word') {
-      // Master: a word was committed correctly.
+      // Master: a word was committed correctly. Haptic only — a per-word
+      // ding would fire dozens of times per verse while the user is
+      // heads-down typing (owner call, 2026-07-15; chunk-tap keeps its
+      // per-chunk sound since taps are the whole interaction there).
       ref.read(hapticProvider).light();
-      ref.read(audioProvider.notifier).play(SoundEffect.correct);
     }
 
     // Only handle completion once per scripture: a second input event
