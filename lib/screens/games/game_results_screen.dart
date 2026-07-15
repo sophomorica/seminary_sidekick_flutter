@@ -60,7 +60,6 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
   ScoreEvent? _activeChip;
   bool _blankScore = false;
   bool _showGrade = false;
-  double _scoreScale = 1.0;
   bool _sequenceDone = false;
   bool _showMasteryBanner = false;
   bool _skipped = false;
@@ -174,7 +173,6 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
       _displayScore = _story.finalScore;
       _meterValue = _story.finalScore / ScoreStoryEngine.maxScore;
       _showGrade = true;
-      _scoreScale = 1.0;
     });
     await _finalPopController.forward(from: 0);
     if (!mounted || _skipped) return;
@@ -220,7 +218,6 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
       _displayScore = _story.finalScore;
       _meterValue = _story.finalScore / ScoreStoryEngine.maxScore;
       _showGrade = true;
-      _scoreScale = 1.0;
       _avatarMotion = MasteryAvatarMotion.idle;
       _morphFrom = null;
       _sequenceDone = true;
@@ -295,10 +292,9 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
                                 return Transform.translate(
                                   offset: Offset(shakeOffset.value, 0),
                                   child: Transform.scale(
-                                    scale: _showGrade
-                                        ? (_finalPopController.isAnimating
-                                            ? popScale.value
-                                            : _scoreScale)
+                                    scale: _showGrade &&
+                                            _finalPopController.isAnimating
+                                        ? popScale.value
                                         : 1.0,
                                     child: child,
                                   ),
@@ -327,7 +323,6 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
                                         : null,
                                     blankScore: _blankScore,
                                     animationDuration: _meterAnimDuration,
-                                    scoreScale: 1.0,
                                   ),
                                 ],
                               ),

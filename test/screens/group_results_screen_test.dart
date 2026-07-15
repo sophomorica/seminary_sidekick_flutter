@@ -281,6 +281,48 @@ void main() {
     );
   });
 
+  testWidgets(
+      'quiz with local player but no questions skips meter and shows podium',
+      (tester) async {
+    final now = DateTime.utc(2026, 7, 15);
+    final me = player(
+      id: 'p-me',
+      userId: 'me-uid',
+      nick: 'Pat',
+      score: 0,
+    );
+    // questionCount 0 + empty questions ⇒ _quizStory null (confetti regression).
+    final seed = GroupPlayState(
+      phase: GroupPlayPhase.viewingResults,
+      room: GroupRoom(
+        id: 'room-1',
+        code: 'ABCD',
+        hostId: 'me-uid',
+        status: GroupRoomStatus.ended,
+        scope: const GroupRoomScope(
+          difficultyName: 'beginner',
+          questionCount: 0,
+        ),
+        createdAt: now,
+        endedAt: now,
+      ),
+      players: [me],
+      me: me,
+      questions: const [],
+      answers: const [],
+    );
+
+    await tester.pumpWidget(harness(seed));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(find.byType(CompressedScoreStory), findsNothing);
+    expect(find.byType(PodiumView), findsOneWidget);
+
+    // Flush gold-reveal confetti delay so the test ends cleanly.
+    await tester.pump(const Duration(seconds: 4));
+  });
+
   testWidgets('SB race results show podium immediately without meter moment',
       (tester) async {
     await tester.pumpWidget(harness(sbState()));

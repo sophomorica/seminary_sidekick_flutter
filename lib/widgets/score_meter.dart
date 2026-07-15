@@ -14,7 +14,6 @@ class ScoreMeter extends StatefulWidget {
   final double size;
   final Duration animationDuration;
   final bool blankScore;
-  final double scoreScale;
 
   const ScoreMeter({
     super.key,
@@ -24,7 +23,6 @@ class ScoreMeter extends StatefulWidget {
     this.size = 220,
     this.animationDuration = const Duration(milliseconds: 640),
     this.blankScore = false,
-    this.scoreScale = 1.0,
   });
 
   static Color fillColorFor(double fraction) {
@@ -105,29 +103,26 @@ class _ScoreMeterState extends State<ScoreMeter>
               ),
               Positioned(
                 bottom: 0,
-                child: Transform.scale(
-                  scale: widget.scoreScale,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      widget.blankScore ? '' : '${widget.displayScore}',
+                      style: textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: fill,
+                      ),
+                    ),
+                    if (widget.gradeLabel != null &&
+                        widget.gradeLabel!.isNotEmpty)
                       Text(
-                        widget.blankScore ? '' : '${widget.displayScore}',
-                        style: textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: fill,
+                        widget.gradeLabel!,
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.onSurface,
                         ),
                       ),
-                      if (widget.gradeLabel != null &&
-                          widget.gradeLabel!.isNotEmpty)
-                        Text(
-                          widget.gradeLabel!,
-                          style: textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: colorScheme.onSurface,
-                          ),
-                        ),
-                    ],
-                  ),
+                  ],
                 ),
               ),
             ],

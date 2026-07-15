@@ -49,7 +49,8 @@ class _GroupResultsScreenState extends ConsumerState<GroupResultsScreen> {
     _confettiController =
         ConfettiController(duration: const Duration(seconds: 3));
     // SB race: confetti timed to podium gold reveal (unchanged).
-    // Quiz: schedule confetti after the personal meter moment finishes.
+    // Quiz: schedule confetti after the personal meter moment finishes —
+    // or immediately (same delay) when there is no meter to play.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final state = ref.read(groupPlayProvider);
@@ -57,8 +58,9 @@ class _GroupResultsScreenState extends ConsumerState<GroupResultsScreen> {
           state.sbConfig != null;
       if (isSb) {
         _scheduleConfetti(PodiumView.goldRevealDelay);
-      } else if (state.me == null) {
-        // No local player row — skip meter, show podium immediately.
+      } else if (_quizStory(state) == null) {
+        // No meter moment (no local player, or questionCount <= 0) —
+        // show podium immediately and keep the old confetti timing.
         setState(() => _quizMeterDone = true);
         _scheduleConfetti(PodiumView.goldRevealDelay);
       }
