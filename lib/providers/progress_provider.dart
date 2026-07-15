@@ -8,6 +8,12 @@ import 'study_streak_provider.dart';
 
 /// User statistics model for overall progress
 class UserStats {
+  /// Avatar stage thresholds (inclusive max for each band). Owner may tune.
+  static const int avatarStage1MaxMastered = 2; // 0–2 → stage 1
+  static const int avatarStage2MaxMastered = 9; // 3–9 → stage 2
+  static const int avatarStage3MaxMastered = 24; // 10–24 → stage 3
+  // 25+ → stage 4
+
   final int totalAttempted;
   final int totalMemorized;
   final int totalMastered;
@@ -23,6 +29,22 @@ class UserStats {
     required this.currentStreak,
     required this.overallAccuracy,
   });
+
+  /// Display-only mastery avatar stage derived from [totalMastered].
+  AvatarStage get avatarStage => avatarStageForMastered(totalMastered);
+
+  static AvatarStage avatarStageForMastered(int totalMastered) {
+    if (totalMastered <= avatarStage1MaxMastered) {
+      return AvatarStage.quickToObserve;
+    }
+    if (totalMastered <= avatarStage2MaxMastered) {
+      return AvatarStage.stalwart;
+    }
+    if (totalMastered <= avatarStage3MaxMastered) {
+      return AvatarStage.striplingWarrior;
+    }
+    return AvatarStage.standardBearer;
+  }
 }
 
 /// StateNotifier for managing user progress with Hive persistence.

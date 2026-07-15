@@ -45,7 +45,8 @@ class SbFinishBanner extends StatelessWidget {
             ? '${seconds}s · clean'
             : '${seconds}s · $mistakeCount ${mistakeCount == 1 ? "mistake" : "mistakes"}');
 
-    // Same thresholds as the solo Scripture Builder results screen.
+    // Group Play race finish pips (mistake thresholds). Not the solo
+    // results score meter / word-grade system.
     final stars = isDnf ? 0 : GroupSbFinish.starRatingFor(mistakeCount);
 
     final iconWidget = Icon(

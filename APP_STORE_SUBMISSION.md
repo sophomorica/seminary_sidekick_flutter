@@ -1,38 +1,47 @@
 # App Store Submission Pack — Seminary Sidekick
 
 > Copy-paste source for the App Store Connect listing. Everything here is a draft you own — edit freely. **Bracketed `[…]` items need a real value from you.**
-> App: **Seminary Sidekick** · Bundle ID `com.seminarysidekick.app` · Version **1.0.0 (build 2)** · SKU `seminarysidekick`
+> App: **Seminary Sidekick** · Bundle ID `com.seminarysidekick.app` · Version **1.0.1** · SKU `seminarysidekick`
+>
+> **Status (2026-07-15): iOS v1.0.1 SUBMITTED** — in App Store review. **All submission blockers resolved** (Paid Apps Agreement / banking, EULA links, Subscribe/RevenueCat dart-defines, listing/IAP metadata). Non-blocker hygiene lives in §8 and `TODO.md` → 🚀 Launch Status. Future iOS archives: **always** `./scripts/build_ios_release.sh` (never bare `flutter build ipa`).
 
 ---
 
-## 0. The fastest path to "Submit" (status checklist)
+## 0. Submission status checklist
 
-`[x]` = done · `[ ]` = still to do. The ⛔ items are hard blockers for review; ⚠️ are quick but required.
+`[x]` = done · `[ ]` = still to do.
 
-**Already done (code + backend):**
+### Current
 
-- [X] **Sidekick proxy deployed + `XAI_API_KEY` secret set** (2026-06-13) — premium AI returns real responses for reviewers (verified: `supabase functions list` → `sidekick-proxy` ACTIVE v1; `supabase secrets list` → key present).
-- [X] **Bundle ID** `com.seminarysidekick.app` set across the iOS project.
-- [X] **App Store Connect** app record + "Seminary Sidekick Premium" subscription group (Monthly $4.99 / Yearly $34.99) created.
-- [X] **RevenueCat** configured — `premium` entitlement, both products attached, `default` offering current; iOS public SDK key in gitignored `.env`.
-- [X] **In-app launch-safety work** — Sidekick safety prompt, "Delete All My Data", privacy-policy link, "Subscribe" CTA; listing copy drafted (below).
+- [X] **iOS v1.0.1 submitted** for App Store review (2026-07-15). Pricing Free, worldwide availability; both subscriptions attached with the build; screenshots + listing metadata in place.
+- [X] **All prior review blockers resolved** (owner confirmed):
+  - Paid Apps Agreement **Active** (banking + tax)
+  - **3.1.2(c)** EULA — Privacy Policy + Terms of Use on upgrade screen + standard EULA in App Description
+  - **2.1(b)** Subscribe — archives use `./scripts/build_ios_release.sh` so `REVENUECAT_IOS_KEY` (and Supabase defines) are present; Sentry on purchase failure paths
+- [X] **Build rule locked in**: script loads `.env`, hard-fails if `REVENUECAT_IOS_KEY` / `SUPABASE_URL` / `SUPABASE_ANON_KEY` are missing. xAI key is **not** a client dart-define — it lives in the `sidekick-proxy`.
 
-**Still to do (roughly in order):**
+### Foundation (code + store setup — complete)
 
-- [X] ⚠️ **Confirm the privacy policy is live** at `https://seminarysidekick.com/privacy`.
-- [X] ⛔ **Capture screenshots** on the iPhone 6.9" simulator (and ideally an iPad) — see §6.
-- [X] ⚠️ **Paste the listing into App Store Connect** — **App Information** (§1), **listing copy** (§2), **App Privacy** (§3), **Age Rating** (§4), and **Review notes** (§5).
-- [X] ⚠️ **Set the release build's dart-defines and archive** (done 2026-07-04):
-  **⛔ ALWAYS build with `./scripts/build_ios_release.sh`** — it loads `.env`, hard-fails if `REVENUECAT_IOS_KEY` / `SUPABASE_URL` / `SUPABASE_ANON_KEY` are missing, and passes all dart-defines. Never run `flutter build ipa` by hand: build 3 was archived bare, purchases broke, and the app was rejected under 2.1(b) on 2026-07-10.
-  (xAI key is **not** passed anymore — it lives in the proxy.)
-- [X] ⚠️ **Upload the build** (Transporter, 2026-07-04) — attached to 1.0.0, both subscriptions attached, "Missing Metadata" cleared (needed subscription-group localization + per-sub review screenshot + availability).
-- [X] ⛔ **Submit for review — DONE 2026-07-04.** 🎉 (App priced Free, worldwide availability, iPad 13" screenshots included.)
-- [X] ⛔ **Build 1 rejected in processing (ITMS-91061, 2026-07-04)** — `share_plus` 7.2.2 shipped without the required privacy manifest. **Fixed + resubmitted 2026-07-05**: `share_plus` bumped to ^10.1.4, version 1.0.0+2, build 2 uploaded via Transporter (passed processing), swapped onto the 1.0 version, submission resubmitted → Waiting for Review (submission ID `9e3cdac1-11c1-40eb-afcc-84931cd7ef54`).
-- [X] ⛔ **Build 2 REJECTED in review (Guideline 3.1.2(c), 2026-07-09)** — no functional Terms of Use (EULA) link in the app's purchase flow. Reviewed on iPad Air 11" (M3). Apple suggested `SubscriptionStoreView`, but that's SwiftUI-only — our Flutter upgrade screen instead needs the required info directly. **Code fix same day**: upgrade-screen legal footer now has tappable **Privacy Policy** (`https://seminarysidekick.com/privacy`) + **Terms of Use** (Apple standard EULA `https://www.apple.com/legal/internet-services/itunes/dev/stdeula/`) links, plus expanded auto-renewal fine print; plan cards already showed title/length/price.
-- [X] ⛔ **3.1.2(c) fix resubmitted as build 3 (1.0.0+3)** — EULA links in upgrade screen + App Description. **The EULA issue passed review 2026-07-10.**
-- [X] ⛔ **Build 3 REJECTED in review (Guideline 2.1(b), 2026-07-10)** — tapping "Subscribe" showed an error message (iPad Air 11" M3, iPadOS 26.5.2): the sandbox purchase failed. Apple's letter points at the **Paid Apps Agreement**. Diagnosis + owner checklist in `TODO.md` → 🚀 Launch Status. Code: all purchase failure paths now report to Sentry with error codes (2026-07-10) so the failing path is identifiable in the field.
-- [ ] ⛔ **Resubmission steps (2.1(b))**: (1) confirm Paid Apps Agreement is **Active** (Business → Agreements — banking + tax complete); (2) confirm the archive command included `REVENUECAT_IOS_KEY` (build 3 rebuild is the prime suspect if it showed "Purchases aren't available right now"); (3) verify both subscriptions still attached + not "Developer Action Needed"; (4) add In-App Purchase capability in Xcode; (5) sandbox-test a real purchase on device; (6) `flutter analyze` + `flutter test`, bump to 1.0.0+4, archive **with dart-defines**, upload, swap; (7) reply with root cause + screen recording of a successful sandbox purchase, resubmit.
-- [ ] _After approval:_ delete the leftover sample "Seminary Sidekick Pro" entitlement + Test Store products in RevenueCat (cosmetic).
+- [X] **Sidekick proxy deployed + `XAI_API_KEY` secret set** (2026-06-13) — premium AI returns real responses for reviewers.
+- [X] **Bundle ID** `com.seminarysidekick.app` set across the iOS project (+ Android `applicationId`).
+- [X] **App Store Connect** app record + "Seminary Sidekick Premium" subscription group (Monthly $4.99 / Yearly $34.99).
+- [X] **RevenueCat** — `premium` entitlement, both products attached, `default` offering current; iOS public SDK key in gitignored `.env`.
+- [X] **Launch-safety** — Sidekick safety prompt, "Delete All My Data", privacy-policy + EULA links on upgrade screen, "Subscribe" CTA.
+- [X] **Privacy policy live** at `https://seminarysidekick.com/privacy`.
+- [X] **Screenshots** — iPhone 6.9" + iPad 13" (see §6).
+- [X] **Listing** pasted into ASC — App Information (§1), copy (§2), App Privacy (§3), Age Rating (§4), Review notes (§5).
+- [X] **Sentry** + **sidekick-proxy premium gate** enforcing (`REVENUECAT_SECRET_KEY`).
+
+### Review history (resolved — keep for context)
+
+| When | Version | Outcome |
+|------|---------|---------|
+| 2026-07-04 | 1.0.0 (1) | Submitted; **ITMS-91061** in processing (`share_plus` privacy manifest) → bumped to ^10.1.4 |
+| 2026-07-05 | 1.0.0 (2) | Resubmitted (submission ID `9e3cdac1-11c1-40eb-afcc-84931cd7ef54`) → later **3.1.2(c)** EULA link rejection (2026-07-09) |
+| 2026-07-10 | 1.0.0 (3) | EULA fix resubmitted; **3.1.2(c) passed**. New reject: **2.1(b)** Subscribe error (archive missing RevenueCat dart-defines → "Purchases aren't available right now"). Mitigations: release build script + Sentry on purchase failure paths. |
+| 2026-07-15 | **1.0.1** | **Submitted** (current) — banking, EULA, purchase path, and store metadata all resolved for this binary |
+
+No open App Store submission blockers. Remaining owner work is post-approval / product hygiene (§8).
 
 ---
 
@@ -108,11 +117,20 @@ Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/st
 
 > Apple requires the **subscription terms** + links to your **Privacy Policy** and a **Terms of Use (EULA)** for auto-renewable subscriptions, both in the description and in the App Privacy/agreements. The link above is Apple's standard EULA; swap for your own if you have one.
 
-### What's New (version 1.0.0)
+### What's New (version 1.0.1)
+
+```
+Welcome to Seminary Sidekick! Learn all 100 Doctrinal Mastery scriptures with Scripture Builder, Quick Quiz, Scripture Match, live "Play with Friends" class games, and the optional premium Seminary Sidekick AI study companion. This update includes purchase reliability and review fixes from the 1.0.0 review cycle.
+```
+
+<details>
+<summary>What's New used for 1.0.0 (first submission)</summary>
 
 ```
 Welcome to Seminary Sidekick! This first release includes the full mastery loop (Scripture Builder, Quick Quiz, Scripture Match), progress tracking, live "Play with Friends" class games, and the premium Seminary Sidekick AI study companion.
 ```
+
+</details>
 
 ---
 
@@ -194,19 +212,25 @@ Tip: capture on the simulator with `⌘S`, or `flutter screenshot`. Keep them cl
 
 ## 7. Subscription review specifics (so IAP isn't rejected)
 
-- [X] Attach **both subscriptions to the 1.0.0 version** and submit them **with** the build (done 2026-07-04).
+- [X] Attach **both subscriptions to the version** and submit them **with** the build (done for 1.0.0 on 2026-07-04; keep attached on **1.0.1** and every later version).
 - [X] Description includes the required **subscription disclosure** (price, period, auto-renew, manage/cancel) — keep it.
 - [X] Each subscription has a **localized display name + description** (plus the subscription-**group** localization, which was the hidden "Missing Metadata" cause).
-- [X] Add a **review screenshot** of the paywall to each subscription (done 2026-07-04 — `14-paywall.png` on both).
+- [X] **Review screenshot** of the paywall on each subscription (done 2026-07-04 — `14-paywall.png` on both).
 - [X] Upgrade button says **"Subscribe"** (no free trial configured) — no "Start Free Trial" rejection risk.
+- [X] In-app **Privacy Policy** + **Terms of Use (EULA)** links on the upgrade screen (required after 3.1.2(c); still required on every build).
+- [X] Archive **with** `./scripts/build_ios_release.sh` so RevenueCat is configured (required after 2.1(b)).
 
 ---
 
-## 8. Still-open owner items beyond this submission
+## 8. Owner items after submission (not App Store blockers)
 
-- [X] **Sentry**: project created 2026-07-03; `SENTRY_DSN` in gitignored `.env` — passed as a dart-define in the submitted build.
-- [X] **Sidekick premium gate**: `REVENUECAT_SECRET_KEY` Supabase secret set + `sidekick-proxy` redeployed and enforcing (2026-07-04).
-- [ ] **Supabase free-tier auto-pause**: upgrade to Pro or set a keep-alive before launch — a paused project kills Group Play + Sidekick (already happened once).
-- [ ] **Android**: Play Console products + `REVENUECAT_ANDROID_KEY` + release signing (separate launch).
+Mirrored in `TODO.md` → 🚀 Launch Status. Submission blockers (banking / Paid Apps Agreement, EULA, Subscribe/RevenueCat build, listing/IAP) are **done**. These are hygiene before real traffic or a separate launch track:
+
+- [X] **Sentry**: project created 2026-07-03; `SENTRY_DSN` in gitignored `.env` — passed as a dart-define in release builds.
+- [X] **Sidekick premium gate**: `REVENUECAT_SECRET_KEY` set + `sidekick-proxy` enforcing (2026-07-04).
+- [X] **Paid Apps Agreement**, **EULA links**, **1.0.1 archive with dart-defines** — resolved for current submission.
+- [ ] **Supabase free-tier auto-pause**: upgrade to Pro (~$25/mo) or set a keep-alive — a paused project kills Group Play + Sidekick (already happened once during screenshots).
+- [ ] **Android launch** (separate effort): Play Console products + `REVENUECAT_ANDROID_KEY` + release signing — see `REVENUECAT_SETUP.md` Step 2.
 - [ ] **Group Play**: two-instance realtime smoke test (TASK-051) before relying on it at class scale.
+- [ ] **TASK-045 audio ear-check** on device.
 - [ ] **After approval**: delete the sample "Seminary Sidekick Pro" entitlement + Test Store products in RevenueCat.

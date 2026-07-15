@@ -14,8 +14,9 @@ import 'scripture_builder_page.dart';
 /// 4 pages:
 ///   1. Welcome — introduce the app's purpose
 ///   2. Scripture Builder — the central mastery tool with 4 tiers
-///   3. What "Mastered" means — 3 perfect Master runs
-///   4. Practice quizzes — supplementary recognition tools
+///   3. What "Mastered" means — 3 perfect Master runs, score meter grades,
+///      and the mastery-avatar journey
+///   4. Practice quizzes — supplementary recognition tools (same results meter)
 ///
 /// Skippable at any point. Re-accessible from the home screen help button.
 class OnboardingScreen extends ConsumerStatefulWidget {

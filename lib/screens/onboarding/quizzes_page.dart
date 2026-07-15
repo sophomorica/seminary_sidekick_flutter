@@ -37,7 +37,8 @@ class PracticeQuizzesPage extends StatelessWidget {
           const SizedBox(height: AppTheme.spacingMd),
           Text(
             'Two supplementary quizzes help sharpen your recognition '
-            'and comprehension — but Scripture Builder is where mastery is earned.',
+            'and comprehension — but Scripture Builder is where mastery is earned. '
+            'Each round ends on the same score meter and word grade as Builder.',
             style: theme.textTheme.bodyLarge?.copyWith(
               color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.7),
             ),
@@ -48,14 +49,16 @@ class PracticeQuizzesPage extends StatelessWidget {
             icon: Icons.swap_horiz,
             color: AppTheme.secondary,
             title: 'Scripture Match',
-            description: 'Match key phrases to their references.',
+            description:
+                'Match key phrases to their references — then see your grade on the meter.',
           ),
           const SizedBox(height: AppTheme.spacingSm),
           const _QuizCard(
             icon: Icons.quiz,
             color: AppTheme.accent,
             title: 'Quick Quiz',
-            description: 'Multiple choice on passages and references.',
+            description:
+                'Multiple choice on passages and references — finish with a word grade.',
           ),
           const SizedBox(height: AppTheme.spacingLg),
           Text(

@@ -28,7 +28,7 @@ test/
 2. **Scripture mastery model** (core mastery logic): linear path levels, Scripture Builder-driven computation, gentle decay, Eternal tier, sub-progress, requirements generation
 3. **Progress provider** (core business logic): recordAttempt, accuracy, streaks, mastery thresholds, game type isolation, consecutivePerfectMaster tracking
 4. **Scripture provider** (read-only queries): all 100 scriptures, by book, by ID, search
-5. **Matching game provider**: game init, selection, matching, completion, star rating
+5. **Matching game provider**: game init, selection, matching, completion, internal `starRating` getter (results UI uses score meter grades)
 6. **Word builder provider** (most complex): chunk-tap mode + typing mode across all 4 difficulty tiers
 7. **Widget tests** (lowest priority): MemorizeScreen, GamesHubScreen, GameResultsScreen
 

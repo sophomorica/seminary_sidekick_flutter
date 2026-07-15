@@ -13,7 +13,11 @@ import '../../models/group_room.dart';
 import '../../models/group_sb_config.dart';
 import '../../models/group_sb_finish.dart';
 import '../../providers/group_play_provider.dart';
+import '../../services/haptic_service.dart';
+import '../../services/score_story_engine.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/compressed_score_story.dart';
+import '../../widgets/score_meter.dart';
 import 'widgets/podium_view.dart';
 
 /// Final results screen for a group play session.
@@ -21,6 +25,10 @@ import 'widgets/podium_view.dart';
 /// Shows a top-3 podium with confetti, the full leaderboard with per-player
 /// stats, a share button, and host actions ("Play Again" / "End Room"). Players
 /// see a single "Done" action.
+///
+/// Quiz mode opens with a brief personal [CompressedScoreStory] (ScoreMeter)
+/// moment, then reveals the podium. Scripture Builder race results skip that
+/// beat and behave as before.
 class GroupResultsScreen extends ConsumerStatefulWidget {
   final String code;
 
@@ -32,23 +40,72 @@ class GroupResultsScreen extends ConsumerStatefulWidget {
 
 class _GroupResultsScreenState extends ConsumerState<GroupResultsScreen> {
   late final ConfettiController _confettiController;
+  bool _quizMeterDone = false;
+  bool _confettiScheduled = false;
 
   @override
   void initState() {
     super.initState();
     _confettiController =
         ConfettiController(duration: const Duration(seconds: 3));
-    // Hold the confetti until the podium's gold column rises into place —
-    // the burst should hit as the winner appears, not on a bare screen.
-    Future.delayed(PodiumView.goldRevealDelay, () {
+    // SB race: confetti timed to podium gold reveal (unchanged).
+    // Quiz: schedule confetti after the personal meter moment finishes —
+    // or immediately (same delay) when there is no meter to play.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final state = ref.read(groupPlayProvider);
+      final isSb = state.room?.scope.mode == GroupGameMode.scriptureBuilder &&
+          state.sbConfig != null;
+      if (isSb) {
+        _scheduleConfetti(PodiumView.goldRevealDelay);
+      } else if (_quizStory(state) == null) {
+        // No meter moment (no local player, or questionCount <= 0) —
+        // show podium immediately and keep the old confetti timing.
+        setState(() => _quizMeterDone = true);
+        _scheduleConfetti(PodiumView.goldRevealDelay);
+      }
+    });
+  }
+
+  void _scheduleConfetti(Duration delay) {
+    if (_confettiScheduled) return;
+    _confettiScheduled = true;
+    Future.delayed(delay, () {
       if (mounted) _confettiController.play();
     });
+  }
+
+  void _onQuizMeterComplete() {
+    if (_quizMeterDone) return;
+    setState(() => _quizMeterDone = true);
+    _scheduleConfetti(PodiumView.goldRevealDelay);
   }
 
   @override
   void dispose() {
     _confettiController.dispose();
     super.dispose();
+  }
+
+  ScoreStory? _quizStory(GroupPlayState state) {
+    final me = state.me;
+    if (me == null) return null;
+    final questionCount = state.questions.isNotEmpty
+        ? state.questions.length
+        : (state.room?.scope.questionCount ?? 0);
+    if (questionCount <= 0) return null;
+
+    final mine = state.answers.where((a) => a.playerId == me.id).toList();
+    final correct = mine.where((a) => a.isCorrect).length;
+    final incorrect = mine.where((a) => !a.isCorrect).length;
+
+    return ScoreStoryEngine.buildGroupQuiz(
+      rawScore: me.score,
+      maxPossible: questionCount * 1000,
+      correctCount: correct,
+      incorrectCount: incorrect,
+      questionCount: questionCount,
+    );
   }
 
   @override
@@ -78,6 +135,9 @@ class _GroupResultsScreenState extends ConsumerState<GroupResultsScreen> {
             answers: state.answers,
           );
     final leaderboard = rankedRows.map((r) => r.player).toList();
+    final quizStory = isSb ? null : _quizStory(state);
+    final showQuizMeter = !isSb && quizStory != null && !_quizMeterDone;
+    final showPodium = isSb || _quizMeterDone || quizStory == null;
 
     return Scaffold(
       appBar: AppBar(
@@ -98,31 +158,53 @@ class _GroupResultsScreenState extends ConsumerState<GroupResultsScreen> {
                     children: [
                       _Header(state: state, isSb: isSb, leaderboard: leaderboard),
                       const SizedBox(height: AppTheme.spacingLg),
-                      PodiumView(
-                        topThree: leaderboard.take(3).toList(),
-                        myUserId: myUserId,
-                      ),
-                      const SizedBox(height: AppTheme.spacingXl),
-                      const _SectionLabel('FULL LEADERBOARD'),
-                      const SizedBox(height: AppTheme.spacingSm),
-                      ...List.generate(rankedRows.length, (i) {
-                        final row = rankedRows[i];
-                        return _LeaderboardRow(
-                          rank: i + 1,
-                          player: row.player,
-                          detail: row.detail,
-                          score: row.score,
-                          isMe: row.player.userId == myUserId,
-                        );
-                      }),
-                      const SizedBox(height: AppTheme.spacingMd),
-                      OutlinedButton.icon(
-                        onPressed: () => _handleShare(state, rankedRows),
-                        icon: const Icon(Icons.ios_share),
-                        label: const Text('Share Results'),
-                      ),
-                      const SizedBox(height: AppTheme.spacingMd),
-                      // TASK-061: per-question class breakdown lands here.
+                      if (showQuizMeter)
+                        CompressedScoreStory(
+                          story: quizStory,
+                          haptics: ref.read(hapticProvider),
+                          onComplete: _onQuizMeterComplete,
+                        ),
+                      if (showPodium) ...[
+                        if (quizStory != null && _quizMeterDone) ...[
+                          // Keep a compact final meter above the podium after
+                          // the personal moment so the score story stays visible.
+                          ScoreMeter(
+                            value: quizStory.finalScore /
+                                ScoreStoryEngine.maxScore,
+                            displayScore: quizStory.finalScore,
+                            gradeLabel: quizStory.grade.label,
+                            size: 160,
+                            animationDuration:
+                                const Duration(milliseconds: 1),
+                          ),
+                          const SizedBox(height: AppTheme.spacingMd),
+                        ],
+                        PodiumView(
+                          topThree: leaderboard.take(3).toList(),
+                          myUserId: myUserId,
+                        ),
+                        const SizedBox(height: AppTheme.spacingXl),
+                        const _SectionLabel('FULL LEADERBOARD'),
+                        const SizedBox(height: AppTheme.spacingSm),
+                        ...List.generate(rankedRows.length, (i) {
+                          final row = rankedRows[i];
+                          return _LeaderboardRow(
+                            rank: i + 1,
+                            player: row.player,
+                            detail: row.detail,
+                            score: row.score,
+                            isMe: row.player.userId == myUserId,
+                          );
+                        }),
+                        const SizedBox(height: AppTheme.spacingMd),
+                        OutlinedButton.icon(
+                          onPressed: () => _handleShare(state, rankedRows),
+                          icon: const Icon(Icons.ios_share),
+                          label: const Text('Share Results'),
+                        ),
+                        const SizedBox(height: AppTheme.spacingMd),
+                        // TASK-061: per-question class breakdown lands here.
+                      ],
                     ],
                   ),
                 ),
