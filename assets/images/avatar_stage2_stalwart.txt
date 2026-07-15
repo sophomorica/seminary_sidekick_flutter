@@ -1,0 +1,7 @@
+Placeholder for avatar_stage2_stalwart.png (TASK-072 mastery avatar, stage 2 of 4: "Stalwart" — cf. 2 Nephi 31:20, steadfastness).
+
+The same character grown into a confident, stalwart young person — standing straight, scriptures held comfortably under one arm, calm steady smile, simple satchel. Posture says dependable and pressing forward.
+
+Style: matches stage 1 exactly (flat friendly vector, chibi proportions maturing slightly, transparent bg, ~512x512, legible at 64px).
+
+Mood: "steady and committed." Colors: deepen slightly — teals/blues joining the greens.

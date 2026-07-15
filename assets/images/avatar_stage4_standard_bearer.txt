@@ -1,0 +1,7 @@
+Placeholder for avatar_stage4_standard_bearer.png (TASK-072 mastery avatar, stage 4 of 4: "Standard Bearer" — Alma 46, Captain Moroni and the Title of Liberty).
+
+The same character as a little Captain Moroni hoisting the rent cloak: banner pole raised high overhead in one fist, the torn-cloak banner catching the wind (simple fabric shape — actual Title of Liberty text optional/illegible at small size), full armor from stage 3 plus a cape, triumphant determined face. The definitive "rallying others" pose — heroic and reverent, power in the standard, no weapons drawn.
+
+Style: matches stages 1–3 (flat friendly vector, same face, transparent bg, ~512x512, legible at 64px — banner silhouette must read at small size).
+
+Mood: "mastery — raising the standard for others." Colors: purple/gold accents over the established palette (align with the app's mastery color).

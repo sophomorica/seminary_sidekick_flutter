@@ -1,0 +1,7 @@
+Placeholder for avatar_stage3_stripling_warrior.png (TASK-072 mastery avatar, stage 3 of 4).
+
+The same character as a stripling warrior (Helaman's 2,000 vibe) — youthful armor breastplate, banner or shield with a simple scripture/book emblem, determined but kind expression. Heroic stance without weapons drawn; courage, not violence.
+
+Style: matches stages 1–2 (flat friendly vector, same face, transparent bg, ~512x512, legible at 64px).
+
+Mood: "faithful and brave." Colors: add golds/bronze armor accents over the established palette.

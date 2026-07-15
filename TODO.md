@@ -182,6 +182,53 @@
 
 ## Active Tasks
 
+### TASK-072: Game-complete redesign — animated score meter + mastery avatar (solo)
+
+- **status**: `todo`
+- **priority**: P2
+- **estimated_effort**: Medium-Large
+- **files_to_touch**: `lib/screens/games/game_results_screen.dart` (rewrite), `lib/services/score_story_engine.dart` (new, pure Dart), `lib/widgets/score_meter.dart` (new), `lib/widgets/mastery_avatar.dart` (new), `lib/providers/progress_provider.dart` (add avatar-stage getter), `lib/models/enums.dart` (⚠️ shared file — new `AvatarStage` enum), `assets/images/avatar_stage*.txt` (already created), `pubspec.yaml` (⚠️ shared — asset entries only if needed), `test/screens/game_results_screen_test.dart` (update), new tests
+- **description**: Replace the three-star results page with an animated "score story": a half-circle gauge (no needle) that score events feed one at a time, misses knock back, ending in a dramatic pause → final score pop + word grade → mastery-avatar level-up morphs. Prototypes approved by owner 2026-07-15 (Cowork session): v1 layout, ~25% faster pacing, dramatic pause, avatar morphs AFTER the total.
+
+  **A. Score model — new `ScoreStoryEngine` (pure Dart, display-only).** Input: the fields `GameResultsScreen` already receives (`correctMatches`, `incorrectAttempts`, `totalPairs`, `completionTime`, `difficulty`, `gameType`). Output: `ScoreStory` = ordered list of `ScoreEvent{label, points, isMiss, icon}` + `finalScore` (0–1000) + `grade`. Categories (do NOT invent data we don't track — no streak):
+  1. `Accuracy` — up to 600 pts: `600 * correct / (correct + incorrect)`.
+  2. `Speed bonus` — up to 250 pts: scale from per-difficulty par times (define consts per gameType/difficulty; generous, tune later).
+  3. `Misses` — one negative event, `-20 × incorrectAttempts` capped at −150 (0 misses → skip event, emit `Flawless +50` instead).
+  4. `Finish bonus` — flat +150 for completing the round.
+  Rounding: final score clamped 0–1000, ints only. Grades: ≥900 `Masterful`, ≥750 `Strong`, ≥500 `Getting there`, else `Keep practicing`. Word grade REPLACES stars everywhere on this screen; the providers' `starRating` getters stay (other call sites + tests) but the results screen no longer reads them.
+  **Event order**: Accuracy → Speed → Misses (or Flawless) → Finish — misses deliberately mid-sequence so the meter climbs, takes the hit, recovers.
+
+  **B. Meter widget — `ScoreMeter` (CustomPainter, model on `lib/widgets/progress_ring.dart`).** Half-circle arc, 16px stroke, rounded caps, track in outline/border color. Fill color by fraction: <0.4 `AppTheme.error`, <0.7 `AppTheme.warning`, else `AppTheme.success`. Center: scrolling integer total (tween with `easeOutCubic`), word grade below. Sequence per event: label+points chip fades in above (icon + `+N`/`−N`, success/error color) → arc tweens to new total (~640ms gains / ~330ms misses) → chip fades, receipt row appears in the stats list below (label left, signed points right, misses in error color). Miss extras: horizontal shake of the whole card (~220ms) + `HapticService.heavy()`; gains get `light()`. After last event: number blanks ~750ms (dramatic pause) → final score pops in with overshoot scale + grade + `medium()` haptic. Confetti (existing `ConfettiController` pattern) ONLY when grade is Masterful or `isNewMastery`.
+
+  **C. Avatar — `MasteryAvatar` + `AvatarStage`.** No overall user level exists today (VERIFIED: only per-scripture `MasteryLevel` + `ProgressStats.totalMastered`). Derive stage from `totalMastered` via a new getter on `ProgressStats`: `0–2 → stage1, 3–9 → stage2, 10–24 → stage3, 25+ → stage4` (make thresholds named consts — owner will tune). Stages/art (`assets/images/`, `.txt` placeholders until art exists — render a placeholder circle w/ stage icon + name until PNGs land): 1 `Quick to Observe` (Mormon 1:2) → 2 `Stalwart` (2 Ne 31:20) → 3 `Stripling Warrior` (Alma 53) → 4 `Standard Bearer` (Alma 46, mini Captain Moroni hoisting the rent cloak). Placement: under the gauge, avatar circle + stage name/`Stage N of 4`. During the run: small hop on gains, flinch/rotate on misses. Level-up: compute stage from `totalMastered` BEFORE vs AFTER this round's progress write; if changed, after the final-score pop play morph(s): scale-down+rotate out → swap stage → overshoot scale in + expanding ring. Multi-stage jumps cascade ~0.7s each; entire results sequence is tap-to-skip (tap anywhere → jump to final state, all events in receipt list, correct final stage). `SoundEffect.levelup` on morph.
+
+  **D. Integration.** `GameResultsScreen` keeps its public constructor signature (callers in matching/quiz/scripture-builder screens unchanged). Internally: build `ScoreStory`, drive the sequence with an `AnimationController`/async sequence, keep `isNewMastery` banner (after morphs). Remove star row + `AppTheme.gold` star usage from this screen.
+- **acceptance_criteria**:
+  - [ ] `ScoreStoryEngine` unit tests: category math, clamping, 0-miss Flawless path, grade thresholds, event ordering, determinism
+  - [ ] `ScoreMeter` + sequence widget tests: events render in order, receipt rows accumulate, final score/grade shown, tap-to-skip lands final state (use `HapticService.disabled()` override; avoid confetti path in settle tests per existing harness trick)
+  - [ ] Avatar stage getter unit tests incl. threshold boundaries; morph cascade fires only when stage changed by this round
+  - [ ] Misses knock meter down mid-sequence w/ shake + heavy haptic; dramatic pause before final pop; confetti only Masterful/new-mastery
+  - [ ] No stars on solo results; providers' `starRating` untouched and green
+  - [ ] Display-only: no changes to mastery/progress WRITE paths (engine consumes existing fields)
+  - [ ] No generated images — placeholder rendering until owner supplies PNGs for the four `avatar_stage*.txt` specs
+  - [ ] `AppTheme.*` tokens only, no hardcoded colors/styles; `flutter analyze` clean; `flutter test` green (existing `game_results_screen_test.dart` updated)
+- **notes**: Escalate rather than improvise on: changing constructor signatures of callers, adding packages, or altering mastery math. Group Play parity is TASK-073 (separate — do not touch group screens here).
+
+### TASK-073: Group Play quiz — personal score-meter moment (scoped parity with TASK-072)
+
+- **status**: `todo` (blocked by TASK-072 — reuses `ScoreMeter` + `ScoreStoryEngine` patterns)
+- **priority**: P3
+- **estimated_effort**: Small-Medium
+- **files_to_touch**: `lib/screens/group_play/group_results_screen.dart`, possibly `lib/services/score_story_engine.dart` (group-quiz adapter), tests
+- **description**: Full visual parity with the solo redesign is NOT a small lift (VERIFIED 2026-07-15: `GroupResultsScreen` shares no widgets with solo; SB race scoring is time/rank-based and doesn't map to a 0–1000 meter). Scoped goal instead: in **quiz mode only**, show the local player a brief personal `ScoreMeter` moment (their `GroupPlayer.score` normalized against the round max — points are already speed-weighted, `maxPoints 1000`/question in `group_answer.dart`) ABOVE the podium reveal, compressed (~2s, 2–3 events: accuracy, speed, misses), then flow into the existing podium/leaderboard. SB race results unchanged. No mastery avatar in Group Play (Group Play never writes mastery — avatar staging is a personal-progress concept).
+- **acceptance_criteria**:
+  - [ ] Quiz-mode group results open with the local player's compressed meter story, then podium as today
+  - [ ] SB race (roundByRound + setOfN) results byte-for-byte behavior unchanged
+  - [ ] No writes to personal mastery/progress from Group Play (unchanged invariant)
+  - [ ] Reuses `ScoreMeter` widget — no forked copy
+  - [ ] `flutter analyze` clean; `flutter test` green incl. existing group tests
+- **notes**: If normalizing group quiz points to a satisfying 0–1000 proves awkward for short rounds, escalate with options rather than shipping a meter that mostly sits near-empty.
+
 ### TASK-071: Scripture Builder Master — word-commit typing (autocorrect-friendly)
 
 - **status**: `done`
