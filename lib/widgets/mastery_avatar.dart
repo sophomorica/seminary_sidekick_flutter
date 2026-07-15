@@ -33,6 +33,9 @@ enum MasteryAvatarMotion { idle, hop, flinch }
 
 class MasteryAvatarState extends State<MasteryAvatar>
     with TickerProviderStateMixin {
+  /// Morph timeline split: shrink-out ends / pop-in begins at this fraction.
+  static const double _morphSwapPoint = 0.45;
+
   late AnimationController _hopController;
   late AnimationController _flinchController;
   late AnimationController _morphController;
@@ -112,11 +115,15 @@ class MasteryAvatarState extends State<MasteryAvatar>
 
     for (var i = startIndex; i < endIndex; i++) {
       if (!mounted) return;
-      await _morphController.forward(from: 0);
+      // Shrink-out on the old stage, swap at the boundary, pop-in on the new.
+      _morphController.value = 0;
+      await _morphController.animateTo(_morphSwapPoint);
       if (!mounted) return;
       setState(() {
         _displayStage = AvatarStage.values[i + 1];
       });
+      await _morphController.forward();
+      if (!mounted) return;
       // Brief settle between cascading morphs.
       await Future<void>.delayed(const Duration(milliseconds: 40));
     }
@@ -174,14 +181,15 @@ class MasteryAvatarState extends State<MasteryAvatar>
         double ringProgress = 0.0;
         if (_morphing) {
           final t = _morphController.value;
-          if (t < 0.45) {
-            final p = t / 0.45;
+          if (t < _morphSwapPoint) {
+            final p = t / _morphSwapPoint;
             scale = 1.0 - 0.85 * Curves.easeIn.transform(p);
             morphAngle = 0.6 * p;
           } else {
-            final p = (t - 0.45) / 0.55;
-            // Overshoot: go to 1.15 then settle to 1.0
-            scale = 0.15 + 1.0 * Curves.elasticOut.transform(p);
+            final p = (t - _morphSwapPoint) / (1 - _morphSwapPoint);
+            // elasticOut overshoots past 1 mid-curve and ends at exactly 1,
+            // so the morph settles at scale 1.0 (no snap when _morphing clears).
+            scale = 0.15 + 0.85 * Curves.elasticOut.transform(p);
             morphAngle = 0;
             ringProgress = Curves.easeOut.transform(p);
           }

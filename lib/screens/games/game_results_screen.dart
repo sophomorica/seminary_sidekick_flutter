@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:confetti/confetti.dart';
@@ -67,6 +68,20 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
   AvatarStage? _morphFrom;
   late AvatarStage _finalStage;
   late AvatarStage _stageBefore;
+  Completer<void>? _morphCompleter;
+
+  /// Show the pre-round stage during the run; reveal the new stage only via
+  /// the morph (or instantly on skip / once the sequence is done).
+  AvatarStage get _visibleStage =>
+      (_morphFrom != null || _sequenceDone || _skipped)
+          ? _finalStage
+          : _stageBefore;
+
+  void _handleMorphComplete() {
+    if (_morphCompleter != null && !_morphCompleter!.isCompleted) {
+      _morphCompleter!.complete();
+    }
+  }
 
   bool get _shouldCelebrate =>
       _story.isMasterful || widget.isNewMastery;
@@ -178,13 +193,18 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
     if (!mounted || _skipped) return;
 
     // Avatar morph after final-score pop when stage changed this round.
+    // Await the cascade itself (via onMorphComplete) rather than a fixed
+    // delay — a timeout guards against a never-completing morph.
     if (_stageBefore != _finalStage) {
+      _morphCompleter = Completer<void>();
       setState(() {
         _morphFrom = _stageBefore;
       });
       ref.read(audioProvider.notifier).play(SoundEffect.levelup);
-      await Future<void>.delayed(
-        Duration(milliseconds: 700 * (_finalStage.index - _stageBefore.index)),
+      final stages = _finalStage.index - _stageBefore.index;
+      await _morphCompleter!.future.timeout(
+        Duration(milliseconds: 800 * stages + 500),
+        onTimeout: () {},
       );
     } else if (widget.isNewMastery) {
       ref.read(audioProvider.notifier).play(SoundEffect.levelup);
@@ -210,6 +230,7 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
     _skipped = true;
     _shakeController.stop();
     _finalPopController.stop();
+    _handleMorphComplete();
     _avatarKey.currentState?.skipTo(_finalStage);
     setState(() {
       _activeChip = null;
@@ -330,9 +351,10 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
                             const SizedBox(height: 20),
                             MasteryAvatar(
                               key: _avatarKey,
-                              stage: _finalStage,
+                              stage: _visibleStage,
                               morphFrom: _morphFrom,
                               motion: _avatarMotion,
+                              onMorphComplete: _handleMorphComplete,
                             ),
                             const SizedBox(height: 20),
                             // Receipt list

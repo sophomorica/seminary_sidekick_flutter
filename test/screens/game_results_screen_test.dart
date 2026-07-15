@@ -196,4 +196,44 @@ void main() {
     expect(find.text(AvatarStage.stalwart.label), findsOneWidget);
     expect(find.text('Scripture Mastered!'), findsOneWidget);
   });
+
+  testWidgets('avatar shows the pre-round stage during the run, not the final',
+      (tester) async {
+    // after=3 (Stalwart), isNewMastery ⇒ before=2 (Quick to Observe).
+    final stats = UserStats(
+      totalAttempted: 5,
+      totalMemorized: 0,
+      totalMastered: 3,
+      needsReview: 0,
+      currentStreak: 0,
+      overallAccuracy: 100,
+    );
+
+    await tester.pumpWidget(
+      buildHarness(
+        overrides: [
+          userStatsProvider.overrideWithValue(stats),
+        ],
+        openResults: (_) => buildResults(
+          isNewMastery: true,
+          tryAgainBuilder: (_) => const Scaffold(body: Text('x')),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open Results'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400)); // route transition
+    // Mid-run: first score event is animating; morph hasn't started.
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text(AvatarStage.quickToObserve.label), findsOneWidget);
+    expect(find.text(AvatarStage.stalwart.label), findsNothing);
+
+    // Skip to the end to flush the sequence, then verify the final stage.
+    await tester.tap(find.byKey(const Key('score-story-skip')));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+    expect(find.text(AvatarStage.stalwart.label), findsOneWidget);
+  });
 }
