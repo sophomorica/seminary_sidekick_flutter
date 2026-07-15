@@ -184,9 +184,10 @@
 
 ### TASK-072: Game-complete redesign — animated score meter + mastery avatar (solo)
 
-- **status**: `in_progress`
+- **status**: `done`
 - **claimed_by**: cursor-bc-3c69e6be
 - **started**: 2026-07-15T18:25:06Z
+- **completed**: 2026-07-15T18:45:00Z
 - **priority**: P2
 - **estimated_effort**: Medium-Large
 - **files_to_touch**: `lib/screens/games/game_results_screen.dart` (rewrite), `lib/services/score_story_engine.dart` (new, pure Dart), `lib/widgets/score_meter.dart` (new), `lib/widgets/mastery_avatar.dart` (new), `lib/providers/progress_provider.dart` (add avatar-stage getter), `lib/models/enums.dart` (⚠️ shared file — new `AvatarStage` enum), `assets/images/avatar_stage*.txt` (already created), `pubspec.yaml` (⚠️ shared — asset entries only if needed), `test/screens/game_results_screen_test.dart` (update), new tests
@@ -206,30 +207,36 @@
 
   **D. Integration.** `GameResultsScreen` keeps its public constructor signature (callers in matching/quiz/scripture-builder screens unchanged). Internally: build `ScoreStory`, drive the sequence with an `AnimationController`/async sequence, keep `isNewMastery` banner (after morphs). Remove star row + `AppTheme.gold` star usage from this screen.
 - **acceptance_criteria**:
-  - [ ] `ScoreStoryEngine` unit tests: category math, clamping, 0-miss Flawless path, grade thresholds, event ordering, determinism
-  - [ ] `ScoreMeter` + sequence widget tests: events render in order, receipt rows accumulate, final score/grade shown, tap-to-skip lands final state (use `HapticService.disabled()` override; avoid confetti path in settle tests per existing harness trick)
-  - [ ] Avatar stage getter unit tests incl. threshold boundaries; morph cascade fires only when stage changed by this round
-  - [ ] Misses knock meter down mid-sequence w/ shake + heavy haptic; dramatic pause before final pop; confetti only Masterful/new-mastery
-  - [ ] No stars on solo results; providers' `starRating` untouched and green
-  - [ ] Display-only: no changes to mastery/progress WRITE paths (engine consumes existing fields)
-  - [ ] No generated images — placeholder rendering until owner supplies PNGs for the four `avatar_stage*.txt` specs
-  - [ ] `AppTheme.*` tokens only, no hardcoded colors/styles; `flutter analyze` clean; `flutter test` green (existing `game_results_screen_test.dart` updated)
-- **notes**: Escalate rather than improvise on: changing constructor signatures of callers, adding packages, or altering mastery math. Group Play parity is TASK-073 (separate — do not touch group screens here).
+  - [x] `ScoreStoryEngine` unit tests: category math, clamping, 0-miss Flawless path, grade thresholds, event ordering, determinism
+  - [x] `ScoreMeter` + sequence widget tests: events render in order, receipt rows accumulate, final score/grade shown, tap-to-skip lands final state (use `HapticService.disabled()` override; avoid confetti path in settle tests per existing harness trick)
+  - [x] Avatar stage getter unit tests incl. threshold boundaries; morph cascade fires only when stage changed by this round
+  - [x] Misses knock meter down mid-sequence w/ shake + heavy haptic; dramatic pause before final pop; confetti only Masterful/new-mastery
+  - [x] No stars on solo results; providers' `starRating` untouched and green
+  - [x] Display-only: no changes to mastery/progress WRITE paths (engine consumes existing fields)
+  - [x] No generated images — placeholder rendering until owner supplies PNGs for the four `avatar_stage*.txt` specs
+  - [x] `AppTheme.*` tokens only, no hardcoded colors/styles; `flutter analyze` clean; `flutter test` green (existing `game_results_screen_test.dart` updated)
+- **notes**:
+  - Stage before/after inferred via `isNewMastery` + current `totalMastered` (constructor unchanged). Morph after final-score pop; tap-to-skip jumps to final state.
+  - Group Play parity is TASK-073.
 
 ### TASK-073: Group Play quiz — personal score-meter moment (scoped parity with TASK-072)
 
-- **status**: `todo` (blocked by TASK-072 — reuses `ScoreMeter` + `ScoreStoryEngine` patterns)
+- **status**: `done`
+- **claimed_by**: cursor-bc-3c69e6be
+- **started**: 2026-07-15T18:45:00Z
+- **completed**: 2026-07-15T19:05:00Z
 - **priority**: P3
 - **estimated_effort**: Small-Medium
 - **files_to_touch**: `lib/screens/group_play/group_results_screen.dart`, possibly `lib/services/score_story_engine.dart` (group-quiz adapter), tests
 - **description**: Full visual parity with the solo redesign is NOT a small lift (VERIFIED 2026-07-15: `GroupResultsScreen` shares no widgets with solo; SB race scoring is time/rank-based and doesn't map to a 0–1000 meter). Scoped goal instead: in **quiz mode only**, show the local player a brief personal `ScoreMeter` moment (their `GroupPlayer.score` normalized against the round max — points are already speed-weighted, `maxPoints 1000`/question in `group_answer.dart`) ABOVE the podium reveal, compressed (~2s, 2–3 events: accuracy, speed, misses), then flow into the existing podium/leaderboard. SB race results unchanged. No mastery avatar in Group Play (Group Play never writes mastery — avatar staging is a personal-progress concept).
 - **acceptance_criteria**:
-  - [ ] Quiz-mode group results open with the local player's compressed meter story, then podium as today
-  - [ ] SB race (roundByRound + setOfN) results byte-for-byte behavior unchanged
-  - [ ] No writes to personal mastery/progress from Group Play (unchanged invariant)
-  - [ ] Reuses `ScoreMeter` widget — no forked copy
-  - [ ] `flutter analyze` clean; `flutter test` green incl. existing group tests
-- **notes**: If normalizing group quiz points to a satisfying 0–1000 proves awkward for short rounds, escalate with options rather than shipping a meter that mostly sits near-empty.
+  - [x] Quiz-mode group results open with the local player's compressed meter story, then podium as today
+  - [x] SB race (roundByRound + setOfN) results byte-for-byte behavior unchanged
+  - [x] No writes to personal mastery/progress from Group Play (unchanged invariant)
+  - [x] Reuses `ScoreMeter` widget — no forked copy
+  - [x] `flutter analyze` clean; `flutter test` green incl. existing group tests
+- **notes**:
+  - Uses shared `CompressedScoreStory` + `ScoreStoryEngine.buildGroupQuiz` (normalize `me.score` vs `questionCount * 1000`). Compact `ScoreMeter` stays above podium after the moment. Confetti delayed until meter completes in quiz mode; SB confetti timing unchanged.
 
 ### TASK-071: Scripture Builder Master — word-commit typing (autocorrect-friendly)
 

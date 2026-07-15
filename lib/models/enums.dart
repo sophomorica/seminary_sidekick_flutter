@@ -72,6 +72,55 @@ enum MasteryLevel {
   final IconData icon;
 }
 
+/// Display-only mastery avatar stages derived from [UserStats.totalMastered].
+/// Thresholds live on [UserStats] as named consts so the owner can tune them.
+enum AvatarStage {
+  quickToObserve(
+    stageNumber: 1,
+    label: 'Quick to Observe',
+    scriptureRef: 'Mormon 1:2',
+    icon: Icons.visibility_outlined,
+    assetPath: 'assets/images/avatar_stage1_quick_to_observe.png',
+  ),
+  stalwart(
+    stageNumber: 2,
+    label: 'Stalwart',
+    scriptureRef: '2 Nephi 31:20',
+    icon: Icons.trending_up,
+    assetPath: 'assets/images/avatar_stage2_stalwart.png',
+  ),
+  striplingWarrior(
+    stageNumber: 3,
+    label: 'Stripling Warrior',
+    scriptureRef: 'Alma 53',
+    icon: Icons.shield_outlined,
+    assetPath: 'assets/images/avatar_stage3_stripling_warrior.png',
+  ),
+  standardBearer(
+    stageNumber: 4,
+    label: 'Standard Bearer',
+    scriptureRef: 'Alma 46',
+    icon: Icons.flag_outlined,
+    assetPath: 'assets/images/avatar_stage4_standard_bearer.png',
+  );
+
+  const AvatarStage({
+    required this.stageNumber,
+    required this.label,
+    required this.scriptureRef,
+    required this.icon,
+    required this.assetPath,
+  });
+
+  final int stageNumber;
+  final String label;
+  final String scriptureRef;
+  final IconData icon;
+  final String assetPath;
+
+  String get stageOfLabel => 'Stage $stageNumber of 4';
+}
+
 /// Practice types: Scripture Builder is the mastery tool; matching and quiz are supplementary practice quizzes.
 enum GameType {
   matching('Scripture Match', 'Practice matching passages to their references',

@@ -1,12 +1,17 @@
 import 'dart:math';
+
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/enums.dart';
+import '../../providers/progress_provider.dart';
 import '../../services/audio_service.dart';
 import '../../services/haptic_service.dart';
+import '../../services/score_story_engine.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/mastery_avatar.dart';
+import '../../widgets/score_meter.dart';
 
 class GameResultsScreen extends ConsumerStatefulWidget {
   final GameType gameType;
@@ -15,7 +20,7 @@ class GameResultsScreen extends ConsumerStatefulWidget {
   final int incorrectAttempts;
   final int totalPairs;
   final Duration completionTime;
-  final int starRating; // 1-3
+  final int starRating; // 1-3 — kept for callers; UI no longer reads it
   final bool isNewMastery; // True when user first reaches "Mastered" level
   /// Rebuilds the same game session so "Try Again" can relaunch immediately.
   /// Games reach this screen via [Navigator.pushReplacement], so a plain pop
@@ -41,99 +46,227 @@ class GameResultsScreen extends ConsumerStatefulWidget {
 
 class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
     with TickerProviderStateMixin {
-  late AnimationController _starsController;
-  late AnimationController _statsController;
-  late Animation<double> _starsScale;
-  late Animation<double> _statsSlide;
+  late final ScoreStory _story;
   late ConfettiController _confettiController;
+  late AnimationController _shakeController;
+  late AnimationController _finalPopController;
 
-  bool get _shouldCelebrate => widget.starRating == 3 || widget.isNewMastery;
+  final GlobalKey<MasteryAvatarState> _avatarKey = GlobalKey();
+
+  int _revealedEventCount = 0;
+  int _displayScore = 0;
+  double _meterValue = 0;
+  Duration _meterAnimDuration = const Duration(milliseconds: 640);
+  ScoreEvent? _activeChip;
+  bool _blankScore = false;
+  bool _showGrade = false;
+  double _scoreScale = 1.0;
+  bool _sequenceDone = false;
+  bool _showMasteryBanner = false;
+  bool _skipped = false;
+  MasteryAvatarMotion _avatarMotion = MasteryAvatarMotion.idle;
+  AvatarStage? _morphFrom;
+  late AvatarStage _finalStage;
+  late AvatarStage _stageBefore;
+
+  bool get _shouldCelebrate =>
+      _story.isMasterful || widget.isNewMastery;
 
   @override
   void initState() {
     super.initState();
 
+    _story = ScoreStoryEngine.build(
+      gameType: widget.gameType,
+      difficulty: widget.difficulty,
+      correctMatches: widget.correctMatches,
+      incorrectAttempts: widget.incorrectAttempts,
+      totalPairs: widget.totalPairs,
+      completionTime: widget.completionTime,
+    );
+
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 3),
     );
-
-    _starsController = AnimationController(
-      duration: const Duration(milliseconds: 600),
+    _shakeController = AnimationController(
       vsync: this,
+      duration: const Duration(milliseconds: 220),
     );
-    _starsScale = CurvedAnimation(
-      parent: _starsController,
-      curve: Curves.elasticOut,
-    );
-
-    _statsController = AnimationController(
-      duration: const Duration(milliseconds: 400),
+    _finalPopController = AnimationController(
       vsync: this,
-    );
-    _statsSlide = CurvedAnimation(
-      parent: _statsController,
-      curve: Curves.easeOut,
+      duration: const Duration(milliseconds: 500),
     );
 
-    // Staggered entrance
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (mounted) _starsController.forward();
-    });
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) _statsController.forward();
+    // Stage after this round's progress write (already applied by callers).
+    // When isNewMastery, infer before as after − 1 (constructor unchanged).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final afterMastered = ref.read(userStatsProvider).totalMastered;
+      final beforeMastered =
+          widget.isNewMastery ? max(0, afterMastered - 1) : afterMastered;
+      _stageBefore = UserStats.avatarStageForMastered(beforeMastered);
+      _finalStage = UserStats.avatarStageForMastered(afterMastered);
+      setState(() {});
+      _runSequence();
     });
 
-    // Fire confetti after stars animate in
-    if (_shouldCelebrate) {
-      Future.delayed(const Duration(milliseconds: 400), () {
-        if (mounted) _confettiController.play();
+    _stageBefore = AvatarStage.quickToObserve;
+    _finalStage = AvatarStage.quickToObserve;
+  }
+
+  Future<void> _runSequence() async {
+    var running = 0;
+    for (var i = 0; i < _story.events.length; i++) {
+      if (!mounted || _skipped) return;
+      final event = _story.events[i];
+      setState(() {
+        _activeChip = event;
+        _avatarMotion = event.isMiss
+            ? MasteryAvatarMotion.flinch
+            : MasteryAvatarMotion.hop;
       });
+
+      await Future<void>.delayed(const Duration(milliseconds: 180));
+      if (!mounted || _skipped) return;
+
+      running = (running + event.points).clamp(0, ScoreStoryEngine.maxScore);
+      final duration = event.isMiss
+          ? const Duration(milliseconds: 330)
+          : const Duration(milliseconds: 640);
+
+      if (event.isMiss) {
+        ref.read(hapticProvider).heavy();
+        _shakeController.forward(from: 0);
+      } else {
+        ref.read(hapticProvider).light();
+      }
+
+      setState(() {
+        _meterAnimDuration = duration;
+        _displayScore = running;
+        _meterValue = running / ScoreStoryEngine.maxScore;
+      });
+
+      await Future<void>.delayed(duration);
+      if (!mounted || _skipped) return;
+
+      setState(() {
+        _activeChip = null;
+        _revealedEventCount = i + 1;
+        _avatarMotion = MasteryAvatarMotion.idle;
+      });
+
+      await Future<void>.delayed(const Duration(milliseconds: 120));
     }
 
-    // Celebration haptics and audio
-    ref.read(hapticProvider).heavy();
-    Future.delayed(const Duration(milliseconds: 300), () {
-      ref.read(hapticProvider).medium();
+    if (!mounted || _skipped) return;
+
+    // Dramatic pause — blank the number.
+    setState(() {
+      _blankScore = true;
     });
-    if (widget.isNewMastery) {
+    await Future<void>.delayed(const Duration(milliseconds: 750));
+    if (!mounted || _skipped) return;
+
+    ref.read(hapticProvider).medium();
+    setState(() {
+      _blankScore = false;
+      _displayScore = _story.finalScore;
+      _meterValue = _story.finalScore / ScoreStoryEngine.maxScore;
+      _showGrade = true;
+      _scoreScale = 1.0;
+    });
+    await _finalPopController.forward(from: 0);
+    if (!mounted || _skipped) return;
+
+    // Avatar morph after final-score pop when stage changed this round.
+    if (_stageBefore != _finalStage) {
+      setState(() {
+        _morphFrom = _stageBefore;
+      });
       ref.read(audioProvider.notifier).play(SoundEffect.levelup);
+      await Future<void>.delayed(
+        Duration(milliseconds: 700 * (_finalStage.index - _stageBefore.index)),
+      );
+    } else if (widget.isNewMastery) {
+      ref.read(audioProvider.notifier).play(SoundEffect.levelup);
+    }
+
+    if (!mounted || _skipped) return;
+    await _finishSequence();
+  }
+
+  Future<void> _finishSequence() async {
+    setState(() {
+      _sequenceDone = true;
+      _showMasteryBanner = widget.isNewMastery;
+      _morphFrom = null;
+    });
+    if (_shouldCelebrate) {
+      _confettiController.play();
+    }
+  }
+
+  void _skipToEnd() {
+    if (_sequenceDone || _skipped) return;
+    _skipped = true;
+    _shakeController.stop();
+    _finalPopController.stop();
+    _avatarKey.currentState?.skipTo(_finalStage);
+    setState(() {
+      _activeChip = null;
+      _blankScore = false;
+      _revealedEventCount = _story.events.length;
+      _displayScore = _story.finalScore;
+      _meterValue = _story.finalScore / ScoreStoryEngine.maxScore;
+      _showGrade = true;
+      _scoreScale = 1.0;
+      _avatarMotion = MasteryAvatarMotion.idle;
+      _morphFrom = null;
+      _sequenceDone = true;
+      _showMasteryBanner = widget.isNewMastery;
+    });
+    if (_shouldCelebrate) {
+      _confettiController.play();
     }
   }
 
   @override
   void dispose() {
     _confettiController.dispose();
-    _starsController.dispose();
-    _statsController.dispose();
+    _shakeController.dispose();
+    _finalPopController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final accuracy = widget.totalPairs > 0
-        ? (widget.correctMatches /
-                (widget.correctMatches + widget.incorrectAttempts) *
-                100)
-            .round()
-        : 0;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final revealed = _story.events.take(_revealedEventCount).toList();
 
-    // Quiz awards 3 stars at 90%+ (not only at 100%), so "flawless" copy
-    // must key off actual mistakes — not starRating alone.
-    final isFlawless = widget.incorrectAttempts == 0;
+    final popScale = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(begin: 0.85, end: 1.18)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 60,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: 1.18, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 40,
+      ),
+    ]).animate(_finalPopController);
 
-    final message = switch (widget.starRating) {
-      3 => isFlawless ? 'Perfect!' : 'Excellent!',
-      2 => 'Great Job!',
-      _ => 'Keep Practicing!',
-    };
-
-    final subtitle = switch (widget.starRating) {
-      3 => isFlawless
-          ? 'Flawless victory — no mistakes!'
-          : 'Outstanding score — can you hit zero misses?',
-      2 => 'Almost perfect. Try for zero misses next time!',
-      _ => 'Practice makes perfect. You\'re getting there!',
-    };
+    final shakeOffset = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0, end: -8), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: -8, end: 8), weight: 2),
+      TweenSequenceItem(tween: Tween(begin: 8, end: -5), weight: 2),
+      TweenSequenceItem(tween: Tween(begin: -5, end: 0), weight: 1),
+    ]).animate(CurvedAnimation(
+      parent: _shakeController,
+      curve: Curves.linear,
+    ));
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -144,121 +277,131 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  // Scrollable content area — stars, message, stats
                   Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 16),
-
-                          // Stars
-                          ScaleTransition(
-                            scale: _starsScale,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: List.generate(3, (index) {
-                                final isFilled = index < widget.starRating;
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                                  child: Icon(
-                                    isFilled ? Icons.star_rounded : Icons.star_outline_rounded,
-                                    size: index == 1 ? 64 : 48,
-                                    color: isFilled
-                                        ? AppTheme.gold
-                                        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
+                    child: GestureDetector(
+                      key: const Key('score-story-skip'),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _skipToEnd,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 12),
+                            AnimatedBuilder(
+                              animation: Listenable.merge([
+                                _shakeController,
+                                _finalPopController,
+                              ]),
+                              builder: (context, child) {
+                                return Transform.translate(
+                                  offset: Offset(shakeOffset.value, 0),
+                                  child: Transform.scale(
+                                    scale: _showGrade
+                                        ? (_finalPopController.isAnimating
+                                            ? popScale.value
+                                            : _scoreScale)
+                                        : 1.0,
+                                    child: child,
                                   ),
                                 );
-                              }),
+                              },
+                              child: Column(
+                                children: [
+                                  // Event chip above meter
+                                  SizedBox(
+                                    height: 36,
+                                    child: AnimatedOpacity(
+                                      opacity: _activeChip == null ? 0 : 1,
+                                      duration:
+                                          const Duration(milliseconds: 180),
+                                      child: _activeChip == null
+                                          ? const SizedBox.shrink()
+                                          : _EventChip(event: _activeChip!),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  ScoreMeter(
+                                    value: _meterValue,
+                                    displayScore: _displayScore,
+                                    gradeLabel: _showGrade
+                                        ? _story.grade.label
+                                        : null,
+                                    blankScore: _blankScore,
+                                    animationDuration: _meterAnimDuration,
+                                    scoreScale: 1.0,
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Message
-                          Text(
-                            message,
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            subtitle,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                                ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 20),
-
-                          // Stats card
-                          FadeTransition(
-                            opacity: _statsSlide,
-                            child: SlideTransition(
-                              position: Tween<Offset>(
-                                begin: const Offset(0, 0.3),
-                                end: Offset.zero,
-                              ).animate(_statsSlide),
-                              child: Card(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    children: [
+                            const SizedBox(height: 20),
+                            MasteryAvatar(
+                              key: _avatarKey,
+                              stage: _finalStage,
+                              morphFrom: _morphFrom,
+                              motion: _avatarMotion,
+                            ),
+                            const SizedBox(height: 20),
+                            // Receipt list
+                            Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  children: [
+                                    for (var i = 0; i < revealed.length; i++) ...[
+                                      if (i > 0) const Divider(height: 16),
+                                      _ReceiptRow(event: revealed[i]),
+                                    ],
+                                    if (revealed.isEmpty)
+                                      Text(
+                                        'Your score story is unfolding…',
+                                        style: textTheme.bodyMedium?.copyWith(
+                                          color: colorScheme.onSurface
+                                              .withValues(alpha: 0.5),
+                                        ),
+                                      ),
+                                    if (_sequenceDone) ...[
+                                      if (revealed.isNotEmpty)
+                                        const Divider(height: 16),
                                       _StatRow(
                                         icon: Icons.check_circle_outline,
                                         iconColor: AppTheme.success,
                                         label: 'Correct',
-                                        value: '${widget.correctMatches}/${widget.totalPairs}',
-                                      ),
-                                      const Divider(height: 16),
-                                      _StatRow(
-                                        icon: Icons.close,
-                                        iconColor: AppTheme.error,
-                                        label: 'Misses',
-                                        value: '${widget.incorrectAttempts}',
-                                      ),
-                                      const Divider(height: 16),
-                                      _StatRow(
-                                        icon: Icons.percent,
-                                        iconColor: AppTheme.accent,
-                                        label: 'Accuracy',
-                                        value: '$accuracy%',
+                                        value:
+                                            '${widget.correctMatches}/${widget.totalPairs}',
                                       ),
                                       const Divider(height: 16),
                                       _StatRow(
                                         icon: Icons.timer_outlined,
                                         iconColor: AppTheme.secondary,
                                         label: 'Time',
-                                        value: _formatDuration(widget.completionTime),
+                                        value: _formatDuration(
+                                            widget.completionTime),
                                       ),
                                       const Divider(height: 16),
                                       _StatRow(
                                         icon: Icons.speed,
-                                        iconColor: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
+                                        iconColor: colorScheme.primary,
                                         label: 'Difficulty',
                                         value: widget.difficulty.label,
                                       ),
                                     ],
-                                  ),
+                                  ],
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
+                            const SizedBox(height: 16),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-
-                  // Buttons pinned at bottom — always visible
                   const SizedBox(height: 8),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: () {
                         Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(builder: widget.tryAgainBuilder),
+                          MaterialPageRoute(
+                              builder: widget.tryAgainBuilder),
                         );
                       },
                       icon: const Icon(Icons.replay),
@@ -281,35 +424,33 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
             ),
           ),
 
-          // Confetti overlay — IgnorePointer ensures it never blocks interaction
-          if (_shouldCelebrate)
+          if (_shouldCelebrate && _sequenceDone)
             Align(
               alignment: Alignment.topCenter,
               child: IgnorePointer(
                 child: ConfettiWidget(
-                confettiController: _confettiController,
-                blastDirection: pi / 2, // straight down
-                blastDirectionality: BlastDirectionality.explosive,
-                maxBlastForce: 20,
-                minBlastForce: 8,
-                emissionFrequency: 0.05,
-                numberOfParticles: 25,
-                gravity: 0.2,
-                shouldLoop: false,
-                colors: [
-                  Theme.of(context).colorScheme.primary,
-                  AppTheme.secondary,
-                  AppTheme.accent,
-                  const Color(0xFFFFD54F), // gold
-                  const Color(0xFFFF8A65), // warm orange
-                  const Color(0xFF81C784), // soft green
-                ],
-              ),
+                  confettiController: _confettiController,
+                  blastDirection: pi / 2,
+                  blastDirectionality: BlastDirectionality.explosive,
+                  maxBlastForce: 20,
+                  minBlastForce: 8,
+                  emissionFrequency: 0.05,
+                  numberOfParticles: 25,
+                  gravity: 0.2,
+                  shouldLoop: false,
+                  colors: [
+                    Theme.of(context).colorScheme.primary,
+                    AppTheme.secondary,
+                    AppTheme.accent,
+                    AppTheme.gold,
+                    AppTheme.warning,
+                    AppTheme.success,
+                  ],
+                ),
               ),
             ),
 
-          // Mastery banner overlay
-          if (widget.isNewMastery)
+          if (_showMasteryBanner)
             Positioned(
               top: 0,
               left: 0,
@@ -322,30 +463,30 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF64B5F6), Color(0xFF42A5F5)],
-                    ),
+                    color: colorScheme.primary,
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF64B5F6).withValues(alpha: 0.4),
+                        color: colorScheme.primary.withValues(alpha: 0.35),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
                     ],
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.workspace_premium,
-                          color: Colors.white, size: 20),
-                      SizedBox(width: 8),
+                      Icon(
+                        Icons.workspace_premium,
+                        color: colorScheme.onPrimary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
                       Text(
                         'Scripture Mastered!',
-                        style: TextStyle(
-                          color: Colors.white,
+                        style: textTheme.titleSmall?.copyWith(
+                          color: colorScheme.onPrimary,
                           fontWeight: FontWeight.bold,
-                          fontSize: 15,
                         ),
                       ),
                     ],
@@ -362,6 +503,70 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
     final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
     return '$minutes:$seconds';
+  }
+}
+
+class _EventChip extends StatelessWidget {
+  final ScoreEvent event;
+
+  const _EventChip({required this.event});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = event.isMiss ? AppTheme.error : AppTheme.success;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(event.icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            '${event.label} ${event.signedPoints}',
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReceiptRow extends StatelessWidget {
+  final ScoreEvent event;
+
+  const _ReceiptRow({required this.event});
+
+  @override
+  Widget build(BuildContext context) {
+    final color =
+        event.isMiss ? AppTheme.error : Theme.of(context).colorScheme.onSurface;
+    return Row(
+      children: [
+        Icon(event.icon, color: color, size: 20),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            event.label,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ),
+        Text(
+          event.signedPoints,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+        ),
+      ],
+    );
   }
 }
 
