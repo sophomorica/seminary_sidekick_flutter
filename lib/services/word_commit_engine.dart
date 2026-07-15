@@ -16,8 +16,9 @@ class WordCommitEngine {
   WordCommitEngine._();
 
   /// Punctuation that is auto-filled (never typed by the user).
-  /// Must stay in sync with `TypedDisplayRules.punctuation` in
-  /// `lib/screens/games/scripture_builder/typed_display_rules.dart`.
+  /// Single source of truth for the auto-fill set —
+  /// `TypedDisplayRules.punctuation` references this directly, so display
+  /// and judgment can never drift apart.
   static final punctuation =
       RegExp(r'''[,;:!?\-\—\–\.\'\"\'\'\"\"\(\)\[\]]''');
 

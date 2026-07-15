@@ -34,7 +34,11 @@ class SbTypingInputField extends StatelessWidget {
   });
 
   String get _hintText {
-    if (hasActiveError) return 'Delete the error and try again...';
+    // hasActiveError is an Advanced-only state (Master never enters the
+    // red-character flow), so the error hint is scoped to Advanced.
+    if (!isMaster && hasActiveError) {
+      return 'Delete the error and try again...';
+    }
     return isMaster
         ? 'Type each word from memory — space checks it'
         : 'Type the scripture (first letters shown)...';
