@@ -8,8 +8,8 @@ class TypedDisplayRules {
   TypedDisplayRules._();
 
   /// Punctuation the provider auto-fills — the user never types it.
-  /// Must stay in sync with `_punctuation` in
-  /// `lib/providers/scripture_builder_provider.dart`.
+  /// Must stay in sync with `WordCommitEngine.punctuation` in
+  /// `lib/services/word_commit_engine.dart`.
   static final punctuation =
       RegExp(r'''[,;:!?\-\—\–\.\'\"\'\'\"\"\(\)\[\]]''');
 

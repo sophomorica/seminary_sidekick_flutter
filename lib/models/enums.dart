@@ -114,7 +114,7 @@ enum DifficultyLevel {
   ),
   master(
     label: 'Master',
-    description: 'Type perfectly — any error resets all',
+    description: 'Type blind — a wrong word resets all',
     scriptureCount: 4,
     hasTimer: true,
     allowRetry: false,
@@ -189,7 +189,7 @@ enum DifficultyLevel {
           case DifficultyLevel.advanced:
             return 'Type the passage — first letters shown as hints';
           case DifficultyLevel.master:
-            return 'Type blind — any mistake resets all progress';
+            return 'Type blind, word by word — a wrong word resets all';
         }
       case GameType.quiz:
         switch (this) {

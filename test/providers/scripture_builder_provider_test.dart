@@ -395,36 +395,44 @@ void main() {
     });
 
     test(
-        'onType — wrong character (master) — full reset: typedText empty, resetCount increments',
+        'onType — wrong word committed (master) — full reset: typedText empty, resetCount increments',
         () {
+      // testScriptures[0] starts "And it came to pass..."
       notifier.startGame(
           difficulty: DifficultyLevel.master, scriptures: [testScriptures[0]]);
 
-      final correctChar = notifier.state.targetText[0];
-      notifier.onType(correctChar); // Correct first
-      expect(notifier.state.correctPlacements, 1);
+      notifier.onType('And '); // Correct word first — commits "And "
+      expect(notifier.state.correctPlacements, 4);
 
-      notifier.onType('${correctChar}x'); // Then wrong
+      notifier.onType('wrong '); // Then a wrong word
 
       expect(notifier.state.typedText, isEmpty);
       expect(notifier.state.typedChars, isEmpty);
       expect(notifier.state.resetCount, 1);
+      expect(notifier.state.incorrectAttempts, 1);
       expect(notifier.state.correctPlacements, 0); // Reset to 0
       expect(notifier.state.correctUnitsAcrossAll, 0); // Undone
       expect(notifier.state.lastFeedback, 'reset');
     });
 
-    test('onType — backspace (master) — ignored (returns early)', () {
+    test('onType — backspace (master) — edits the unjudged word buffer freely',
+        () {
       notifier.startGame(
           difficulty: DifficultyLevel.master, scriptures: [testScriptures[0]]);
 
-      final char = notifier.state.targetText[0];
-      notifier.onType(char);
+      notifier.onType('Anx'); // Typo in progress — not judged
+      expect(notifier.state.typedChars, isEmpty);
+      expect(notifier.state.incorrectAttempts, 0);
 
-      final lengthBefore = notifier.state.typedText.length;
-      notifier.onType(''); // Simulate backspace
+      notifier.onType('An'); // Backspace the typo
+      expect(notifier.state.typedText, 'An');
 
-      expect(notifier.state.typedText.length, lengthBefore);
+      notifier.onType('And');
+      notifier.onType('And '); // Commit the fixed word
+
+      expect(notifier.state.typedChars.length, 4); // "And "
+      expect(notifier.state.resetCount, 0);
+      expect(notifier.state.incorrectAttempts, 0);
     });
 
     test('Case insensitive matching — \'a\' matches \'A\'', () {
@@ -496,25 +504,20 @@ void main() {
     test(
         'Master reset undoes correctUnitsAcrossAll — count decremented by correctPlacements on reset',
         () {
-      // Use a scripture without punctuation for predictable counts
+      // testScriptures[0] starts "And it came to pass..."
       notifier.startGame(
           difficulty: DifficultyLevel.master, scriptures: [testScriptures[0]]);
 
-      // Type some correct chars incrementally
-      final chars = notifier.state.targetText.substring(0, 3).split('');
-      for (int i = 0; i < chars.length; i++) {
-        final partial = notifier.state.targetText.substring(0, i + 1);
-        notifier.onType(partial);
-      }
-      // 3 typed chars + 1 auto-filled trailing space after 'd' in "And "
-      expect(notifier.state.correctPlacements, 4);
+      notifier.onType('And '); // commits "And " (4 chars)
+      notifier.onType('it '); // commits "it " (3 chars)
+      expect(notifier.state.correctPlacements, 7);
       final correctAcrossBefore = notifier.state.correctUnitsAcrossAll;
-      expect(correctAcrossBefore, 4);
+      expect(correctAcrossBefore, 7);
 
-      // Type wrong to trigger reset
-      notifier.onType('${notifier.state.targetText.substring(0, 3)}x');
+      // Commit a wrong word to trigger reset
+      notifier.onType('nope ');
 
-      expect(notifier.state.correctUnitsAcrossAll, correctAcrossBefore - 4);
+      expect(notifier.state.correctUnitsAcrossAll, correctAcrossBefore - 7);
     });
 
     test('Star rating — 0 errors=3, 1-3 errors=2, 4+ errors=1', () {
@@ -664,29 +667,28 @@ void main() {
 
     test('User-typed punctuation does NOT trigger a master reset', () {
       // Regression: on Master difficulty a typed comma caused a full reset.
+      // "In the beginning was the Word, and ..."
       notifier.startGame(
           difficulty: DifficultyLevel.master,
           scriptures: [shortPunctuatedScripture]);
 
-      final target = notifier.state.targetText;
-      final commaIndex = target.indexOf(',');
-
-      String typed = '';
-      for (int i = 0; i < commaIndex; i++) {
-        typed += target[i];
-        notifier.onType(typed);
+      for (final word in ['In ', 'the ', 'beginning ', 'was ', 'the ']) {
+        notifier.onType(word);
+        expect(notifier.state.lastFeedback, 'word');
       }
       final placedBefore = notifier.state.typedChars.length;
       expect(placedBefore, greaterThan(0));
 
-      // User types the comma — previously wiped all progress
-      typed += ',';
-      notifier.onType(typed);
+      // User types the word with its natural comma — must commit, not reset
+      notifier.onType('Word, ');
 
       expect(notifier.state.resetCount, 0,
           reason: 'Typed punctuation must not reset a Master run');
-      expect(notifier.state.typedChars.length, placedBefore);
       expect(notifier.state.incorrectAttempts, 0);
+      // The comma and following space were auto-filled into the commit
+      final committed =
+          notifier.state.typedChars.map((c) => c.char).join();
+      expect(committed, 'In the beginning was the Word, ');
     });
 
     test('Trailing punctuation is auto-filled after last real character', () {
@@ -775,23 +777,17 @@ void main() {
           difficulty: DifficultyLevel.master,
           scriptures: [shortPunctuatedScripture]);
 
+      // Commit words past the comma ("In the beginning was the Word, and")
+      for (final word in ['In ', 'the ', 'beginning ', 'was ', 'the ',
+          'Word, ', 'and ']) {
+        notifier.onType(word);
+      }
       final target = notifier.state.targetText;
       final commaIndex = target.indexOf(',');
-
-      // Type up to the comma, then past it
-      String typed = '';
-      for (int i = 0; i < commaIndex; i++) {
-        typed += target[i];
-        notifier.onType(typed);
-      }
-      // Type the char after comma to trigger auto-fill of comma
-      typed += target[commaIndex + 1];
-      notifier.onType(typed);
       expect(notifier.state.typedChars.length, greaterThan(commaIndex));
 
-      // Now type a wrong character to trigger master reset
-      typed += 'x';
-      notifier.onType(typed);
+      // Now commit a wrong word to trigger master reset
+      notifier.onType('wrong ');
 
       expect(notifier.state.typedText, isEmpty);
       expect(notifier.state.typedChars, isEmpty);
@@ -856,6 +852,156 @@ void main() {
       expect(notifier.state.typedChars.length, charsBefore + 2);
       expect(notifier.state.typedChars[dashIndex].char, '—');
       expect(notifier.state.typedChars[dashIndex].isCorrect, isTrue);
+    });
+  });
+
+  group('Scripture Builder — Word Commit (Master)', () {
+    String committed() =>
+        notifier.state.typedChars.map((c) => c.char).join();
+
+    test('word in progress is not judged — buffer holds it, no typedChars',
+        () {
+      notifier.startGame(
+          difficulty: DifficultyLevel.master, scriptures: [testScriptures[0]]);
+
+      notifier.onType('A');
+      notifier.onType('An');
+      notifier.onType('And');
+
+      expect(notifier.state.typedText, 'And');
+      expect(notifier.state.typedChars, isEmpty);
+      expect(notifier.state.incorrectAttempts, 0);
+      expect(notifier.state.correctPlacements, 0);
+    });
+
+    test(
+        'space commits the word — target casing, trailing space auto-filled, buffer cleared',
+        () {
+      notifier.startGame(
+          difficulty: DifficultyLevel.master, scriptures: [testScriptures[0]]);
+
+      notifier.onType('and '); // lowercase — matching is case-insensitive
+
+      expect(committed(), 'And '); // display shows the target's casing
+      expect(notifier.state.typedChars.every((c) => c.isCorrect), isTrue);
+      expect(notifier.state.typedText, isEmpty);
+      expect(notifier.state.correctPlacements, 4);
+      expect(notifier.state.lastFeedback, 'word');
+    });
+
+    test(
+        'autocorrect-style whole-word rewrite commits cleanly — "Amd" fixed to "And "',
+        () {
+      notifier.startGame(
+          difficulty: DifficultyLevel.master, scriptures: [testScriptures[0]]);
+
+      notifier.onType('Amd'); // fat-finger typo in progress
+      expect(notifier.state.typedChars, isEmpty); // not judged
+
+      // Autocorrect replaces the whole buffer and appends the space
+      notifier.onType('And ');
+
+      expect(committed(), 'And ');
+      expect(notifier.state.resetCount, 0);
+      expect(notifier.state.incorrectAttempts, 0);
+    });
+
+    test('stray space with no letters typed is swallowed silently', () {
+      notifier.startGame(
+          difficulty: DifficultyLevel.master, scriptures: [testScriptures[0]]);
+
+      notifier.onType(' ');
+
+      expect(notifier.state.lastFeedback, 'clearfield');
+      expect(notifier.state.typedText, isEmpty);
+      expect(notifier.state.incorrectAttempts, 0);
+      expect(notifier.state.resetCount, 0);
+    });
+
+    test('each wrong word counts one incorrectAttempt (not per character)',
+        () {
+      notifier.startGame(
+          difficulty: DifficultyLevel.master, scriptures: [testScriptures[0]]);
+
+      notifier.onType('And ');
+      notifier.onType('completely '); // wrong word → reset
+
+      expect(notifier.state.incorrectAttempts, 1);
+      expect(notifier.state.starRating, 2);
+    });
+
+    test('final word auto-commits without a trailing space and completes',
+        () {
+      final scripture = Scripture(
+        id: 'word-commit-final',
+        book: ScriptureBook.bookOfMormon,
+        volume: 'Test',
+        reference: 'Test 1:1',
+        name: 'Final Word Test',
+        keyPhrase: 'Test',
+        fullText: 'Be still',
+      );
+      notifier.startGame(
+          difficulty: DifficultyLevel.master, scriptures: [scripture]);
+
+      notifier.onType('Be ');
+      expect(committed(), 'Be ');
+      expect(notifier.state.isScriptureComplete, isFalse);
+
+      // No trailing space needed on the verse's last word
+      notifier.onType('still');
+
+      expect(notifier.state.isScriptureComplete, isTrue);
+      expect(notifier.state.lastFeedback, 'correct');
+      expect(committed(), 'Be still');
+      expect(notifier.state.typedChars.length,
+          notifier.state.targetText.length);
+    });
+
+    test('submitWord commits the buffer like the keyboard done key', () {
+      notifier.startGame(
+          difficulty: DifficultyLevel.master, scriptures: [testScriptures[0]]);
+
+      notifier.onType('And');
+      notifier.submitWord();
+
+      expect(committed(), 'And ');
+      expect(notifier.state.typedText, isEmpty);
+      expect(notifier.state.resetCount, 0);
+    });
+
+    test('em-dash joined words are committed one word at a time', () {
+      // "And now, as I said concerning faith—faith is not..."
+      notifier.startGame(
+          difficulty: DifficultyLevel.master,
+          scriptures: [punctuatedScripture]);
+
+      for (final word in ['And ', 'now ', 'as ', 'I ', 'said ',
+          'concerning ', 'faith ', 'faith ', 'is ']) {
+        notifier.onType(word);
+      }
+
+      expect(notifier.state.resetCount, 0);
+      expect(committed(), 'And now, as I said concerning faith—faith is ');
+    });
+
+    test('completing every word finishes the scripture with all-correct chars',
+        () {
+      notifier.startGame(
+          difficulty: DifficultyLevel.master,
+          scriptures: [shortPunctuatedScripture]);
+
+      final target = notifier.state.targetText;
+      // "In the beginning was the Word, and the Word was with God, and the Word was God."
+      for (final word in target.split(' ')) {
+        if (notifier.state.isScriptureComplete) break;
+        notifier.onType('$word ');
+      }
+
+      expect(notifier.state.isScriptureComplete, isTrue);
+      expect(notifier.state.typedChars.length, target.length);
+      expect(notifier.state.typedChars.every((c) => c.isCorrect), isTrue);
+      expect(committed(), target);
     });
   });
 }

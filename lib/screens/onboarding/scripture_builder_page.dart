@@ -74,7 +74,7 @@ class ScriptureBuilderPage extends StatelessWidget {
             color: Color(MasteryLevel.mastered.color),
             icon: Icons.visibility_off,
             tier: 'Master',
-            detail: 'Type blind — one mistake resets all',
+            detail: 'Type blind — one wrong word resets all',
             earns: 'Mastered',
           ),
         ],

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/scripture.dart';
 import '../models/enums.dart';
 import '../data/scriptures_data.dart';
+import '../services/word_commit_engine.dart';
 
 // ─── Data classes ────────────────────────────────────────────────
 
@@ -24,7 +25,8 @@ class WordChunk {
   int get wordCount => words.length;
 }
 
-/// Represents a character the user has typed in Advanced/Master mode.
+/// Represents a character the user has typed (Advanced) or committed via a
+/// word check (Master) in typing mode.
 class TypedChar {
   final String char;
   final bool isCorrect;
@@ -60,8 +62,10 @@ class ScriptureBuilderState {
 
   // ── Typing mode fields ──
   final String targetText;               // Full text to type
-  final String typedText;                // What user has typed so far
-  final List<TypedChar> typedChars;      // Per-character correctness
+  final String typedText;                // Advanced: all text typed so far.
+                                         // Master: current word buffer only —
+                                         // unjudged until committed with space.
+  final List<TypedChar> typedChars;      // Judged/committed chars (incl. auto-fill)
   final bool hasActiveError;             // Currently has a red character (Advanced)
   final int resetCount;                  // How many times Master reset
 
@@ -208,10 +212,6 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
         ));
 
   final _random = Random();
-
-  /// Punctuation characters that are auto-filled during typing mode
-  /// so the user only has to type letters and digits.
-  static final _punctuation = RegExp(r'''[,;:!?\-\—\–\.\'\"\'\'\"\"\(\)\[\]]''');
 
   // ── Chunk colors for visual distinction ──
   static const _chunkColors = [0, 1, 2, 3, 4, 5, 6, 7];
@@ -445,48 +445,146 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
 
   /// Returns true if this character should be auto-filled (not typed by user).
   /// Punctuation and spaces are both auto-filled.
-  bool _isAutoFillChar(String ch) {
-    return ch == ' ' || ch == '\n' || _punctuation.hasMatch(ch);
-  }
+  bool _isAutoFillChar(String ch) => WordCommitEngine.isAutoFill(ch);
 
-  /// User types a character. Called on every keystroke.
+  /// User input changed. Called on every keystroke.
   /// Punctuation in the target text is auto-filled so the user only
   /// has to type letters and digits.
+  ///
+  /// Advanced judges each character as it lands; Master buffers the current
+  /// word and only judges it when committed (see [_onTypeWord]).
   void onType(String newText) {
     if (state.isScriptureComplete || state.mode != ScriptureBuilderMode.typing) {
       return;
     }
+    if (state.difficulty == DifficultyLevel.master) {
+      _onTypeWord(newText);
+    } else {
+      _onTypeChar(newText);
+    }
+  }
 
-    // Handle backspace (text got shorter)
-    if (newText.length < state.typedText.length) {
-      // Advanced: allow deleting to fix errors
-      if (state.difficulty == DifficultyLevel.advanced) {
-        final newChars = List<TypedChar>.from(state.typedChars);
-        if (newChars.isNotEmpty) {
-          // Remove the last user-typed char, plus any auto-filled chars
-          // (punctuation and spaces) that preceded it.
-          newChars.removeLast();
-          while (newChars.isNotEmpty &&
-              _isAutoFillChar(newChars.last.char)) {
-            newChars.removeLast();
-          }
-        }
-        final stillHasError = newChars.any((c) => !c.isCorrect);
-        state = state.copyWith(
-          typedText: newText,
-          typedChars: newChars,
-          hasActiveError: stillHasError,
-          clearFeedback: true,
-        );
+  /// Master: commit the current word buffer as if the user pressed space.
+  /// Wired to the keyboard's done/submit action so the final word of a verse
+  /// doesn't strand the user waiting for a trailing space.
+  void submitWord() {
+    if (state.isScriptureComplete ||
+        state.mode != ScriptureBuilderMode.typing ||
+        state.difficulty != DifficultyLevel.master) {
+      return;
+    }
+    _onTypeWord('${state.typedText} ');
+  }
+
+  // ── Master: word-commit typing ──
+  //
+  // The field only ever holds the word in progress. Nothing is judged until
+  // the user commits with whitespace — which is also the moment the OS
+  // keyboard applies autocorrect, so fat-finger typos get fixed before they
+  // can trigger a reset. Backspace inside the buffer is always free.
+  void _onTypeWord(String newText) {
+    final endsWithWhitespace =
+        newText.endsWith(' ') || newText.endsWith('\n');
+
+    if (!endsWithWhitespace) {
+      // In-progress buffer: typing, backspacing, and autocorrect rewrites
+      // are all unjudged. The only exception is the verse's final word —
+      // commit it the moment it matches so completion doesn't require a
+      // trailing space (which many users would never think to type).
+      final result = WordCommitEngine.tryCommit(
+        target: state.targetText,
+        position: state.typedChars.length,
+        buffer: newText,
+      );
+      if (result.status == WordCommitStatus.committed &&
+          state.typedChars.length + result.committedText.length >=
+              state.targetText.length) {
+        _commitWord(result.committedText);
+        return;
       }
-      // Master: backspace doesn't help — you can't fix errors
+      state = state.copyWith(typedText: newText, clearFeedback: true);
+      return;
+    }
+
+    // Whitespace committed the word — judge the buffer.
+    final result = WordCommitEngine.tryCommit(
+      target: state.targetText,
+      position: state.typedChars.length,
+      buffer: newText,
+    );
+    switch (result.status) {
+      case WordCommitStatus.committed:
+        _commitWord(result.committedText);
+      case WordCommitStatus.nothingToCommit:
+        // Stray space with no letters typed — consume it silently.
+        state = state.copyWith(
+          typedText: '',
+          lastFeedback: 'clearfield',
+        );
+      case WordCommitStatus.wrongWord:
+        // Master: wrong word = full reset.
+        state = state.copyWith(
+          typedText: '',
+          typedChars: [],
+          incorrectAttempts: state.incorrectAttempts + 1,
+          resetCount: state.resetCount + 1,
+          correctUnitsAcrossAll:
+              state.correctUnitsAcrossAll - state.correctPlacements,
+          correctPlacements: 0,
+          hasActiveError: false,
+          lastFeedback: 'reset',
+        );
+    }
+  }
+
+  /// Append a successfully committed word (target casing + auto-filled
+  /// punctuation/spaces) and clear the buffer for the next word.
+  void _commitWord(String committedText) {
+    final newChars = List<TypedChar>.from(state.typedChars);
+    for (var i = 0; i < committedText.length; i++) {
+      newChars.add(TypedChar(char: committedText[i], isCorrect: true));
+    }
+    final done = newChars.length >= state.targetText.length;
+
+    state = state.copyWith(
+      typedText: '',
+      typedChars: newChars,
+      correctPlacements: state.correctPlacements + committedText.length,
+      correctUnitsAcrossAll:
+          state.correctUnitsAcrossAll + committedText.length,
+      lastFeedback: done ? 'correct' : 'word',
+      isScriptureComplete: done,
+    );
+  }
+
+  // ── Advanced: per-character typing ──
+  void _onTypeChar(String newText) {
+    // Handle backspace (text got shorter): allow deleting to fix errors
+    if (newText.length < state.typedText.length) {
+      final newChars = List<TypedChar>.from(state.typedChars);
+      if (newChars.isNotEmpty) {
+        // Remove the last user-typed char, plus any auto-filled chars
+        // (punctuation and spaces) that preceded it.
+        newChars.removeLast();
+        while (newChars.isNotEmpty &&
+            _isAutoFillChar(newChars.last.char)) {
+          newChars.removeLast();
+        }
+      }
+      final stillHasError = newChars.any((c) => !c.isCorrect);
+      state = state.copyWith(
+        typedText: newText,
+        typedChars: newChars,
+        hasActiveError: stillHasError,
+        clearFeedback: true,
+      );
       return;
     }
 
     // New character typed
     if (newText.length > state.typedText.length) {
-      // In Advanced mode, block new typing until errors are deleted
-      if (state.hasActiveError && state.difficulty == DifficultyLevel.advanced) {
+      // Block new typing until errors are deleted
+      if (state.hasActiveError) {
         return;
       }
 
@@ -495,8 +593,7 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
       // Ignore spaces and punctuation typed by the user — both are
       // auto-filled. The user only needs to type letters and digits.
       // Without this, typing a natural "world," (with the comma) counted
-      // the comma as a wrong character — and triggered a full reset on
-      // Master difficulty.
+      // the comma as a wrong character.
       if (_isAutoFillChar(newChar)) {
         state = state.copyWith(typedText: newText);
         return;
@@ -533,32 +630,16 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
           clearFeedback: !done,
         );
       } else {
-        // WRONG CHARACTER
-        if (state.difficulty == DifficultyLevel.master) {
-          // Master: full reset!
-          state = state.copyWith(
-            typedText: '',
-            typedChars: [],
-            incorrectAttempts: state.incorrectAttempts + 1,
-            resetCount: state.resetCount + 1,
-            correctUnitsAcrossAll:
-                state.correctUnitsAcrossAll - state.correctPlacements,
-            correctPlacements: 0,
-            hasActiveError: false,
-            lastFeedback: 'reset',
-          );
-        } else {
-          // Advanced: show red, user must backspace to fix
-          newChars.add(TypedChar(char: newChar, isCorrect: false));
+        // Wrong character: show red, user must backspace to fix
+        newChars.add(TypedChar(char: newChar, isCorrect: false));
 
-          state = state.copyWith(
-            typedText: newText,
-            typedChars: newChars,
-            incorrectAttempts: state.incorrectAttempts + 1,
-            hasActiveError: true,
-            lastFeedback: 'incorrect',
-          );
-        }
+        state = state.copyWith(
+          typedText: newText,
+          typedChars: newChars,
+          incorrectAttempts: state.incorrectAttempts + 1,
+          hasActiveError: true,
+          lastFeedback: 'incorrect',
+        );
       }
     }
   }
