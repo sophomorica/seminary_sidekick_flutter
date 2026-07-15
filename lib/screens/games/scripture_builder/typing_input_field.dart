@@ -106,15 +106,12 @@ class SbTypingInputField extends StatelessWidget {
                   inputFormatters: const [SingleWordFormatter()],
                   contextMenuBuilder: _noPasteMenu,
                   style: wordStyle,
-                  decoration: InputDecoration(
+                  // No placeholder: the keyboard is already up and the
+                  // caption below explains the gesture — an empty pill with
+                  // a cursor reads cleaner between words.
+                  decoration: const InputDecoration(
                     border: InputBorder.none,
-                    hintText: 'Type a word',
-                    hintStyle: wordStyle?.copyWith(
-                      color: AppTheme.onTertiaryContainer
-                          .withValues(alpha: 0.5),
-                      fontWeight: FontWeight.w600,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
+                    contentPadding: EdgeInsets.symmetric(
                       horizontal: AppTheme.spacingLg,
                       vertical: AppTheme.spacingMd,
                     ),
