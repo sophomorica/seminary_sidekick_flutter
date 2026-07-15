@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../theme/app_theme.dart';
 
-/// The typing-mode input row for Scripture Builder (Advanced & Master).
+/// The typing-mode input for Scripture Builder (Advanced & Master).
 ///
 /// Presentation-only: focus management, controller clearing, and feedback
 /// orchestration stay with the owning screen. Kept as its own widget so a
@@ -13,6 +13,12 @@ import '../../../theme/app_theme.dart';
 /// happens per committed word (see `WordCommitEngine`), so autocorrect fixes
 /// fat-finger typos instead of corrupting per-character state. Advanced keeps
 /// autocorrect off because every keystroke is judged as it lands.
+///
+/// The two modes look deliberately different: Advanced types a whole passage,
+/// so it gets a full-width field; Master holds one word at a time, so it gets
+/// a centered, button-like "word pill" in the Master (tertiary/gold) family —
+/// the word sits large in the middle, and space, the done key, or the send
+/// arrow commits it.
 class SbTypingInputField extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
@@ -33,19 +39,142 @@ class SbTypingInputField extends StatelessWidget {
     this.onSubmitted,
   });
 
-  String get _hintText {
-    // hasActiveError is an Advanced-only state (Master never enters the
-    // red-character flow), so the error hint is scoped to Advanced.
-    if (!isMaster && hasActiveError) {
-      return 'Delete the error and try again...';
-    }
-    return isMaster
-        ? 'Type each word from memory — space checks it'
-        : 'Type the scripture (first letters shown)...';
+  /// Strips the paste action from the long-press menu (both modes).
+  static Widget _noPasteMenu(
+      BuildContext context, EditableTextState editableTextState) {
+    final items = editableTextState.contextMenuButtonItems
+        .where((item) => item.type != ContextMenuButtonType.paste)
+        .toList();
+    return AdaptiveTextSelectionToolbar.buttonItems(
+      anchors: editableTextState.contextMenuAnchors,
+      buttonItems: items,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    return isMaster ? _buildWordPill(context) : _buildAdvancedField(context);
+  }
+
+  // ── Master: centered word pill ──
+
+  Widget _buildWordPill(BuildContext context) {
+    final theme = Theme.of(context);
+    final wordStyle = theme.textTheme.titleLarge?.copyWith(
+      color: AppTheme.onTertiaryContainer,
+      fontWeight: FontWeight.w700,
+    );
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.spacingMd,
+        AppTheme.spacingSm,
+        AppTheme.spacingMd,
+        AppTheme.spacingSm,
+      ),
+      color: theme.scaffoldBackgroundColor,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Mirrors the send-button slot so the pill stays centered.
+              const SizedBox(width: AppTheme.spacingXxl + AppTheme.spacingSm),
+              Flexible(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * 0.6,
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [
+                          AppTheme.tertiaryContainer,
+                          AppTheme.tertiaryFixedDim,
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+                      boxShadow: AppTheme.floatingShadow,
+                    ),
+                    child: TextField(
+                      key: const ValueKey('sb_typing_field'),
+                      controller: controller,
+                      focusNode: focusNode,
+                      autofocus: true,
+                      autocorrect: true,
+                      enableSuggestions: true,
+                      textCapitalization: TextCapitalization.none,
+                      textInputAction: TextInputAction.done,
+                      textAlign: TextAlign.center,
+                      cursorColor: AppTheme.onTertiaryContainer,
+                      inputFormatters: const [SingleWordFormatter()],
+                      contextMenuBuilder: _noPasteMenu,
+                      style: wordStyle,
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'Type a word',
+                        hintStyle: wordStyle?.copyWith(
+                          color: AppTheme.onTertiaryContainer
+                              .withValues(alpha: 0.5),
+                          fontWeight: FontWeight.w600,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: AppTheme.spacingLg,
+                          vertical: AppTheme.spacingMd,
+                        ),
+                      ),
+                      onChanged: onChanged,
+                      onSubmitted: onSubmitted,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppTheme.spacingSm),
+              // Send arrow — appears once there's a word to commit.
+              SizedBox(
+                width: AppTheme.spacingXxl,
+                height: AppTheme.spacingXxl,
+                child: ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: controller,
+                  builder: (context, value, _) {
+                    final hasWord = value.text.trim().isNotEmpty;
+                    return AnimatedScale(
+                      scale: hasWord ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 150),
+                      curve: Curves.easeOut,
+                      child: IconButton(
+                        onPressed: hasWord
+                            ? () => onSubmitted?.call(controller.text)
+                            : null,
+                        style: IconButton.styleFrom(
+                          backgroundColor: AppTheme.tertiaryContainer,
+                          foregroundColor: AppTheme.onTertiary,
+                          disabledBackgroundColor: AppTheme.tertiaryContainer,
+                        ),
+                        icon: const Icon(Icons.arrow_upward),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.spacingXs),
+          Text(
+            'Space checks each word',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Advanced: full-width passage field ──
+
+  Widget _buildAdvancedField(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(
         AppTheme.spacingMd,
@@ -69,32 +198,20 @@ class SbTypingInputField extends StatelessWidget {
               controller: controller,
               focusNode: focusNode,
               autofocus: true,
-              autocorrect: isMaster,
-              enableSuggestions: isMaster,
+              autocorrect: false,
+              enableSuggestions: false,
               textCapitalization: TextCapitalization.none,
               textInputAction: TextInputAction.done,
-              // Master judges whole words, so multi-word insertions (paste)
-              // are blocked but single-word autocorrect rewrites are allowed.
-              // Advanced judges per keystroke, so any multi-char insertion
-              // would bypass mastery checking.
-              inputFormatters: isMaster
-                  ? const [SingleWordFormatter()]
-                  : const [NoPasteFormatter()],
-              contextMenuBuilder: (context, editableTextState) {
-                final items = editableTextState.contextMenuButtonItems
-                    .where(
-                      (item) => item.type != ContextMenuButtonType.paste,
-                    )
-                    .toList();
-                return AdaptiveTextSelectionToolbar.buttonItems(
-                  anchors: editableTextState.contextMenuAnchors,
-                  buttonItems: items,
-                );
-              },
+              // Judged per keystroke, so any multi-char insertion would
+              // bypass mastery checking.
+              inputFormatters: const [NoPasteFormatter()],
+              contextMenuBuilder: _noPasteMenu,
               style: const TextStyle(fontSize: 14),
               decoration: InputDecoration(
                 isDense: true,
-                hintText: _hintText,
+                hintText: hasActiveError
+                    ? 'Delete the error and try again...'
+                    : 'Type the scripture (first letters shown)...',
                 hintStyle: TextStyle(
                   fontSize: 13,
                   color: Theme.of(context)
