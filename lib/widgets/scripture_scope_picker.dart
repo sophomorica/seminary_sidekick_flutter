@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/enums.dart';
 import '../models/scripture.dart';
-import '../models/scripture_mastery.dart';
 import '../models/scripture_scope.dart';
 import '../providers/scripture_mastery_provider.dart';
 import '../providers/scripture_provider.dart';
@@ -11,17 +10,17 @@ import '../providers/scripture_scope_provider.dart';
 
 /// Reusable scripture-scope picker.
 ///
-/// Shows three sections — quick presets, by-book multi-select, and an
-/// individual-scripture searchable list — and emits a [ScriptureScope] via
-/// [onChanged]. Used by solo Quick Quiz, solo Scripture Match, group Quiz
-/// host lobby, and group Scripture Builder host lobby.
+/// Multi-select filters (books + Needs Review / Nearly Mastered) narrow the
+/// pool. "Pick specific scriptures" then lists that filtered pool so the user
+/// can hand-pick a subset. Used by solo Quick Quiz, solo Scripture Match,
+/// group Quiz host lobby, and group Scripture Builder host lobby.
 ///
 /// Two ways to embed:
 ///   * Drop the widget into a form (lobby setup view)
 ///   * Call [showScriptureScopePicker] to present a draggable modal sheet
 class ScriptureScopePicker extends ConsumerStatefulWidget {
   /// Initial scope. Pass the last-used scope for this context from
-  /// [scriptureScopeProvider], or a default like `ScopeAll()`.
+  /// [scriptureScopeProvider], or a default like `const ScriptureScope()`.
   final ScriptureScope initial;
 
   /// Storage key for the "Restore last used" affordance. When null the
@@ -79,46 +78,47 @@ class _ScriptureScopePickerState extends ConsumerState<ScriptureScopePicker> {
   void initState() {
     super.initState();
     _scope = widget.initial;
-    // If the initial scope is the individual-id variant, expand the section
-    // so the current selection is visible.
-    if (_scope is ScopeScriptureIds) {
+    if (_scope.hasSpecificIds) {
       _individualOpen = true;
     }
   }
 
+  MasteryLookup get _lookup =>
+      (id) => ref.read(scriptureMasteryProvider(id));
+
   void _update(ScriptureScope next) {
-    setState(() => _scope = next);
-    widget.onChanged(next);
+    final all = ref.read(scripturesProvider);
+    final pruned = next.prunedToFilter(all, masteryLookup: _lookup);
+    setState(() => _scope = pruned);
+    widget.onChanged(pruned);
   }
 
   void _toggleBook(ScriptureBook b) {
-    final currentBooks = _scope is ScopeBooks
-        ? Set<ScriptureBook>.from((_scope as ScopeBooks).books)
-        : <ScriptureBook>{};
-    if (currentBooks.contains(b)) {
-      currentBooks.remove(b);
+    final books = Set<ScriptureBook>.from(_scope.books);
+    if (books.contains(b)) {
+      books.remove(b);
     } else {
-      currentBooks.add(b);
+      books.add(b);
     }
-    if (currentBooks.isEmpty) {
-      _update(const ScopeAll());
-    } else if (currentBooks.length == ScriptureBook.values.length) {
-      _update(const ScopeAll());
-    } else {
-      _update(ScopeBooks(currentBooks));
-    }
+    _update(_scope.copyWith(books: books));
+  }
+
+  void _toggleNeedsReview() {
+    _update(_scope.copyWith(needsReview: !_scope.needsReview));
+  }
+
+  void _toggleNearlyMastered() {
+    _update(_scope.copyWith(nearlyMastered: !_scope.nearlyMastered));
   }
 
   void _toggleScripture(String id) {
-    final current = _scope is ScopeScriptureIds
-        ? List<String>.from((_scope as ScopeScriptureIds).ids)
-        : <String>[];
+    final current = List<String>.from(_scope.specificIds);
     if (current.contains(id)) {
       current.remove(id);
     } else {
       current.add(id);
     }
-    _update(ScopeScriptureIds(current));
+    _update(_scope.copyWith(specificIds: current));
   }
 
   void _restoreLastUsed() {
@@ -128,12 +128,13 @@ class _ScriptureScopePickerState extends ConsumerState<ScriptureScopePicker> {
     if (last != null) _update(last);
   }
 
+  void _clear() => _update(const ScriptureScope());
+
   @override
   Widget build(BuildContext context) {
     final all = ref.watch(scripturesProvider);
-    ScriptureMastery? lookup(String id) =>
-        ref.read(scriptureMasteryProvider(id));
-    final resolved = _scope.resolve(all, masteryLookup: lookup);
+    final resolved = _scope.resolve(all, masteryLookup: _lookup);
+    final pool = _scope.filterPool(all, masteryLookup: _lookup);
     final hasLastUsed = widget.usageContext != null &&
         ref.watch(scriptureScopeProvider).containsKey(widget.usageContext);
 
@@ -142,7 +143,7 @@ class _ScriptureScopePickerState extends ConsumerState<ScriptureScopePicker> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionHeader(
-          label: 'QUICK PRESETS',
+          label: 'FILTER',
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -152,25 +153,18 @@ class _ScriptureScopePickerState extends ConsumerState<ScriptureScopePicker> {
                   child: const Text('Restore'),
                 ),
               TextButton(
-                onPressed: () => _update(const ScopeAll()),
+                onPressed: _clear,
                 child: const Text('Clear'),
               ),
             ],
           ),
         ),
         const SizedBox(height: 6),
-        _PresetChips(
+        _FilterChips(
           scope: _scope,
-          allCount: all.length,
-          onSelect: _update,
-        ),
-
-        const SizedBox(height: 20),
-        const _SectionHeader(label: 'BY BOOK'),
-        const SizedBox(height: 6),
-        _BookChipRow(
-          scope: _scope,
-          onToggle: _toggleBook,
+          onToggleBook: _toggleBook,
+          onToggleNeedsReview: _toggleNeedsReview,
+          onToggleNearlyMastered: _toggleNearlyMastered,
         ),
 
         if (widget.showIndividualSection) ...[
@@ -178,6 +172,8 @@ class _ScriptureScopePickerState extends ConsumerState<ScriptureScopePicker> {
           _IndividualDisclosure(
             label: widget.individualLabel,
             open: _individualOpen,
+            poolCount: pool.length,
+            selectedCount: _scope.specificIds.length,
             onToggle: () =>
                 setState(() => _individualOpen = !_individualOpen),
           ),
@@ -185,7 +181,8 @@ class _ScriptureScopePickerState extends ConsumerState<ScriptureScopePicker> {
             _IndividualSection(
               search: _search,
               onSearchChanged: (v) => setState(() => _search = v),
-              scope: _scope,
+              pool: pool,
+              selectedIds: _scope.specificIds.toSet(),
               onToggleScripture: _toggleScripture,
             ),
         ],
@@ -304,8 +301,7 @@ Future<ScriptureScope?> showScriptureScopePicker(
                       onChanged: (s) => working = s,
                       showConfirmButton: true,
                       confirmLabel: confirmLabel,
-                      onConfirm: () =>
-                          Navigator.of(ctx).pop(working),
+                      onConfirm: () => Navigator.of(ctx).pop(working),
                     ),
                   ],
                 ),
@@ -353,15 +349,17 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _PresetChips extends StatelessWidget {
+class _FilterChips extends StatelessWidget {
   final ScriptureScope scope;
-  final int allCount;
-  final ValueChanged<ScriptureScope> onSelect;
+  final ValueChanged<ScriptureBook> onToggleBook;
+  final VoidCallback onToggleNeedsReview;
+  final VoidCallback onToggleNearlyMastered;
 
-  const _PresetChips({
+  const _FilterChips({
     required this.scope,
-    required this.allCount,
-    required this.onSelect,
+    required this.onToggleBook,
+    required this.onToggleNeedsReview,
+    required this.onToggleNearlyMastered,
   });
 
   @override
@@ -370,66 +368,25 @@ class _PresetChips extends StatelessWidget {
       spacing: 8,
       runSpacing: 8,
       children: [
-        _Chip(
-          label: 'All $allCount',
-          selected: scope is ScopeAll,
-          onTap: () => onSelect(const ScopeAll()),
-        ),
-        _Chip(
-          label: 'Old Testament',
-          selected: scope is ScopeBooks &&
-              (scope as ScopeBooks).books.length == 1 &&
-              (scope as ScopeBooks).books.contains(ScriptureBook.oldTestament),
-          onTap: () => onSelect(
-            const ScopeBooks({ScriptureBook.oldTestament}),
+        for (final book in kScopeBookOrder)
+          _Chip(
+            label: book == ScriptureBook.doctrineAndCovenants
+                ? 'Doctrine and Covenants'
+                : book.displayName,
+            selected: scope.books.contains(book),
+            onTap: () => onToggleBook(book),
           ),
-        ),
-        _Chip(
-          label: 'Book of Mormon',
-          selected: scope is ScopeBooks &&
-              (scope as ScopeBooks).books.length == 1 &&
-              (scope as ScopeBooks).books.contains(ScriptureBook.bookOfMormon),
-          onTap: () => onSelect(
-            const ScopeBooks({ScriptureBook.bookOfMormon}),
-          ),
-        ),
         _Chip(
           label: 'Needs Review',
-          selected: scope is ScopeNeedsReview,
-          onTap: () => onSelect(const ScopeNeedsReview()),
+          selected: scope.needsReview,
+          onTap: onToggleNeedsReview,
         ),
         _Chip(
           label: 'Nearly Mastered',
-          selected: scope is ScopeNearlyMastered,
-          onTap: () => onSelect(const ScopeNearlyMastered()),
+          selected: scope.nearlyMastered,
+          onTap: onToggleNearlyMastered,
         ),
       ],
-    );
-  }
-}
-
-class _BookChipRow extends StatelessWidget {
-  final ScriptureScope scope;
-  final ValueChanged<ScriptureBook> onToggle;
-
-  const _BookChipRow({required this.scope, required this.onToggle});
-
-  @override
-  Widget build(BuildContext context) {
-    final selected = scope is ScopeBooks
-        ? (scope as ScopeBooks).books
-        : <ScriptureBook>{};
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: ScriptureBook.values.map((b) {
-        return _Chip(
-          label: b.abbreviation,
-          tooltip: b.displayName,
-          selected: selected.contains(b),
-          onTap: () => onToggle(b),
-        );
-      }).toList(),
     );
   }
 }
@@ -437,16 +394,24 @@ class _BookChipRow extends StatelessWidget {
 class _IndividualDisclosure extends StatelessWidget {
   final String label;
   final bool open;
+  final int poolCount;
+  final int selectedCount;
   final VoidCallback onToggle;
 
   const _IndividualDisclosure({
     required this.label,
     required this.open,
+    required this.poolCount,
+    required this.selectedCount,
     required this.onToggle,
   });
 
   @override
   Widget build(BuildContext context) {
+    final subtitle = selectedCount > 0
+        ? '$selectedCount of $poolCount selected'
+        : '$poolCount in filter';
+
     return InkWell(
       onTap: onToggle,
       borderRadius: BorderRadius.circular(8),
@@ -460,11 +425,26 @@ class _IndividualDisclosure extends StatelessWidget {
               color: Theme.of(context).colorScheme.onSurface,
             ),
             const SizedBox(width: 6),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
+                  Text(
+                    subtitle,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurfaceVariant,
+                        ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -473,29 +453,26 @@ class _IndividualDisclosure extends StatelessWidget {
   }
 }
 
-class _IndividualSection extends ConsumerWidget {
+class _IndividualSection extends StatelessWidget {
   final String search;
   final ValueChanged<String> onSearchChanged;
-  final ScriptureScope scope;
+  final List<Scripture> pool;
+  final Set<String> selectedIds;
   final ValueChanged<String> onToggleScripture;
 
   const _IndividualSection({
     required this.search,
     required this.onSearchChanged,
-    required this.scope,
+    required this.pool,
+    required this.selectedIds,
     required this.onToggleScripture,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final all = ref.watch(scripturesProvider);
-    final selectedIds = scope is ScopeScriptureIds
-        ? (scope as ScopeScriptureIds).ids.toSet()
-        : <String>{};
-
+  Widget build(BuildContext context) {
     final filtered = search.trim().isEmpty
-        ? all
-        : all.where((s) {
+        ? pool
+        : pool.where((s) {
             final q = search.toLowerCase();
             return s.reference.toLowerCase().contains(q) ||
                 s.name.toLowerCase().contains(q) ||
@@ -528,34 +505,52 @@ class _IndividualSection extends ConsumerWidget {
         const SizedBox(height: 8),
         ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 280),
-          child: filtered.isEmpty
+          child: pool.isEmpty
               ? Padding(
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Center(
                     child: Text(
-                      'No scriptures match "$search"',
+                      'No scriptures match the current filters',
                       style:
                           Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurfaceVariant,
                               ),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 )
-              : ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: filtered.length,
-                  itemBuilder: (ctx, i) {
-                    final s = filtered[i];
-                    final isSelected = selectedIds.contains(s.id);
-                    return _ScriptureCheckTile(
-                      scripture: s,
-                      selected: isSelected,
-                      onTap: () => onToggleScripture(s.id),
-                    );
-                  },
-                ),
+              : filtered.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: Text(
+                          'No scriptures match "$search"',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: filtered.length,
+                      itemBuilder: (ctx, i) {
+                        final s = filtered[i];
+                        final isSelected = selectedIds.contains(s.id);
+                        return _ScriptureCheckTile(
+                          scripture: s,
+                          selected: isSelected,
+                          onTap: () => onToggleScripture(s.id),
+                        );
+                      },
+                    ),
         ),
       ],
     );
@@ -578,14 +573,11 @@ class _ScriptureCheckTile extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
         child: Row(
           children: [
             Icon(
-              selected
-                  ? Icons.check_box
-                  : Icons.check_box_outline_blank,
+              selected ? Icons.check_box : Icons.check_box_outline_blank,
               color: selected
                   ? Theme.of(context).colorScheme.primary
                   : Theme.of(context).colorScheme.onSurfaceVariant,
@@ -605,10 +597,7 @@ class _ScriptureCheckTile extends StatelessWidget {
                   ),
                   Text(
                     scripture.name,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context)
                               .colorScheme
                               .onSurfaceVariant,
@@ -642,7 +631,7 @@ class _SelectionPreview extends StatelessWidget {
     final count = resolved.length;
     final sample = resolved.take(1).map((s) => s.reference).join();
     final preview = count == 0
-        ? 'No scriptures match this scope'
+        ? 'No scriptures match this filter'
         : count == 1
             ? sample
             : '$sample + ${count - 1} more';
@@ -702,32 +691,26 @@ class _Chip extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  final String? tooltip;
 
   const _Chip({
     required this.label,
     required this.selected,
     required this.onTap,
-    this.tooltip,
   });
 
   @override
   Widget build(BuildContext context) {
-    final chip = ChoiceChip(
+    return FilterChip(
       label: Text(label),
       selected: selected,
       onSelected: (_) => onTap(),
       labelStyle: TextStyle(
-        color: selected
-            ? Theme.of(context).colorScheme.onPrimary
-            : null,
+        color: selected ? Theme.of(context).colorScheme.onPrimary : null,
         fontWeight: selected ? FontWeight.bold : FontWeight.normal,
       ),
       selectedColor: Theme.of(context).colorScheme.primary,
+      checkmarkColor: Theme.of(context).colorScheme.onPrimary,
+      showCheckmark: true,
     );
-    if (tooltip != null) {
-      return Tooltip(message: tooltip!, child: chip);
-    }
-    return chip;
   }
 }

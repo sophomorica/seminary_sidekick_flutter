@@ -87,6 +87,29 @@ void main() {
       expect(notifier.state.pairs.length, notifier.state.totalPairs);
     });
 
+    test('scoped scriptures still honor beginner default of 8 pairs', () {
+      // Regression: a non-All scope used to pass the full resolved list with
+      // targetPairCount=null, which ignored matchingScriptureCount.
+      notifier.startGame(
+        difficulty: DifficultyLevel.beginner,
+        scriptures: allScriptures,
+      );
+
+      expect(notifier.state.pairs.length, 8);
+      expect(notifier.state.totalPairs, 8);
+    });
+
+    test('scoped scriptures honor explicit every-scripture override', () {
+      notifier.startGame(
+        difficulty: DifficultyLevel.beginner,
+        scriptures: allScriptures,
+        targetPairCount: allScriptures.length,
+      );
+
+      expect(notifier.state.pairs.length, allScriptures.length);
+      expect(notifier.state.totalPairs, allScriptures.length);
+    });
+
     test('all pairs start unmatched', () {
       notifier.startGame(difficulty: DifficultyLevel.beginner);
 

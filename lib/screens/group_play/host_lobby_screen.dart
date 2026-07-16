@@ -8,8 +8,11 @@ import '../../models/group_play_state.dart';
 import '../../models/group_player.dart';
 import '../../models/group_room.dart';
 import '../../models/group_sb_config.dart';
+import '../../models/scripture.dart';
+import '../../models/scripture_mastery.dart';
 import '../../models/scripture_scope.dart';
 import '../../providers/group_play_provider.dart';
+import '../../providers/scripture_mastery_provider.dart';
 import '../../providers/scripture_provider.dart';
 import '../../providers/scripture_scope_provider.dart';
 import '../../providers/subscription_provider.dart';
@@ -39,7 +42,7 @@ class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
   GroupSbChunkDifficulty _sbChunkDifficulty = GroupSbChunkDifficulty.beginner;
   GroupSbPlayMode _sbPlayMode = GroupSbPlayMode.roundByRound;
   int _sbSetSize = 5;
-  ScriptureScope _scope = const ScopeAll();
+  ScriptureScope _scope = const ScriptureScope();
   late TextEditingController _nicknameController;
 
   @override
@@ -71,7 +74,7 @@ class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
     if (last != null) {
       setState(() => _scope = last);
     } else {
-      setState(() => _scope = const ScopeAll());
+      setState(() => _scope = const ScriptureScope());
     }
   }
 
@@ -188,18 +191,17 @@ class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
       return;
     }
 
-    // Scripture Builder needs at least one scripture in scope to race against.
-    if (_gameMode == GroupGameMode.scriptureBuilder) {
-      final allScrips = ref.read(scripturesProvider);
-      final resolved = _scope.resolve(allScrips);
-      if (resolved.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Pick at least one scripture for the race.'),
-          ),
-        );
-        return;
-      }
+    // Empty resolved scope must not create a room — for quiz especially,
+    // empty scriptureIds on the wire means "full corpus", which would silently
+    // widen a Needs Review / hand-pick that matched nothing.
+    if (!_scope.isUnfiltered && _resolveScope().isEmpty) {
+      final message = _gameMode == GroupGameMode.scriptureBuilder
+          ? 'Pick at least one scripture for the race.'
+          : 'No scriptures match this filter. Adjust your selection.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+      return;
     }
 
     FocusManager.instance.primaryFocus?.unfocus();
@@ -210,17 +212,15 @@ class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
         .saveScope(_scopeUsageContext, _scope);
 
     // Translate the picker scope into the wire-format used by the room row.
-    // `ScopeAll` and the dynamic presets (`needsReview`, `nearlyMastered`)
-    // map to empty book/id lists — the question factory then draws from all
-    // scriptures, matching the original minimal-picker default. Explicit
-    // book or scripture-id selections become bookNames or scriptureIds.
+    // Unfiltered → empty book/id lists (full corpus). Book-only filters →
+    // bookNames. Status filters or hand-picks → concrete scriptureIds so the
+    // room doesn't have to re-evaluate mastery on each client.
     List<String> bookNames = const [];
     List<String> scriptureIds = const [];
-    if (_scope is ScopeBooks) {
-      bookNames =
-          (_scope as ScopeBooks).books.map((b) => b.name).toList();
-    } else if (_scope is ScopeScriptureIds) {
-      scriptureIds = (_scope as ScopeScriptureIds).ids;
+    if (_scope.hasSpecificIds || _scope.hasStatusFilter) {
+      scriptureIds = _resolveScope().map((s) => s.id).toList();
+    } else if (_scope.books.isNotEmpty) {
+      bookNames = _scope.books.map((b) => b.name).toList();
     }
 
     final scope = _gameMode == GroupGameMode.quiz
@@ -239,13 +239,18 @@ class _HostLobbyScreenState extends ConsumerState<HostLobbyScreen> {
         );
   }
 
+  List<Scripture> _resolveScope() {
+    final allScrips = ref.read(scripturesProvider);
+    ScriptureMastery? lookup(String id) =>
+        ref.read(scriptureMasteryProvider(id));
+    return _scope.resolve(allScrips, masteryLookup: lookup);
+  }
+
   /// Build the [GroupRoomScope] for a Word-Builder room. Resolves the picker
   /// scope down to a concrete list of scripture ids (Set-of-N caps to
   /// `_sbSetSize`, Round-by-Round uses all in scope).
   GroupRoomScope _buildScriptureBuilderScope() {
-    final allScrips = ref.read(scripturesProvider);
-    final resolved = _scope.resolve(allScrips);
-    final ids = resolved.map((s) => s.id).toList();
+    final ids = _resolveScope().map((s) => s.id).toList();
     final raceIds = _sbPlayMode == GroupSbPlayMode.setOfN
         ? ids.take(_sbSetSize).toList()
         : ids;

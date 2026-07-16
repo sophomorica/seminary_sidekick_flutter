@@ -69,7 +69,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
     _difficulty = DifficultyLevel.beginner;
     _scope =
         ref.read(scriptureScopeProvider.notifier).lastUsedScope(_usageContext) ??
-            const ScopeAll();
+            const ScriptureScope();
   }
 
   @override
@@ -257,9 +257,13 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
   }
 
   Future<void> _start(BuildContext ctx, List<Scripture> resolved) async {
-    final scriptures = _scope is ScopeAll ? null : resolved;
-    final bookFilters = _scope is ScopeBooks
-        ? (_scope as ScopeBooks).books.toList()
+    // Unfiltered → let the game sample from the full corpus.
+    // Otherwise pass the resolved pool (books, status filters, and/or picks).
+    final scriptures = _scope.isUnfiltered ? null : resolved;
+    final bookFilters = (!_scope.hasStatusFilter &&
+            !_scope.hasSpecificIds &&
+            _scope.books.isNotEmpty)
+        ? _scope.books.toList()
         : const <ScriptureBook>[];
 
     final rootNavigator = Navigator.of(context, rootNavigator: true);
@@ -294,7 +298,11 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
               difficulty: difficulty,
               bookFilters: bookFilters,
               scriptures: scriptures,
-              targetPairCount: everyScripture ? resolved.length : null,
+              // Hand-picks and "Every scripture" use the full resolved pool.
+              // Otherwise honor the difficulty cap (null = Master = all).
+              targetPairCount: everyScripture || _scope.hasSpecificIds
+                  ? resolved.length
+                  : difficulty.matchingScriptureCount,
             ),
           ),
         );
@@ -317,19 +325,19 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
   /// Builder is a typing/tap marathon, so unlike the quizzes we keep the
   /// default session short:
   ///   * "Every scripture" → the full resolved scope.
-  ///   * Scope = All + default → null (the provider samples by difficulty).
-  ///   * Specifically-picked scriptures → exactly those.
-  ///   * Any other scope (book / needs-review / nearly-mastered) + default →
-  ///     a shuffled sample of [DifficultyLevel.scriptureCount].
+  ///   * Unfiltered + default → null (the provider samples by difficulty).
+  ///   * Hand-picked scriptures → exactly those.
+  ///   * Any other filter + default → a shuffled sample of
+  ///     [DifficultyLevel.scriptureCount].
   List<Scripture>? _builderQueue(
     List<Scripture> resolved,
     bool everyScripture,
     DifficultyLevel difficulty,
   ) {
     if (everyScripture) return resolved;
-    if (_scope is ScopeAll) return null;
+    if (_scope.isUnfiltered) return null;
     final pool = List<Scripture>.from(resolved)..shuffle();
-    final cap = _scope is ScopeScriptureIds
+    final cap = _scope.hasSpecificIds
         ? pool.length
         : math.min(difficulty.scriptureCount, pool.length);
     return pool.take(cap).toList();

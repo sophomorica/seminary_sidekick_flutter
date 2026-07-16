@@ -33,27 +33,25 @@ void main() {
 
   group('save + load', () {
     test('saveScope persists per context', () async {
-      const scope = ScopeBooks({ScriptureBook.bookOfMormon});
+      const scope = ScriptureScope(books: {ScriptureBook.bookOfMormon});
       await notifier.saveScope(ScopeUsageContext.quickQuiz, scope);
       final loaded = notifier.lastUsedScope(ScopeUsageContext.quickQuiz);
-      expect(loaded, isA<ScopeBooks>());
-      expect((loaded as ScopeBooks).books,
-          equals({ScriptureBook.bookOfMormon}));
+      expect(loaded, equals(scope));
     });
 
     test('scopes do not bleed between contexts', () async {
-      const quizScope = ScopeBooks({ScriptureBook.oldTestament});
-      const matchScope = ScopeAll();
+      const quizScope = ScriptureScope(books: {ScriptureBook.oldTestament});
+      const matchScope = ScriptureScope();
       await notifier.saveScope(ScopeUsageContext.quickQuiz, quizScope);
       await notifier.saveScope(ScopeUsageContext.scriptureMatch, matchScope);
 
       expect(
         notifier.lastUsedScope(ScopeUsageContext.quickQuiz),
-        isA<ScopeBooks>(),
+        equals(quizScope),
       );
       expect(
         notifier.lastUsedScope(ScopeUsageContext.scriptureMatch),
-        isA<ScopeAll>(),
+        equals(matchScope),
       );
       expect(
         notifier.lastUsedScope(ScopeUsageContext.groupQuiz),
@@ -65,21 +63,21 @@ void main() {
         () async {
       await notifier.saveScope(
         ScopeUsageContext.quickQuiz,
-        const ScopeBooks({ScriptureBook.bookOfMormon}),
+        const ScriptureScope(books: {ScriptureBook.bookOfMormon}),
       );
       await notifier.saveScope(
         ScopeUsageContext.quickQuiz,
-        const ScopeScriptureIds(['1', '2', '3']),
+        const ScriptureScope(specificIds: ['1', '2', '3']),
       );
       final loaded = notifier.lastUsedScope(ScopeUsageContext.quickQuiz);
-      expect(loaded, isA<ScopeScriptureIds>());
-      expect((loaded as ScopeScriptureIds).ids, ['1', '2', '3']);
+      expect(loaded?.specificIds, ['1', '2', '3']);
+      expect(loaded?.books, isEmpty);
     });
 
     test('clearScope removes the entry', () async {
       await notifier.saveScope(
         ScopeUsageContext.quickQuiz,
-        const ScopeNeedsReview(),
+        const ScriptureScope(needsReview: true),
       );
       expect(notifier.lastUsedScope(ScopeUsageContext.quickQuiz), isNotNull);
       await notifier.clearScope(ScopeUsageContext.quickQuiz);
@@ -92,7 +90,7 @@ void main() {
         () async {
       await notifier.saveScope(
         ScopeUsageContext.groupQuiz,
-        const ScopeBooks({ScriptureBook.doctrineAndCovenants}),
+        const ScriptureScope(books: {ScriptureBook.doctrineAndCovenants}),
       );
       // Close any open boxes so the second notifier can reopen them cleanly.
       await Hive.close();
@@ -102,11 +100,28 @@ void main() {
       await reloaded.init();
 
       final loaded = reloaded.lastUsedScope(ScopeUsageContext.groupQuiz);
-      expect(loaded, isA<ScopeBooks>());
       expect(
-        (loaded as ScopeBooks).books,
+        loaded?.books,
         equals({ScriptureBook.doctrineAndCovenants}),
       );
+    });
+
+    test('legacy hive payloads migrate into ScriptureScope', () async {
+      // Simulate an older client that wrote type: 'books'.
+      final box = await Hive.openBox('scripture_scope_prefs');
+      await box.put(ScopeUsageContext.quickQuiz, {
+        'type': 'books',
+        'books': ['bookOfMormon'],
+      });
+      await Hive.close();
+      Hive.init(tempDir.path);
+
+      final reloaded = ScriptureScopeNotifier();
+      await reloaded.init();
+
+      final loaded = reloaded.lastUsedScope(ScopeUsageContext.quickQuiz);
+      expect(loaded?.books, {ScriptureBook.bookOfMormon});
+      expect(loaded?.isUnfiltered, isFalse);
     });
   });
 }
