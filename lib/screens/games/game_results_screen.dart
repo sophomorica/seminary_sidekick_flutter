@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math';
 
 import 'package:confetti/confetti.dart';
@@ -24,10 +23,9 @@ class GameResultsScreen extends ConsumerStatefulWidget {
   final int starRating; // 1-3 — kept for callers; UI no longer reads it
   final bool isNewMastery; // True when user first reaches "Mastered" level
 
-  /// Per-scripture avatar staging (Scripture Builder passes these from the
-  /// session scripture's mastery level before/after this round). When null,
-  /// falls back to the app-wide stage from [UserStats.avatarStage].
-  final AvatarStage? avatarStageBefore;
+  /// Per-scripture avatar badge stage (Scripture Builder passes this from the
+  /// session scripture's mastery level after this round). When null, falls
+  /// back to the app-wide stage from [UserStats.avatarStage].
   final AvatarStage? avatarStageAfter;
   /// Rebuilds the same game session so "Try Again" can relaunch immediately.
   /// Games reach this screen via [Navigator.pushReplacement], so a plain pop
@@ -45,7 +43,6 @@ class GameResultsScreen extends ConsumerStatefulWidget {
     required this.starRating,
     required this.tryAgainBuilder,
     this.isNewMastery = false,
-    this.avatarStageBefore,
     this.avatarStageAfter,
   });
 
@@ -59,8 +56,7 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
   late ConfettiController _confettiController;
   late AnimationController _shakeController;
   late AnimationController _finalPopController;
-
-  final GlobalKey<MasteryAvatarState> _avatarKey = GlobalKey();
+  late AnimationController _avatarRevealController;
 
   int _revealedEventCount = 0;
   int _displayScore = 0;
@@ -72,24 +68,8 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
   bool _sequenceDone = false;
   bool _showMasteryBanner = false;
   bool _skipped = false;
-  MasteryAvatarMotion _avatarMotion = MasteryAvatarMotion.idle;
-  AvatarStage? _morphFrom;
+  bool _showAvatar = false;
   late AvatarStage _finalStage;
-  late AvatarStage _stageBefore;
-  Completer<void>? _morphCompleter;
-
-  /// Show the pre-round stage during the run; reveal the new stage only via
-  /// the morph (or instantly on skip / once the sequence is done).
-  AvatarStage get _visibleStage =>
-      (_morphFrom != null || _sequenceDone || _skipped)
-          ? _finalStage
-          : _stageBefore;
-
-  void _handleMorphComplete() {
-    if (_morphCompleter != null && !_morphCompleter!.isCompleted) {
-      _morphCompleter!.complete();
-    }
-  }
 
   bool get _shouldCelebrate =>
       _story.isMasterful || widget.isNewMastery;
@@ -118,33 +98,22 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
+    _avatarRevealController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 450),
+    );
 
-    // Prefer explicit per-scripture stages from the caller (Scripture Builder
-    // — the avatar reflects THIS scripture's journey). Fall back to app-wide
-    // stage from totalMastered (after the round's progress write; when
-    // isNewMastery, infer before as after − 1).
+    // Badge stage: per-scripture from the caller (Scripture Builder — the
+    // avatar reflects THIS scripture's journey), else app-wide fallback.
+    // Hidden during the run; revealed (fade + zoom) after the final score.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (widget.avatarStageBefore != null &&
-          widget.avatarStageAfter != null) {
-        _stageBefore = widget.avatarStageBefore!;
-        _finalStage = widget.avatarStageAfter!;
-      } else {
-        final afterMastered = ref.read(userStatsProvider).totalMastered;
-        final beforeMastered =
-            widget.isNewMastery ? max(0, afterMastered - 1) : afterMastered;
-        _stageBefore = UserStats.avatarStageForMastered(beforeMastered);
-        _finalStage = UserStats.avatarStageForMastered(afterMastered);
-      }
-      // Never animate a demotion — show the higher stage statically.
-      if (_finalStage.index < _stageBefore.index) {
-        _stageBefore = _finalStage;
-      }
+      _finalStage = widget.avatarStageAfter ??
+          ref.read(userStatsProvider).avatarStage;
       setState(() {});
       _runSequence();
     });
 
-    _stageBefore = AvatarStage.quickToObserve;
     _finalStage = AvatarStage.quickToObserve;
   }
 
@@ -155,9 +124,6 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
       final event = _story.events[i];
       setState(() {
         _activeChip = event;
-        _avatarMotion = event.isMiss
-            ? MasteryAvatarMotion.flinch
-            : MasteryAvatarMotion.hop;
       });
 
       await Future<void>.delayed(const Duration(milliseconds: 180));
@@ -187,7 +153,6 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
       setState(() {
         _activeChip = null;
         _revealedEventCount = i + 1;
-        _avatarMotion = MasteryAvatarMotion.idle;
       });
 
       await Future<void>.delayed(const Duration(milliseconds: 120));
@@ -212,33 +177,24 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
     await _finalPopController.forward(from: 0);
     if (!mounted || _skipped) return;
 
-    // Avatar morph after final-score pop when stage changed this round.
-    // Await the cascade itself (via onMorphComplete) rather than a fixed
-    // delay — a timeout guards against a never-completing morph.
-    if (_stageBefore != _finalStage) {
-      _morphCompleter = Completer<void>();
-      setState(() {
-        _morphFrom = _stageBefore;
-      });
-      ref.read(audioProvider.notifier).play(SoundEffect.levelup);
-      final stages = _finalStage.index - _stageBefore.index;
-      await _morphCompleter!.future.timeout(
-        Duration(milliseconds: 800 * stages + 500),
-        onTimeout: () {},
-      );
-    } else if (widget.isNewMastery) {
+    // Badge reveal after the final-score pop: fade in with a small
+    // zoom-overshoot, then settle to normal size.
+    if (widget.isNewMastery) {
       ref.read(audioProvider.notifier).play(SoundEffect.levelup);
     }
+    setState(() {
+      _showAvatar = true;
+    });
+    await _avatarRevealController.forward(from: 0);
 
     if (!mounted || _skipped) return;
-    await _finishSequence();
+    _finishSequence();
   }
 
-  Future<void> _finishSequence() async {
+  void _finishSequence() {
     setState(() {
       _sequenceDone = true;
       _showMasteryBanner = widget.isNewMastery;
-      _morphFrom = null;
     });
     if (_shouldCelebrate) {
       _confettiController.play();
@@ -250,8 +206,7 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
     _skipped = true;
     _shakeController.stop();
     _finalPopController.stop();
-    _handleMorphComplete();
-    _avatarKey.currentState?.skipTo(_finalStage);
+    _avatarRevealController.value = 1;
     setState(() {
       _activeChip = null;
       _blankScore = false;
@@ -259,8 +214,7 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
       _displayScore = _story.finalScore;
       _meterValue = _story.finalScore / ScoreStoryEngine.maxScore;
       _showGrade = true;
-      _avatarMotion = MasteryAvatarMotion.idle;
-      _morphFrom = null;
+      _showAvatar = true;
       _sequenceDone = true;
       _showMasteryBanner = widget.isNewMastery;
     });
@@ -274,6 +228,7 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
     _confettiController.dispose();
     _shakeController.dispose();
     _finalPopController.dispose();
+    _avatarRevealController.dispose();
     super.dispose();
   }
 
@@ -369,12 +324,35 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
                               ),
                             ),
                             const SizedBox(height: 20),
-                            MasteryAvatar(
-                              key: _avatarKey,
-                              stage: _visibleStage,
-                              morphFrom: _morphFrom,
-                              motion: _avatarMotion,
-                              onMorphComplete: _handleMorphComplete,
+                            // Badge appears after the meter finishes: fade in
+                            // with a small zoom-overshoot, settle to 1.0.
+                            AnimatedBuilder(
+                              animation: _avatarRevealController,
+                              builder: (context, child) {
+                                final t = _avatarRevealController.value;
+                                final scale = TweenSequence<double>([
+                                  TweenSequenceItem(
+                                    tween: Tween(begin: 0.7, end: 1.08).chain(
+                                        CurveTween(curve: Curves.easeOut)),
+                                    weight: 65,
+                                  ),
+                                  TweenSequenceItem(
+                                    tween: Tween(begin: 1.08, end: 1.0).chain(
+                                        CurveTween(curve: Curves.easeInOut)),
+                                    weight: 35,
+                                  ),
+                                ]).transform(t);
+                                return Opacity(
+                                  opacity: _showAvatar
+                                      ? Curves.easeOut.transform(t)
+                                      : 0.0,
+                                  child: Transform.scale(
+                                    scale: scale,
+                                    child: child,
+                                  ),
+                                );
+                              },
+                              child: MasteryAvatar(stage: _finalStage),
                             ),
                             const SizedBox(height: 20),
                             // Receipt list

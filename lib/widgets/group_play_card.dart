@@ -67,11 +67,7 @@ class GroupPlayCard extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppTheme.secondary, AppTheme.tertiary],
-        ),
+        gradient: AppTheme.heroGradient,
         borderRadius: BorderRadius.circular(AppTheme.radiusXl),
         boxShadow: AppTheme.editorialShadow,
       ),

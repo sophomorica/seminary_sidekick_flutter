@@ -324,29 +324,37 @@ class HomeScreen extends ConsumerWidget {
                         // Continue button
                         SizedBox(
                           width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: () =>
-                                context.push('/scripture/${scripture.id}'),
-                            icon: const Icon(Icons.play_arrow_rounded,
-                                size: 18.0),
-                            label: Text(
-                              target.isReviewNudge
-                                  ? 'Refresh this scripture'
-                                  : 'Continue practice',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelLarge
-                                  ?.copyWith(color: Colors.white),
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: AppTheme.heroGradient,
+                              borderRadius: BorderRadius.circular(
+                                  AppTheme.radiusRound),
                             ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primary,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                    AppTheme.radiusRound),
+                            child: ElevatedButton.icon(
+                              onPressed: () =>
+                                  context.push('/scripture/${scripture.id}'),
+                              icon: const Icon(Icons.play_arrow_rounded,
+                                  size: 18.0),
+                              label: Text(
+                                target.isReviewNudge
+                                    ? 'Refresh this scripture'
+                                    : 'Continue practice',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelLarge
+                                    ?.copyWith(color: Colors.white),
                               ),
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 12.0,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                      AppTheme.radiusRound),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12.0,
+                                ),
                               ),
                             ),
                           ),

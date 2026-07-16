@@ -100,6 +100,68 @@ class AppTheme {
   static const Color premiumGradientStart = Color(0xFFB8942A);
   static const Color premiumGradientEnd = Color(0xFFD6B45E);
 
+  // ─── Hero gradient — the approved navy → steel blue ─────────────
+  // Used on all "hero" surfaces and primary CTAs: scripture text card,
+  // key phrase card, group play card, continue-practice/journey CTAs.
+  static const Color heroGradientStart = Color(0xFF2F4374); // primary
+  static const Color heroGradientEnd = Color(0xFF5C77AE); // primaryContainer
+  static const LinearGradient heroGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [heroGradientStart, heroGradientEnd],
+  );
+
+  // Gold "glow" accent for dark mode — gold stays gold in Midnight.
+  static const Color sidekickGoldDark = Color(0xFFF2D98A);
+
+  // Gold button gradient — replaces every flat premiumGold button fill.
+  static const LinearGradient goldButtonGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [premiumGradientStart, premiumGradientEnd],
+  );
+
+  /// Gold card treatment for journal + sidekick surfaces.
+  /// Light: bright gold wash. Dark: navy glass with a gold "glow".
+  static BoxDecoration goldCardDecoration(
+    BuildContext context, {
+    double radius = radiusXl,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (isDark) {
+      return BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0x993B4A6E), Color(0x992B3757)], // navy glass .60
+        ),
+        border: Border.all(color: const Color(0xB3F2D98A)), // gold .70
+        borderRadius: BorderRadius.circular(radius),
+        boxShadow: const [
+          BoxShadow(color: Color(0x29F2D98A), blurRadius: 24), // gold halo .16
+          BoxShadow(
+            color: Color(0x59000000), // black .35
+            blurRadius: 20,
+            offset: Offset(0, 4),
+          ),
+        ],
+      );
+    }
+    return BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          premiumGoldLight.withValues(alpha: 0.70),
+          premiumGradientEnd.withValues(alpha: 0.25),
+        ],
+      ),
+      border: Border.all(color: premiumGold.withValues(alpha: 0.35)),
+      borderRadius: BorderRadius.circular(radius),
+      boxShadow: editorialShadow,
+    );
+  }
+
   // ─── Mastery Level Colors ───────────────────────────────────────
   static const Color masteryNew = Color(0xFF9E9E9E);
   static const Color masteryLearning = Color(0xFFFF8A65);
@@ -115,13 +177,13 @@ class AppTheme {
   static const Color doctrineCovenants = Color(0xFFAB47BC);
 
   // ─── Dark Mode — "Midnight" (deep navy-slate) ───────────────────
-  static const Color darkBackground = Color(0xFF131A2B);
-  static const Color darkCard = Color(0xFF1C2438);
+  static const Color darkBackground = Color(0xFF0F1524);
+  static const Color darkCard = Color(0xFF26314F);
   static const Color darkSurfaceColor = Color(0xFF182034);
-  static const Color darkOnSurface = Color(0xFFE4E9F5); // cool blue-tinted white
-  static const Color darkSurfaceContainerLow = Color(0xFF212A42);
-  static const Color darkSurfaceContainer = Color(0xFF27314C);
-  static const Color darkSurfaceContainerHigh = Color(0xFF2F3A58);
+  static const Color darkOnSurface = Color(0xFFEAF0FA); // cool blue-tinted white
+  static const Color darkSurfaceContainerLow = Color(0xFF2B3757);
+  static const Color darkSurfaceContainer = Color(0xFF32405F);
+  static const Color darkSurfaceContainerHigh = Color(0xFF3B4A6E);
 
   // ─── Spacing ────────────────────────────────────────────────────
   static const double spacingXs = 4.0;
@@ -252,12 +314,12 @@ class AppTheme {
       surfaceContainerLow: darkSurfaceContainerLow,
       surfaceContainer: darkSurfaceContainer,
       surfaceContainerHigh: darkSurfaceContainerHigh,
-      surfaceContainerHighest: Color(0xFF3A4666),  // navy-slate highest
-      onSurfaceVariant: Color(0xFFA9B4CE),         // blue-tinted muted text
+      surfaceContainerHighest: Color(0xFF46577F),  // navy-slate highest
+      onSurfaceVariant: Color(0xFFB7C2DC),         // blue-tinted muted text
       outline: Color(0xFF6F7DA0),                   // blue-tinted outline
-      outlineVariant: Color(0xFF2E3A57),            // subtle navy border
-      inverseSurface: Color(0xFFE4E9F5),            // light blue-white
-      onInverseSurface: Color(0xFF131A2B),          // dark on light
+      outlineVariant: Color(0xFF3A4970),            // subtle navy border
+      inverseSurface: Color(0xFFEAF0FA),            // light blue-white
+      onInverseSurface: Color(0xFF0F1524),          // dark on light
       inversePrimary: primary,
       surfaceTint: primaryFixedDim,                 // soft navy tint
     );
@@ -500,14 +562,13 @@ class AppTheme {
   // ─── Sidekick Colors (dark-mode-aware) ───────────────────────────
   static Color sidekickColor(BuildContext context) {
     return Theme.of(context).brightness == Brightness.dark
-        ? secondaryFixedDim
+        ? sidekickGoldDark
         : premiumGold;
   }
 
   static List<Color> sidekickGradient(BuildContext context) {
-    return Theme.of(context).brightness == Brightness.dark
-        ? [secondary, secondaryFixedDim]
-        : [premiumGradientStart, premiumGradientEnd];
+    // Gold stays gold in dark mode (approved Sacred Editorial refresh).
+    return [premiumGradientStart, premiumGradientEnd];
   }
 
   static Color sidekickTint(BuildContext context, [double alpha = 0.12]) {

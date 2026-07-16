@@ -90,7 +90,12 @@ class _PremiumJournalCard extends ConsumerWidget {
           const SizedBox(height: AppTheme.spacingMd),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton.icon(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: AppTheme.goldButtonGradient,
+                borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+              ),
+              child: ElevatedButton.icon(
               onPressed: () {
                 ref.read(hapticProvider).light();
                 pushFullscreen(
@@ -107,12 +112,14 @@ class _PremiumJournalCard extends ConsumerWidget {
                     ?.copyWith(color: Colors.white),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.premiumGold,
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppTheme.radiusRound),
                 ),
                 padding: const EdgeInsets.symmetric(vertical: 12.0),
+              ),
               ),
             ),
           ),
@@ -207,34 +214,12 @@ class _JournalCardShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(AppTheme.spacingLg),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDark
-                ? [
-                    AppTheme.sidekickColor(context).withValues(alpha: 0.14),
-                    AppTheme.sidekickColor(context).withValues(alpha: 0.06),
-                  ]
-                : [
-                    AppTheme.premiumGoldLight.withValues(alpha: 0.55),
-                    AppTheme.premiumGoldLight.withValues(alpha: 0.25),
-                  ],
-          ),
-          borderRadius: BorderRadius.circular(AppTheme.radiusXl),
-          border: Border.all(
-            color: AppTheme.sidekickColor(context).withValues(alpha: 0.35),
-            width: 0.5,
-          ),
-          boxShadow: AppTheme.editorialShadow,
-        ),
+        decoration: AppTheme.goldCardDecoration(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

@@ -942,9 +942,8 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
     // True when any scripture in this session first crossed into Mastered —
     // drives the results screen's mastery banner + avatar level-up morph.
     var newlyMastered = false;
-    // Per-scripture avatar staging for the results screen: the avatar shows
-    // where you are on THIS scripture (primary = first in queue).
-    AvatarStage? avatarBefore;
+    // Per-scripture avatar badge for the results screen: shows where you are
+    // on THIS scripture (primary = first in queue) after the round.
     AvatarStage? avatarAfter;
     for (final scripture in state.scriptureQueue) {
       // Capture previous mastery level before recording
@@ -989,7 +988,6 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
         newlyMastered = true;
       }
       if (scripture.id == state.scriptureQueue.first.id) {
-        avatarBefore = AvatarStage.forMasteryLevel(prevMastery);
         avatarAfter = AvatarStage.forMasteryLevel(newMastery);
       }
       if (newMastery.index > prevMastery.index) {
@@ -1035,7 +1033,6 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
           completionTime: state.completionTime ?? _elapsed,
           starRating: state.starRating,
           isNewMastery: newlyMastered,
-          avatarStageBefore: avatarBefore,
           avatarStageAfter: avatarAfter,
           tryAgainBuilder: _sessionBuilder(),
         ),

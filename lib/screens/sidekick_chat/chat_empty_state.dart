@@ -108,16 +108,23 @@ class ChatEmptyState extends StatelessWidget {
               ),
             ] else ...[
               // Free tier: upgrade CTA instead of suggestions
-              ElevatedButton.icon(
-                onPressed: onUpgradeTap,
-                icon: const Icon(Icons.workspace_premium, size: 20),
-                label: const Text('Unlock with Premium'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.premiumGold,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppTheme.spacingLg,
-                    vertical: AppTheme.spacingMd,
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: AppTheme.goldButtonGradient,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+                ),
+                child: ElevatedButton.icon(
+                  onPressed: onUpgradeTap,
+                  icon: const Icon(Icons.workspace_premium, size: 20),
+                  label: const Text('Unlock with Premium'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingLg,
+                      vertical: AppTheme.spacingMd,
+                    ),
                   ),
                 ),
               ),

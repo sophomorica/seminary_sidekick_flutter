@@ -41,6 +41,7 @@ void main() {
     int correctMatches = 5,
     int incorrectAttempts = 1,
     bool isNewMastery = false,
+    AvatarStage? avatarStageAfter,
   }) {
     return GameResultsScreen(
       gameType: GameType.scriptureBuilder,
@@ -52,6 +53,7 @@ void main() {
       // starRating unused by UI; keep non-celebratory callers happy.
       starRating: 2,
       isNewMastery: isNewMastery,
+      avatarStageAfter: avatarStageAfter,
       tryAgainBuilder: tryAgainBuilder,
     );
   }
@@ -166,9 +168,9 @@ void main() {
     expect(find.text('Flawless'), findsNothing);
   });
 
-  testWidgets('avatar morph path only when stage changes via new mastery',
+  testWidgets('badge shows the app-wide stage when no per-scripture stage',
       (tester) async {
-    // after=3 (Stalwart), isNewMastery ⇒ before=2 (Quick to Observe).
+    // totalMastered=3 → Stalwart via app-wide fallback.
     final stats = UserStats(
       totalAttempted: 5,
       totalMemorized: 0,
@@ -197,25 +199,12 @@ void main() {
     expect(find.text('Scripture Mastered!'), findsOneWidget);
   });
 
-  testWidgets('avatar shows the pre-round stage during the run, not the final',
+  testWidgets('badge is hidden during the run and revealed after the score',
       (tester) async {
-    // after=3 (Stalwart), isNewMastery ⇒ before=2 (Quick to Observe).
-    final stats = UserStats(
-      totalAttempted: 5,
-      totalMemorized: 0,
-      totalMastered: 3,
-      needsReview: 0,
-      currentStreak: 0,
-      overallAccuracy: 100,
-    );
-
     await tester.pumpWidget(
       buildHarness(
-        overrides: [
-          userStatsProvider.overrideWithValue(stats),
-        ],
         openResults: (_) => buildResults(
-          isNewMastery: true,
+          avatarStageAfter: AvatarStage.standardBearer,
           tryAgainBuilder: (_) => const Scaffold(body: Text('x')),
         ),
       ),
@@ -224,16 +213,22 @@ void main() {
     await tester.tap(find.text('Open Results'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400)); // route transition
-    // Mid-run: first score event is animating; morph hasn't started.
+    // Mid-run: badge is in the tree but fully transparent.
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text(AvatarStage.quickToObserve.label), findsOneWidget);
-    expect(find.text(AvatarStage.stalwart.label), findsNothing);
+    final opacityFinder = find.ancestor(
+      of: find.text(AvatarStage.standardBearer.label),
+      matching: find.byType(Opacity),
+    );
+    expect(opacityFinder, findsOneWidget);
+    expect(tester.widget<Opacity>(opacityFinder.first).opacity, 0.0);
 
-    // Skip to the end to flush the sequence, then verify the final stage.
+    // Skip to the end — badge fully visible with the per-scripture stage.
     await tester.tap(find.byKey(const Key('score-story-skip')));
     await tester.pump();
     await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
-    expect(find.text(AvatarStage.stalwart.label), findsOneWidget);
+    expect(tester.widget<Opacity>(opacityFinder.first).opacity, 1.0);
+    expect(find.text(AvatarStage.standardBearer.label), findsOneWidget);
+    expect(find.text('Stage 4 of 4'), findsOneWidget);
   });
 }

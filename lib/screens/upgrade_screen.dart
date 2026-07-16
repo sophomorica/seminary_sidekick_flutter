@@ -257,12 +257,19 @@ class _UpgradeViewState extends State<_UpgradeView> {
                 // Subscribe button
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.goldButtonGradient,
+                      borderRadius:
+                          BorderRadius.circular(AppTheme.radiusRound),
+                    ),
+                    child: ElevatedButton(
                     onPressed: widget.subscription.isLoading
                         ? null
                         : () => _handlePurchase(context),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.premiumGold,
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
@@ -282,6 +289,7 @@ class _UpgradeViewState extends State<_UpgradeView> {
                                 .labelLarge
                                 ?.copyWith(color: Colors.white),
                           ),
+                    ),
                   ),
                 ),
 

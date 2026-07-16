@@ -196,10 +196,16 @@ class HolisticMasterySection extends ConsumerWidget {
         const SizedBox(height: AppTheme.spacingMd),
         SizedBox(
           width: double.infinity,
-          child: ElevatedButton(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: AppTheme.heroGradient,
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            ),
+            child: ElevatedButton(
             onPressed: () => _launchScriptureBuilder(context, nextDifficulty),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
               foregroundColor: AppTheme.onPrimary,
               padding: const EdgeInsets.symmetric(
                 horizontal: AppTheme.spacingLg,
@@ -241,6 +247,7 @@ class HolisticMasterySection extends ConsumerWidget {
                       ),
                 ),
               ],
+            ),
             ),
           ),
         ),

@@ -267,7 +267,7 @@ class _MainContent extends ConsumerWidget {
         // Scripture text card — notes icon + passage + Memorize footer
         Container(
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerLow,
+            gradient: AppTheme.heroGradient,
             borderRadius: BorderRadius.circular(AppTheme.radiusXl),
           ),
           clipBehavior: Clip.antiAlias,
@@ -304,12 +304,9 @@ class _MainContent extends ConsumerWidget {
                               ? Icons.sticky_note_2
                               : Icons.sticky_note_2_outlined,
                           size: 22,
-                          color: hasNote
-                              ? AppTheme.secondary
-                              : Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant
-                                  .withValues(alpha: 0.7),
+                          // White on the hero gradient
+                          color: Colors.white
+                              .withValues(alpha: hasNote ? 0.96 : 0.7),
                         ),
                       ),
                     ),
@@ -317,10 +314,8 @@ class _MainContent extends ConsumerWidget {
                 ],
               ),
               Material(
-                color: Theme.of(context)
-                    .colorScheme
-                    .primary
-                    .withValues(alpha: 0.08),
+                // White overlay footer on the hero gradient
+                color: Colors.white.withValues(alpha: 0.14),
                 child: InkWell(
                   onTap: () {
                     pushFullscreen(
@@ -336,18 +331,17 @@ class _MainContent extends ConsumerWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.psychology_alt_outlined,
                           size: 18,
-                          color: Theme.of(context).colorScheme.primary,
+                          color: Colors.white,
                         ),
                         const SizedBox(width: AppTheme.spacingSm),
                         Text(
                           'Open Memorization Tool',
                           style:
                               Theme.of(context).textTheme.labelLarge?.copyWith(
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
+                                    color: Colors.white,
                                     fontWeight: FontWeight.w600,
                                   ),
                         ),
@@ -489,6 +483,8 @@ class _ScriptureTextWidget extends StatelessWidget {
                     fontFamily: 'Merriweather',
                     fontSize: 18,
                     height: 1.8,
+                    // White on the hero gradient card
+                    color: Colors.white.withValues(alpha: 0.96),
                   ),
             ),
           ),
@@ -811,20 +807,7 @@ class _AskSidekickCard extends ConsumerWidget {
 
     return Container(
       padding: const EdgeInsets.all(AppTheme.spacingXl),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            accent.withValues(alpha: 0.12),
-            accent.withValues(alpha: 0.05),
-          ],
-        ),
-        border: Border.all(
-          color: accent.withValues(alpha: 0.35),
-        ),
-        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
-      ),
+      decoration: AppTheme.goldCardDecoration(context),
       child: Stack(
         children: [
           // Soft decorative wash — no BackdropFilter (reads muddy in dark).
@@ -975,13 +958,7 @@ class _SidekickUpgradeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(AppTheme.spacingLg),
-      decoration: BoxDecoration(
-        color: AppTheme.sidekickTint(context, 0.1),
-        border: Border.all(
-          color: AppTheme.sidekickColor(context).withValues(alpha: 0.2),
-        ),
-        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
-      ),
+      decoration: AppTheme.goldCardDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1012,12 +989,19 @@ class _SidekickUpgradeCard extends StatelessWidget {
           const SizedBox(height: AppTheme.spacingMd),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () => pushUpgrade(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.sidekickColor(context),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: AppTheme.goldButtonGradient,
+                borderRadius: BorderRadius.circular(AppTheme.radiusRound),
               ),
-              child: const Text('Upgrade to Premium'),
+              child: ElevatedButton(
+                onPressed: () => pushUpgrade(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                ),
+                child: const Text('Upgrade to Premium'),
+              ),
             ),
           ),
         ],
@@ -1037,7 +1021,7 @@ class _KeyPhraseCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppTheme.spacingLg),
       decoration: BoxDecoration(
-        color: AppTheme.secondary.withValues(alpha: 0.08),
+        gradient: AppTheme.heroGradient,
         borderRadius: BorderRadius.circular(AppTheme.radiusXl),
       ),
       child: Column(
@@ -1047,7 +1031,7 @@ class _KeyPhraseCard extends StatelessWidget {
             'Key Phrase',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.secondary,
+                  color: Colors.white.withValues(alpha: 0.85),
                 ),
           ),
           const SizedBox(height: AppTheme.spacingMd),
@@ -1056,6 +1040,7 @@ class _KeyPhraseCard extends StatelessWidget {
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   fontStyle: FontStyle.italic,
                   height: 1.6,
+                  color: Colors.white,
                 ),
           ),
         ],
