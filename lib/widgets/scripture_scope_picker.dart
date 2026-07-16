@@ -209,6 +209,9 @@ class _ScriptureScopePickerState extends ConsumerState<ScriptureScopePicker> {
   }
 
   Future<void> _openSelection(List<Scripture> pool, List<Scripture> all) async {
+    // The search field starts empty on every open, so the filter state
+    // must match — otherwise the list stays filtered by stale text.
+    _search = '';
     if (widget.fillHeight) {
       _setSelectionView(true);
       return;
