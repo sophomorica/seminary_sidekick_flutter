@@ -111,6 +111,21 @@ class AppTheme {
     colors: [heroGradientStart, heroGradientEnd],
   );
 
+  /// Light-on-dark selected fill for Midnight — inverts brightness vs navy
+  /// surfaces so selection stays readable (primaryFixedDim → primaryContainer).
+  static const LinearGradient heroGradientDark = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [primaryFixedDim, primaryContainer],
+  );
+
+  /// Selected chip fill: navy hero in light, lifted blue in Midnight.
+  static LinearGradient selectedChipGradient(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? heroGradientDark
+        : heroGradient;
+  }
+
   // Gold "glow" accent for dark mode — gold stays gold in Midnight.
   static const Color sidekickGoldDark = Color(0xFFF2D98A);
 
@@ -184,6 +199,7 @@ class AppTheme {
   static const Color darkSurfaceContainerLow = Color(0xFF2B3757);
   static const Color darkSurfaceContainer = Color(0xFF32405F);
   static const Color darkSurfaceContainerHigh = Color(0xFF3B4A6E);
+  static const Color darkSurfaceContainerHighest = Color(0xFF445580);
 
   // ─── Spacing ────────────────────────────────────────────────────
   static const double spacingXs = 4.0;
@@ -314,7 +330,7 @@ class AppTheme {
       surfaceContainerLow: darkSurfaceContainerLow,
       surfaceContainer: darkSurfaceContainer,
       surfaceContainerHigh: darkSurfaceContainerHigh,
-      surfaceContainerHighest: Color(0xFF46577F),  // navy-slate highest
+      surfaceContainerHighest: darkSurfaceContainerHighest,
       onSurfaceVariant: Color(0xFFB7C2DC),         // blue-tinted muted text
       outline: Color(0xFF6F7DA0),                   // blue-tinted outline
       outlineVariant: Color(0xFF3A4970),            // subtle navy border

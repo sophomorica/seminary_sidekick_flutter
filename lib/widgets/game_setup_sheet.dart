@@ -15,6 +15,7 @@ import '../screens/games/quiz_game_screen.dart';
 import '../screens/games/scripture_builder/scripture_builder_screen.dart';
 import '../theme/app_theme.dart';
 import 'scripture_scope_picker.dart';
+import 'selection_pill.dart';
 
 /// Opens the unified game setup sheet for any solo game.
 ///
@@ -79,33 +80,35 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
         ref.read(scriptureMasteryProvider(id));
     final resolved = _scope.resolve(all, masteryLookup: lookup);
 
-    return DraggableScrollableSheet(
-      initialChildSize: 0.92,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      expand: false,
-      builder: (ctx, scrollController) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(ctx).colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(24),
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      // Constant size for default + selection views — resizing on page-swap
+      // fought the slide transition and read as a height jump (R7.1).
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.92,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (ctx, scrollController) {
+          return Container(
+            decoration: BoxDecoration(
+              color: Theme.of(ctx).colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
             ),
-          ),
-          child: SafeArea(
-            top: false,
-            child: SingleChildScrollView(
-              controller: scrollController,
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+            child: SafeArea(
+              top: false,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Hoisted drag handle — shared by default + selection (R8.2).
                   Center(
                     child: Container(
                       width: 40,
                       height: 4,
-                      margin: const EdgeInsets.only(bottom: 12),
+                      margin: const EdgeInsets.only(top: 8, bottom: 12),
                       decoration: BoxDecoration(
                         color: Theme.of(ctx)
                             .colorScheme
@@ -115,89 +118,132 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                       ),
                     ),
                   ),
-                  Row(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: Theme.of(ctx)
-                              .colorScheme
-                              .primary
-                              .withValues(alpha: 0.12),
-                          borderRadius:
-                              BorderRadius.circular(AppTheme.radiusSm),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      child: ScriptureScopePicker(
+                        initial: _scope,
+                        usageContext: _usageContext,
+                        onChanged: (s) => setState(() => _scope = s),
+                        fillHeight: true,
+                        scrollController: scrollController,
+                        pinnedHeader: SizedBox(
+                          height: 48,
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 48,
+                                height: 48,
+                                child: Center(
+                                  child: Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(ctx)
+                                          .colorScheme
+                                          .primary
+                                          .withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(
+                                        AppTheme.radiusSm,
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      widget.gameType.icon,
+                                      color:
+                                          Theme.of(ctx).colorScheme.primary,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  _title,
+                                  key: const Key('scope-setup-title'),
+                                  style: Theme.of(ctx)
+                                      .textTheme
+                                      .titleLarge
+                                      ?.copyWith(fontWeight: FontWeight.bold),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              SizedBox(
+                                width: 48,
+                                height: 48,
+                                child: IconButton(
+                                  onPressed: () => Navigator.of(ctx).pop(),
+                                  padding: EdgeInsets.zero,
+                                  icon: const Icon(Icons.close),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        child: Icon(
-                          widget.gameType.icon,
-                          color: Theme.of(ctx).colorScheme.primary,
-                          size: 20,
+                        aboveFilters: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const _SectionLabel('DIFFICULTY'),
+                            const SizedBox(height: 6),
+                            _DifficultyChips(
+                              selected: _difficulty,
+                              onChanged: (d) =>
+                                  setState(() => _difficulty = d),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              _difficulty.descriptionForGame(widget.gameType),
+                              style: Theme.of(ctx)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(ctx)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          _title,
-                          style: Theme.of(ctx)
-                              .textTheme
-                              .titleLarge
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.of(ctx).pop(),
-                        icon: const Icon(Icons.close),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  const _SectionLabel('DIFFICULTY'),
-                  const SizedBox(height: 6),
-                  _DifficultyChips(
-                    selected: _difficulty,
-                    onChanged: (d) => setState(() => _difficulty = d),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _difficulty.descriptionForGame(widget.gameType),
-                    style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(ctx).colorScheme.onSurfaceVariant,
-                        ),
-                  ),
-                  const SizedBox(height: 20),
-                  ScriptureScopePicker(
-                    initial: _scope,
-                    usageContext: _usageContext,
-                    onChanged: (s) => setState(() => _scope = s),
-                  ),
-                  const SizedBox(height: 20),
-                  _SectionLabel(_countLabel),
-                  const SizedBox(height: 6),
-                  _CountSegmented(
-                    everyScripture: _everyScripture,
-                    defaultLabel: _defaultCountLabel,
-                    everyLabel: 'Every scripture (${resolved.length})',
-                    onChanged: (v) => setState(() => _everyScripture = v),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed:
-                          resolved.isEmpty ? null : () => _start(ctx, resolved),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
-                        foregroundColor: AppTheme.onPrimary,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(50),
-                        ),
-                      ),
-                      child: Text(
-                        _startLabel,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                        belowFilters: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _SectionLabel(_countLabel),
+                            const SizedBox(height: 6),
+                            _CountSegmented(
+                              everyScripture: _everyScripture,
+                              defaultLabel: _defaultCountLabel,
+                              everyLabel:
+                                  'Every scripture (${resolved.length})',
+                              onChanged: (v) =>
+                                  setState(() => _everyScripture = v),
+                            ),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: resolved.isEmpty
+                                    ? null
+                                    : () => _start(ctx, resolved),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.primary,
+                                  foregroundColor: AppTheme.onPrimary,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(50),
+                                  ),
+                                ),
+                                child: Text(
+                                  _startLabel,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -205,9 +251,9 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                 ],
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -362,6 +408,8 @@ class _SectionLabel extends StatelessWidget {
 }
 
 class _DifficultyChips extends StatelessWidget {
+  static const double _gap = 8;
+
   final DifficultyLevel selected;
   final ValueChanged<DifficultyLevel> onChanged;
 
@@ -372,27 +420,42 @@ class _DifficultyChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: DifficultyLevel.values.map((d) {
-        final isSelected = d == selected;
-        return ChoiceChip(
-          label: Text(d.label),
-          selected: isSelected,
-          onSelected: (_) => onChanged(d),
-          labelStyle: TextStyle(
-            color: isSelected ? AppTheme.onPrimary : null,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+    const levels = DifficultyLevel.values;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var row = 0; row < levels.length; row += 2) ...[
+          if (row > 0) const SizedBox(height: _gap),
+          Row(
+            children: [
+              Expanded(
+                child: SelectionPill(
+                  label: levels[row].label,
+                  selected: levels[row] == selected,
+                  onTap: () => onChanged(levels[row]),
+                ),
+              ),
+              const SizedBox(width: _gap),
+              Expanded(
+                child: row + 1 < levels.length
+                    ? SelectionPill(
+                        label: levels[row + 1].label,
+                        selected: levels[row + 1] == selected,
+                        onTap: () => onChanged(levels[row + 1]),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
           ),
-          selectedColor: AppTheme.primary,
-        );
-      }).toList(),
+        ],
+      ],
     );
   }
 }
 
 class _CountSegmented extends StatelessWidget {
+  static const double _gap = 8;
+
   final bool everyScripture;
   final String defaultLabel;
   final String everyLabel;
@@ -407,29 +470,22 @@ class _CountSegmented extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+    return Row(
       children: [
-        ChoiceChip(
-          label: Text('Default · $defaultLabel'),
-          selected: !everyScripture,
-          onSelected: (_) => onChanged(false),
-          labelStyle: TextStyle(
-            color: !everyScripture ? AppTheme.onPrimary : null,
-            fontWeight: !everyScripture ? FontWeight.bold : FontWeight.normal,
+        Expanded(
+          child: SelectionPill(
+            label: 'Default · $defaultLabel',
+            selected: !everyScripture,
+            onTap: () => onChanged(false),
           ),
-          selectedColor: AppTheme.primary,
         ),
-        ChoiceChip(
-          label: Text(everyLabel),
-          selected: everyScripture,
-          onSelected: (_) => onChanged(true),
-          labelStyle: TextStyle(
-            color: everyScripture ? AppTheme.onPrimary : null,
-            fontWeight: everyScripture ? FontWeight.bold : FontWeight.normal,
+        const SizedBox(width: _gap),
+        Expanded(
+          child: SelectionPill(
+            label: everyLabel,
+            selected: everyScripture,
+            onTap: () => onChanged(true),
           ),
-          selectedColor: AppTheme.primary,
         ),
       ],
     );
