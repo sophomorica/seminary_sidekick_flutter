@@ -190,6 +190,72 @@ void main() {
     expect(latest?.needsReview, isTrue);
   });
 
+  testWidgets('re-syncs when the parent supplies a new initial scope',
+      (tester) async {
+    // Regression: the host lobby restores a different mode's last-used
+    // scope on mode switch — the mounted picker must follow, not keep
+    // showing the previous mode's selection.
+    ScriptureScope? latest;
+
+    await tester.pumpWidget(harness(onChanged: (s) => latest = s));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Book of Mormon'));
+    await tester.pumpAndSettle();
+    expect(latest?.books, {ScriptureBook.bookOfMormon});
+
+    // Parent swaps in a different scope (not an echo of our onChanged).
+    const restored = ScriptureScope(books: {ScriptureBook.newTestament});
+    await tester.pumpWidget(
+      harness(onChanged: (s) => latest = s, initial: restored),
+    );
+    await tester.pumpAndSettle();
+
+    final ntPill = tester.widget<SelectionPill>(
+      find.ancestor(
+        of: find.text('New Testament'),
+        matching: find.byType(SelectionPill),
+      ),
+    );
+    final bomPill = tester.widget<SelectionPill>(
+      find.ancestor(
+        of: find.text('Book of Mormon'),
+        matching: find.byType(SelectionPill),
+      ),
+    );
+    expect(ntPill.selected, isTrue);
+    expect(bomPill.selected, isFalse);
+  });
+
+  testWidgets('sanitizes an unavailable flag arriving via a new initial',
+      (tester) async {
+    // A parent hands over a scope whose Needs Review pool is empty (e.g.
+    // a restored last-used scope after mastery moved on). The re-sync must
+    // drop the stale flag rather than leave an invisible filter behind a
+    // disabled pill.
+    ScriptureScope? latest;
+    final noReview = {
+      for (final s in testScriptures) s.id: _mastery(id: s.id),
+    };
+
+    await tester.pumpWidget(
+      harness(onChanged: (s) => latest = s, masteryById: noReview),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.pumpWidget(
+      harness(
+        onChanged: (s) => latest = s,
+        masteryById: noReview,
+        initial: const ScriptureScope(needsReview: true),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(latest?.needsReview, isFalse);
+    expect(needsReviewInkWell(tester).onTap, isNull);
+  });
+
   testWidgets('clears Needs Review on init when pool is empty', (tester) async {
     ScriptureScope? latest;
     final mastery = {

@@ -109,6 +109,23 @@ class _ScriptureScopePickerState extends ConsumerState<ScriptureScopePicker> {
   void initState() {
     super.initState();
     _scope = widget.initial;
+    _scheduleSanitize();
+  }
+
+  @override
+  void didUpdateWidget(covariant ScriptureScopePicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Re-sync when the parent supplies a genuinely new scope (e.g. the host
+    // lobby restoring a different mode's last-used scope). Normal parent
+    // rebuilds echo our own onChanged value back, so `initial == _scope`
+    // and this is a no-op.
+    if (widget.initial != oldWidget.initial && widget.initial != _scope) {
+      _scope = widget.initial;
+      _scheduleSanitize();
+    }
+  }
+
+  void _scheduleSanitize() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _sanitizeUnavailableStatusFlags();
@@ -302,6 +319,14 @@ class _ScriptureScopePickerState extends ConsumerState<ScriptureScopePicker> {
     final pool = _scope.filterPool(all, masteryLookup: _lookup);
     final needsReviewEnabled = _statusAvailable(true, false);
     final nearlyMasteredEnabled = _statusAvailable(false, true);
+    // If mastery changed while the picker is open and emptied a selected
+    // status pool, drop the stale flag — otherwise the pill renders
+    // unselected/disabled while the scope still filters on it (empty
+    // resolve, Start disabled, no visible cause).
+    if ((_scope.needsReview && !needsReviewEnabled) ||
+        (_scope.nearlyMastered && !nearlyMasteredEnabled)) {
+      _scheduleSanitize();
+    }
     final hasLastUsed = widget.usageContext != null &&
         ref.watch(scriptureScopeProvider).containsKey(widget.usageContext);
 
