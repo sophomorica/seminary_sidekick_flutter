@@ -71,7 +71,8 @@ class ScriptureScope {
 
   Map<String, dynamic> toJson() => {
         'type': type,
-        'books': books.map((b) => b.name).toList(),
+        // Sorted so the emitted JSON is deterministic (books is a Set).
+        'books': books.map((b) => b.name).toList()..sort(),
         'needsReview': needsReview,
         'nearlyMastered': nearlyMastered,
         'ids': specificIds,
