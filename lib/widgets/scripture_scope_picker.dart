@@ -3,25 +3,28 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/enums.dart';
 import '../models/scripture.dart';
-import '../models/scripture_mastery.dart';
 import '../models/scripture_scope.dart';
+import '../providers/mastery_dates_provider.dart';
+import '../providers/progress_provider.dart';
 import '../providers/scripture_mastery_provider.dart';
 import '../providers/scripture_provider.dart';
 import '../providers/scripture_scope_provider.dart';
+import 'selection_pill.dart';
 
 /// Reusable scripture-scope picker.
 ///
-/// Shows three sections — quick presets, by-book multi-select, and an
-/// individual-scripture searchable list — and emits a [ScriptureScope] via
-/// [onChanged]. Used by solo Quick Quiz, solo Scripture Match, group Quiz
-/// host lobby, and group Scripture Builder host lobby.
+/// Multi-select filters (books + Needs Review / Nearly Mastered) narrow the
+/// pool. "Pick specific scriptures" opens a selection page (in-place when
+/// [fillHeight] is true, otherwise a nested sheet) so the user can hand-pick
+/// a subset. Used by solo Quick Quiz, solo Scripture Match, group Quiz host
+/// lobby, and group Scripture Builder host lobby.
 ///
 /// Two ways to embed:
 ///   * Drop the widget into a form (lobby setup view)
 ///   * Call [showScriptureScopePicker] to present a draggable modal sheet
 class ScriptureScopePicker extends ConsumerStatefulWidget {
   /// Initial scope. Pass the last-used scope for this context from
-  /// [scriptureScopeProvider], or a default like `ScopeAll()`.
+  /// [scriptureScopeProvider], or a default like `const ScriptureScope()`.
   final ScriptureScope initial;
 
   /// Storage key for the "Restore last used" affordance. When null the
@@ -45,13 +48,32 @@ class ScriptureScopePicker extends ConsumerStatefulWidget {
   /// [showConfirmButton] is true.
   final VoidCallback? onConfirm;
 
-  /// Optional override for the individual-scripture disclosure label.
+  /// Optional override for the individual-scripture entry label.
   final String individualLabel;
 
-  /// When true (default), shows the "Pick specific scriptures" disclosure
-  /// section. The host-lobby variant currently leaves this on so teachers
-  /// can hand-pick a custom set.
+  /// When true (default), shows the "Pick specific scriptures" entry row.
   final bool showIndividualSection;
+
+  /// When true, the picker fills a bounded parent (e.g. [Expanded]) and swaps
+  /// to the selection page in place. Sheet embeds should set this true.
+  final bool fillHeight;
+
+  /// Scroll controller for the default (filters) view when [fillHeight].
+  final ScrollController? scrollController;
+
+  /// Pinned above the default-view scroll area (e.g. sheet title row).
+  /// Stays fixed so it shares the same y as the selection-view title (R8.2).
+  final Widget? pinnedHeader;
+
+  /// Widgets rendered above the filter section on the default view (e.g.
+  /// difficulty controls in [GameSetupSheet]).
+  final Widget? aboveFilters;
+
+  /// Widgets rendered below the selection preview on the default view.
+  final Widget? belowFilters;
+
+  /// Notifies when the selection page opens/closes (for sheet sizing).
+  final ValueChanged<bool>? onSelectionViewChanged;
 
   const ScriptureScopePicker({
     super.key,
@@ -63,6 +85,12 @@ class ScriptureScopePicker extends ConsumerStatefulWidget {
     this.onConfirm,
     this.individualLabel = 'Pick specific scriptures',
     this.showIndividualSection = true,
+    this.fillHeight = false,
+    this.scrollController,
+    this.pinnedHeader,
+    this.aboveFilters,
+    this.belowFilters,
+    this.onSelectionViewChanged,
   });
 
   @override
@@ -71,54 +99,115 @@ class ScriptureScopePicker extends ConsumerStatefulWidget {
 }
 
 class _ScriptureScopePickerState extends ConsumerState<ScriptureScopePicker> {
+  static const _pageAnim = Duration(milliseconds: 200);
+
   late ScriptureScope _scope;
   String _search = '';
-  bool _individualOpen = false;
+  bool _selectionView = false;
 
   @override
   void initState() {
     super.initState();
     _scope = widget.initial;
-    // If the initial scope is the individual-id variant, expand the section
-    // so the current selection is visible.
-    if (_scope is ScopeScriptureIds) {
-      _individualOpen = true;
+    _scheduleSanitize();
+  }
+
+  @override
+  void didUpdateWidget(covariant ScriptureScopePicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Re-sync when the parent supplies a genuinely new scope (e.g. the host
+    // lobby restoring a different mode's last-used scope). Normal parent
+    // rebuilds echo our own onChanged value back, so `initial == _scope`
+    // and this is a no-op.
+    if (widget.initial != oldWidget.initial && widget.initial != _scope) {
+      _scope = widget.initial;
+      _scheduleSanitize();
     }
+  }
+
+  void _scheduleSanitize() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _sanitizeUnavailableStatusFlags();
+    });
+  }
+
+  MasteryLookup get _lookup =>
+      (id) => ref.read(scriptureMasteryProvider(id));
+
+  /// Status availability is independent of the current book selection.
+  bool _statusAvailable(bool needsReview, bool nearlyMastered) {
+    final all = ref.read(scripturesProvider);
+    return ScriptureScope(
+      needsReview: needsReview,
+      nearlyMastered: nearlyMastered,
+    ).filterPool(all, masteryLookup: _lookup).isNotEmpty;
+  }
+
+  ScriptureScope _clearedUnavailableStatus(ScriptureScope scope) {
+    var next = scope;
+    if (scope.needsReview && !_statusAvailable(true, false)) {
+      next = next.copyWith(needsReview: false);
+    }
+    if (scope.nearlyMastered && !_statusAvailable(false, true)) {
+      next = next.copyWith(nearlyMastered: false);
+    }
+    return next;
+  }
+
+  void _sanitizeUnavailableStatusFlags() {
+    final sanitized = _clearedUnavailableStatus(_scope);
+    if (sanitized == _scope) return;
+    final all = ref.read(scripturesProvider);
+    final pruned = sanitized.prunedToFilter(all, masteryLookup: _lookup);
+    setState(() => _scope = pruned);
+    widget.onChanged(pruned);
   }
 
   void _update(ScriptureScope next) {
-    setState(() => _scope = next);
-    widget.onChanged(next);
+    final all = ref.read(scripturesProvider);
+    final sanitized = _clearedUnavailableStatus(next);
+    final pruned = sanitized.prunedToFilter(all, masteryLookup: _lookup);
+    setState(() => _scope = pruned);
+    widget.onChanged(pruned);
   }
 
   void _toggleBook(ScriptureBook b) {
-    final currentBooks = _scope is ScopeBooks
-        ? Set<ScriptureBook>.from((_scope as ScopeBooks).books)
-        : <ScriptureBook>{};
-    if (currentBooks.contains(b)) {
-      currentBooks.remove(b);
+    final books = Set<ScriptureBook>.from(_scope.books);
+    if (books.contains(b)) {
+      books.remove(b);
     } else {
-      currentBooks.add(b);
+      books.add(b);
     }
-    if (currentBooks.isEmpty) {
-      _update(const ScopeAll());
-    } else if (currentBooks.length == ScriptureBook.values.length) {
-      _update(const ScopeAll());
-    } else {
-      _update(ScopeBooks(currentBooks));
-    }
+    _update(_scope.copyWith(books: books));
+  }
+
+  void _toggleNeedsReview() {
+    _update(_scope.copyWith(needsReview: !_scope.needsReview));
+  }
+
+  void _toggleNearlyMastered() {
+    _update(_scope.copyWith(nearlyMastered: !_scope.nearlyMastered));
   }
 
   void _toggleScripture(String id) {
-    final current = _scope is ScopeScriptureIds
-        ? List<String>.from((_scope as ScopeScriptureIds).ids)
-        : <String>[];
+    final current = List<String>.from(_scope.specificIds);
     if (current.contains(id)) {
       current.remove(id);
     } else {
       current.add(id);
     }
-    _update(ScopeScriptureIds(current));
+    _update(_scope.copyWith(specificIds: current));
+  }
+
+  void _clearSpecificIds() {
+    _update(
+      ScriptureScope(
+        books: _scope.books,
+        needsReview: _scope.needsReview,
+        nearlyMastered: _scope.nearlyMastered,
+      ),
+    );
   }
 
   void _restoreLastUsed() {
@@ -128,98 +217,195 @@ class _ScriptureScopePickerState extends ConsumerState<ScriptureScopePicker> {
     if (last != null) _update(last);
   }
 
+  void _clear() => _update(const ScriptureScope());
+
+  void _setSelectionView(bool open) {
+    if (_selectionView == open) return;
+    setState(() => _selectionView = open);
+    widget.onSelectionViewChanged?.call(open);
+  }
+
+  Future<void> _openSelection(List<Scripture> pool, List<Scripture> all) async {
+    // The search field starts empty on every open, so the filter state
+    // must match — otherwise the list stays filtered by stale text.
+    _search = '';
+    if (widget.fillHeight) {
+      _setSelectionView(true);
+      return;
+    }
+    widget.onSelectionViewChanged?.call(true);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            final livePool =
+                _scope.filterPool(all, masteryLookup: _lookup);
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
+              ),
+              child: DraggableScrollableSheet(
+                initialChildSize: 0.95,
+                minChildSize: 0.7,
+                maxChildSize: 0.95,
+                expand: false,
+                builder: (sheetCtx, _) {
+                  return Material(
+                    color: Theme.of(sheetCtx).colorScheme.surface,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                        child: _SelectionPage(
+                          title: widget.individualLabel,
+                          filterSummary:
+                              _filterSummary(all, livePool.length),
+                          search: _search,
+                          onSearchChanged: (v) {
+                            setState(() => _search = v);
+                            setModalState(() {});
+                          },
+                          pool: livePool,
+                          selectedIds: _scope.specificIds.toSet(),
+                          onToggleScripture: (id) {
+                            _toggleScripture(id);
+                            setModalState(() {});
+                          },
+                          onBack: () => Navigator.of(sheetCtx).pop(),
+                          onDone: () => Navigator.of(sheetCtx).pop(),
+                          onClear: _scope.specificIds.isEmpty
+                              ? null
+                              : () {
+                                  _clearSpecificIds();
+                                  setModalState(() {});
+                                },
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        );
+      },
+    );
+    if (mounted) widget.onSelectionViewChanged?.call(false);
+  }
+
+  String _filterSummary(List<Scripture> all, int poolCount) {
+    final filterOnly = ScriptureScope(
+      books: _scope.books,
+      needsReview: _scope.needsReview,
+      nearlyMastered: _scope.nearlyMastered,
+    );
+    return '${filterOnly.shortLabel(all)} · $poolCount scriptures';
+  }
+
   @override
   Widget build(BuildContext context) {
     final all = ref.watch(scripturesProvider);
-    ScriptureMastery? lookup(String id) =>
-        ref.read(scriptureMasteryProvider(id));
-    final resolved = _scope.resolve(all, masteryLookup: lookup);
+    // Rebuild status-chip availability when mastery inputs change.
+    ref.watch(progressProvider);
+    ref.watch(masteryDatesProvider);
+    final resolved = _scope.resolve(all, masteryLookup: _lookup);
+    final pool = _scope.filterPool(all, masteryLookup: _lookup);
+    final needsReviewEnabled = _statusAvailable(true, false);
+    final nearlyMasteredEnabled = _statusAvailable(false, true);
+    // If mastery changed while the picker is open and emptied a selected
+    // status pool, drop the stale flag — otherwise the pill renders
+    // unselected/disabled while the scope still filters on it (empty
+    // resolve, Start disabled, no visible cause).
+    if ((_scope.needsReview && !needsReviewEnabled) ||
+        (_scope.nearlyMastered && !nearlyMasteredEnabled)) {
+      _scheduleSanitize();
+    }
     final hasLastUsed = widget.usageContext != null &&
         ref.watch(scriptureScopeProvider).containsKey(widget.usageContext);
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionHeader(
-          label: 'QUICK PRESETS',
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
+    final defaultView = _DefaultView(
+      key: const ValueKey('default'),
+      scrollController: widget.fillHeight ? widget.scrollController : null,
+      pinnedHeader: widget.pinnedHeader,
+      aboveFilters: widget.aboveFilters,
+      belowFilters: widget.belowFilters,
+      hasLastUsed: hasLastUsed,
+      onRestore: _restoreLastUsed,
+      onClear: _clear,
+      scope: _scope,
+      needsReviewEnabled: needsReviewEnabled,
+      nearlyMasteredEnabled: nearlyMasteredEnabled,
+      onToggleBook: _toggleBook,
+      onToggleNeedsReview: _toggleNeedsReview,
+      onToggleNearlyMastered: _toggleNearlyMastered,
+      showIndividualSection: widget.showIndividualSection,
+      individualLabel: widget.individualLabel,
+      poolCount: pool.length,
+      selectedCount: _scope.specificIds.length,
+      onOpenSelection: () => _openSelection(pool, all),
+      resolved: resolved,
+      all: all,
+      showConfirmButton: widget.showConfirmButton,
+      confirmLabel: widget.confirmLabel,
+      onConfirm: widget.onConfirm,
+    );
+
+    if (!widget.fillHeight) {
+      return defaultView;
+    }
+
+    // Opaque push (no FadeTransition) — ClipRect + surface fill so views
+    // never cross-fade through each other (R8.1).
+    final surface = Theme.of(context).colorScheme.surface;
+    return ClipRect(
+      child: AnimatedSwitcher(
+        duration: _pageAnim,
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeOutCubic,
+        layoutBuilder: (currentChild, previousChildren) {
+          return Stack(
+            fit: StackFit.expand,
             children: [
-              if (hasLastUsed)
-                TextButton(
-                  onPressed: _restoreLastUsed,
-                  child: const Text('Restore'),
-                ),
-              TextButton(
-                onPressed: () => _update(const ScopeAll()),
-                child: const Text('Clear'),
-              ),
+              ...previousChildren,
+              if (currentChild != null) currentChild,
             ],
-          ),
-        ),
-        const SizedBox(height: 6),
-        _PresetChips(
-          scope: _scope,
-          allCount: all.length,
-          onSelect: _update,
-        ),
-
-        const SizedBox(height: 20),
-        const _SectionHeader(label: 'BY BOOK'),
-        const SizedBox(height: 6),
-        _BookChipRow(
-          scope: _scope,
-          onToggle: _toggleBook,
-        ),
-
-        if (widget.showIndividualSection) ...[
-          const SizedBox(height: 12),
-          _IndividualDisclosure(
-            label: widget.individualLabel,
-            open: _individualOpen,
-            onToggle: () =>
-                setState(() => _individualOpen = !_individualOpen),
-          ),
-          if (_individualOpen)
-            _IndividualSection(
-              search: _search,
-              onSearchChanged: (v) => setState(() => _search = v),
-              scope: _scope,
-              onToggleScripture: _toggleScripture,
-            ),
-        ],
-
-        const SizedBox(height: 20),
-        _SelectionPreview(
-          resolved: resolved,
-          scope: _scope,
-          all: all,
-        ),
-
-        if (widget.showConfirmButton) ...[
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: resolved.isEmpty ? null : widget.onConfirm,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(50),
-                ),
-              ),
-              child: Text(
-                widget.confirmLabel,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ],
+          );
+        },
+        transitionBuilder: (child, animation) {
+          final isSelection = child.key == const ValueKey('selection');
+          final offset = Tween<Offset>(
+            begin: Offset(isSelection ? 1 : -1, 0),
+            end: Offset.zero,
+          ).animate(animation);
+          return SlideTransition(
+            position: offset,
+            child: ColoredBox(color: surface, child: child),
+          );
+        },
+        child: _selectionView
+            ? _SelectionPage(
+                key: const ValueKey('selection'),
+                title: widget.individualLabel,
+                filterSummary: _filterSummary(all, pool.length),
+                search: _search,
+                onSearchChanged: (v) => setState(() => _search = v),
+                pool: pool,
+                selectedIds: _scope.specificIds.toSet(),
+                onToggleScripture: _toggleScripture,
+                onBack: () => _setSelectionView(false),
+                onDone: () => _setSelectionView(false),
+                onClear:
+                    _scope.specificIds.isEmpty ? null : _clearSpecificIds,
+              )
+            : defaultView,
+      ),
     );
   }
 }
@@ -244,75 +430,13 @@ Future<ScriptureScope?> showScriptureScopePicker(
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     builder: (sheetContext) {
-      return DraggableScrollableSheet(
-        initialChildSize: 0.85,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        expand: false,
-        builder: (ctx, scrollController) {
-          return Container(
-            decoration: BoxDecoration(
-              color: Theme.of(ctx).colorScheme.surface,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(24),
-              ),
-            ),
-            child: SafeArea(
-              top: false,
-              child: SingleChildScrollView(
-                controller: scrollController,
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: Theme.of(ctx)
-                              .colorScheme
-                              .onSurfaceVariant
-                              .withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            title,
-                            style: Theme.of(ctx)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.of(ctx).pop(),
-                          icon: const Icon(Icons.close),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    ScriptureScopePicker(
-                      initial: initial,
-                      usageContext: usageContext,
-                      onChanged: (s) => working = s,
-                      showConfirmButton: true,
-                      confirmLabel: confirmLabel,
-                      onConfirm: () =>
-                          Navigator.of(ctx).pop(working),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
+      return _ScriptureScopePickerSheet(
+        initial: initial,
+        usageContext: usageContext,
+        title: title,
+        confirmLabel: confirmLabel,
+        onChanged: (s) => working = s,
+        onConfirm: () => Navigator.of(sheetContext).pop(working),
       );
     },
   );
@@ -326,7 +450,466 @@ Future<ScriptureScope?> showScriptureScopePicker(
   return result;
 }
 
+class _ScriptureScopePickerSheet extends StatefulWidget {
+  final ScriptureScope initial;
+  final String? usageContext;
+  final String title;
+  final String confirmLabel;
+  final ValueChanged<ScriptureScope> onChanged;
+  final VoidCallback onConfirm;
+
+  const _ScriptureScopePickerSheet({
+    required this.initial,
+    required this.usageContext,
+    required this.title,
+    required this.confirmLabel,
+    required this.onChanged,
+    required this.onConfirm,
+  });
+
+  @override
+  State<_ScriptureScopePickerSheet> createState() =>
+      _ScriptureScopePickerSheetState();
+}
+
+class _ScriptureScopePickerSheetState extends State<_ScriptureScopePickerSheet> {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      // Constant sheet size — page-swap only slides content (R7.1).
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.92,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (ctx, scrollController) {
+          return Container(
+            decoration: BoxDecoration(
+              color: Theme.of(ctx).colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                children: [
+                  // Hoisted drag handle — shared by default + selection (R8.2).
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(top: 8, bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(ctx)
+                            .colorScheme
+                            .onSurfaceVariant
+                            .withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      child: ScriptureScopePicker(
+                        initial: widget.initial,
+                        usageContext: widget.usageContext,
+                        onChanged: widget.onChanged,
+                        showConfirmButton: true,
+                        confirmLabel: widget.confirmLabel,
+                        onConfirm: widget.onConfirm,
+                        fillHeight: true,
+                        scrollController: scrollController,
+                        pinnedHeader: SizedBox(
+                          height: 48,
+                          child: Row(
+                            children: [
+                              const SizedBox(width: 48, height: 48),
+                              Expanded(
+                                child: Text(
+                                  widget.title,
+                                  key: const Key('scope-setup-title'),
+                                  style: Theme.of(ctx)
+                                      .textTheme
+                                      .titleLarge
+                                      ?.copyWith(fontWeight: FontWeight.bold),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              SizedBox(
+                                width: 48,
+                                height: 48,
+                                child: IconButton(
+                                  onPressed: () => Navigator.of(ctx).pop(),
+                                  padding: EdgeInsets.zero,
+                                  icon: const Icon(Icons.close),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 // ─── Section building blocks ────────────────────────────────────────────────
+
+class _DefaultView extends StatelessWidget {
+  final ScrollController? scrollController;
+  final Widget? pinnedHeader;
+  final Widget? aboveFilters;
+  final Widget? belowFilters;
+  final bool hasLastUsed;
+  final VoidCallback onRestore;
+  final VoidCallback onClear;
+  final ScriptureScope scope;
+  final bool needsReviewEnabled;
+  final bool nearlyMasteredEnabled;
+  final ValueChanged<ScriptureBook> onToggleBook;
+  final VoidCallback onToggleNeedsReview;
+  final VoidCallback onToggleNearlyMastered;
+  final bool showIndividualSection;
+  final String individualLabel;
+  final int poolCount;
+  final int selectedCount;
+  final VoidCallback onOpenSelection;
+  final List<Scripture> resolved;
+  final List<Scripture> all;
+  final bool showConfirmButton;
+  final String confirmLabel;
+  final VoidCallback? onConfirm;
+
+  const _DefaultView({
+    super.key,
+    required this.scrollController,
+    required this.pinnedHeader,
+    required this.aboveFilters,
+    required this.belowFilters,
+    required this.hasLastUsed,
+    required this.onRestore,
+    required this.onClear,
+    required this.scope,
+    required this.needsReviewEnabled,
+    required this.nearlyMasteredEnabled,
+    required this.onToggleBook,
+    required this.onToggleNeedsReview,
+    required this.onToggleNearlyMastered,
+    required this.showIndividualSection,
+    required this.individualLabel,
+    required this.poolCount,
+    required this.selectedCount,
+    required this.onOpenSelection,
+    required this.resolved,
+    required this.all,
+    required this.showConfirmButton,
+    required this.confirmLabel,
+    required this.onConfirm,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scrollBody = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (aboveFilters != null) ...[
+          aboveFilters!,
+          const SizedBox(height: 20),
+        ],
+        _SectionHeader(
+          label: 'FILTER',
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (hasLastUsed)
+                TextButton(
+                  onPressed: onRestore,
+                  child: const Text('Restore'),
+                ),
+              TextButton(
+                onPressed: onClear,
+                child: const Text('Clear'),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        _FilterChips(
+          scope: scope,
+          needsReviewEnabled: needsReviewEnabled,
+          nearlyMasteredEnabled: nearlyMasteredEnabled,
+          onToggleBook: onToggleBook,
+          onToggleNeedsReview: onToggleNeedsReview,
+          onToggleNearlyMastered: onToggleNearlyMastered,
+        ),
+        if (showIndividualSection) ...[
+          const SizedBox(height: 12),
+          _IndividualEntryRow(
+            label: individualLabel,
+            poolCount: poolCount,
+            selectedCount: selectedCount,
+            onTap: onOpenSelection,
+          ),
+        ],
+        const SizedBox(height: 20),
+        _SelectionPreview(
+          resolved: resolved,
+          scope: scope,
+          all: all,
+        ),
+        if (showConfirmButton) ...[
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: resolved.isEmpty ? null : onConfirm,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(50),
+                ),
+              ),
+              child: Text(
+                confirmLabel,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+        if (belowFilters != null) ...[
+          const SizedBox(height: 20),
+          belowFilters!,
+        ],
+      ],
+    );
+
+    if (scrollController == null) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (pinnedHeader != null) ...[
+            pinnedHeader!,
+            const SizedBox(height: 12),
+          ],
+          scrollBody,
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (pinnedHeader != null) ...[
+          pinnedHeader!,
+          const SizedBox(height: 12),
+        ],
+        Expanded(
+          child: ListView(
+            controller: scrollController,
+            padding: EdgeInsets.zero,
+            children: [scrollBody],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SelectionPage extends StatelessWidget {
+  final String title;
+  final String filterSummary;
+  final String search;
+  final ValueChanged<String> onSearchChanged;
+  final List<Scripture> pool;
+  final Set<String> selectedIds;
+  final ValueChanged<String> onToggleScripture;
+  final VoidCallback onBack;
+  final VoidCallback onDone;
+  final VoidCallback? onClear;
+
+  const _SelectionPage({
+    super.key,
+    required this.title,
+    required this.filterSummary,
+    required this.search,
+    required this.onSearchChanged,
+    required this.pool,
+    required this.selectedIds,
+    required this.onToggleScripture,
+    required this.onBack,
+    required this.onDone,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = search.trim().isEmpty
+        ? pool
+        : pool.where((s) {
+            final q = search.toLowerCase();
+            return s.reference.toLowerCase().contains(q) ||
+                s.name.toLowerCase().contains(q) ||
+                s.keyPhrase.toLowerCase().contains(q);
+          }).toList();
+    final selectedCount = selectedIds.length;
+
+    // Same 48×48 leading/trailing slots as GameSetupSheet pinnedHeader
+    // so title baselines share y under the hoisted drag handle (R8.2).
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: 48,
+          child: Row(
+            children: [
+              SizedBox(
+                width: 48,
+                height: 48,
+                child: IconButton(
+                  onPressed: onBack,
+                  padding: EdgeInsets.zero,
+                  tooltip: 'Back',
+                  icon: const Icon(Icons.arrow_back),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  title,
+                  key: const Key('scope-selection-title'),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 48, height: 48),
+            ],
+          ),
+        ),
+        Text(
+          filterSummary,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          key: const Key('scope-scripture-search'),
+          onChanged: onSearchChanged,
+          decoration: InputDecoration(
+            isDense: true,
+            hintText: 'Search by reference, topic, or key phrase…',
+            prefixIcon: const Icon(Icons.search, size: 18),
+            filled: true,
+            fillColor:
+                Theme.of(context).colorScheme.surfaceContainerHighest,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(50),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 10,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: pool.isEmpty
+              ? Center(
+                  child: Text(
+                    'No scriptures match the current filters',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurfaceVariant,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                )
+              : filtered.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No scriptures match "$search"',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: filtered.length,
+                      itemBuilder: (ctx, i) {
+                        final s = filtered[i];
+                        return _ScriptureCheckTile(
+                          scripture: s,
+                          selected: selectedIds.contains(s.id),
+                          onTap: () => onToggleScripture(s.id),
+                        );
+                      },
+                    ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      '$selectedCount selected',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (onClear != null)
+                    TextButton(
+                      onPressed: onClear,
+                      child: const Text('Clear'),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 96,
+              child: SelectionPill(
+                label: 'Done',
+                selected: true,
+                onTap: onDone,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
 
 class _SectionHeader extends StatelessWidget {
   final String label;
@@ -353,211 +936,137 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _PresetChips extends StatelessWidget {
-  final ScriptureScope scope;
-  final int allCount;
-  final ValueChanged<ScriptureScope> onSelect;
+class _FilterChips extends StatelessWidget {
+  static const double _gap = 8;
 
-  const _PresetChips({
+  final ScriptureScope scope;
+  final bool needsReviewEnabled;
+  final bool nearlyMasteredEnabled;
+  final ValueChanged<ScriptureBook> onToggleBook;
+  final VoidCallback onToggleNeedsReview;
+  final VoidCallback onToggleNearlyMastered;
+
+  const _FilterChips({
     required this.scope,
-    required this.allCount,
-    required this.onSelect,
+    required this.needsReviewEnabled,
+    required this.nearlyMasteredEnabled,
+    required this.onToggleBook,
+    required this.onToggleNeedsReview,
+    required this.onToggleNearlyMastered,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+    final bookChips = [
+      for (final book in kScopeBookOrder)
+        SelectionPill(
+          label: book == ScriptureBook.doctrineAndCovenants
+              ? 'Doctrine and Covenants'
+              : book.displayName,
+          selected: scope.books.contains(book),
+          onTap: () => onToggleBook(book),
+        ),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Chip(
-          label: 'All $allCount',
-          selected: scope is ScopeAll,
-          onTap: () => onSelect(const ScopeAll()),
-        ),
-        _Chip(
-          label: 'Old Testament',
-          selected: scope is ScopeBooks &&
-              (scope as ScopeBooks).books.length == 1 &&
-              (scope as ScopeBooks).books.contains(ScriptureBook.oldTestament),
-          onTap: () => onSelect(
-            const ScopeBooks({ScriptureBook.oldTestament}),
+        for (var row = 0; row < bookChips.length; row += 2) ...[
+          if (row > 0) const SizedBox(height: _gap),
+          Row(
+            children: [
+              Expanded(child: bookChips[row]),
+              const SizedBox(width: _gap),
+              Expanded(
+                child: row + 1 < bookChips.length
+                    ? bookChips[row + 1]
+                    : const SizedBox.shrink(),
+              ),
+            ],
           ),
-        ),
-        _Chip(
-          label: 'Book of Mormon',
-          selected: scope is ScopeBooks &&
-              (scope as ScopeBooks).books.length == 1 &&
-              (scope as ScopeBooks).books.contains(ScriptureBook.bookOfMormon),
-          onTap: () => onSelect(
-            const ScopeBooks({ScriptureBook.bookOfMormon}),
-          ),
-        ),
-        _Chip(
-          label: 'Needs Review',
-          selected: scope is ScopeNeedsReview,
-          onTap: () => onSelect(const ScopeNeedsReview()),
-        ),
-        _Chip(
-          label: 'Nearly Mastered',
-          selected: scope is ScopeNearlyMastered,
-          onTap: () => onSelect(const ScopeNearlyMastered()),
+        ],
+        const SizedBox(height: _gap),
+        Row(
+          children: [
+            Expanded(
+              child: SelectionPill(
+                label: 'Needs Review',
+                selected: scope.needsReview && needsReviewEnabled,
+                enabled: needsReviewEnabled,
+                onTap: onToggleNeedsReview,
+              ),
+            ),
+            const SizedBox(width: _gap),
+            Expanded(
+              child: SelectionPill(
+                label: 'Nearly Mastered',
+                selected: scope.nearlyMastered && nearlyMasteredEnabled,
+                enabled: nearlyMasteredEnabled,
+                onTap: onToggleNearlyMastered,
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 }
 
-class _BookChipRow extends StatelessWidget {
-  final ScriptureScope scope;
-  final ValueChanged<ScriptureBook> onToggle;
-
-  const _BookChipRow({required this.scope, required this.onToggle});
-
-  @override
-  Widget build(BuildContext context) {
-    final selected = scope is ScopeBooks
-        ? (scope as ScopeBooks).books
-        : <ScriptureBook>{};
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: ScriptureBook.values.map((b) {
-        return _Chip(
-          label: b.abbreviation,
-          tooltip: b.displayName,
-          selected: selected.contains(b),
-          onTap: () => onToggle(b),
-        );
-      }).toList(),
-    );
-  }
-}
-
-class _IndividualDisclosure extends StatelessWidget {
+class _IndividualEntryRow extends StatelessWidget {
   final String label;
-  final bool open;
-  final VoidCallback onToggle;
+  final int poolCount;
+  final int selectedCount;
+  final VoidCallback onTap;
 
-  const _IndividualDisclosure({
+  const _IndividualEntryRow({
     required this.label,
-    required this.open,
-    required this.onToggle,
+    required this.poolCount,
+    required this.selectedCount,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final subtitle = selectedCount > 0
+        ? '$selectedCount of $poolCount selected'
+        : '$poolCount in filter';
+
     return InkWell(
-      onTap: onToggle,
+      key: const Key('scope-pick-specific'),
+      onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
         child: Row(
           children: [
-            Icon(
-              open ? Icons.expand_less : Icons.expand_more,
-              size: 22,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
+                  Text(
+                    subtitle,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurfaceVariant,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _IndividualSection extends ConsumerWidget {
-  final String search;
-  final ValueChanged<String> onSearchChanged;
-  final ScriptureScope scope;
-  final ValueChanged<String> onToggleScripture;
-
-  const _IndividualSection({
-    required this.search,
-    required this.onSearchChanged,
-    required this.scope,
-    required this.onToggleScripture,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final all = ref.watch(scripturesProvider);
-    final selectedIds = scope is ScopeScriptureIds
-        ? (scope as ScopeScriptureIds).ids.toSet()
-        : <String>{};
-
-    final filtered = search.trim().isEmpty
-        ? all
-        : all.where((s) {
-            final q = search.toLowerCase();
-            return s.reference.toLowerCase().contains(q) ||
-                s.name.toLowerCase().contains(q) ||
-                s.keyPhrase.toLowerCase().contains(q);
-          }).toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 4),
-        TextField(
-          onChanged: onSearchChanged,
-          decoration: InputDecoration(
-            isDense: true,
-            hintText: 'Search by reference, topic, or key phrase…',
-            prefixIcon: const Icon(Icons.search, size: 18),
-            filled: true,
-            fillColor:
-                Theme.of(context).colorScheme.surfaceContainerHighest,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(50),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 10,
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 280),
-          child: filtered.isEmpty
-              ? Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: Text(
-                      'No scriptures match "$search"',
-                      style:
-                          Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                              ),
-                    ),
-                  ),
-                )
-              : ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: filtered.length,
-                  itemBuilder: (ctx, i) {
-                    final s = filtered[i];
-                    final isSelected = selectedIds.contains(s.id);
-                    return _ScriptureCheckTile(
-                      scripture: s,
-                      selected: isSelected,
-                      onTap: () => onToggleScripture(s.id),
-                    );
-                  },
-                ),
-        ),
-      ],
     );
   }
 }
@@ -578,14 +1087,11 @@ class _ScriptureCheckTile extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
         child: Row(
           children: [
             Icon(
-              selected
-                  ? Icons.check_box
-                  : Icons.check_box_outline_blank,
+              selected ? Icons.check_box : Icons.check_box_outline_blank,
               color: selected
                   ? Theme.of(context).colorScheme.primary
                   : Theme.of(context).colorScheme.onSurfaceVariant,
@@ -605,10 +1111,7 @@ class _ScriptureCheckTile extends StatelessWidget {
                   ),
                   Text(
                     scripture.name,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context)
                               .colorScheme
                               .onSurfaceVariant,
@@ -642,7 +1145,7 @@ class _SelectionPreview extends StatelessWidget {
     final count = resolved.length;
     final sample = resolved.take(1).map((s) => s.reference).join();
     final preview = count == 0
-        ? 'No scriptures match this scope'
+        ? 'No scriptures match this filter'
         : count == 1
             ? sample
             : '$sample + ${count - 1} more';
@@ -695,39 +1198,5 @@ class _SelectionPreview extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-class _Chip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final String? tooltip;
-
-  const _Chip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    this.tooltip,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final chip = ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (_) => onTap(),
-      labelStyle: TextStyle(
-        color: selected
-            ? Theme.of(context).colorScheme.onPrimary
-            : null,
-        fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-      ),
-      selectedColor: Theme.of(context).colorScheme.primary,
-    );
-    if (tooltip != null) {
-      return Tooltip(message: tooltip!, child: chip);
-    }
-    return chip;
   }
 }

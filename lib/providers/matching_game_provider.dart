@@ -122,8 +122,9 @@ class MatchingGameNotifier extends StateNotifier<MatchingGameState> {
   ///
   /// [targetPairCount] overrides the per-difficulty default
   /// (`difficulty.matchingScriptureCount`). Used by the shared scope picker
-  /// when the user opts into "Every scripture in scope". When [scriptures]
-  /// is supplied directly, the explicit list always wins.
+  /// when the user opts into "Every scripture in scope". When null, the
+  /// difficulty default still applies even if [scriptures] is supplied —
+  /// otherwise a scoped pool would ignore Beginner/Intermediate/Advanced caps.
   void startGame({
     required DifficultyLevel difficulty,
     ScriptureBook? bookFilter,
@@ -131,13 +132,17 @@ class MatchingGameNotifier extends StateNotifier<MatchingGameState> {
     List<Scripture>? scriptures,
     int? targetPairCount,
   }) {
+    // null effectiveCount = use the entire pool (Master, or explicit "all")
+    final effectiveCount =
+        targetPairCount ?? difficulty.matchingScriptureCount;
+
     // Use provided scriptures or select from pool
     List<Scripture> selected;
     if (scriptures != null && scriptures.isNotEmpty) {
       selected = List.from(scriptures);
-      if (targetPairCount != null && targetPairCount < selected.length) {
+      if (effectiveCount != null && effectiveCount < selected.length) {
         selected.shuffle(_random);
-        selected = selected.take(targetPairCount).toList();
+        selected = selected.take(effectiveCount).toList();
       }
     } else {
       List<Scripture> available = List.from(allScriptures);
@@ -152,14 +157,9 @@ class MatchingGameNotifier extends StateNotifier<MatchingGameState> {
 
       available.shuffle(_random);
 
-      // Use matching-specific counts (null = all available)
-      final matchCount = difficulty.matchingScriptureCount;
-      final defaultCount = matchCount == null
+      final count = effectiveCount == null
           ? available.length
-          : min(matchCount, available.length);
-      final count = targetPairCount == null
-          ? defaultCount
-          : min(targetPairCount, available.length);
+          : min(effectiveCount, available.length);
       selected = available.take(count).toList();
     }
 

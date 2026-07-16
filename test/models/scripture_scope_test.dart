@@ -7,57 +7,66 @@ import '../helpers/test_helpers.dart';
 
 void main() {
   group('ScriptureScope JSON round-trip', () {
-    test('ScopeAll round-trips', () {
-      const scope = ScopeAll();
+    test('empty filter round-trips', () {
+      const scope = ScriptureScope();
       final restored = ScriptureScope.fromJson(scope.toJson());
-      expect(restored, isA<ScopeAll>());
+      expect(restored, equals(scope));
+      expect(restored.isUnfiltered, isTrue);
+    });
+
+    test('books + status + ids round-trip', () {
+      const scope = ScriptureScope(
+        books: {
+          ScriptureBook.oldTestament,
+          ScriptureBook.bookOfMormon,
+        },
+        needsReview: true,
+        nearlyMastered: true,
+        specificIds: ['a', 'b'],
+      );
+      final restored = ScriptureScope.fromJson(scope.toJson());
       expect(restored, equals(scope));
     });
 
-    test('ScopeBooks round-trips with multiple books', () {
-      const scope = ScopeBooks({
-        ScriptureBook.oldTestament,
-        ScriptureBook.bookOfMormon,
+    test('legacy ScopeAll migrates to empty filter', () {
+      final restored = ScriptureScope.fromJson({'type': 'all'});
+      expect(restored.isUnfiltered, isTrue);
+    });
+
+    test('legacy ScopeBooks migrates', () {
+      final restored = ScriptureScope.fromJson({
+        'type': 'books',
+        'books': ['bookOfMormon', 'oldTestament'],
       });
-      final restored = ScriptureScope.fromJson(scope.toJson());
-      expect(restored, isA<ScopeBooks>());
-      expect((restored as ScopeBooks).books, equals(scope.books));
+      expect(restored.books, {
+        ScriptureBook.bookOfMormon,
+        ScriptureBook.oldTestament,
+      });
+      expect(restored.hasStatusFilter, isFalse);
     });
 
-    test('ScopeBooks with empty set still round-trips', () {
-      const scope = ScopeBooks({});
-      final restored = ScriptureScope.fromJson(scope.toJson());
-      expect(restored, isA<ScopeBooks>());
-      expect((restored as ScopeBooks).books, isEmpty);
+    test('legacy ScopeScriptureIds migrates and preserves order', () {
+      final restored = ScriptureScope.fromJson({
+        'type': 'ids',
+        'ids': ['c', 'a', 'b'],
+      });
+      expect(restored.specificIds, ['c', 'a', 'b']);
     });
 
-    test('ScopeScriptureIds preserves order', () {
-      const scope = ScopeScriptureIds(['c', 'a', 'b']);
-      final restored = ScriptureScope.fromJson(scope.toJson());
-      expect(restored, isA<ScopeScriptureIds>());
-      expect((restored as ScopeScriptureIds).ids, ['c', 'a', 'b']);
+    test('legacy NeedsReview migrates', () {
+      final restored = ScriptureScope.fromJson({'type': 'needsReview'});
+      expect(restored.needsReview, isTrue);
+      expect(restored.nearlyMastered, isFalse);
     });
 
-    test('ScopeNeedsReview round-trips', () {
-      const scope = ScopeNeedsReview();
-      final restored = ScriptureScope.fromJson(scope.toJson());
-      expect(restored, isA<ScopeNeedsReview>());
+    test('legacy NearlyMastered migrates', () {
+      final restored = ScriptureScope.fromJson({'type': 'nearlyMastered'});
+      expect(restored.nearlyMastered, isTrue);
     });
 
-    test('ScopeNearlyMastered round-trips', () {
-      const scope = ScopeNearlyMastered();
-      final restored = ScriptureScope.fromJson(scope.toJson());
-      expect(restored, isA<ScopeNearlyMastered>());
-    });
-
-    test('Unknown type falls back to ScopeAll', () {
+    test('Unknown type falls back to empty filter', () {
       final restored = ScriptureScope.fromJson({'type': 'martian'});
-      expect(restored, isA<ScopeAll>());
-    });
-
-    test('Missing type falls back to ScopeAll', () {
-      final restored = ScriptureScope.fromJson({});
-      expect(restored, isA<ScopeAll>());
+      expect(restored.isUnfiltered, isTrue);
     });
   });
 
@@ -66,19 +75,13 @@ void main() {
     // Fixture: 5 scriptures across 4 books — test-1 (BoM), test-2 (NT),
     // test-3 (OT), test-4 (D&C), test-5 (BoM).
 
-    test('ScopeAll returns every scripture, in order', () {
-      const scope = ScopeAll();
+    test('empty filter returns every scripture, in order', () {
+      const scope = ScriptureScope();
       expect(scope.resolve(all), equals(all));
     });
 
-    test('ScopeBooks filters to the selected books', () {
-      const scope = ScopeBooks({ScriptureBook.bookOfMormon});
-      final out = scope.resolve(all);
-      expect(out.map((s) => s.id).toList(), ['test-1', 'test-5']);
-    });
-
-    test('ScopeBooks with multiple books unions', () {
-      const scope = ScopeBooks({
+    test('books filter unions selected volumes', () {
+      const scope = ScriptureScope(books: {
         ScriptureBook.newTestament,
         ScriptureBook.oldTestament,
       });
@@ -86,29 +89,23 @@ void main() {
       expect(out.map((s) => s.id).toSet(), {'test-2', 'test-3'});
     });
 
-    test('ScopeBooks with empty set resolves to empty', () {
-      const scope = ScopeBooks({});
-      expect(scope.resolve(all), isEmpty);
+    test('empty books set means all books (not none)', () {
+      const scope = ScriptureScope(books: {});
+      expect(scope.resolve(all), equals(all));
     });
 
-    test('ScopeScriptureIds returns scriptures in the listed order', () {
-      const scope = ScopeScriptureIds(['test-4', 'test-1']);
+    test('specific ids preserve order and drop unknowns', () {
+      const scope = ScriptureScope(specificIds: ['test-4', 'missing', 'test-1']);
       final out = scope.resolve(all);
       expect(out.map((s) => s.id).toList(), ['test-4', 'test-1']);
     });
 
-    test('ScopeScriptureIds silently drops unknown ids', () {
-      const scope = ScopeScriptureIds(['test-1', 'missing', 'test-3']);
-      final out = scope.resolve(all);
-      expect(out.map((s) => s.id).toList(), ['test-1', 'test-3']);
-    });
-
-    test('ScopeNeedsReview resolves to empty when no lookup provided', () {
-      const scope = ScopeNeedsReview();
+    test('needsReview with no lookup matches nothing', () {
+      const scope = ScriptureScope(needsReview: true);
       expect(scope.resolve(all), isEmpty);
     });
 
-    test('ScopeNeedsReview filters via the mastery lookup', () {
+    test('needsReview filters via the mastery lookup', () {
       final flagged = {'test-2', 'test-4'};
       ScriptureMastery? lookup(String id) => _mastery(
             id: id,
@@ -116,50 +113,116 @@ void main() {
             subProgress: 0.2,
             needsReview: flagged.contains(id),
           );
-      const scope = ScopeNeedsReview();
+      const scope = ScriptureScope(needsReview: true);
       final out = scope.resolve(all, masteryLookup: lookup);
       expect(out.map((s) => s.id).toSet(), {'test-2', 'test-4'});
     });
 
-    test('ScopeNearlyMastered excludes Mastered/Eternal regardless of subProgress',
-        () {
+    test('book + needsReview ANDs together', () {
+      final flagged = {'test-1', 'test-2'}; // BoM + NT
+      ScriptureMastery? lookup(String id) => _mastery(
+            id: id,
+            level: MasteryLevel.familiar,
+            subProgress: 0.2,
+            needsReview: flagged.contains(id),
+          );
+      const scope = ScriptureScope(
+        books: {ScriptureBook.bookOfMormon},
+        needsReview: true,
+      );
+      final out = scope.resolve(all, masteryLookup: lookup);
+      expect(out.map((s) => s.id).toList(), ['test-1']);
+    });
+
+    test('needsReview OR nearlyMastered within status filters', () {
       ScriptureMastery? lookup(String id) {
         if (id == 'test-1') {
           return _mastery(
-              id: id,
-              level: MasteryLevel.mastered,
-              subProgress: 0.9,
-              needsReview: false);
+            id: id,
+            level: MasteryLevel.familiar,
+            subProgress: 0.2,
+            needsReview: true,
+          );
         }
         if (id == 'test-2') {
           return _mastery(
-              id: id,
-              level: MasteryLevel.memorized,
-              subProgress: 0.8,
-              needsReview: false);
-        }
-        // Everything else is well below threshold.
-        return _mastery(
             id: id,
-            level: MasteryLevel.learning,
-            subProgress: 0.1,
-            needsReview: false);
+            level: MasteryLevel.memorized,
+            subProgress: 0.8,
+            needsReview: false,
+          );
+        }
+        return _mastery(
+          id: id,
+          level: MasteryLevel.learning,
+          subProgress: 0.1,
+          needsReview: false,
+        );
       }
-      const scope = ScopeNearlyMastered();
+
+      const scope = ScriptureScope(needsReview: true, nearlyMastered: true);
       final out = scope.resolve(all, masteryLookup: lookup);
-      // test-1 is already mastered → excluded
-      // test-2 has subProgress 0.8 below mastered → included
+      expect(out.map((s) => s.id).toSet(), {'test-1', 'test-2'});
+    });
+
+    test('nearlyMastered excludes Mastered/Eternal', () {
+      ScriptureMastery? lookup(String id) {
+        if (id == 'test-1') {
+          return _mastery(
+            id: id,
+            level: MasteryLevel.mastered,
+            subProgress: 0.9,
+            needsReview: false,
+          );
+        }
+        if (id == 'test-2') {
+          return _mastery(
+            id: id,
+            level: MasteryLevel.memorized,
+            subProgress: 0.8,
+            needsReview: false,
+          );
+        }
+        return _mastery(
+          id: id,
+          level: MasteryLevel.learning,
+          subProgress: 0.1,
+          needsReview: false,
+        );
+      }
+
+      const scope = ScriptureScope(nearlyMastered: true);
+      final out = scope.resolve(all, masteryLookup: lookup);
       expect(out.map((s) => s.id).toList(), ['test-2']);
+    });
+
+    test('specific ids are constrained to the filtered pool', () {
+      const scope = ScriptureScope(
+        books: {ScriptureBook.bookOfMormon},
+        specificIds: ['test-1', 'test-2', 'test-5'],
+      );
+      final out = scope.resolve(all);
+      // test-2 is NT — outside the BoM filter — dropped.
+      expect(out.map((s) => s.id).toList(), ['test-1', 'test-5']);
+    });
+
+    test('prunedToFilter drops ids outside the new pool', () {
+      const scope = ScriptureScope(
+        books: {ScriptureBook.bookOfMormon},
+        specificIds: ['test-1', 'test-2'],
+      );
+      final pruned = scope.prunedToFilter(all);
+      expect(pruned.specificIds, ['test-1']);
     });
   });
 
   group('ScriptureScope equality', () {
-    test('ScopeBooks equality is set-based, not order-based', () {
-      const a = ScopeBooks({
+    test('books equality is set-based, not order-based', () {
+      const a = ScriptureScope(books: {
         ScriptureBook.oldTestament,
         ScriptureBook.newTestament,
       });
-      const b = ScopeBooks({
+      const b = ScriptureScope(books: {
         ScriptureBook.newTestament,
         ScriptureBook.oldTestament,
       });
@@ -167,9 +230,9 @@ void main() {
       expect(a.hashCode, equals(b.hashCode));
     });
 
-    test('ScopeScriptureIds equality is order-sensitive', () {
-      const a = ScopeScriptureIds(['a', 'b']);
-      const b = ScopeScriptureIds(['b', 'a']);
+    test('specificIds equality is order-sensitive', () {
+      const a = ScriptureScope(specificIds: ['a', 'b']);
+      const b = ScriptureScope(specificIds: ['b', 'a']);
       expect(a == b, isFalse);
     });
   });

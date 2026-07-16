@@ -36,6 +36,7 @@ Design identity for THIS product lives in `PRODUCT_DESIGN.md` (this repo). Unive
 - Task boards: `TODO.md` (`TASK-XXX`) and `MAINTENANCE.md` (`MAINT-XXX`) — claim/complete ritual in `docs/AGENT_WORKFLOW.md`.
 - Shared files (extra caution, no concurrent edits): `enums.dart`, `games_hub_screen.dart`, `main.dart`, `pubspec.yaml`, `TODO.md`.
 - Skills: `/grill-me` (deep questioning on mechanics/UX/architecture), `/request-refactor-plan` (before major refactors), `/sidekick-prompt` (Grok system prompt help).
+- Multi-agent review loops: coordinate through `HANDOFF.md` at the repo root per `../narrow-road-hq/standards/LOOP_STANDARDS.md`. Workers set `IN_PROGRESS`/`NEEDS_REVIEW`/`BLOCKED`; reviewers set `REVIEWING`/`CHANGES_REQUESTED`/`PASS`; planners set `PLAN_READY`. Never set a state you don't own; the loop ends only at `PASS`.
 
 ## Doc map
 - `docs/OVERVIEW.md` — what the app is, core loop, UX/landing/design principles, business model, status. Read before product/UX decisions.
