@@ -46,134 +46,302 @@ class HomeScreen extends ConsumerWidget {
     final resumeTarget = ref.watch(resumeTargetProvider);
     final stats = ref.watch(holisticStatsProvider);
     ref.watch(dueCountProvider); // warm cache for badges elsewhere
+    final isTablet = AppTheme.isTabletLandscape(context);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.only(
-            left: 24.0,
-            right: 24.0,
-            top: 16.0,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ─── Dynamic Greeting ─────────────────────────────────────
-              if (isPremium && sidekickResponse?.dailyPrompt != null) ...[
-                Text(
-                  sidekickResponse!.dailyPrompt!,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontStyle: FontStyle.italic,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                ),
-              ] else ...[
-                Text(
-                  _timeGreeting(),
-                  style: Theme.of(context).textTheme.displayLarge,
-                ),
-                Text(
-                  greetingName,
-                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontStyle: FontStyle.italic,
-                      ),
-                ),
-              ],
-
-              const SizedBox(height: AppTheme.spacingXl),
-
-              // ─── Resume card OR all-caught-up nudge ───────────────────
-              if (resumeTarget != null) ...[
-                _ResumeEyebrow(isReviewNudge: resumeTarget.isReviewNudge),
-                const SizedBox(height: AppTheme.spacingSm),
-                _buildResumeCard(context, ref, resumeTarget),
-                const SizedBox(height: AppTheme.spacingXl),
-              ] else if (stats.attempted > 0) ...[
-                _buildAllCaughtUpCard(context),
-                const SizedBox(height: AppTheme.spacingXl),
-              ],
-
-              // ─── Let's play — one-tap into any game ───────────────────
-              const _HomeEyebrow("Let's play"),
-              const SizedBox(height: AppTheme.spacingSm),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildGameChip(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: isTablet
+                  ? AppTheme.homeWideMaxWidth
+                  : double.infinity,
+            ),
+            child: Padding(
+              padding: isTablet
+                  ? const EdgeInsets.fromLTRB(64, 56, 64, 0)
+                  : const EdgeInsets.only(left: 24.0, right: 24.0, top: 16.0),
+              child: isTablet
+                  ? _buildTabletBody(
                       context,
-                      label: 'Builder',
-                      icon: Icons.construction,
-                      color: Theme.of(context).colorScheme.primary,
-                      onTap: () => showGameSetupSheet(
-                        context,
-                        gameType: GameType.scriptureBuilder,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppTheme.spacingSm),
-                  Expanded(
-                    child: _buildGameChip(
+                      ref,
+                      isPremium: isPremium,
+                      sidekickResponse: sidekickResponse,
+                      greetingName: greetingName,
+                      resumeTarget: resumeTarget,
+                      statsAttempted: stats.attempted,
+                    )
+                  : _buildPhoneBody(
                       context,
-                      label: 'Match',
-                      icon: Icons.layers,
-                      color: AppTheme.secondary,
-                      onTap: () => showGameSetupSheet(
-                        context,
-                        gameType: GameType.matching,
-                      ),
+                      ref,
+                      isPremium: isPremium,
+                      sidekickResponse: sidekickResponse,
+                      greetingName: greetingName,
+                      resumeTarget: resumeTarget,
+                      statsAttempted: stats.attempted,
                     ),
-                  ),
-                  const SizedBox(width: AppTheme.spacingSm),
-                  Expanded(
-                    child: _buildGameChip(
-                      context,
-                      label: 'Quiz',
-                      icon: Icons.quiz,
-                      color: AppTheme.accent,
-                      onTap: () => showGameSetupSheet(
-                        context,
-                        gameType: GameType.quiz,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppTheme.spacingMd),
-              // Group Play — the one entry point. Host or join in one card.
-              const GroupPlayCard(showNewFlag: true),
-              const SizedBox(height: AppTheme.spacingXl),
-
-              // ─── Let's learn — browse the library ─────────────────────
-              const _HomeEyebrow("Let's learn"),
-              const SizedBox(height: AppTheme.spacingSm),
-              _buildBrowseTile(context),
-              const SizedBox(height: AppTheme.spacingXl),
-
-              // ─── Let's reflect — journal, always present (TASK-066) ───
-              const _HomeEyebrow("Let's reflect"),
-              const SizedBox(height: AppTheme.spacingSm),
-              const JournalCard(),
-
-              // ─── Premium Quick Win — demoted below primary CTAs ───────
-              if (isPremium && sidekickResponse?.quickWin != null) ...[
-                const SizedBox(height: AppTheme.spacingXl),
-                _buildQuickWinCard(
-                  context,
-                  sidekickResponse!.quickWin!,
-                  onTap: () => _handleQuickWinTap(
-                    context,
-                    sidekickResponse.quickWin!,
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 120.0),
-            ],
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildPhoneBody(
+    BuildContext context,
+    WidgetRef ref, {
+    required bool isPremium,
+    required SidekickResponse? sidekickResponse,
+    required String greetingName,
+    required ResumeTarget? resumeTarget,
+    required int statsAttempted,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildGreeting(
+          context,
+          isPremium: isPremium,
+          sidekickResponse: sidekickResponse,
+          greetingName: greetingName,
+          oneLine: false,
+        ),
+        const SizedBox(height: AppTheme.spacingXl),
+        ..._buildResumeSection(context, ref, resumeTarget, statsAttempted),
+        const _HomeEyebrow("Let's play"),
+        const SizedBox(height: AppTheme.spacingSm),
+        _buildGameChipsRow(context, scaled: false),
+        const SizedBox(height: AppTheme.spacingMd),
+        const GroupPlayCard(showNewFlag: true),
+        const SizedBox(height: AppTheme.spacingXl),
+        const _HomeEyebrow("Let's learn"),
+        const SizedBox(height: AppTheme.spacingSm),
+        _buildBrowseTile(context),
+        const SizedBox(height: AppTheme.spacingXl),
+        const _HomeEyebrow("Let's reflect"),
+        const SizedBox(height: AppTheme.spacingSm),
+        const JournalCard(),
+        if (isPremium && sidekickResponse?.quickWin != null) ...[
+          const SizedBox(height: AppTheme.spacingXl),
+          _buildQuickWinCard(
+            context,
+            sidekickResponse!.quickWin!,
+            onTap: () => _handleQuickWinTap(context, sidekickResponse.quickWin!),
+          ),
+        ],
+        const SizedBox(height: 120.0),
+      ],
+    );
+  }
+
+  Widget _buildTabletBody(
+    BuildContext context,
+    WidgetRef ref, {
+    required bool isPremium,
+    required SidekickResponse? sidekickResponse,
+    required String greetingName,
+    required ResumeTarget? resumeTarget,
+    required int statsAttempted,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildGreeting(
+          context,
+          isPremium: isPremium,
+          sidekickResponse: sidekickResponse,
+          greetingName: greetingName,
+          oneLine: true,
+        ),
+        const SizedBox(height: AppTheme.spacingXl),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 6,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ..._buildResumeSection(
+                    context,
+                    ref,
+                    resumeTarget,
+                    statsAttempted,
+                    hugContinueButton: true,
+                  ),
+                  const _HomeEyebrow("Let's play"),
+                  const SizedBox(height: AppTheme.spacingSm),
+                  _buildGameChipsRow(context, scaled: true),
+                  const SizedBox(height: AppTheme.spacingMd),
+                  const GroupPlayCard(showNewFlag: true, bannerLayout: true),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppTheme.spacingLg),
+            Expanded(
+              flex: 5,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _HomeEyebrow("Let's learn"),
+                  const SizedBox(height: AppTheme.spacingSm),
+                  _buildBrowseTile(context),
+                  const SizedBox(height: AppTheme.spacingXl),
+                  const _HomeEyebrow("Let's reflect"),
+                  const SizedBox(height: AppTheme.spacingSm),
+                  const JournalCard(),
+                  if (isPremium && sidekickResponse?.quickWin != null) ...[
+                    const SizedBox(height: AppTheme.spacingXl),
+                    _buildQuickWinCard(
+                      context,
+                      sidekickResponse!.quickWin!,
+                      onTap: () => _handleQuickWinTap(
+                        context,
+                        sidekickResponse.quickWin!,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 48.0),
+      ],
+    );
+  }
+
+  Widget _buildGreeting(
+    BuildContext context, {
+    required bool isPremium,
+    required SidekickResponse? sidekickResponse,
+    required String greetingName,
+    required bool oneLine,
+  }) {
+    if (isPremium && sidekickResponse?.dailyPrompt != null) {
+      return Text(
+        sidekickResponse!.dailyPrompt!,
+        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontStyle: FontStyle.italic,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: oneLine ? 28 : null,
+            ),
+      );
+    }
+    if (oneLine) {
+      return Text.rich(
+        TextSpan(
+          style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                fontFamily: 'Merriweather',
+                fontSize: 52,
+                height: 1.15,
+              ),
+          children: [
+            TextSpan(text: '${_timeGreeting()} '),
+            TextSpan(
+              text: greetingName,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _timeGreeting(),
+          style: Theme.of(context).textTheme.displayLarge,
+        ),
+        Text(
+          greetingName,
+          style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                fontStyle: FontStyle.italic,
+              ),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _buildResumeSection(
+    BuildContext context,
+    WidgetRef ref,
+    ResumeTarget? resumeTarget,
+    int statsAttempted, {
+    bool hugContinueButton = false,
+  }) {
+    if (resumeTarget != null) {
+      return [
+        _ResumeEyebrow(isReviewNudge: resumeTarget.isReviewNudge),
+        const SizedBox(height: AppTheme.spacingSm),
+        _buildResumeCard(
+          context,
+          ref,
+          resumeTarget,
+          hugContinueButton: hugContinueButton,
+        ),
+        const SizedBox(height: AppTheme.spacingXl),
+      ];
+    }
+    if (statsAttempted > 0) {
+      return [
+        _buildAllCaughtUpCard(context),
+        const SizedBox(height: AppTheme.spacingXl),
+      ];
+    }
+    return const [];
+  }
+
+  Widget _buildGameChipsRow(BuildContext context, {required bool scaled}) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildGameChip(
+            context,
+            label: 'Builder',
+            icon: Icons.construction,
+            color: Theme.of(context).colorScheme.primary,
+            scaled: scaled,
+            onTap: () => showGameSetupSheet(
+              context,
+              gameType: GameType.scriptureBuilder,
+            ),
+          ),
+        ),
+        const SizedBox(width: AppTheme.spacingSm),
+        Expanded(
+          child: _buildGameChip(
+            context,
+            label: 'Match',
+            icon: Icons.layers,
+            color: AppTheme.secondary,
+            scaled: scaled,
+            onTap: () => showGameSetupSheet(
+              context,
+              gameType: GameType.matching,
+            ),
+          ),
+        ),
+        const SizedBox(width: AppTheme.spacingSm),
+        Expanded(
+          child: _buildGameChip(
+            context,
+            label: 'Quiz',
+            icon: Icons.quiz,
+            color: AppTheme.accent,
+            scaled: scaled,
+            onTap: () => showGameSetupSheet(
+              context,
+              gameType: GameType.quiz,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -184,8 +352,9 @@ class HomeScreen extends ConsumerWidget {
   Widget _buildResumeCard(
     BuildContext context,
     WidgetRef ref,
-    ResumeTarget target,
-  ) {
+    ResumeTarget target, {
+    bool hugContinueButton = false,
+  }) {
     final scripture = target.scripture;
     final mastery = ref.watch(scriptureMasteryProvider(scripture.id));
     final bookColor = AppTheme.bookColor(scripture.book.displayName);
@@ -295,70 +464,62 @@ class HomeScreen extends ConsumerWidget {
                               ),
                         ),
                         const SizedBox(height: AppTheme.spacingMd),
-                        // Mastery pips + level label
-                        Row(
-                          children: [
-                            _MasteryPips(level: mastery.level),
-                            const SizedBox(width: AppTheme.spacingSm),
-                            Expanded(
-                              child: Text(
-                                // Eyebrow above the card already says "Time for
-                                // a refresher" on review nudges, so the inner
-                                // row always shows mastery progress instead.
-                                _masteryHintFor(mastery.level, false),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelSmall
-                                    ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
-                                      letterSpacing: 0.3,
-                                    ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppTheme.spacingMd),
-                        // Continue button
-                        SizedBox(
-                          width: double.infinity,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: AppTheme.heroGradient,
-                              borderRadius: BorderRadius.circular(
-                                  AppTheme.radiusRound),
-                            ),
-                            child: ElevatedButton.icon(
-                              onPressed: () =>
-                                  context.push('/scripture/${scripture.id}'),
-                              icon: const Icon(Icons.play_arrow_rounded,
-                                  size: 18.0),
-                              label: Text(
-                                target.isReviewNudge
-                                    ? 'Refresh this scripture'
-                                    : 'Continue practice',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelLarge
-                                    ?.copyWith(color: Colors.white),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                      AppTheme.radiusRound),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12.0,
+                        // Mastery pips + status; on tablet, Continue hugs right.
+                        if (hugContinueButton)
+                          Row(
+                            children: [
+                              _MasteryPips(level: mastery.level),
+                              const SizedBox(width: AppTheme.spacingSm),
+                              Expanded(
+                                child: Text(
+                                  _masteryHintFor(mastery.level, false),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelSmall
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                                        letterSpacing: 0.3,
+                                      ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                            ),
+                              const SizedBox(width: AppTheme.spacingSm),
+                              _ResumeContinueButton(target: target),
+                            ],
+                          )
+                        else ...[
+                          Row(
+                            children: [
+                              _MasteryPips(level: mastery.level),
+                              const SizedBox(width: AppTheme.spacingSm),
+                              Expanded(
+                                child: Text(
+                                  // Eyebrow above the card already says "Time
+                                  // for a refresher" on review nudges, so the
+                                  // inner row always shows mastery progress.
+                                  _masteryHintFor(mastery.level, false),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelSmall
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                                        letterSpacing: 0.3,
+                                      ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
+                          const SizedBox(height: AppTheme.spacingMd),
+                          SizedBox(
+                            width: double.infinity,
+                            child: _ResumeContinueButton(target: target),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -538,7 +699,11 @@ class HomeScreen extends ConsumerWidget {
     required IconData icon,
     required Color color,
     required VoidCallback onTap,
+    bool scaled = false,
   }) {
+    final iconBox = scaled ? 52.0 : 44.0;
+    final iconSize = scaled ? 28.0 : 24.0;
+    final vPad = scaled ? 22.0 : 16.0;
     return Material(
       color: Theme.of(context).colorScheme.surfaceContainerLowest,
       borderRadius: BorderRadius.circular(AppTheme.radiusLg),
@@ -554,17 +719,17 @@ class HomeScreen extends ConsumerWidget {
             ),
             boxShadow: AppTheme.editorialShadow,
           ),
-          padding: const EdgeInsets.symmetric(vertical: 16.0),
+          padding: EdgeInsets.symmetric(vertical: vPad, horizontal: scaled ? 8 : 0),
           child: Column(
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: iconBox,
+                height: iconBox,
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                 ),
-                child: Icon(icon, color: color, size: 24),
+                child: Icon(icon, color: color, size: iconSize),
               ),
               const SizedBox(height: 8.0),
               Text(
@@ -667,6 +832,45 @@ class HomeScreen extends ConsumerWidget {
       case MasteryLevel.eternal:
         return ''; // never reached — filtered upstream
     }
+  }
+}
+
+/// Hero-gradient Continue / Refresh CTA for the resume card.
+class _ResumeContinueButton extends StatelessWidget {
+  final ResumeTarget target;
+
+  const _ResumeContinueButton({required this.target});
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: AppTheme.heroGradient,
+        borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+      ),
+      child: ElevatedButton.icon(
+        onPressed: () => context.push('/scripture/${target.scripture.id}'),
+        icon: const Icon(Icons.play_arrow_rounded, size: 18.0),
+        label: Text(
+          target.isReviewNudge
+              ? 'Refresh this scripture'
+              : 'Continue practice',
+          style: Theme.of(context)
+              .textTheme
+              .labelLarge
+              ?.copyWith(color: Colors.white),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+        ),
+      ),
+    );
   }
 }
 

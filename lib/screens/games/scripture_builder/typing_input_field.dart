@@ -60,12 +60,17 @@ class SbTypingInputField extends StatelessWidget {
 
   Widget _buildWordPill(BuildContext context) {
     final theme = Theme.of(context);
+    final isTablet = AppTheme.isTabletLandscape(context);
     // White + extra-bold on the deeper gold so the typed word pops; the
     // gradient runs dark-to-mid tertiary to keep white readable end to end.
     final wordStyle = theme.textTheme.headlineSmall?.copyWith(
       color: AppTheme.onTertiary,
       fontWeight: FontWeight.w800,
+      fontSize: isTablet ? 22 : null,
     );
+    final pillMaxWidth = isTablet
+        ? AppTheme.builderWordPillWidth
+        : MediaQuery.of(context).size.width * 0.6;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(
@@ -81,9 +86,11 @@ class SbTypingInputField extends StatelessWidget {
           Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.6,
+                maxWidth: pillMaxWidth,
+                minWidth: isTablet ? AppTheme.builderWordPillWidth : 0,
               ),
               child: Container(
+                width: isTablet ? AppTheme.builderWordPillWidth : null,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [
@@ -111,11 +118,11 @@ class SbTypingInputField extends StatelessWidget {
                   // No placeholder: the keyboard is already up and the
                   // caption below explains the gesture — an empty pill with
                   // a cursor reads cleaner between words.
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(
-                      horizontal: AppTheme.spacingLg,
-                      vertical: AppTheme.spacingMd,
+                      horizontal: isTablet ? 32 : AppTheme.spacingLg,
+                      vertical: isTablet ? 18 : AppTheme.spacingMd,
                     ),
                   ),
                   onChanged: onChanged,
