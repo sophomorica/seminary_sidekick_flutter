@@ -369,9 +369,9 @@ These tasks are **code-complete** and summarized in the Completed tables above; 
   - [x] `flutter analyze` clean
 - **notes**:
   - Do NOT weaken the server gate; it fails closed on purpose (see `SUPABASE_SETUP.md`). A RevenueCat API outage will also 403 premium users — the friendly message should read as "refresh/try again" rather than accusing the user of not paying.
-  - Sentry: record the 403 path with `recordError` + breadcrumb (no chat content — privacy rules) so field frequency is visible.
+  - Sentry: breadcrumb the 403 path only (no chat content — privacy rules). Do **not** `recordError` the raw `FunctionException` — that opened FLUTTER-7 as a false crash; entitlement gate is expected business logic.
   - For sandbox testing after a lapse: just re-purchase with the sandbox Apple ID, or raise the tester's subscription renewal rate in App Store Connect → Sandbox.
-  - **Done 2026-07-11**: `SidekickEntitlementException` from proxy 403; chat restores text to input + Refresh banner → `refreshEntitlement()` then retry or `/upgrade`; session refresh uses the same friendly copy; Sentry breadcrumb/`recordError` on the 403 path (no message content).
+  - **Done 2026-07-11**: `SidekickEntitlementException` from proxy 403; chat restores text to input + Refresh banner → `refreshEntitlement()` then retry or `/upgrade`; session refresh uses the same friendly copy; Sentry breadcrumb on the 403 path (no message content). **Follow-up 2026-07-17 (FLUTTER-7)**: removed `recordError` on this path + `beforeSend` drop for entitlement-gate `FunctionException`.
 
 ### TASK-065: Premium "Missionary Scriptures" pack (curated unlock)
 

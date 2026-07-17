@@ -22,6 +22,12 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 /// (429 / 502 / 503 / 529) from Sidekick / xAI are expected and already
 /// handled in-app — [shouldDropTransientHttpClientError] filters them out
 /// so they do not open crash issues.
+///
+/// **Expected entitlement gate** (FLUTTER-7): `sidekick-proxy` returns 403
+/// when premium is missing/unverifiable. The client maps that to
+/// `SidekickEntitlementException` and a Refresh/upgrade UX — not a crash.
+/// [shouldDropExpectedSidekickEntitlementError] drops those events if they
+/// still reach Sentry (legacy `recordError` or other capture paths).
 class CrashReportingService {
   CrashReportingService._();
 
@@ -74,6 +80,42 @@ class CrashReportingService {
     return false;
   }
 
+  /// Drop expected Sidekick premium-gate 403s (`FunctionException`).
+  ///
+  /// These are handled in-app as `SidekickEntitlementException` (TASK-067 /
+  /// FLUTTER-7). Other FunctionExceptions (non-403, non-entitlement) still
+  /// report.
+  @visibleForTesting
+  static bool shouldDropExpectedSidekickEntitlementError(SentryEvent event) {
+    final exceptions = event.exceptions;
+    if (exceptions == null || exceptions.isEmpty) return false;
+
+    for (final ex in exceptions) {
+      final type = ex.type ?? '';
+      final value = ex.value ?? '';
+      final isFunctionException = type == 'FunctionException' ||
+          value.contains('FunctionException');
+      if (!isFunctionException) continue;
+      // Proxy gate copy from sidekick-proxy; match status + message so other
+      // FunctionException 403s (if any) still surface in Sentry.
+      final lower = value.toLowerCase();
+      final looksLike403 = value.contains('status: 403') ||
+          value.contains('status:403') ||
+          lower.contains('forbidden');
+      if (looksLike403 &&
+          lower.contains('premium subscription is required')) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// True when [event] is expected Sidekick noise that must not open issues.
+  @visibleForTesting
+  static bool shouldDropExpectedSidekickNoise(SentryEvent event) =>
+      shouldDropTransientHttpClientError(event) ||
+      shouldDropExpectedSidekickEntitlementError(event);
+
   /// Initialize Sentry and run [appRunner] inside its error-capturing zone.
   ///
   /// Captures, automatically:
@@ -113,7 +155,7 @@ class CrashReportingService {
         // beforeSend still drops known-transient statuses from either path.
         options.captureNativeFailedRequests = false;
         options.beforeSend = (event, hint) {
-          if (shouldDropTransientHttpClientError(event)) return null;
+          if (shouldDropExpectedSidekickNoise(event)) return null;
           return event;
         };
       },
