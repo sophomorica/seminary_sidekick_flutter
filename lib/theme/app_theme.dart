@@ -209,6 +209,34 @@ class AppTheme {
   static const double spacingXl = 32.0;
   static const double spacingXxl = 48.0;
 
+  // ─── Tablet layout (iPad 13″ landscape) ─────────────────────────
+  /// Shortest-side threshold (logical px) for tablet chrome/layouts.
+  static const double tabletBreakpoint = 840;
+
+  /// Home content column on landscape tablet.
+  static const double homeWideMaxWidth = 1080;
+
+  /// Scripture Detail content column on landscape tablet.
+  static const double detailWideMaxWidth = 1120;
+
+  /// Scripture Builder typed-reading column on landscape tablet.
+  static const double builderReadingMaxWidth = 820;
+
+  /// Master word-pill width on landscape tablet.
+  static const double builderWordPillWidth = 360;
+
+  /// Scripture Detail sidebar width on landscape tablet.
+  static const double detailSidebarWidth = 380;
+
+  /// True for landscape tablet: shortest side ≥ [tabletBreakpoint] and
+  /// landscape orientation. Portrait iPad keeps phone layouts.
+  static bool isTabletLandscape(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final orientation = MediaQuery.orientationOf(context);
+    return size.shortestSide >= tabletBreakpoint &&
+        orientation == Orientation.landscape;
+  }
+
   // ─── Border Radius (Sacred Editorial: smooth stones) ────────────
   static const double radiusSm = 8.0;
   static const double radiusMd = 16.0;   // 1rem — default

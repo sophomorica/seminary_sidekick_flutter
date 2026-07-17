@@ -226,6 +226,17 @@ class _AppShell extends ConsumerWidget {
   /// Tab names for crash-report breadcrumbs (index-aligned with destinations).
   static const _tabNames = ['home', 'library', 'practice', 'stats', 'sidekick'];
 
+  void _selectBranch(int index) {
+    CrashReportingService.addBreadcrumb(
+      'tab: ${_tabNames[index]}',
+      category: 'navigation',
+    );
+    navigationShell.goBranch(
+      index,
+      initialLocation: index == navigationShell.currentIndex,
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -235,12 +246,38 @@ class _AppShell extends ConsumerWidget {
     // the tab bar (flex layout) instead of overlaying the nav on the body.
     // Other tabs keep extendBody so content can scroll under the glass nav.
     final isSidekickTab = navigationShell.currentIndex == 4;
+    final isTabletLandscape = AppTheme.isTabletLandscape(context);
     final navBg = isDark
         ? AppTheme.darkBackground.withValues(alpha: 0.9)
         : AppTheme.surface.withValues(alpha: 0.8);
     final headerBg = isDark
         ? AppTheme.darkBackground.withValues(alpha: 0.9)
         : AppTheme.surface.withValues(alpha: 0.8);
+
+    if (isTabletLandscape) {
+      // iPad landscape: left nav rail; no top header / bottom bar.
+      // Content pane needs its own SafeArea — phone chrome put the status-bar
+      // inset in the header, which this path removes.
+      return Scaffold(
+        resizeToAvoidBottomInset: false,
+        body: Row(
+          children: [
+            _TabletNavRail(
+              isDark: isDark,
+              railBg: headerBg,
+              selectedIndex: navigationShell.currentIndex,
+              onDestinationSelected: _selectBranch,
+            ),
+            Expanded(
+              child: SafeArea(
+                left: false,
+                child: navigationShell,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Scaffold(
       // Let the active tab (e.g. chat) own keyboard insets. Keeping the shell
@@ -277,8 +314,10 @@ class _AppShell extends ConsumerWidget {
                               : AppTheme.secondaryContainer,
                           border: Border.all(
                             color: isDark
-                                ? AppTheme.secondaryFixedDim.withValues(alpha: 0.2)
-                                : AppTheme.outlineVariant.withValues(alpha: 0.15),
+                                ? AppTheme.secondaryFixedDim
+                                    .withValues(alpha: 0.2)
+                                : AppTheme.outlineVariant
+                                    .withValues(alpha: 0.15),
                           ),
                         ),
                         child: Icon(
@@ -320,91 +359,83 @@ class _AppShell extends ConsumerWidget {
       bottomNavigationBar: keyboardOpen
           ? null
           : ClipRRect(
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppTheme.radiusXxl),
-        ),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            decoration: BoxDecoration(
-              color: navBg,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(AppTheme.radiusXxl),
               ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x0F221A17),
-                  blurRadius: 20,
-                  offset: Offset(0, -4),
-                ),
-              ],
-            ),
-            child: SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
-                ),
-                child: NavigationBar(
-                  selectedIndex: navigationShell.currentIndex,
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
-                  indicatorColor: Colors.transparent,
-                  labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-                  onDestinationSelected: (index) {
-                    CrashReportingService.addBreadcrumb(
-                      'tab: ${_tabNames[index]}',
-                      category: 'navigation',
-                    );
-                    navigationShell.goBranch(
-                      index,
-                      initialLocation: index == navigationShell.currentIndex,
-                    );
-                  },
-                  destinations: [
-                    _buildNavDestination(
-                      context,
-                      icon: Icons.home_outlined,
-                      selectedIcon: Icons.home,
-                      label: 'HOME',
-                      isSelected: navigationShell.currentIndex == 0,
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: navBg,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(AppTheme.radiusXxl),
                     ),
-                    _buildNavDestination(
-                      context,
-                      icon: Icons.menu_book_outlined,
-                      selectedIcon: Icons.menu_book,
-                      label: 'LIBRARY',
-                      isSelected: navigationShell.currentIndex == 1,
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x0F221A17),
+                        blurRadius: 20,
+                        offset: Offset(0, -4),
+                      ),
+                    ],
+                  ),
+                  child: SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      child: NavigationBar(
+                        selectedIndex: navigationShell.currentIndex,
+                        backgroundColor: Colors.transparent,
+                        elevation: 0,
+                        indicatorColor: Colors.transparent,
+                        labelBehavior:
+                            NavigationDestinationLabelBehavior.alwaysShow,
+                        onDestinationSelected: _selectBranch,
+                        destinations: [
+                          _buildNavDestination(
+                            context,
+                            icon: Icons.home_outlined,
+                            selectedIcon: Icons.home,
+                            label: 'HOME',
+                            isSelected: navigationShell.currentIndex == 0,
+                          ),
+                          _buildNavDestination(
+                            context,
+                            icon: Icons.menu_book_outlined,
+                            selectedIcon: Icons.menu_book,
+                            label: 'LIBRARY',
+                            isSelected: navigationShell.currentIndex == 1,
+                          ),
+                          _buildNavDestination(
+                            context,
+                            icon: Icons.extension_outlined,
+                            selectedIcon: Icons.extension,
+                            label: 'PRACTICE',
+                            isSelected: navigationShell.currentIndex == 2,
+                          ),
+                          _buildNavDestination(
+                            context,
+                            icon: Icons.leaderboard_outlined,
+                            selectedIcon: Icons.leaderboard,
+                            label: 'STATS',
+                            isSelected: navigationShell.currentIndex == 3,
+                          ),
+                          _buildNavDestination(
+                            context,
+                            icon: Icons.explore_outlined,
+                            selectedIcon: Icons.explore,
+                            label: 'SIDEKICK',
+                            isSelected: navigationShell.currentIndex == 4,
+                          ),
+                        ],
+                      ),
                     ),
-                    _buildNavDestination(
-                      context,
-                      icon: Icons.extension_outlined,
-                      selectedIcon: Icons.extension,
-                      label: 'PRACTICE',
-                      isSelected: navigationShell.currentIndex == 2,
-                    ),
-                    _buildNavDestination(
-                      context,
-                      icon: Icons.leaderboard_outlined,
-                      selectedIcon: Icons.leaderboard,
-                      label: 'STATS',
-                      isSelected: navigationShell.currentIndex == 3,
-                    ),
-                    _buildNavDestination(
-                      context,
-                      icon: Icons.explore_outlined,
-                      selectedIcon: Icons.explore,
-                      label: 'SIDEKICK',
-                      isSelected: navigationShell.currentIndex == 4,
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -432,6 +463,167 @@ class _AppShell extends ConsumerWidget {
         child: Icon(selectedIcon, color: activeColor, size: 24),
       ),
       label: label,
+    );
+  }
+}
+
+/// Landscape-tablet left rail — avatar, destinations, streak. 96px wide.
+class _TabletNavRail extends StatelessWidget {
+  final bool isDark;
+  final Color railBg;
+  final int selectedIndex;
+  final ValueChanged<int> onDestinationSelected;
+
+  const _TabletNavRail({
+    required this.isDark,
+    required this.railBg,
+    required this.selectedIndex,
+    required this.onDestinationSelected,
+  });
+
+  static const _destinations = <(IconData, IconData, String)>[
+    (Icons.home_outlined, Icons.home, 'HOME'),
+    (Icons.menu_book_outlined, Icons.menu_book, 'LIBRARY'),
+    (Icons.extension_outlined, Icons.extension, 'PRACTICE'),
+    (Icons.leaderboard_outlined, Icons.leaderboard, 'STATS'),
+    (Icons.explore_outlined, Icons.explore, 'SIDEKICK'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final activeColor = isDark ? AppTheme.primaryFixedDim : AppTheme.primary;
+    final inactiveColor = isDark
+        ? AppTheme.darkOnSurface.withValues(alpha: 0.5)
+        : AppTheme.secondary;
+
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          width: 96,
+          decoration: BoxDecoration(
+            color: railBg,
+            border: Border(
+              right: BorderSide(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                width: 0.5,
+              ),
+            ),
+          ),
+          child: SafeArea(
+            right: false,
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                GestureDetector(
+                  onTap: () => context.push('/settings'),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isDark
+                          ? AppTheme.darkSurfaceContainerHigh
+                          : AppTheme.secondaryContainer,
+                      border: Border.all(
+                        color: isDark
+                            ? AppTheme.secondaryFixedDim.withValues(alpha: 0.2)
+                            : AppTheme.outlineVariant.withValues(alpha: 0.15),
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.person,
+                      size: 22,
+                      color: isDark
+                          ? AppTheme.secondaryFixedDim
+                          : AppTheme.secondary,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 28),
+                for (var i = 0; i < _destinations.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 12),
+                  _TabletRailDestination(
+                    icon: _destinations[i].$1,
+                    selectedIcon: _destinations[i].$2,
+                    label: _destinations[i].$3,
+                    isSelected: selectedIndex == i,
+                    activeColor: activeColor,
+                    inactiveColor: inactiveColor,
+                    onTap: () => onDestinationSelected(i),
+                  ),
+                ],
+                const Spacer(),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 20),
+                  child: _StreakBadge(isDark: isDark),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TabletRailDestination extends StatelessWidget {
+  final IconData icon;
+  final IconData selectedIcon;
+  final String label;
+  final bool isSelected;
+  final Color activeColor;
+  final Color inactiveColor;
+  final VoidCallback onTap;
+
+  const _TabletRailDestination({
+    required this.icon,
+    required this.selectedIcon,
+    required this.label,
+    required this.isSelected,
+    required this.activeColor,
+    required this.inactiveColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isSelected ? activeColor : inactiveColor;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? activeColor.withValues(alpha: 0.10)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+              ),
+              child: Icon(
+                isSelected ? selectedIcon : icon,
+                size: 26,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.0,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
