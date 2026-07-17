@@ -2,8 +2,10 @@
 
 Scripture Builder is the PRIMARY mastery tool. It lives under each scripture (accessed from scripture detail), not in the quizzes/games hub. It's how you prove you know a scripture. The four difficulty tiers map directly to mastery levels:
 
-- **Beginner** (chunk-tap): 3-word chunks, tap in order → earns **Learning** mastery
-- **Intermediate** (chunk-tap): 2-word chunks + distractors from other scriptures → earns **Familiar** mastery
+- **Beginner** (chunk-tap): adaptive word chunks, tap in order → earns **Learning** mastery
+- **Intermediate** (chunk-tap): adaptive word chunks + distractors from other scriptures → earns **Familiar** mastery
+
+**Adaptive chunking** (Beginner / Intermediate): target-chunk-count strategy calibrated to 1 Nephi 3:7 (56 words). Formula: `chunkSize = clamp(ceil(wordCount / cap), baseSize, maxSize)`. Beginner: cap 19, base 3, max 8. Intermediate: cap 28, base 2, max 6. Passages ≤ 56 words keep the historic 3-word / 2-word sizes; longer passages grow chunk size so tap counts stay bounded. Chunking is purely positional (every `chunkSize` words) — deterministic, no phrase/punctuation snapping.
 - **Advanced** (typing): Type the passage with first-letter hints. Wrong char turns red, must backspace → earns **Memorized** mastery
 - **Master** (typing): Blind typing (all underscores), judged **per word, not per keystroke**: the field holds one word at a time, OS autocorrect is enabled, and the word is only checked when committed with the spacebar (`WordCommitEngine`). A wrong word resets everything. Typing-only (no mic — see TASK-069 for the future premium AI voice recite feature) → 3 consecutive perfect runs earns **Mastered**
 

@@ -7,6 +7,46 @@ import '../services/word_commit_engine.dart';
 
 // ─── Data classes ────────────────────────────────────────────────
 
+/// Target-chunk-count caps calibrated to 1 Nephi 3:7 (56 words).
+/// Passages at or under that length keep historic 3-word / 2-word sizes;
+/// longer passages grow chunk size up to [maxSize] so tap counts stay bounded.
+const int kBeginnerChunkCap = 19;
+const int kBeginnerBaseChunkSize = 3;
+const int kBeginnerMaxChunkSize = 8;
+const int kIntermediateChunkCap = 28;
+const int kIntermediateBaseChunkSize = 2;
+const int kIntermediateMaxChunkSize = 6;
+
+/// Adaptive chunk size for Beginner / Intermediate Scripture Builder.
+///
+/// `chunkSize = clamp(ceil(wordCount / cap), baseSize, maxSize)`
+int adaptiveChunkSize({
+  required int wordCount,
+  required DifficultyLevel difficulty,
+}) {
+  final int cap;
+  final int baseSize;
+  final int maxSize;
+  switch (difficulty) {
+    case DifficultyLevel.beginner:
+      cap = kBeginnerChunkCap;
+      baseSize = kBeginnerBaseChunkSize;
+      maxSize = kBeginnerMaxChunkSize;
+    case DifficultyLevel.intermediate:
+      cap = kIntermediateChunkCap;
+      baseSize = kIntermediateBaseChunkSize;
+      maxSize = kIntermediateMaxChunkSize;
+    case DifficultyLevel.advanced:
+    case DifficultyLevel.master:
+      throw ArgumentError(
+        'adaptiveChunkSize is only for chunk-tap difficulties, got $difficulty',
+      );
+  }
+  if (wordCount <= 0) return baseSize;
+  final raw = (wordCount / cap).ceil();
+  return raw.clamp(baseSize, maxSize);
+}
+
 /// A chunk of consecutive words displayed as a single tappable tile.
 class WordChunk {
   final List<String> words;
@@ -279,7 +319,10 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
 
   void _loadChunkMode(int index, Scripture scripture) {
     final words = scripture.words;
-    final chunkSize = state.difficulty == DifficultyLevel.beginner ? 3 : 2;
+    final chunkSize = adaptiveChunkSize(
+      wordCount: words.length,
+      difficulty: state.difficulty,
+    );
 
     // Split words into chunks of the target size
     List<WordChunk> chunks = [];

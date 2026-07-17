@@ -173,6 +173,31 @@ No remaining App Store Connect / banking / EULA / IAP blockers for this submissi
 
 ## Active Tasks
 
+### TASK-075: Adaptive Scripture Builder chunks for long passages
+
+- **status**: `done`
+- **claimed_by**: cursor-worker-task-075
+- **started**: 2026-07-17T17:56:14Z
+- **completed**: 2026-07-17T18:03:36Z
+- **priority**: P2
+- **estimated_effort**: Medium
+- **context**: Beginner splits every scripture into fixed 3-word chunks and Intermediate into 2-word chunks, which creates an unreasonable number of taps for very long passages (largest passage: 270 words → 90 Beginner / 135 Intermediate tiles). Owner played a long passage 2026-07-17 and confirmed both tiers are painful. Design resolved with owner 2026-07-17 — no open decisions; ready to claim.
+- **design (resolved 2026-07-17)**: target-chunk-count strategy, calibrated to 1 Nephi 3:7 (56 words), which under current rules yields 19 Beginner / 28 Intermediate chunks. Those become the per-tier caps:
+  - `chunkSize = clamp(ceil(wordCount / cap), baseSize, maxSize)`
+  - Beginner: cap 19, baseSize 3, maxSize 8
+  - Intermediate: cap 28, baseSize 2, maxSize 6
+  - No threshold branch: for passages ≤ 56 words the formula reduces exactly to today's 3-word/2-word behavior. Longest passage (270 words) becomes ~34 Beginner / ~45 Intermediate chunks.
+  - Chunking stays purely positional (every `chunkSize` words); deterministic and simple. Phrase/punctuation-aware snapping explicitly deferred — revisit only if large chunks read badly in practice.
+- **acceptance_criteria**:
+  - [x] 1 Nephi 3:7 and all shorter passages retain current 3-word (Beginner) / 2-word (Intermediate) behavior — verified by the formula, not a special case.
+  - [x] Longer passages use the clamp formula above on both tiers and require materially fewer taps.
+  - [x] Chunk boundaries remain deterministic; duplicate-chunk handling, scoring, progress, and mastery rules unchanged.
+  - [x] Tile layout remains readable/tappable at maxSize chunks (8 words) on small screens.
+  - [x] Tests cover: the 56-word baseline passage, the first passage over baseline, and the longest passage (270 words), on both tiers.
+  - [x] `docs/FEATURES.md` updated with the chunking rule; `flutter analyze` and `flutter test` clean.
+- **anticipated_files**: `lib/providers/scripture_builder_provider.dart`, scripture-builder provider/widget tests, `docs/FEATURES.md`
+- **notes**: Implemented `adaptiveChunkSize()` (pure, exported). Corpus longest is Exodus 20:3–17 (297 words); tests cover 270-word design scale + real 56/57/297 passages. Existing Wrap chip layout handles maxSize tiles without UI changes. Validator returned PASS on HANDOFF review loop.
+
 ### TASK-072: Game-complete redesign — animated score meter + mastery avatar (solo)
 
 - **status**: `done`
@@ -528,8 +553,25 @@ These tasks are **code-complete** and summarized in the Completed tables above; 
 | Task | What | Effort |
 |------|------|--------|
 | TASK-014 | Legacy social features placeholder (superseded by TASK-048/050) | — |
-| TASK-015 | Localization (i18n) | Large |
+| TASK-015 | Spanish version / localization (i18n) | Large |
 | TASK-069 | Premium AI voice recite for Scripture Builder (Advanced + Master) | Large |
+
+### TASK-015: Spanish version / localization (i18n)
+
+- **status**: open (backlog — prioritize soon)
+- **priority**: P2
+- **estimated_effort**: Large
+- **description**: Add a complete Spanish version of Seminary Sidekick, including app UI and an approved Spanish scripture corpus. This is more than a copy translation because Scripture Builder, Memorize, quizzes, matching, typing normalization, and Sidekick prompts all depend on exact scripture text and language-specific word handling.
+- **decisions_to_resolve_before_build**:
+  - Select and verify the authorized Spanish scripture source/edition and its punctuation.
+  - Decide whether language follows the device locale, an in-app selector, or both.
+  - Define launch scope: app UI + core 100 first, and whether Sidekick AI, store listing/screenshots, Group Play, and premium content launch in Spanish at the same time.
+- **acceptance_criteria** (provisional):
+  - [ ] No user-facing English remains in the agreed Spanish launch scope.
+  - [ ] The Spanish scripture corpus is source-verified and reviewed for word-for-word Builder accuracy.
+  - [ ] Scripture Builder, Memorize, Quick Quiz, Scripture Match, mastery, and search work with Spanish text.
+  - [ ] Language-specific normalization and typing behavior have tests, including punctuation and accented characters.
+  - [ ] Localization falls back safely to English for any missing key; `flutter analyze` and `flutter test` are clean.
 
 ### TASK-069: Premium AI voice recite for Scripture Builder (Advanced + Master)
 
