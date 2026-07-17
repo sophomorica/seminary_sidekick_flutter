@@ -19,7 +19,14 @@ class GroupPlayCard extends ConsumerWidget {
   /// When true (Home), shows a small "NEW" flag in the corner.
   final bool showNewFlag;
 
-  const GroupPlayCard({super.key, this.showNewFlag = false});
+  /// Landscape-tablet Home: icon + copy left, Host/Join right, footnote below.
+  final bool bannerLayout;
+
+  const GroupPlayCard({
+    super.key,
+    this.showNewFlag = false,
+    this.bannerLayout = false,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -65,6 +72,89 @@ class GroupPlayCard extends ConsumerWidget {
       );
     }
 
+    final titleRow = Row(
+      children: [
+        Text(
+          'Group Play',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontFamily: 'Merriweather',
+                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.onPrimary,
+              ),
+        ),
+        if (showNewFlag) ...[
+          const SizedBox(width: 8.0),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: AppTheme.onPrimary.withValues(alpha: 0.20),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              'NEW',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: AppTheme.onPrimary,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.5,
+                    fontSize: 10,
+                  ),
+            ),
+          ),
+        ],
+      ],
+    );
+
+    final hostButton = ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: hostingLocked
+            ? AppTheme.onPrimary.withValues(alpha: 0.55)
+            : AppTheme.onPrimary,
+        foregroundColor: hostingLocked
+            ? AppTheme.primary.withValues(alpha: 0.70)
+            : AppTheme.primary,
+        padding: EdgeInsets.symmetric(
+          vertical: 14.0,
+          horizontal: bannerLayout ? 18.0 : 0,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(50.0),
+        ),
+        elevation: 0,
+      ),
+      onPressed: () => context.push(
+        hostingLocked ? '/upgrade' : '/group-play/host',
+      ),
+      icon: const Icon(Icons.add_circle_outline, size: 20),
+      label: Text(
+        bannerLayout ? 'Host' : 'Host a Game',
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
+    );
+
+    final joinButton = OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppTheme.onPrimary,
+        side: BorderSide(
+          color: AppTheme.onPrimary.withValues(alpha: 0.6),
+          width: 1.5,
+        ),
+        padding: EdgeInsets.symmetric(
+          vertical: 14.0,
+          horizontal: bannerLayout ? 18.0 : 0,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(50.0),
+        ),
+      ),
+      onPressed: () => context.push('/group-play/join'),
+      icon: const Icon(Icons.login, size: 20),
+      label: Text(
+        bannerLayout ? 'Join' : 'Join a Game',
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+    );
+
     return Container(
       decoration: BoxDecoration(
         gradient: AppTheme.heroGradient,
@@ -73,138 +163,106 @@ class GroupPlayCard extends ConsumerWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10.0),
-                  decoration: BoxDecoration(
-                    color: AppTheme.onPrimary.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                  ),
-                  child: const Icon(
-                    Icons.groups,
-                    color: AppTheme.onPrimary,
-                    size: 28.0,
-                  ),
-                ),
-                const SizedBox(width: 14.0),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        child: bannerLayout
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            'Group Play',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                  fontFamily: 'Merriweather',
-                                  fontStyle: FontStyle.italic,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.onPrimary,
-                                ),
-                          ),
-                          if (showNewFlag) ...[
-                            const SizedBox(width: 8.0),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppTheme.onPrimary.withValues(alpha: 0.20),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                'NEW',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelSmall
-                                    ?.copyWith(
-                                      color: AppTheme.onPrimary,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.5,
-                                      fontSize: 10,
-                                    ),
-                              ),
+                      Container(
+                        padding: const EdgeInsets.all(10.0),
+                        decoration: BoxDecoration(
+                          color: AppTheme.onPrimary.withValues(alpha: 0.18),
+                          borderRadius:
+                              BorderRadius.circular(AppTheme.radiusMd),
+                        ),
+                        child: const Icon(
+                          Icons.groups,
+                          color: AppTheme.onPrimary,
+                          size: 28.0,
+                        ),
+                      ),
+                      const SizedBox(width: 14.0),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            titleRow,
+                            const SizedBox(height: 2.0),
+                            Text(
+                              'Quiz the whole seminary class together',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: AppTheme.onPrimary
+                                        .withValues(alpha: 0.85),
+                                  ),
                             ),
                           ],
-                        ],
+                        ),
                       ),
-                      const SizedBox(height: 2.0),
-                      Text(
-                        'Quiz the whole seminary class together',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color:
-                                  AppTheme.onPrimary.withValues(alpha: 0.85),
+                      hostButton,
+                      const SizedBox(width: 12.0),
+                      joinButton,
+                    ],
+                  ),
+                  const SizedBox(height: 12.0),
+                  hostFooter,
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10.0),
+                        decoration: BoxDecoration(
+                          color: AppTheme.onPrimary.withValues(alpha: 0.18),
+                          borderRadius:
+                              BorderRadius.circular(AppTheme.radiusMd),
+                        ),
+                        child: const Icon(
+                          Icons.groups,
+                          color: AppTheme.onPrimary,
+                          size: 28.0,
+                        ),
+                      ),
+                      const SizedBox(width: 14.0),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            titleRow,
+                            const SizedBox(height: 2.0),
+                            Text(
+                              'Quiz the whole seminary class together',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: AppTheme.onPrimary
+                                        .withValues(alpha: 0.85),
+                                  ),
                             ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20.0),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: hostingLocked
-                          ? AppTheme.onPrimary.withValues(alpha: 0.55)
-                          : AppTheme.onPrimary,
-                      foregroundColor: hostingLocked
-                          ? AppTheme.primary.withValues(alpha: 0.70)
-                          : AppTheme.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 14.0),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(50.0),
-                      ),
-                      elevation: 0,
-                    ),
-                    onPressed: () => context.push(
-                      hostingLocked ? '/upgrade' : '/group-play/host',
-                    ),
-                    icon: const Icon(Icons.add_circle_outline, size: 20),
-                    label: const Text(
-                      'Host a Game',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                  const SizedBox(height: 20.0),
+                  Row(
+                    children: [
+                      Expanded(child: hostButton),
+                      const SizedBox(width: 12.0),
+                      Expanded(child: joinButton),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 12.0),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.onPrimary,
-                      side: BorderSide(
-                        color: AppTheme.onPrimary.withValues(alpha: 0.6),
-                        width: 1.5,
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 14.0),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(50.0),
-                      ),
-                    ),
-                    onPressed: () => context.push('/group-play/join'),
-                    icon: const Icon(Icons.login, size: 20),
-                    label: const Text(
-                      'Join a Game',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12.0),
-            hostFooter,
-          ],
-        ),
+                  const SizedBox(height: 12.0),
+                  hostFooter,
+                ],
+              ),
       ),
     );
   }

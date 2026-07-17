@@ -191,14 +191,19 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
     final minutes = _elapsed.inMinutes.remainder(60).toString().padLeft(2, '0');
     final seconds = _elapsed.inSeconds.remainder(60).toString().padLeft(2, '0');
     final difficultyColor = _getDifficultyColor(widget.difficulty);
+    final isTablet = AppTheme.isTabletLandscape(context);
+    final toolbarH = isTablet ? 56.0 : 40.0;
+    final backSize = isTablet ? 22.0 : 20.0;
+    final badgeSize = isTablet ? 10.0 : 9.0;
+    final timerSize = isTablet ? 14.0 : 11.0;
 
     return AppBar(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       elevation: 0,
-      toolbarHeight: 40,
-      leadingWidth: 40,
+      toolbarHeight: toolbarH,
+      leadingWidth: isTablet ? 48 : 40,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, size: 20),
+        icon: Icon(Icons.arrow_back, size: backSize),
         onPressed: () async {
           final shouldPop = await _onWillPop();
           if (!mounted) return;
@@ -214,6 +219,8 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
           Text(
             state.currentScripture?.reference ?? '',
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontFamily: isTablet ? 'Merriweather' : null,
+                  fontSize: isTablet ? 18 : null,
                   fontWeight: FontWeight.w700,
                 ),
           ),
@@ -230,7 +237,7 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: difficultyColor,
                     fontWeight: FontWeight.w700,
-                    fontSize: 9,
+                    fontSize: badgeSize,
                   ),
             ),
           ),
@@ -242,7 +249,7 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
                       .colorScheme
                       .onSurface
                       .withValues(alpha: 0.4),
-                  fontSize: 9,
+                  fontSize: badgeSize,
                 ),
           ),
         ],
@@ -250,26 +257,29 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
       actions: [
         // Timer
         Padding(
-          padding: const EdgeInsets.only(right: 4),
+          padding: EdgeInsets.only(right: isTablet ? 12 : 4),
           child: Text(
             '$minutes:$seconds',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   fontFamily: 'monospace',
-                  fontSize: 11,
+                  fontSize: timerSize,
                 ),
           ),
         ),
         // Audio toggle
-        IconButton(
-          icon: Icon(
-            ref.watch(audioProvider).isMuted
-                ? Icons.volume_off
-                : Icons.volume_up,
-            size: 18,
+        Padding(
+          padding: EdgeInsets.only(right: isTablet ? 16 : 0),
+          child: IconButton(
+            icon: Icon(
+              ref.watch(audioProvider).isMuted
+                  ? Icons.volume_off
+                  : Icons.volume_up,
+              size: isTablet ? 22 : 18,
+            ),
+            onPressed: () => ref.read(audioProvider.notifier).toggleMute(),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
           ),
-          onPressed: () => ref.read(audioProvider.notifier).toggleMute(),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
         ),
       ],
     );
@@ -317,9 +327,12 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
   }
 
   Widget _buildMasteryProgressBar(ScriptureBuilderState state) {
+    final hPad = AppTheme.isTabletLandscape(context)
+        ? 24.0
+        : AppTheme.spacingMd;
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacingMd,
+      padding: EdgeInsets.symmetric(
+        horizontal: hPad,
         vertical: 4,
       ),
       child: ClipRRect(
@@ -664,31 +677,48 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
   Widget _buildTypedTextDisplay(ScriptureBuilderState state) {
     // Show the passage with typed characters colored green/red,
     // and remaining text as gray placeholders.
+    final isTablet = AppTheme.isTabletLandscape(context);
+    final card = Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: isTablet ? 48 : AppTheme.spacingMd,
+        vertical: isTablet ? 40 : AppTheme.spacingMd,
+      ),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(
+          isTablet ? AppTheme.radiusLg : AppTheme.radiusMd,
+        ),
+        boxShadow: AppTheme.editorialShadow,
+      ),
+      child: RichText(
+        text: TextSpan(
+          style: TextStyle(
+            fontSize: isTablet ? 21 : 16,
+            height: isTablet ? 1.8 : 1.6,
+            fontFamily: 'Merriweather',
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+          children: _buildTypedSpans(state),
+        ),
+      ),
+    );
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacingSm,
+      padding: EdgeInsets.symmetric(
+        horizontal: isTablet ? 24 : AppTheme.spacingSm,
         vertical: 4,
       ),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(AppTheme.spacingMd),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-          boxShadow: AppTheme.editorialShadow,
-        ),
-        child: RichText(
-          text: TextSpan(
-            style: TextStyle(
-              fontSize: 16,
-              height: 1.6,
-              fontFamily: 'Merriweather',
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-            children: _buildTypedSpans(state),
-          ),
-        ),
-      ),
+      child: isTablet
+          ? Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: AppTheme.builderReadingMaxWidth,
+                ),
+                child: card,
+              ),
+            )
+          : card,
     );
   }
 

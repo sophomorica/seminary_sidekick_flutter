@@ -64,101 +64,113 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
       );
     }
 
+    final isTablet = AppTheme.isTabletLandscape(context);
+
     return Scaffold(
       // Shell already owns the status-bar inset via the app header; don't
       // double-pad. Bottom false so content can clear the floating tab bar
       // with its own spacer (same pattern as Library / Home).
       body: SingleChildScrollView(
-          child: Column(
-            children: [
-              // Header with breadcrumb, reference, topic, and action buttons
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppTheme.spacingLg,
-                  AppTheme.spacingMd,
-                  AppTheme.spacingLg,
-                  AppTheme.spacingXl,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Breadcrumb navigation
-                    Row(
-                      children: [
-                        GestureDetector(
-                          // Opaque so the whole padded area is tappable, not
-                          // just the icon/text pixels.
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () => context.canPop()
-                              ? context.pop()
-                              : context.go('/library'),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: AppTheme.spacingSm,
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.arrow_back_ios,
-                                  size: 14,
-                                  color: AppTheme.secondary,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Library',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(
-                                        color: AppTheme.secondary,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                ),
-                              ],
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: isTablet
+                  ? AppTheme.detailWideMaxWidth
+                  : double.infinity,
+            ),
+            child: Column(
+              children: [
+                // Header with breadcrumb, reference, topic
+                Padding(
+                  padding: isTablet
+                      ? const EdgeInsets.fromLTRB(64, 40, 64, AppTheme.spacingXl)
+                      : const EdgeInsets.fromLTRB(
+                          AppTheme.spacingLg,
+                          AppTheme.spacingMd,
+                          AppTheme.spacingLg,
+                          AppTheme.spacingXl,
+                        ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Breadcrumb navigation
+                      Row(
+                        children: [
+                          GestureDetector(
+                            // Opaque so the whole padded area is tappable, not
+                            // just the icon/text pixels.
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => context.canPop()
+                                ? context.pop()
+                                : context.go('/library'),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: AppTheme.spacingSm,
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.arrow_back_ios,
+                                    size: 14,
+                                    color: AppTheme.secondary,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Library',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: AppTheme.secondary,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Icon(
-                          Icons.chevron_right,
-                          size: 16,
-                          color: AppTheme.secondary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          scripture.book.displayName,
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppTheme.secondary,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppTheme.spacingMd),
-                    // Header row: reference + buttons
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Huge reference text
-                              Text(
+                          const SizedBox(width: 8),
+                          const Icon(
+                            Icons.chevron_right,
+                            size: 16,
+                            color: AppTheme.secondary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            scripture.book.displayName,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                  color: AppTheme.secondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppTheme.spacingMd),
+                      if (isTablet)
+                        // Reference + theme name share a baseline row.
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Flexible(
+                              child: Text(
                                 scripture.reference,
                                 style: Theme.of(context)
                                     .textTheme
                                     .displayLarge
                                     ?.copyWith(
-                                      fontSize: 48,
+                                      fontFamily: 'Merriweather',
+                                      fontSize: 56,
                                       fontWeight: FontWeight.bold,
                                     ),
                               ),
-                              const SizedBox(height: AppTheme.spacingSm),
-                              // Topic subtitle italic in secondary
-                              Text(
+                            ),
+                            const SizedBox(width: AppTheme.spacingLg),
+                            Flexible(
+                              child: Text(
                                 scripture.name,
                                 style: Theme.of(context)
                                     .textTheme
@@ -169,74 +181,92 @@ class _ScriptureDetailScreenState extends ConsumerState<ScriptureDetailScreen> {
                                       fontWeight: FontWeight.w500,
                                     ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
+                        )
+                      else
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              scripture.reference,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .displayLarge
+                                  ?.copyWith(
+                                    fontSize: 48,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                            const SizedBox(height: AppTheme.spacingSm),
+                            Text(
+                              scripture.name,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
+                                    color: AppTheme.secondary,
+                                    fontStyle: FontStyle.italic,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              // Main content grid: main (8 cols) + sidebar (4 cols)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppTheme.spacingLg,
-                ),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isWide = constraints.maxWidth > 900;
-                    if (isWide) {
-                      // Two-column layout
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        spacing: AppTheme.spacingXl,
-                        children: [
-                          // Main content
-                          Expanded(
-                            flex: 2,
-                            child: _MainContent(
+                // Main content + optional fixed sidebar
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isTablet ? 64 : AppTheme.spacingLg,
+                  ),
+                  child: isTablet
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: _MainContent(
+                                scripture: scripture,
+                                scriptureId: widget.scriptureId,
+                                activeTab: _activeTab,
+                                isTablet: true,
+                                onTabChanged: (tab) {
+                                  setState(() => _activeTab = tab);
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: AppTheme.spacingLg),
+                            SizedBox(
+                              width: AppTheme.detailSidebarWidth,
+                              child: _Sidebar(
+                                scriptureId: widget.scriptureId,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Column(
+                          children: [
+                            _MainContent(
                               scripture: scripture,
                               scriptureId: widget.scriptureId,
                               activeTab: _activeTab,
+                              isTablet: false,
                               onTabChanged: (tab) {
                                 setState(() => _activeTab = tab);
                               },
                             ),
-                          ),
-                          // Sidebar
-                          Expanded(
-                            flex: 1,
-                            child: _Sidebar(
+                            const SizedBox(height: AppTheme.spacingXl),
+                            _Sidebar(
                               scriptureId: widget.scriptureId,
                             ),
-                          ),
-                        ],
-                      );
-                    } else {
-                      // Single column layout
-                      return Column(
-                        children: [
-                          _MainContent(
-                            scripture: scripture,
-                            scriptureId: widget.scriptureId,
-                            activeTab: _activeTab,
-                            onTabChanged: (tab) {
-                              setState(() => _activeTab = tab);
-                            },
-                          ),
-                          const SizedBox(height: AppTheme.spacingXl),
-                          _Sidebar(
-                            scriptureId: widget.scriptureId,
-                          ),
-                        ],
-                      );
-                    }
-                  },
+                          ],
+                        ),
                 ),
-              ),
-              const SizedBox(height: 120),
-            ],
+                SizedBox(height: isTablet ? 48 : 120),
+              ],
+            ),
           ),
+        ),
       ),
     );
   }
@@ -248,18 +278,21 @@ class _MainContent extends ConsumerWidget {
   final String scriptureId;
   final _DetailTab activeTab;
   final Function(_DetailTab) onTabChanged;
+  final bool isTablet;
 
   const _MainContent({
     required this.scripture,
     required this.scriptureId,
     required this.activeTab,
     required this.onTabChanged,
+    this.isTablet = false,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final note = ref.watch(noteByScriptureProvider(scriptureId));
     final hasNote = note != null && note.trim().isNotEmpty;
+    final cardPad = isTablet ? 38.0 : AppTheme.spacingXl;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -277,13 +310,16 @@ class _MainContent extends ConsumerWidget {
               Stack(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppTheme.spacingXl,
-                      AppTheme.spacingXl,
-                      AppTheme.spacingXl + 36,
+                    padding: EdgeInsets.fromLTRB(
+                      cardPad,
+                      cardPad,
+                      cardPad + 36,
                       AppTheme.spacingMd,
                     ),
-                    child: _ScriptureTextWidget(scripture: scripture),
+                    child: _ScriptureTextWidget(
+                      scripture: scripture,
+                      fontSize: isTablet ? 19 : 18,
+                    ),
                   ),
                   Positioned(
                     top: 4,
@@ -354,11 +390,20 @@ class _MainContent extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: AppTheme.spacingXl),
-        // Tab navigation
-        _DetailTabGroup(
-          activeTab: activeTab,
-          onTabChanged: onTabChanged,
-        ),
+        // Tab navigation — capped on tablet so segments don't stretch.
+        if (isTablet)
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: _DetailTabGroup(
+              activeTab: activeTab,
+              onTabChanged: onTabChanged,
+            ),
+          )
+        else
+          _DetailTabGroup(
+            activeTab: activeTab,
+            onTabChanged: onTabChanged,
+          ),
         const SizedBox(height: AppTheme.spacingXl),
         // Tab content
         if (activeTab == _DetailTab.study) ...[
@@ -463,8 +508,12 @@ class _Sidebar extends ConsumerWidget {
 // Scripture text display with verse numbers
 class _ScriptureTextWidget extends StatelessWidget {
   final Scripture scripture;
+  final double fontSize;
 
-  const _ScriptureTextWidget({required this.scripture});
+  const _ScriptureTextWidget({
+    required this.scripture,
+    this.fontSize = 18,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -481,7 +530,7 @@ class _ScriptureTextWidget extends StatelessWidget {
               lines[i],
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     fontFamily: 'Merriweather',
-                    fontSize: 18,
+                    fontSize: fontSize,
                     height: 1.8,
                     // White on the hero gradient card
                     color: Colors.white.withValues(alpha: 0.96),
