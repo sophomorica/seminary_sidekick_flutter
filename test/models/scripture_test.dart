@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:seminary_sidekick/models/scripture.dart';
 import 'package:seminary_sidekick/models/enums.dart';
+import 'package:seminary_sidekick/data/scriptures_data.dart';
 
 import '../helpers/test_helpers.dart';
 
@@ -238,6 +239,37 @@ void main() {
       final str = s.toString();
       expect(str, contains(s.reference));
       expect(str, contains(s.name));
+    });
+  });
+
+  group('Scripture — verses', () {
+    test('defaults to a single-verse list when verses omitted', () {
+      final s = testScriptures[0];
+      expect(s.verses, hasLength(1));
+      expect(s.verses.single, equals(s.fullText));
+    });
+
+    test('multi-verse fixture preserves ordered verses', () {
+      final s = testScriptures.firstWhere((x) => x.id == 'test-multi-verse');
+      expect(s.verses, hasLength(3));
+      expect(Scripture.versesMatchFullText(s.verses, s.fullText), isTrue);
+      expect(s.wordsForVerse(0).first, equals('And'));
+    });
+
+    test('copyWith preserves verses', () {
+      final s = testScriptures.firstWhere((x) => x.id == 'test-multi-verse');
+      expect(s.copyWith(userNotes: 'n').verses, equals(s.verses));
+    });
+
+    test('corpus verses reconstruct fullText for every scripture', () {
+      for (final s in allScriptures) {
+        expect(s.verses, isNotEmpty, reason: s.reference);
+        expect(
+          Scripture.versesMatchFullText(s.verses, s.fullText),
+          isTrue,
+          reason: '${s.reference} verses do not reconstruct fullText',
+        );
+      }
     });
   });
 }
