@@ -55,6 +55,22 @@ final testScriptures = [
     fullText:
         'And when ye shall receive these things I would exhort you that ye would ask God the Eternal Father in the name of Christ if these things are not true',
   ),
+  // Multi-verse fixture for verse-gated Scripture Builder (TASK-076)
+  Scripture(
+    id: 'test-multi-verse',
+    book: ScriptureBook.oldTestament,
+    volume: 'Abraham',
+    reference: 'Abraham 2:9–11',
+    name: 'Multi-verse fixture',
+    keyPhrase: 'bear this ministry',
+    fullText:
+        'And I will make of thee a great nation; And I will bless them through thy name; And I will bless them that bless thee.',
+    verses: const [
+      'And I will make of thee a great nation;',
+      'And I will bless them through thy name;',
+      'And I will bless them that bless thee.',
+    ],
+  ),
 ];
 
 /// Quick reference: test-1 has 20 words, test-2 has 24, test-3 has 14, test-4 has 18, test-5 has 28
