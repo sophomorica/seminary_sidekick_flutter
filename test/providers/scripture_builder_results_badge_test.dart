@@ -58,7 +58,9 @@ void main() {
 
     final newHolistic =
         container.read(scriptureMasteryProvider(scriptureId)).level;
-    final newlyMastered = prevHolistic.index < MasteryLevel.mastered.index &&
+    // Mirror screen: banner only when Master difficulty crosses into Mastered.
+    final newlyMastered = difficulty == DifficultyLevel.master &&
+        prevHolistic.index < MasteryLevel.mastered.index &&
         newHolistic.index >= MasteryLevel.mastered.index;
     return (
       avatar: AvatarStage.forMasteryLevel(newHolistic),
@@ -120,7 +122,26 @@ void main() {
     );
   });
 
-  test('third perfect Master run reaches Mastered → Standard Bearer', () {
+  test('first two perfect Master runs do not show Mastered banner', () {
+    final first = recordSbRound(
+      scriptureId: 'moroni-10-5',
+      difficulty: DifficultyLevel.master,
+      incorrectAttempts: 0,
+    );
+    expect(first.newlyMastered, isFalse);
+    expect(first.holistic, MasteryLevel.memorized);
+
+    final second = recordSbRound(
+      scriptureId: 'moroni-10-5',
+      difficulty: DifficultyLevel.master,
+      incorrectAttempts: 0,
+    );
+    expect(second.newlyMastered, isFalse);
+    expect(second.holistic, MasteryLevel.memorized);
+  });
+
+  test('third perfect Master run reaches Mastered → banner + Standard Bearer',
+      () {
     for (var i = 0; i < 2; i++) {
       recordSbRound(
         scriptureId: 'moroni-10-5',
@@ -138,5 +159,21 @@ void main() {
     expect(third.holistic, MasteryLevel.mastered);
     expect(third.avatar, AvatarStage.standardBearer);
     expect(third.newlyMastered, isTrue);
+  });
+
+  test('Beginner / Intermediate / Advanced never set newlyMastered banner', () {
+    for (final difficulty in [
+      DifficultyLevel.beginner,
+      DifficultyLevel.intermediate,
+      DifficultyLevel.advanced,
+    ]) {
+      final result = recordSbRound(
+        scriptureId: 'banner-$difficulty',
+        difficulty: difficulty,
+        incorrectAttempts: 0,
+      );
+      expect(result.newlyMastered, isFalse,
+          reason: '$difficulty must not show the Mastered banner');
+    }
   });
 }

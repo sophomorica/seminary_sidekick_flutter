@@ -970,11 +970,10 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
     final progressNotifier = ref.read(progressProvider.notifier);
     final activityNotifier = ref.read(activityProvider.notifier);
     final timeInSeconds = (state.completionTime ?? _elapsed).inSeconds;
-    // True when any scripture in this session first crossed into Mastered —
-    // drives the results screen's mastery banner + avatar level-up morph.
-    // Uses Scripture Builder progression (ScriptureMastery), NOT the
-    // accuracy-based UserProgress.masteryLevel field (which jumps to
-    // Mastered on any completed attempt and wrongly showed Standard Bearer).
+    // Banner flag: true only when a scripture first hits holistic Mastered
+    // (3 consecutive perfect Master-difficulty runs). Never for Beginner /
+    // Intermediate / Advanced finishes — keeps results uncluttered.
+    // Uses ScriptureMastery, NOT accuracy-based UserProgress.masteryLevel.
     var newlyMastered = false;
     // Per-scripture avatar badge for the results screen: shows where you are
     // on THIS scripture (primary = first in queue) after the round.
@@ -1023,7 +1022,9 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
           progressNotifier.getProgress(scripture.id, GameType.scriptureBuilder);
       final newMastery =
           ref.read(scriptureMasteryProvider(scripture.id)).level;
-      if (prevMastery.index < MasteryLevel.mastered.index &&
+      // Banner only on the 3rd perfect Master run → Mastered (not each tier).
+      if (widget.difficulty == DifficultyLevel.master &&
+          prevMastery.index < MasteryLevel.mastered.index &&
           newMastery.index >= MasteryLevel.mastered.index) {
         newlyMastered = true;
       }

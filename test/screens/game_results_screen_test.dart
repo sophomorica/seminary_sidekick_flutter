@@ -197,15 +197,15 @@ void main() {
 
     // Final stage label after skip.
     expect(find.text(AvatarStage.stalwart.label), findsOneWidget);
-    expect(find.text('Mastered Beginner!'), findsOneWidget);
+    expect(find.text('Mastered!'), findsOneWidget);
   });
 
-  testWidgets('mastery banner uses the session difficulty label',
+  testWidgets('mastery banner is a simple Mastered! celebration',
       (tester) async {
     await tester.pumpWidget(
       buildHarness(
         openResults: (_) => buildResults(
-          difficulty: DifficultyLevel.advanced,
+          difficulty: DifficultyLevel.master,
           isNewMastery: true,
           tryAgainBuilder: (_) => const Scaffold(body: Text('x')),
         ),
@@ -214,8 +214,10 @@ void main() {
 
     await openAndSkip(tester);
 
-    expect(find.text('Mastered Advanced!'), findsOneWidget);
+    expect(find.text('Mastered!'), findsOneWidget);
     expect(find.text('Scripture Mastered!'), findsNothing);
+    expect(find.textContaining('Mastered Beginner'), findsNothing);
+    expect(find.textContaining('Mastered Advanced'), findsNothing);
   });
 
   testWidgets('badge is hidden during the run and revealed after the score',
