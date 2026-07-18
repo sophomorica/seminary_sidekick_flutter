@@ -175,8 +175,9 @@ No remaining App Store Connect / banking / EULA / IAP blockers for this submissi
 
 ### TASK-076: Solo Scripture Builder — verse-gated chunk progression
 
-- **status**: `open`
-- **claimed_by**: —
+- **status**: `in_progress`
+- **claimed_by**: cursor-agent-task-076
+- **started**: 2026-07-18T12:56:35Z
 - **priority**: P1 (follow-up to TASK-075 — multi-verse passages still dump every verse’s bubbles at once)
 - **estimated_effort**: Medium-Large (corpus verse splits + provider state machine; UI mostly unchanged)
 - **depends_on**: —
@@ -620,6 +621,7 @@ These tasks are **code-complete** and summarized in the Completed tables above; 
 - **priority**: P2
 - **estimated_effort**: Large
 - **description**: Add a complete Spanish version of Seminary Sidekick, including app UI and an approved Spanish scripture corpus. This is more than a copy translation because Scripture Builder, Memorize, quizzes, matching, typing normalization, and Sidekick prompts all depend on exact scripture text and language-specific word handling.
+- **corpus_format (resolved with TASK-076)**: English stays structured Dart (`Scripture.verses`) until i18n work starts. **Language packs should load JSON** (same schema: `id`, `reference`, `verses[]`, …) — e.g. `assets/scriptures/en.json` + `es.json` — rather than forking another Dart corpus. TASK-076 shapes the model for that loader; this task owns the migration + Spanish pack.
 - **decisions_to_resolve_before_build**:
   - Select and verify the authorized Spanish scripture source/edition and its punctuation.
   - Decide whether language follows the device locale, an in-app selector, or both.
