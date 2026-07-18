@@ -21,7 +21,9 @@ class GameResultsScreen extends ConsumerStatefulWidget {
   final int totalPairs;
   final Duration completionTime;
   final int starRating; // 1-3 — kept for callers; UI no longer reads it
-  final bool isNewMastery; // True when user first reaches "Mastered" level
+  /// True when the session first reaches holistic Mastered (SB path).
+  /// Banner copy is `Master {difficulty.label}!` for the round's difficulty.
+  final bool isNewMastery;
 
   /// Per-scripture avatar badge stage (Scripture Builder passes this from the
   /// session scripture's mastery level after this round). When null, falls
@@ -498,7 +500,7 @@ class _GameResultsScreenState extends ConsumerState<GameResultsScreen>
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Scripture Mastered!',
+                        'Master ${widget.difficulty.label}!',
                         style: textTheme.titleSmall?.copyWith(
                           color: colorScheme.onPrimary,
                           fontWeight: FontWeight.bold,

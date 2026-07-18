@@ -42,10 +42,11 @@ void main() {
     int incorrectAttempts = 1,
     bool isNewMastery = false,
     AvatarStage? avatarStageAfter,
+    DifficultyLevel difficulty = DifficultyLevel.beginner,
   }) {
     return GameResultsScreen(
       gameType: GameType.scriptureBuilder,
-      difficulty: DifficultyLevel.beginner,
+      difficulty: difficulty,
       correctMatches: correctMatches,
       incorrectAttempts: incorrectAttempts,
       totalPairs: 5,
@@ -196,7 +197,25 @@ void main() {
 
     // Final stage label after skip.
     expect(find.text(AvatarStage.stalwart.label), findsOneWidget);
-    expect(find.text('Scripture Mastered!'), findsOneWidget);
+    expect(find.text('Master Beginner!'), findsOneWidget);
+  });
+
+  testWidgets('mastery banner uses the session difficulty label',
+      (tester) async {
+    await tester.pumpWidget(
+      buildHarness(
+        openResults: (_) => buildResults(
+          difficulty: DifficultyLevel.advanced,
+          isNewMastery: true,
+          tryAgainBuilder: (_) => const Scaffold(body: Text('x')),
+        ),
+      ),
+    );
+
+    await openAndSkip(tester);
+
+    expect(find.text('Master Advanced!'), findsOneWidget);
+    expect(find.text('Scripture Mastered!'), findsNothing);
   });
 
   testWidgets('badge is hidden during the run and revealed after the score',
