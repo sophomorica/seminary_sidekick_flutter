@@ -94,11 +94,15 @@ class ScriptureBuilderState {
   final int totalScriptures;
 
   // ── Chunk-tap mode fields ──
-  final List<WordChunk> targetChunks;    // Chunks in correct order
+  final List<WordChunk> targetChunks;    // Chunks in correct order (current verse only)
   final List<WordChunk> availablePool;   // Shuffled pool of chunk tiles (positions are stable)
   final Set<int> usedPoolIndices;        // Indices in availablePool that have been correctly placed
-  final List<WordChunk?> placedChunks;   // Placed chunks (null = empty slot)
+  final List<WordChunk?> placedChunks;   // Placed chunks (null = empty slot) for current verse
   final int nextChunkIndex;              // Next empty slot to fill
+  final int currentVerseIndex;           // Active verse within the passage (chunk-tap)
+  final List<WordChunk> completedVerseChunks; // Prior verses' placed chunks (canvas)
+  final int passageChunkTotal;           // Chunk count across all verses in this passage
+  final int passageChunksCompletedBeforeVerse; // Chunks finished in prior verses
 
   // ── Typing mode fields ──
   final String targetText;               // Full text to type
@@ -138,6 +142,10 @@ class ScriptureBuilderState {
     this.usedPoolIndices = const <int>{},
     this.placedChunks = const [],
     this.nextChunkIndex = 0,
+    this.currentVerseIndex = 0,
+    this.completedVerseChunks = const [],
+    this.passageChunkTotal = 0,
+    this.passageChunksCompletedBeforeVerse = 0,
     // Typing mode
     this.targetText = '',
     this.typedText = '',
@@ -170,10 +178,15 @@ class ScriptureBuilderState {
   Duration get elapsed =>
       completionTime ?? DateTime.now().difference(startTime);
 
-  // Chunk mode progress
+  // Chunk mode progress (whole-passage: prior verses + current verse)
   int get chunksPlaced => placedChunks.where((c) => c != null).length;
-  double get chunkProgress =>
-      targetChunks.isEmpty ? 0.0 : chunksPlaced / targetChunks.length;
+  double get chunkProgress {
+    if (passageChunkTotal > 0) {
+      return (passageChunksCompletedBeforeVerse + chunksPlaced) /
+          passageChunkTotal;
+    }
+    return targetChunks.isEmpty ? 0.0 : chunksPlaced / targetChunks.length;
+  }
 
   // Typing mode progress (use typedChars which includes auto-filled punctuation)
   double get typingProgress =>
@@ -195,6 +208,10 @@ class ScriptureBuilderState {
     Set<int>? usedPoolIndices,
     List<WordChunk?>? placedChunks,
     int? nextChunkIndex,
+    int? currentVerseIndex,
+    List<WordChunk>? completedVerseChunks,
+    int? passageChunkTotal,
+    int? passageChunksCompletedBeforeVerse,
     String? targetText,
     String? typedText,
     List<TypedChar>? typedChars,
@@ -224,6 +241,11 @@ class ScriptureBuilderState {
       usedPoolIndices: usedPoolIndices ?? this.usedPoolIndices,
       placedChunks: placedChunks ?? this.placedChunks,
       nextChunkIndex: nextChunkIndex ?? this.nextChunkIndex,
+      currentVerseIndex: currentVerseIndex ?? this.currentVerseIndex,
+      completedVerseChunks: completedVerseChunks ?? this.completedVerseChunks,
+      passageChunkTotal: passageChunkTotal ?? this.passageChunkTotal,
+      passageChunksCompletedBeforeVerse: passageChunksCompletedBeforeVerse ??
+          this.passageChunksCompletedBeforeVerse,
       targetText: targetText ?? this.targetText,
       typedText: typedText ?? this.typedText,
       typedChars: typedChars ?? this.typedChars,
@@ -318,16 +340,52 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
   // ═══════════════════════════════════════════════════════════════
 
   void _loadChunkMode(int index, Scripture scripture) {
-    final words = scripture.words;
+    // Passage-wide total uses per-verse adaptive sizing (never spanning verses).
+    var passageTotal = 0;
+    for (var v = 0; v < scripture.verses.length; v++) {
+      final verseWords = scripture.wordsForVerse(v);
+      final size = adaptiveChunkSize(
+        wordCount: verseWords.length,
+        difficulty: state.difficulty,
+      );
+      passageTotal += _chunkCountFor(verseWords.length, size);
+    }
+
+    state = state.copyWith(
+      currentScripture: scripture,
+      currentIndex: index,
+      currentVerseIndex: 0,
+      completedVerseChunks: const [],
+      passageChunkTotal: passageTotal,
+      passageChunksCompletedBeforeVerse: 0,
+      correctPlacements: 0,
+      isScriptureComplete: false,
+      totalUnitsAcrossAll: state.totalUnitsAcrossAll + passageTotal,
+      clearFeedback: true,
+    );
+    _loadCurrentVerseChunks();
+  }
+
+  static int _chunkCountFor(int wordCount, int chunkSize) {
+    if (wordCount <= 0) return 0;
+    return (wordCount + chunkSize - 1) ~/ chunkSize;
+  }
+
+  /// Build target/pool for [state.currentVerseIndex] only.
+  void _loadCurrentVerseChunks() {
+    final scripture = state.currentScripture;
+    if (scripture == null) return;
+
+    final verseIndex = state.currentVerseIndex;
+    final words = scripture.wordsForVerse(verseIndex);
     final chunkSize = adaptiveChunkSize(
       wordCount: words.length,
       difficulty: state.difficulty,
     );
 
-    // Split words into chunks of the target size
-    List<WordChunk> chunks = [];
-    int colorIdx = 0;
-    for (int i = 0; i < words.length; i += chunkSize) {
+    final chunks = <WordChunk>[];
+    var colorIdx = 0;
+    for (var i = 0; i < words.length; i += chunkSize) {
       final end = min(i + chunkSize, words.length);
       chunks.add(WordChunk(
         words: words.sublist(i, end),
@@ -337,32 +395,22 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
       colorIdx++;
     }
 
-    // Build the pool (shuffle of real chunks + distractors)
-    List<WordChunk> pool = List.from(chunks);
-
-    // Intermediate gets distractor chunks
+    final pool = List<WordChunk>.from(chunks);
     if (state.difficulty == DifficultyLevel.intermediate) {
-      final distractorChunks = _getDistractorChunks(
+      pool.addAll(_getDistractorChunks(
         excludeScripture: scripture,
         chunkSize: chunkSize,
         count: state.difficulty.extraDistractors,
-      );
-      pool.addAll(distractorChunks);
+      ));
     }
-
     pool.shuffle(_random);
 
     state = state.copyWith(
-      currentScripture: scripture,
-      currentIndex: index,
       targetChunks: chunks,
       availablePool: pool,
       usedPoolIndices: const <int>{},
       placedChunks: List.filled(chunks.length, null),
       nextChunkIndex: 0,
-      correctPlacements: 0,
-      isScriptureComplete: false,
-      totalUnitsAcrossAll: state.totalUnitsAcrossAll + chunks.length,
       clearFeedback: true,
     );
   }
@@ -430,17 +478,56 @@ class ScriptureBuilderNotifier extends StateNotifier<ScriptureBuilderState> {
 
       final newCorrect = state.correctPlacements + 1;
       final newCorrectAcross = state.correctUnitsAcrossAll + 1;
-      final done = newCorrect >= state.targetChunks.length;
+      final verseDone = updated.every((c) => c != null);
 
+      if (!verseDone) {
+        state = state.copyWith(
+          placedChunks: updated,
+          usedPoolIndices: newUsedIndices,
+          nextChunkIndex: targetSlot + 1,
+          correctPlacements: newCorrect,
+          correctUnitsAcrossAll: newCorrectAcross,
+          lastFeedback: 'correct',
+        );
+        return;
+      }
+
+      final scripture = state.currentScripture!;
+      final completed = <WordChunk>[
+        ...state.completedVerseChunks,
+        ...updated.whereType<WordChunk>(),
+      ];
+      final nextVerse = state.currentVerseIndex + 1;
+      final passageDone = nextVerse >= scripture.verses.length;
+
+      if (passageDone) {
+        // Keep last verse in placedChunks; completedVerseChunks stays prior
+        // verses only so the canvas does not render the finale twice.
+        // Do not bump passageChunksCompletedBeforeVerse — progress is
+        // priorVerses + chunksPlaced, and chunksPlaced is the last verse.
+        state = state.copyWith(
+          placedChunks: updated,
+          usedPoolIndices: newUsedIndices,
+          nextChunkIndex: targetSlot + 1,
+          correctPlacements: newCorrect,
+          correctUnitsAcrossAll: newCorrectAcross,
+          lastFeedback: 'correct',
+          isScriptureComplete: true,
+        );
+        return;
+      }
+
+      // Advance to the next verse in place — no verse-complete UI.
       state = state.copyWith(
-        placedChunks: updated,
-        usedPoolIndices: newUsedIndices,
-        nextChunkIndex: targetSlot + 1,
         correctPlacements: newCorrect,
         correctUnitsAcrossAll: newCorrectAcross,
+        completedVerseChunks: completed,
+        currentVerseIndex: nextVerse,
+        passageChunksCompletedBeforeVerse:
+            state.passageChunksCompletedBeforeVerse + updated.length,
         lastFeedback: 'correct',
-        isScriptureComplete: done,
       );
+      _loadCurrentVerseChunks();
     } else {
       // Wrong — beginner/intermediate just bounces back
       state = state.copyWith(

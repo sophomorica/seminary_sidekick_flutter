@@ -72,8 +72,8 @@ void main() {
 
   group('ScriptureScope.resolve', () {
     final all = testScriptures;
-    // Fixture: 5 scriptures across 4 books — test-1 (BoM), test-2 (NT),
-    // test-3 (OT), test-4 (D&C), test-5 (BoM).
+    // Fixture: BoM (test-1, test-5), NT (test-2), OT (test-3, test-multi-verse),
+    // D&C (test-4).
 
     test('empty filter returns every scripture, in order', () {
       const scope = ScriptureScope();
@@ -86,7 +86,8 @@ void main() {
         ScriptureBook.oldTestament,
       });
       final out = scope.resolve(all);
-      expect(out.map((s) => s.id).toSet(), {'test-2', 'test-3'});
+      expect(out.map((s) => s.id).toSet(),
+          {'test-2', 'test-3', 'test-multi-verse'});
     });
 
     test('empty books set means all books (not none)', () {

@@ -211,9 +211,10 @@ No remaining App Store Connect / banking / EULA / IAP blockers for this submissi
 
 ### TASK-076: Solo Scripture Builder — verse-gated chunk progression
 
-- **status**: `in_progress`
+- **status**: `done`
 - **claimed_by**: cursor-agent-task-076
 - **started**: 2026-07-18T12:56:35Z
+- **completed**: 2026-07-18T13:30:00Z
 - **priority**: P1 (follow-up to TASK-075 — multi-verse passages still dump every verse’s bubbles at once)
 - **estimated_effort**: Medium-Large (corpus verse splits + provider state machine; UI mostly unchanged)
 - **depends_on**: —
@@ -233,19 +234,19 @@ No remaining App Store Connect / banking / EULA / IAP blockers for this submissi
   - **Multi-scripture sessions**: Unchanged ceremony — “Scripture Complete!” only when the **entire passage** (all verses) is done; then existing delay → next passage’s bubbles; GameResults only when the queue is done.
   - **Mastery / scoring**: Still recorded at session end for whole scriptures — mid-passage verse completes must not write mastery.
 - **acceptance_criteria**:
-  - [ ] `Scripture` exposes `verses` (non-empty; single-verse ⇒ length 1); existing `fullText` / `words` / consumers keep working without a repo-wide remap
-  - [ ] All multi-verse corpus entries split at LDS canon verse boundaries; `fullText` unchanged; `// CANON_DIFF:` comments where church text ≠ app string
-  - [ ] Beginner/Intermediate: only current-verse chunks in the pool; completing a verse loads the next verse’s chunks with no verse-complete UI
-  - [ ] Chunks never cross verse boundaries; per-verse `adaptiveChunkSize`
-  - [ ] Completed verse text stays on the canvas; header stays full reference; progress bar is whole-passage
-  - [ ] Advanced/Master behavior unchanged vs pre-task
-  - [ ] “Scripture Complete!” / next-scripture / GameResults only after full passage (then full queue); no mastery writes on verse boundaries
-  - [ ] Group Play SB untouched
-  - [ ] Tests: single-verse unchanged; multi-verse advances verse-by-verse; last verse triggers scripture-complete; adaptive sizing uses verse length; `flutter analyze` + `flutter test` clean; `docs/FEATURES.md` documents verse-gated chunk play
+  - [x] `Scripture` exposes `verses` (non-empty; single-verse ⇒ length 1); existing `fullText` / `words` / consumers keep working without a repo-wide remap
+  - [x] All multi-verse corpus entries split at LDS canon verse boundaries; `fullText` unchanged; `// CANON_DIFF:` comments where church text ≠ app string
+  - [x] Beginner/Intermediate: only current-verse chunks in the pool; completing a verse loads the next verse’s chunks with no verse-complete UI
+  - [x] Chunks never cross verse boundaries; per-verse `adaptiveChunkSize`
+  - [x] Completed verse text stays on the canvas; header stays full reference; progress bar is whole-passage
+  - [x] Advanced/Master behavior unchanged vs pre-task
+  - [x] “Scripture Complete!” / next-scripture / GameResults only after full passage (then full queue); no mastery writes on verse boundaries
+  - [x] Group Play SB untouched
+  - [x] Tests: single-verse unchanged; multi-verse advances verse-by-verse; last verse triggers scripture-complete; adaptive sizing uses verse length; `flutter analyze` + `flutter test` clean; `docs/FEATURES.md` documents verse-gated chunk play
 - **notes**:
-  - ~55 multi-verse references in `scriptures_data.dart` (en-dash ranges). Look up canon breaks; do not ask the owner to hand-review every split — only surface `CANON_DIFF` comments when wording diverges.
-  - Prefer smallest provider state addition (`currentVerseIndex`, accumulated placed/built text, total unit counts) over a screen rewrite.
-  - JSON / language packs called out above so TASK-015 does not invent a second model.
+  - Implemented: 55 multi-verse corpus splits via LDS canon JSON; `CANON_DIFF` on ids 83, 92, 99, 100 for owner review.
+  - Provider: `currentVerseIndex`, `completedVerseChunks`, `passageChunkTotal`, per-verse pool reload; screen canvas renders prior verses.
+  - Verified: `flutter analyze` clean, `flutter test` 785/785 green. Validator PASS.
 
 ### TASK-077: Group Play Scripture Builder Race — verse-gated chunks (follow-up)
 

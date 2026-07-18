@@ -456,14 +456,31 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
 
   List<InlineSpan> _buildCanvasSpans(ScriptureBuilderState state, Color diffColor) {
     final spans = <InlineSpan>[];
+    final placedStyle = TextStyle(
+      color: diffColor,
+      fontWeight: FontWeight.w700,
+      decoration: TextDecoration.underline,
+      decorationColor: diffColor.withValues(alpha: 0.2),
+      decorationStyle: TextDecorationStyle.solid,
+    );
+
+    // Prior verses stay visible as built text while the pool advances.
+    for (var i = 0; i < state.completedVerseChunks.length; i++) {
+      if (spans.isNotEmpty) {
+        spans.add(const TextSpan(text: ' '));
+      }
+      spans.add(TextSpan(
+        text: state.completedVerseChunks[i].text,
+        style: placedStyle,
+      ));
+    }
 
     for (int i = 0; i < state.targetChunks.length; i++) {
       final placed = state.placedChunks[i];
       final target = state.targetChunks[i];
       final isNext = i == state.nextChunkIndex && !state.isScriptureComplete;
 
-      if (i > 0) {
-        // Space between chunks
+      if (spans.isNotEmpty) {
         spans.add(const TextSpan(text: ' '));
       }
 
@@ -471,13 +488,7 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
         // ── Already placed: show as bold colored text ──
         spans.add(TextSpan(
           text: placed.text,
-          style: TextStyle(
-            color: diffColor,
-            fontWeight: FontWeight.w700,
-            decoration: TextDecoration.underline,
-            decorationColor: diffColor.withValues(alpha: 0.2),
-            decorationStyle: TextDecorationStyle.solid,
-          ),
+          style: placedStyle,
         ));
       } else if (isNext) {
         // ── Next slot: dashed underline placeholder ──
@@ -494,9 +505,7 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
           ),
         ));
       } else {
-        // ── Future slots: uniform underscores, no readable text ──
-        // Each word in the chunk becomes a run of underscores,
-        // separated by spaces to preserve word-break flow.
+        // ── Future slots (current verse only): uniform underscores ──
         final hidden =
             target.words.map((w) => '_' * w.length.clamp(2, 8)).join(' ');
         spans.add(TextSpan(
