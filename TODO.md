@@ -173,6 +173,65 @@ No remaining App Store Connect / banking / EULA / IAP blockers for this submissi
 
 ## Active Tasks
 
+### TASK-076: Solo Scripture Builder — verse-gated chunk progression
+
+- **status**: `in_progress`
+- **claimed_by**: cursor-agent-task-076
+- **started**: 2026-07-18T12:56:35Z
+- **priority**: P1 (follow-up to TASK-075 — multi-verse passages still dump every verse’s bubbles at once)
+- **estimated_effort**: Medium-Large (corpus verse splits + provider state machine; UI mostly unchanged)
+- **depends_on**: —
+- **blocks**: TASK-077 (Group Play verse-gating — after owner validates solo)
+- **files_to_touch**: `lib/models/scripture.dart`, `lib/data/scriptures_data.dart`, `lib/providers/scripture_builder_provider.dart`, `lib/screens/games/scripture_builder/scripture_builder_screen.dart` (only if progress-bar math needs a screen tweak), tests under `test/models/` + `test/providers/scripture_builder_provider_test.dart`, `docs/FEATURES.md`
+- **out_of_scope**: Group Play SB race (TASK-077); JSON corpus / i18n packs (see future path); Advanced/Master behavior changes; “Verse Complete” UI; remapping unrelated app surfaces
+- **context**: After TASK-075, long multi-verse passages still present the full passage’s chunk pool at once. Owner direction 2026-07-18: for multi-verse passages, Beginner/Intermediate should only offer bubbles for the **current verse**; when that verse is finished, the next verse’s bubbles appear in place — no “verse complete” banner. “Scripture Complete!” + next-passage / GameResults behavior stays at **passage** (and session) boundaries only. Design resolved with owner 2026-07-18 — ready to claim.
+- **design (resolved 2026-07-18)**:
+  - **Data (structured Dart now)**: Add `verses` (`List<String>`) on `Scripture`. Every scripture gets a list (length 1 for single-verse). `fullText` stays the existing joined string **byte-for-byte** (split-only — do not rewrite corpus wording in this task). Prefer deriving/validating that `verses` concatenated (with the same separators the blob already uses) reconstructs `fullText`.
+  - **Canon breaks, not canon rewrite**: Use Church of Jesus Christ of Latter-day Saints canon (Gospel Library / churchofjesuschrist.org) to decide **where** verses break so students recognize the same verse boundaries. Keep app text as-is. Where canon wording/punctuation differs from the app string, leave a short `// CANON_DIFF:` comment on that scripture entry for owner review later — do not silently replace text.
+  - **Future path (NOT this task)**: When Spanish / other language packs ship (TASK-015), move corpora to JSON packs with the same schema (`id`, `reference`, `verses[]`, …). Shape `Scripture` so a future pack loader can populate the same model. Do not introduce JSON loading now.
+  - **Chunk-tap only (Beginner / Intermediate)**: Pool/target chunks are built from the **current verse** only. Chunks never span verse boundaries. `adaptiveChunkSize` (TASK-075) uses the **current verse’s** word count. On verse complete: append that verse’s built text to the canvas, advance `currentVerseIndex`, load the next verse’s pool — **no** “Verse Complete” overlay/banner. Wrong tap stays today’s miss + shake; placed chunks stay (no verse/passage reset).
+  - **Canvas**: Completed verses remain visible above; only the bottom bubble pool advances.
+  - **Header**: Keep the full passage reference (e.g. Abraham 2:9–11) for the whole build — do not switch the title to the current verse.
+  - **Progress bar**: Whole-passage progress — prior verses + current verse units over total units across all verses.
+  - **Advanced / Master**: No functional change. They continue to type against the full `fullText` as today. (Advanced clear-on-verse was discussed as acceptable but explicitly deferred — easiest path.)
+  - **Multi-scripture sessions**: Unchanged ceremony — “Scripture Complete!” only when the **entire passage** (all verses) is done; then existing delay → next passage’s bubbles; GameResults only when the queue is done.
+  - **Mastery / scoring**: Still recorded at session end for whole scriptures — mid-passage verse completes must not write mastery.
+- **acceptance_criteria**:
+  - [ ] `Scripture` exposes `verses` (non-empty; single-verse ⇒ length 1); existing `fullText` / `words` / consumers keep working without a repo-wide remap
+  - [ ] All multi-verse corpus entries split at LDS canon verse boundaries; `fullText` unchanged; `// CANON_DIFF:` comments where church text ≠ app string
+  - [ ] Beginner/Intermediate: only current-verse chunks in the pool; completing a verse loads the next verse’s chunks with no verse-complete UI
+  - [ ] Chunks never cross verse boundaries; per-verse `adaptiveChunkSize`
+  - [ ] Completed verse text stays on the canvas; header stays full reference; progress bar is whole-passage
+  - [ ] Advanced/Master behavior unchanged vs pre-task
+  - [ ] “Scripture Complete!” / next-scripture / GameResults only after full passage (then full queue); no mastery writes on verse boundaries
+  - [ ] Group Play SB untouched
+  - [ ] Tests: single-verse unchanged; multi-verse advances verse-by-verse; last verse triggers scripture-complete; adaptive sizing uses verse length; `flutter analyze` + `flutter test` clean; `docs/FEATURES.md` documents verse-gated chunk play
+- **notes**:
+  - ~55 multi-verse references in `scriptures_data.dart` (en-dash ranges). Look up canon breaks; do not ask the owner to hand-review every split — only surface `CANON_DIFF` comments when wording diverges.
+  - Prefer smallest provider state addition (`currentVerseIndex`, accumulated placed/built text, total unit counts) over a screen rewrite.
+  - JSON / language packs called out above so TASK-015 does not invent a second model.
+
+### TASK-077: Group Play Scripture Builder Race — verse-gated chunks (follow-up)
+
+- **status**: `open`
+- **claimed_by**: —
+- **priority**: P2
+- **estimated_effort**: Medium
+- **depends_on**: TASK-076 (ship + owner-validate solo verse gating first)
+- **files_to_touch**: `lib/screens/group_play/group_scripture_builder_screen.dart`, `lib/screens/group_play/widgets/sb_race_board.dart` (and related group SB models/config as needed), group SB tests, `docs/FEATURES.md`
+- **description**: After TASK-076 solo verse-gating is tested and approved, bring the same verse-scoped chunk pool behavior to Group Play Scripture Builder Race (host dashboard + player race board). Do **not** start until owner confirms solo feels right — group race timing, DNF, and sync make this a separate design/QA pass.
+- **design_notes (provisional — re-confirm with owner before claim)**:
+  - Reuse `Scripture.verses` from TASK-076; do not fork a second verse corpus.
+  - Player board: current-verse chunks only; advance verse on verse complete with no “verse complete” ceremony; full-passage finish still drives existing SB race finish / ranking.
+  - Confirm with owner: whether all racers share the same verse gate (expected) and how late joiners / reconnect interact with verse index.
+  - Keep Group Play → no personal mastery writes invariant.
+- **acceptance_criteria** (provisional):
+  - [ ] Solo TASK-076 behavior parity for chunk race boards (verse-scoped pool, canvas keeps prior verses, full reference header)
+  - [ ] Finish / ranking / DNF / realtime flows still correct for multi-verse passages
+  - [ ] No personal mastery/progress writes from Group Play
+  - [ ] `flutter analyze` clean; group SB tests updated/green
+- **notes**: Blocked on owner smoke-test of TASK-076. If solo design tweaks land during testing, fold them into this task’s final spec before claim.
+
 ### TASK-075: Adaptive Scripture Builder chunks for long passages
 
 - **status**: `done`
@@ -562,6 +621,7 @@ These tasks are **code-complete** and summarized in the Completed tables above; 
 - **priority**: P2
 - **estimated_effort**: Large
 - **description**: Add a complete Spanish version of Seminary Sidekick, including app UI and an approved Spanish scripture corpus. This is more than a copy translation because Scripture Builder, Memorize, quizzes, matching, typing normalization, and Sidekick prompts all depend on exact scripture text and language-specific word handling.
+- **corpus_format (resolved with TASK-076)**: English stays structured Dart (`Scripture.verses`) until i18n work starts. **Language packs should load JSON** (same schema: `id`, `reference`, `verses[]`, …) — e.g. `assets/scriptures/en.json` + `es.json` — rather than forking another Dart corpus. TASK-076 shapes the model for that loader; this task owns the migration + Spanish pack.
 - **decisions_to_resolve_before_build**:
   - Select and verify the authorized Spanish scripture source/edition and its punctuation.
   - Decide whether language follows the device locale, an in-app selector, or both.
