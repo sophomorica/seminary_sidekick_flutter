@@ -197,7 +197,7 @@ void main() {
 
     // Final stage label after skip.
     expect(find.text(AvatarStage.stalwart.label), findsOneWidget);
-    expect(find.text('Master Beginner!'), findsOneWidget);
+    expect(find.text('Mastered Beginner!'), findsOneWidget);
   });
 
   testWidgets('mastery banner uses the session difficulty label',
@@ -214,7 +214,7 @@ void main() {
 
     await openAndSkip(tester);
 
-    expect(find.text('Master Advanced!'), findsOneWidget);
+    expect(find.text('Mastered Advanced!'), findsOneWidget);
     expect(find.text('Scripture Mastered!'), findsNothing);
   });
 
