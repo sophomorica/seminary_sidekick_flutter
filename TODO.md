@@ -173,6 +173,42 @@ No remaining App Store Connect / banking / EULA / IAP blockers for this submissi
 
 ## Active Tasks
 
+### TASK-078: Wire Continuity Heatmap to real study history
+
+- **status**: `open`
+- **claimed_by**: —
+- **priority**: P2
+- **estimated_effort**: Medium
+- **depends_on**: —
+- **files_to_touch**: `lib/providers/study_streak_provider.dart`, `lib/screens/progress/progress_screen.dart`, `test/providers/study_streak_provider_test.dart`, progress-screen / heatmap tests if present (else add focused provider + pure-helper tests), `docs/FEATURES.md` (brief note under progress/streak)
+- **out_of_scope**: Redesigning Progress screen layout; GitHub-style month labels / tooltips (nice-to-have later); cloud sync of history; changing what counts as a "study day" for the streak number itself; Group Play (must not write personal study history)
+- **context (VERIFIED 2026-07-18)**:
+  - Progress → Continuity Heatmap renders 60 cells whose intensity is hardcoded as `index % 5` in `_buildHeatmapGrid` (`lib/screens/progress/progress_screen.dart`). The grid never reads user data — it looks "busy" for every install.
+  - The subtitle streak **is** real (`currentStreakProvider` → `StudyStreakNotifier`). Hive box `study_streak` only persists `currentStreak`, `bestStreak`, `lastStudyDate` — **no per-day history**, so a heatmap cannot be derived from streak state alone.
+  - `recordStudyActivity()` is idempotent within a calendar day (first study of the day bumps streak; further calls no-op). Call site today: `ProgressNotifier` after a scored study write (`lib/providers/progress_provider.dart`).
+  - `activityProvider` keeps up to **200** timestamped events (`gameCompleted`, mastery ups, etc.). That is a possible backfill signal but is **not** a reliable long heatmap source (cap truncates; not every study path may log; intensity would be event-count, not a dedicated daily counter).
+  - Stitch mock (`interface_overhaul/stitch/progress_overview/`) shows the same Continuity Heatmap + legend; comment says "~6-month view" while shipping UI uses 60 days. Streak was folded into the heatmap subtitle in the Progress redesign (TASK-046 era) — do not reintroduce a standalone streak card.
+  - Settings / data reset already wipe the `study_streak` and `activities` boxes (`DataResetService`) — any new history key must clear with those.
+- **recommended design (defaults — escalate only if owner disagrees)**:
+  1. **Source of truth**: Extend `StudyStreakNotifier` / `study_streak` Hive box with a day→count map, e.g. `dailyActivity` as `Map<String, int>` keyed by local `yyyy-MM-dd`. Keep existing streak fields unchanged.
+  2. **Recording**: On each study that currently reaches `recordStudyActivity()` (and any future study hooks that should count for streak), **always increment today's count** even when the streak early-return fires. Streak semantics stay "once per day"; heatmap intensity = sessions/events that day.
+  3. **Retention**: Prune keys older than the display window + small buffer (recommend **180 days** stored; **60 days** shown to match current UI). Do not invent 6-month UI unless owner asks.
+  4. **Color buckets**: Map count → existing 5 legend levels (0 / 1 / 2–3 / 4–6 / 7+ or similar named consts). Empty past days = level 0; future days not shown. Chronological order: oldest → newest (left-to-right / wrap), ending on **today**.
+  5. **Backfill (one-shot, optional but recommended)**: On first load after upgrade, if `dailyActivity` is empty and `activities` has data, aggregate `activityProvider` timestamps into the map (then persist a `heatmapBackfilled` flag). Document that history before this ship date may be incomplete.
+  6. **UI**: Replace `(index % 5)` with real levels from a provider (e.g. `continuityHeatmapProvider` → `List<int>` length 60). Keep legend + streak subtitle. No hardcoded colors — stay on `AppTheme` / `Theme.of(context)`.
+  7. **Tests**: Unit-test increment, same-day multi-session intensity, pruning, bucket mapping, and that streak still increments once per day. Prefer pure helpers for date-key + bucket math.
+- **acceptance_criteria**:
+  - [ ] Heatmap cells reflect persisted daily study history (not `index % 5` or any fixed decorative pattern)
+  - [ ] Studying today brightens today's cell; multiple study writes the same day can raise intensity without breaking once-per-day streak rules
+  - [ ] Missing days render as empty (legend level 0); window ends on today; length matches UI (60 unless owner changes it)
+  - [ ] History survives app restart (Hive); data reset / streak reset clears heatmap history too
+  - [ ] Group Play still does not write personal streak/heatmap history
+  - [ ] `flutter analyze` clean; provider/helper tests green; brief `docs/FEATURES.md` note
+- **notes**:
+  - Do not claim architectural alternatives (rebuilding from activities only, server sync, etc.) without escalating — the Hive day-map on `study_streak` is the intended smallest fix.
+  - If Memorize / other tools should count as study days but do not currently call `recordStudyActivity()`, audit call sites and either wire them or document the gap in notes (do not silently redefine "study day").
+  - Shared caution: `TODO.md` only for this board edit; implementation touches `study_streak_provider.dart` (shared with settings streak UI).
+
 ### TASK-076: Solo Scripture Builder — verse-gated chunk progression
 
 - **status**: `in_progress`
