@@ -7,6 +7,7 @@ import '../../../models/scripture.dart';
 import '../../../providers/activity_provider.dart';
 import '../../../providers/progress_provider.dart';
 import '../../../providers/scripture_builder_provider.dart';
+import '../../../providers/scripture_mastery_provider.dart';
 import '../../../services/audio_service.dart';
 import '../../../services/haptic_service.dart';
 import '../../../theme/app_theme.dart';
@@ -971,22 +972,30 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
     final timeInSeconds = (state.completionTime ?? _elapsed).inSeconds;
     // True when any scripture in this session first crossed into Mastered —
     // drives the results screen's mastery banner + avatar level-up morph.
+    // Uses Scripture Builder progression (ScriptureMastery), NOT the
+    // accuracy-based UserProgress.masteryLevel field (which jumps to
+    // Mastered on any completed attempt and wrongly showed Standard Bearer).
     var newlyMastered = false;
     // Per-scripture avatar badge for the results screen: shows where you are
     // on THIS scripture (primary = first in queue) after the round.
     AvatarStage? avatarAfter;
+    // Master difficulty only counts toward consecutivePerfectMaster when the
+    // session was flawless. Lower tiers credit any finished round.
+    final sessionPerfect = state.incorrectAttempts == 0;
+    final attemptCorrect =
+        widget.difficulty != DifficultyLevel.master || sessionPerfect;
     for (final scripture in state.scriptureQueue) {
-      // Capture previous mastery level before recording
+      // Holistic mastery before this write — SB difficulty ladder, not accuracy.
+      final prevMastery =
+          ref.read(scriptureMasteryProvider(scripture.id)).level;
       final prevProgress =
           progressNotifier.getProgress(scripture.id, GameType.scriptureBuilder);
-      final prevMastery =
-          prevProgress?.masteryLevel ?? MasteryLevel.newScripture;
       final isFirstAttempt = prevProgress == null;
 
       progressNotifier.recordAttempt(
         scriptureId: scripture.id,
         gameType: GameType.scriptureBuilder,
-        correct: true, // All scriptures are completed at this point
+        correct: attemptCorrect,
         time: timeInSeconds,
         difficultyCompleted: widget.difficulty,
       );
@@ -1009,10 +1018,11 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
         );
       }
 
-      // Check for mastery level-up
+      // Check for mastery level-up (SB progression path)
       final newProgress =
           progressNotifier.getProgress(scripture.id, GameType.scriptureBuilder);
-      final newMastery = newProgress?.masteryLevel ?? MasteryLevel.newScripture;
+      final newMastery =
+          ref.read(scriptureMasteryProvider(scripture.id)).level;
       if (prevMastery.index < MasteryLevel.mastered.index &&
           newMastery.index >= MasteryLevel.mastered.index) {
         newlyMastered = true;
