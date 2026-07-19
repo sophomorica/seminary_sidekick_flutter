@@ -103,6 +103,66 @@ void main() {
       });
     });
 
+    group('expected Sidekick entitlement 403 (FLUTTER-7)', () {
+      test('drops FunctionException premium-gate 403', () {
+        final event = SentryEvent(
+          exceptions: [
+            SentryException(
+              type: 'FunctionException',
+              value:
+                  'FunctionException(status: 403, details: {error: A premium subscription is required to use the Sidekick.}, reasonPhrase: Forbidden)',
+            ),
+          ],
+        );
+        expect(
+          CrashReportingService.shouldDropExpectedSidekickEntitlementError(
+            event,
+          ),
+          isTrue,
+        );
+        expect(
+          CrashReportingService.shouldDropExpectedSidekickNoise(event),
+          isTrue,
+        );
+      });
+
+      test('keeps FunctionException that is not the entitlement gate', () {
+        final event = SentryEvent(
+          exceptions: [
+            SentryException(
+              type: 'FunctionException',
+              value:
+                  'FunctionException(status: 500, details: {error: Internal error}, reasonPhrase: Internal Server Error)',
+            ),
+          ],
+        );
+        expect(
+          CrashReportingService.shouldDropExpectedSidekickEntitlementError(
+            event,
+          ),
+          isFalse,
+        );
+      });
+
+      test('keeps FunctionException 403 without premium-gate copy', () {
+        final event = SentryEvent(
+          exceptions: [
+            SentryException(
+              type: 'FunctionException',
+              value:
+                  'FunctionException(status: 403, details: {error: Not allowed}, reasonPhrase: Forbidden)',
+            ),
+          ],
+        );
+        expect(
+          CrashReportingService.shouldDropExpectedSidekickEntitlementError(
+            event,
+          ),
+          isFalse,
+        );
+      });
+    });
+
     group('without a DSN (test environment)', () {
       // Tests never define SENTRY_DSN, so the service must be fully inert.
       test('isEnabled is false', () {

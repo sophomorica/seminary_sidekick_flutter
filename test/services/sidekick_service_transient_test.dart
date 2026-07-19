@@ -26,4 +26,18 @@ void main() {
       expect(e.toString(), startsWith('SidekickUnavailableException:'));
     });
   });
+
+  group('SidekickEntitlementException', () {
+    test('exposes refresh-friendly copy without raw 403 details (FLUTTER-7)',
+        () {
+      const e = SidekickEntitlementException();
+      expect(e.message.toLowerCase(), contains('refresh'));
+      expect(e.message.toLowerCase(), isNot(contains('403')));
+      expect(
+        e.message.toLowerCase(),
+        isNot(contains('premium subscription is required')),
+      );
+      expect(e.toString(), startsWith('SidekickEntitlementException:'));
+    });
+  });
 }

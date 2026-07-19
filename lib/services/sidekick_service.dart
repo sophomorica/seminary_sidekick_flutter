@@ -143,19 +143,15 @@ class SidekickService {
       throw const SidekickServiceException(
         'Unexpected response from the Sidekick proxy.',
       );
-    } on FunctionException catch (e, st) {
+    } on FunctionException catch (e) {
       if (e.status == 403) {
         // Proxy entitlement gate — subscription lapsed, stale client cache,
-        // or RevenueCat API unreachable (gate fails closed). Never surface
-        // the raw status/details string to the user (TASK-067).
+        // or RevenueCat API unreachable (gate fails closed). Handled in UI
+        // with Refresh / upgrade (TASK-067). Expected business outcome —
+        // breadcrumb only; do not open a Sentry issue (FLUTTER-7).
         CrashReportingService.addBreadcrumb(
           'sidekick-proxy 403 entitlement gate',
           category: 'sidekick',
-        );
-        await CrashReportingService.recordError(
-          e,
-          st,
-          hint: 'sidekick-proxy entitlement 403',
         );
         throw const SidekickEntitlementException();
       }

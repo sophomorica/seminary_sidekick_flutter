@@ -25,5 +25,7 @@ Without `SENTRY_DSN` the service is a silent no-op (dev/CI/tests send nothing).
 
 **Transient HTTP filtering** — Sentry's default failed-request capture treats 5xx responses as `HTTPClientError`. Upstream overload codes (`429` / `502` / `503` / `529`, e.g. xAI via `sidekick-proxy`) are dropped in `beforeSend` and native iOS failed-request capture is off (`captureNativeFailedRequests = false`) so expected Sidekick blips do not open crash issues (FLUTTER-6). Real app defects and non-transient 5xx still report.
 
+**Expected Sidekick entitlement 403** — when `sidekick-proxy` returns 403 ("A premium subscription is required…"), the client maps it to `SidekickEntitlementException` and a Refresh/upgrade UX (TASK-067). That path uses a breadcrumb only — do **not** `recordError` the raw `FunctionException` (it opened FLUTTER-7). `beforeSend` also drops matching entitlement-gate `FunctionException` events as defense in depth.
+
 For handled exceptions worth field visibility, call `CrashReportingService.recordError(e, st, hint: '...')` in the catch block. Use `CrashReportingService.addBreadcrumb(...)` for notable user actions (categories: `navigation`, `game`, `purchase`, ...).
 
