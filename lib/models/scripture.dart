@@ -4,17 +4,23 @@ import 'enums.dart';
 ///
 /// This is the core data object — immutable, with pre-computed fields
 /// for game use (word list, word count, difficulty weighting).
+///
+/// [verses] holds LDS-canon verse boundaries as slices of [fullText]
+/// (split-only — wording is not rewritten). Single-verse passages use a
+/// one-element list. Future language packs (TASK-015) should load the same
+/// shape from JSON.
 class Scripture {
   final String id;
   final ScriptureBook book;
-  final String volume;       // e.g., "1 Nephi", "Matthew", "D&C"
-  final String reference;    // e.g., "1 Nephi 3:7"
-  final String name;         // Topic name, e.g., "Obedience to Commandments"
-  final String keyPhrase;    // Short memorable phrase
-  final String fullText;     // Complete scripture text for memorization
-  final List<String> words;  // Pre-split words for word order game
+  final String volume; // e.g., "1 Nephi", "Matthew", "D&C"
+  final String reference; // e.g., "1 Nephi 3:7"
+  final String name; // Topic name, e.g., "Obedience to Commandments"
+  final String keyPhrase; // Short memorable phrase
+  final String fullText; // Complete scripture text for memorization
+  final List<String> verses; // Canon verse slices; join back to [fullText]
+  final List<String> words; // Pre-split words for word order game
   final int wordCount;
-  final String? userNotes;   // User-added notes/comments
+  final String? userNotes; // User-added notes/comments
 
   Scripture({
     required this.id,
@@ -24,16 +30,34 @@ class Scripture {
     required this.name,
     required this.keyPhrase,
     required this.fullText,
+    List<String>? verses,
     this.userNotes,
-  })  : words = _splitIntoWords(fullText),
+  })  : verses = _normalizeVerses(fullText, verses),
+        words = _splitIntoWords(fullText),
         wordCount = _splitIntoWords(fullText).length;
+
+  static List<String> _normalizeVerses(String fullText, List<String>? verses) {
+    if (verses == null || verses.isEmpty) {
+      return List<String>.unmodifiable([fullText]);
+    }
+    return List<String>.unmodifiable(verses);
+  }
+
+  /// True when [verses] reconstruct [fullText] via space or empty join.
+  static bool versesMatchFullText(List<String> verses, String fullText) {
+    if (verses.isEmpty) return false;
+    return verses.join(' ') == fullText || verses.join() == fullText;
+  }
+
+  /// Words for a single verse, using the same split rules as [words].
+  List<String> wordsForVerse(int index) => _splitIntoWords(verses[index]);
 
   /// Split text into clean words, preserving punctuation attached to words
   /// but removing verse numbers and paragraph markers.
   static List<String> _splitIntoWords(String text) {
     return text
         .replaceAll(RegExp(r'^\d+\s*', multiLine: true), '') // verse numbers
-        .replaceAll(RegExp(r'[¶]'), '')                       // paragraph marks
+        .replaceAll(RegExp(r'[¶]'), '') // paragraph marks
         .split(RegExp(r'\s+'))
         .where((w) => w.isNotEmpty)
         .toList();
@@ -58,6 +82,7 @@ class Scripture {
       name: name,
       keyPhrase: keyPhrase,
       fullText: fullText,
+      verses: verses,
       userNotes: userNotes ?? this.userNotes,
     );
   }

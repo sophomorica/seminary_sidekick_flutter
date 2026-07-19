@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:seminary_sidekick/providers/scripture_builder_provider.dart';
 import 'package:seminary_sidekick/models/enums.dart';
 import 'package:seminary_sidekick/models/scripture.dart';
+import 'package:seminary_sidekick/data/scriptures_data.dart';
 
 import '../helpers/test_helpers.dart';
 
@@ -20,7 +21,7 @@ void main() {
   });
 
   group('Scripture Builder — Chunk-Tap Mode', () {
-    test('startGame beginner — mode is chunkTap, chunks are size 3', () {
+    test('startGame beginner — mode is chunkTap, chunks respect adaptive size', () {
       notifier.startGame(difficulty: DifficultyLevel.beginner);
 
       expect(notifier.state.mode, ScriptureBuilderMode.chunkTap);
@@ -28,13 +29,19 @@ void main() {
       expect(notifier.state.scriptureQueue.length,
           DifficultyLevel.beginner.scriptureCount);
 
-      // Check chunk size
+      final verseWords =
+          notifier.state.currentScripture!.wordsForVerse(0);
+      final maxSize = adaptiveChunkSize(
+        wordCount: verseWords.length,
+        difficulty: DifficultyLevel.beginner,
+      );
       for (final chunk in notifier.state.targetChunks) {
-        expect(chunk.wordCount, lessThanOrEqualTo(3));
+        expect(chunk.wordCount, lessThanOrEqualTo(maxSize));
       }
     });
 
-    test('startGame intermediate — mode is chunkTap, chunks are size 2', () {
+    test('startGame intermediate — mode is chunkTap, chunks respect adaptive size',
+        () {
       notifier.startGame(difficulty: DifficultyLevel.intermediate);
 
       expect(notifier.state.mode, ScriptureBuilderMode.chunkTap);
@@ -42,9 +49,14 @@ void main() {
       expect(notifier.state.scriptureQueue.length,
           DifficultyLevel.intermediate.scriptureCount);
 
-      // Check chunk size
+      final verseWords =
+          notifier.state.currentScripture!.wordsForVerse(0);
+      final maxSize = adaptiveChunkSize(
+        wordCount: verseWords.length,
+        difficulty: DifficultyLevel.intermediate,
+      );
       for (final chunk in notifier.state.targetChunks) {
-        expect(chunk.wordCount, lessThanOrEqualTo(2));
+        expect(chunk.wordCount, lessThanOrEqualTo(maxSize));
       }
     });
 
@@ -296,6 +308,349 @@ void main() {
       for (int i = 0; i < notifier.state.targetChunks.length; i++) {
         expect(notifier.state.targetChunks[i].colorIndex, i % 8);
       }
+    });
+
+    group('Verse-gated chunk progression', () {
+      Scripture multiVerseFixture() =>
+          testScriptures.firstWhere((s) => s.id == 'test-multi-verse');
+
+      /// Place the next correct chunk by matching expected tile text.
+      bool placeNextCorrectChunk() {
+        final next = notifier.state.nextChunkIndex;
+        if (next < 0 || next >= notifier.state.targetChunks.length) {
+          return false;
+        }
+        final expected = notifier.state.targetChunks[next].text;
+        for (var i = 0; i < notifier.state.availablePool.length; i++) {
+          if (notifier.state.usedPoolIndices.contains(i)) continue;
+          final chunk = notifier.state.availablePool[i];
+          if (!chunk.isDistractor && chunk.text == expected) {
+            notifier.selectChunk(i);
+            return true;
+          }
+        }
+        return false;
+      }
+
+      void completeCurrentVerse() {
+        final target = notifier.state.targetChunks.length;
+        for (var i = 0; i < target; i++) {
+          expect(placeNextCorrectChunk(), isTrue,
+              reason: 'Could not place chunk $i of current verse');
+        }
+      }
+
+      test('starts on verse 0 with only that verse in the pool', () {
+        final multiVerse = multiVerseFixture();
+        notifier.startGame(
+          difficulty: DifficultyLevel.beginner,
+          scriptures: [multiVerse],
+        );
+
+        expect(notifier.state.currentVerseIndex, 0);
+        expect(notifier.state.completedVerseChunks, isEmpty);
+        expect(notifier.state.isScriptureComplete, isFalse);
+
+        final verse0Words = multiVerse.wordsForVerse(0);
+        final size = adaptiveChunkSize(
+          wordCount: verse0Words.length,
+          difficulty: DifficultyLevel.beginner,
+        );
+        final expectedChunks = (verse0Words.length + size - 1) ~/ size;
+        expect(notifier.state.targetChunks, hasLength(expectedChunks));
+        expect(
+          notifier.state.targetChunks.map((c) => c.text).join(' '),
+          equals(verse0Words.join(' ')),
+        );
+        expect(notifier.state.passageChunkTotal, greaterThan(expectedChunks));
+      });
+
+      test('completing a verse advances pool without scripture-complete', () {
+        final multiVerse = multiVerseFixture();
+        notifier.startGame(
+          difficulty: DifficultyLevel.beginner,
+          scriptures: [multiVerse],
+        );
+
+        completeCurrentVerse();
+
+        expect(notifier.state.isScriptureComplete, isFalse);
+        expect(notifier.state.currentVerseIndex, 1);
+        expect(notifier.state.completedVerseChunks, isNotEmpty);
+        expect(
+          notifier.state.targetChunks.map((c) => c.words).expand((w) => w).join(' '),
+          equals(multiVerse.wordsForVerse(1).join(' ')),
+        );
+        // Progress bar is whole-passage — first verse done is partial.
+        expect(notifier.state.chunkProgress, greaterThan(0));
+        expect(notifier.state.chunkProgress, lessThan(1));
+      });
+
+      test('last verse triggers isScriptureComplete only', () {
+        final multiVerse = multiVerseFixture();
+        notifier.startGame(
+          difficulty: DifficultyLevel.beginner,
+          scriptures: [multiVerse],
+        );
+
+        while (!notifier.state.isScriptureComplete) {
+          expect(placeNextCorrectChunk(), isTrue);
+        }
+
+        expect(notifier.state.currentVerseIndex, multiVerse.verses.length - 1);
+        expect(notifier.state.chunkProgress, equals(1.0));
+        expect(notifier.state.isScriptureComplete, isTrue);
+      });
+
+      test('adaptive sizing uses current verse word count, not passage', () {
+        // Three short verses — each should keep base chunk size 3, not grow
+        // as if the joined passage were one blob.
+        final multiVerse = multiVerseFixture();
+        notifier.startGame(
+          difficulty: DifficultyLevel.beginner,
+          scriptures: [multiVerse],
+        );
+        final size = adaptiveChunkSize(
+          wordCount: multiVerse.wordsForVerse(0).length,
+          difficulty: DifficultyLevel.beginner,
+        );
+        expect(size, equals(3));
+        expect(
+          notifier.state.targetChunks.every((c) => c.wordCount <= size),
+          isTrue,
+        );
+      });
+
+      test('wrong tap still only increments misses (no verse reset)', () {
+        final multiVerse = multiVerseFixture();
+        notifier.startGame(
+          difficulty: DifficultyLevel.beginner,
+          scriptures: [multiVerse],
+        );
+        placeNextCorrectChunk();
+        final placedBefore = notifier.state.chunksPlaced;
+        final verseBefore = notifier.state.currentVerseIndex;
+
+        // Tap a wrong pool tile if one exists; otherwise tap a used-incorrect
+        // path by picking a non-matching unused tile.
+        var tappedWrong = false;
+        final expected = notifier.state.targetChunks[notifier.state.nextChunkIndex].text;
+        for (var i = 0; i < notifier.state.availablePool.length; i++) {
+          if (notifier.state.usedPoolIndices.contains(i)) continue;
+          if (notifier.state.availablePool[i].text != expected) {
+            notifier.selectChunk(i);
+            tappedWrong = true;
+            break;
+          }
+        }
+        expect(tappedWrong, isTrue);
+        expect(notifier.state.incorrectAttempts, 1);
+        expect(notifier.state.chunksPlaced, placedBefore);
+        expect(notifier.state.currentVerseIndex, verseBefore);
+      });
+    });
+
+    group('Adaptive chunk size', () {
+      Scripture scriptureWithWordCount(int count, {String id = 'n'}) {
+        final words = List.generate(count, (i) => 'w$i');
+        return Scripture(
+          id: id,
+          book: ScriptureBook.bookOfMormon,
+          volume: 'Test',
+          reference: 'Test $count',
+          name: 'Adaptive fixture',
+          keyPhrase: 'fixture',
+          fullText: words.join(' '),
+        );
+      }
+
+      test('formula — ≤56 words keeps historic 3 / 2 sizes', () {
+        expect(
+          adaptiveChunkSize(
+              wordCount: 56, difficulty: DifficultyLevel.beginner),
+          3,
+        );
+        expect(
+          adaptiveChunkSize(
+              wordCount: 56, difficulty: DifficultyLevel.intermediate),
+          2,
+        );
+        expect(
+          adaptiveChunkSize(
+              wordCount: 1, difficulty: DifficultyLevel.beginner),
+          3,
+        );
+        expect(
+          adaptiveChunkSize(
+              wordCount: 24, difficulty: DifficultyLevel.intermediate),
+          2,
+        );
+      });
+
+      test('formula — grows then clamps at maxSize', () {
+        // First Intermediate bump: ceil(57/28)=3
+        expect(
+          adaptiveChunkSize(
+              wordCount: 57, difficulty: DifficultyLevel.intermediate),
+          3,
+        );
+        // Beginner still 3 at 57; bumps at 58: ceil(58/19)=4
+        expect(
+          adaptiveChunkSize(
+              wordCount: 57, difficulty: DifficultyLevel.beginner),
+          3,
+        );
+        expect(
+          adaptiveChunkSize(
+              wordCount: 58, difficulty: DifficultyLevel.beginner),
+          4,
+        );
+        // Long passage hits max
+        expect(
+          adaptiveChunkSize(
+              wordCount: 270, difficulty: DifficultyLevel.beginner),
+          8,
+        );
+        expect(
+          adaptiveChunkSize(
+              wordCount: 270, difficulty: DifficultyLevel.intermediate),
+          6,
+        );
+        expect(
+          adaptiveChunkSize(
+              wordCount: 297, difficulty: DifficultyLevel.beginner),
+          8,
+        );
+      });
+
+      test('56-word baseline (1 Nephi 3:7 scale) — 19 beginner / 28 intermediate chunks',
+          () {
+        final scripture = scriptureWithWordCount(56, id: 'baseline-56');
+
+        notifier.startGame(
+            difficulty: DifficultyLevel.beginner, scriptures: [scripture]);
+        expect(notifier.state.targetChunks.length, 19);
+        for (final chunk in notifier.state.targetChunks) {
+          expect(chunk.wordCount, lessThanOrEqualTo(3));
+        }
+
+        notifier = ScriptureBuilderNotifier();
+        notifier.startGame(
+            difficulty: DifficultyLevel.intermediate, scriptures: [scripture]);
+        expect(notifier.state.targetChunks.length, 28);
+        for (final chunk in notifier.state.targetChunks) {
+          expect(chunk.wordCount, lessThanOrEqualTo(2));
+        }
+      });
+
+      test('first passage over baseline (57 words) — Intermediate grows, Beginner unchanged',
+          () {
+        final scripture = scriptureWithWordCount(57, id: 'over-57');
+
+        notifier.startGame(
+            difficulty: DifficultyLevel.beginner, scriptures: [scripture]);
+        expect(
+          adaptiveChunkSize(
+              wordCount: 57, difficulty: DifficultyLevel.beginner),
+          3,
+        );
+        expect(notifier.state.targetChunks.length, 19); // ceil(57/3)
+
+        notifier = ScriptureBuilderNotifier();
+        notifier.startGame(
+            difficulty: DifficultyLevel.intermediate, scriptures: [scripture]);
+        expect(
+          adaptiveChunkSize(
+              wordCount: 57, difficulty: DifficultyLevel.intermediate),
+          3,
+        );
+        expect(notifier.state.targetChunks.length, 19); // ceil(57/3)
+        for (final chunk in notifier.state.targetChunks) {
+          expect(chunk.wordCount, lessThanOrEqualTo(3));
+        }
+      });
+
+      test('longest passage scale (270 words) — fewer taps via maxSize chunks',
+          () {
+        final scripture = scriptureWithWordCount(270, id: 'long-270');
+
+        notifier.startGame(
+            difficulty: DifficultyLevel.beginner, scriptures: [scripture]);
+        expect(
+          adaptiveChunkSize(
+              wordCount: 270, difficulty: DifficultyLevel.beginner),
+          8,
+        );
+        expect(notifier.state.targetChunks.length, 34); // ceil(270/8)
+        expect(notifier.state.targetChunks.length, lessThan(90)); // old fixed-3
+        for (final chunk in notifier.state.targetChunks) {
+          expect(chunk.wordCount, lessThanOrEqualTo(8));
+        }
+
+        notifier = ScriptureBuilderNotifier();
+        notifier.startGame(
+            difficulty: DifficultyLevel.intermediate, scriptures: [scripture]);
+        expect(
+          adaptiveChunkSize(
+              wordCount: 270, difficulty: DifficultyLevel.intermediate),
+          6,
+        );
+        expect(notifier.state.targetChunks.length, 45); // ceil(270/6)
+        expect(notifier.state.targetChunks.length, lessThan(135)); // old fixed-2
+        for (final chunk in notifier.state.targetChunks) {
+          expect(chunk.wordCount, lessThanOrEqualTo(6));
+        }
+      });
+
+      test('corpus — 1 Nephi 3:7, Alma 39:9, Exodus 20:3–17 on both tiers', () {
+        final baseline =
+            allScriptures.firstWhere((s) => s.reference == '1 Nephi 3:7');
+        final firstOver =
+            allScriptures.firstWhere((s) => s.reference == 'Alma 39:9');
+        final longest =
+            allScriptures.firstWhere((s) => s.reference == 'Exodus 20:3–17');
+
+        expect(baseline.wordCount, 56);
+        expect(firstOver.wordCount, 57);
+        expect(longest.wordCount, greaterThanOrEqualTo(270));
+        expect(baseline.verses, hasLength(1));
+        expect(firstOver.verses, hasLength(1));
+        expect(longest.verses.length, greaterThan(1));
+
+        for (final difficulty in [
+          DifficultyLevel.beginner,
+          DifficultyLevel.intermediate,
+        ]) {
+          for (final scripture in [baseline, firstOver, longest]) {
+            var passageTotal = 0;
+            for (var v = 0; v < scripture.verses.length; v++) {
+              final verseWords = scripture.wordsForVerse(v);
+              final verseSize = adaptiveChunkSize(
+                wordCount: verseWords.length,
+                difficulty: difficulty,
+              );
+              passageTotal += (verseWords.length / verseSize).ceil();
+            }
+
+            final verse0Size = adaptiveChunkSize(
+              wordCount: scripture.wordsForVerse(0).length,
+              difficulty: difficulty,
+            );
+            final verse0Count =
+                (scripture.wordsForVerse(0).length / verse0Size).ceil();
+
+            notifier = ScriptureBuilderNotifier();
+            notifier.startGame(
+                difficulty: difficulty, scriptures: [scripture]);
+            // Pool is verse 0 only; passageChunkTotal covers every verse.
+            expect(notifier.state.targetChunks.length, verse0Count);
+            expect(notifier.state.passageChunkTotal, passageTotal);
+            for (final chunk in notifier.state.targetChunks) {
+              expect(chunk.wordCount, lessThanOrEqualTo(verse0Size));
+            }
+          }
+        }
+      });
     });
   });
 

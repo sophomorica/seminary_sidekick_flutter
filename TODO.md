@@ -173,6 +173,127 @@ No remaining App Store Connect / banking / EULA / IAP blockers for this submissi
 
 ## Active Tasks
 
+### TASK-078: Wire Continuity Heatmap to real study history
+
+- **status**: `open`
+- **claimed_by**: —
+- **priority**: P2
+- **estimated_effort**: Medium
+- **depends_on**: —
+- **files_to_touch**: `lib/providers/study_streak_provider.dart`, `lib/screens/progress/progress_screen.dart`, `test/providers/study_streak_provider_test.dart`, progress-screen / heatmap tests if present (else add focused provider + pure-helper tests), `docs/FEATURES.md` (brief note under progress/streak)
+- **out_of_scope**: Redesigning Progress screen layout; GitHub-style month labels / tooltips (nice-to-have later); cloud sync of history; changing what counts as a "study day" for the streak number itself; Group Play (must not write personal study history)
+- **context (VERIFIED 2026-07-18)**:
+  - Progress → Continuity Heatmap renders 60 cells whose intensity is hardcoded as `index % 5` in `_buildHeatmapGrid` (`lib/screens/progress/progress_screen.dart`). The grid never reads user data — it looks "busy" for every install.
+  - The subtitle streak **is** real (`currentStreakProvider` → `StudyStreakNotifier`). Hive box `study_streak` only persists `currentStreak`, `bestStreak`, `lastStudyDate` — **no per-day history**, so a heatmap cannot be derived from streak state alone.
+  - `recordStudyActivity()` is idempotent within a calendar day (first study of the day bumps streak; further calls no-op). Call site today: `ProgressNotifier` after a scored study write (`lib/providers/progress_provider.dart`).
+  - `activityProvider` keeps up to **200** timestamped events (`gameCompleted`, mastery ups, etc.). That is a possible backfill signal but is **not** a reliable long heatmap source (cap truncates; not every study path may log; intensity would be event-count, not a dedicated daily counter).
+  - Stitch mock (`interface_overhaul/stitch/progress_overview/`) shows the same Continuity Heatmap + legend; comment says "~6-month view" while shipping UI uses 60 days. Streak was folded into the heatmap subtitle in the Progress redesign (TASK-046 era) — do not reintroduce a standalone streak card.
+  - Settings / data reset already wipe the `study_streak` and `activities` boxes (`DataResetService`) — any new history key must clear with those.
+- **recommended design (defaults — escalate only if owner disagrees)**:
+  1. **Source of truth**: Extend `StudyStreakNotifier` / `study_streak` Hive box with a day→count map, e.g. `dailyActivity` as `Map<String, int>` keyed by local `yyyy-MM-dd`. Keep existing streak fields unchanged.
+  2. **Recording**: On each study that currently reaches `recordStudyActivity()` (and any future study hooks that should count for streak), **always increment today's count** even when the streak early-return fires. Streak semantics stay "once per day"; heatmap intensity = sessions/events that day.
+  3. **Retention**: Prune keys older than the display window + small buffer (recommend **180 days** stored; **60 days** shown to match current UI). Do not invent 6-month UI unless owner asks.
+  4. **Color buckets**: Map count → existing 5 legend levels (0 / 1 / 2–3 / 4–6 / 7+ or similar named consts). Empty past days = level 0; future days not shown. Chronological order: oldest → newest (left-to-right / wrap), ending on **today**.
+  5. **Backfill (one-shot, optional but recommended)**: On first load after upgrade, if `dailyActivity` is empty and `activities` has data, aggregate `activityProvider` timestamps into the map (then persist a `heatmapBackfilled` flag). Document that history before this ship date may be incomplete.
+  6. **UI**: Replace `(index % 5)` with real levels from a provider (e.g. `continuityHeatmapProvider` → `List<int>` length 60). Keep legend + streak subtitle. No hardcoded colors — stay on `AppTheme` / `Theme.of(context)`.
+  7. **Tests**: Unit-test increment, same-day multi-session intensity, pruning, bucket mapping, and that streak still increments once per day. Prefer pure helpers for date-key + bucket math.
+- **acceptance_criteria**:
+  - [ ] Heatmap cells reflect persisted daily study history (not `index % 5` or any fixed decorative pattern)
+  - [ ] Studying today brightens today's cell; multiple study writes the same day can raise intensity without breaking once-per-day streak rules
+  - [ ] Missing days render as empty (legend level 0); window ends on today; length matches UI (60 unless owner changes it)
+  - [ ] History survives app restart (Hive); data reset / streak reset clears heatmap history too
+  - [ ] Group Play still does not write personal streak/heatmap history
+  - [ ] `flutter analyze` clean; provider/helper tests green; brief `docs/FEATURES.md` note
+- **notes**:
+  - Do not claim architectural alternatives (rebuilding from activities only, server sync, etc.) without escalating — the Hive day-map on `study_streak` is the intended smallest fix.
+  - If Memorize / other tools should count as study days but do not currently call `recordStudyActivity()`, audit call sites and either wire them or document the gap in notes (do not silently redefine "study day").
+  - Shared caution: `TODO.md` only for this board edit; implementation touches `study_streak_provider.dart` (shared with settings streak UI).
+
+### TASK-076: Solo Scripture Builder — verse-gated chunk progression
+
+- **status**: `done`
+- **claimed_by**: cursor-agent-task-076
+- **started**: 2026-07-18T12:56:35Z
+- **completed**: 2026-07-18T13:30:00Z
+- **priority**: P1 (follow-up to TASK-075 — multi-verse passages still dump every verse’s bubbles at once)
+- **estimated_effort**: Medium-Large (corpus verse splits + provider state machine; UI mostly unchanged)
+- **depends_on**: —
+- **blocks**: TASK-077 (Group Play verse-gating — after owner validates solo)
+- **files_to_touch**: `lib/models/scripture.dart`, `lib/data/scriptures_data.dart`, `lib/providers/scripture_builder_provider.dart`, `lib/screens/games/scripture_builder/scripture_builder_screen.dart` (only if progress-bar math needs a screen tweak), tests under `test/models/` + `test/providers/scripture_builder_provider_test.dart`, `docs/FEATURES.md`
+- **out_of_scope**: Group Play SB race (TASK-077); JSON corpus / i18n packs (see future path); Advanced/Master behavior changes; “Verse Complete” UI; remapping unrelated app surfaces
+- **context**: After TASK-075, long multi-verse passages still present the full passage’s chunk pool at once. Owner direction 2026-07-18: for multi-verse passages, Beginner/Intermediate should only offer bubbles for the **current verse**; when that verse is finished, the next verse’s bubbles appear in place — no “verse complete” banner. “Scripture Complete!” + next-passage / GameResults behavior stays at **passage** (and session) boundaries only. Design resolved with owner 2026-07-18 — ready to claim.
+- **design (resolved 2026-07-18)**:
+  - **Data (structured Dart now)**: Add `verses` (`List<String>`) on `Scripture`. Every scripture gets a list (length 1 for single-verse). `fullText` stays the existing joined string **byte-for-byte** (split-only — do not rewrite corpus wording in this task). Prefer deriving/validating that `verses` concatenated (with the same separators the blob already uses) reconstructs `fullText`.
+  - **Canon breaks, not canon rewrite**: Use Church of Jesus Christ of Latter-day Saints canon (Gospel Library / churchofjesuschrist.org) to decide **where** verses break so students recognize the same verse boundaries. Keep app text as-is. Where canon wording/punctuation differs from the app string, leave a short `// CANON_DIFF:` comment on that scripture entry for owner review later — do not silently replace text.
+  - **Future path (NOT this task)**: When Spanish / other language packs ship (TASK-015), move corpora to JSON packs with the same schema (`id`, `reference`, `verses[]`, …). Shape `Scripture` so a future pack loader can populate the same model. Do not introduce JSON loading now.
+  - **Chunk-tap only (Beginner / Intermediate)**: Pool/target chunks are built from the **current verse** only. Chunks never span verse boundaries. `adaptiveChunkSize` (TASK-075) uses the **current verse’s** word count. On verse complete: append that verse’s built text to the canvas, advance `currentVerseIndex`, load the next verse’s pool — **no** “Verse Complete” overlay/banner. Wrong tap stays today’s miss + shake; placed chunks stay (no verse/passage reset).
+  - **Canvas**: Completed verses remain visible above; only the bottom bubble pool advances.
+  - **Header**: Keep the full passage reference (e.g. Abraham 2:9–11) for the whole build — do not switch the title to the current verse.
+  - **Progress bar**: Whole-passage progress — prior verses + current verse units over total units across all verses.
+  - **Advanced / Master**: No functional change. They continue to type against the full `fullText` as today. (Advanced clear-on-verse was discussed as acceptable but explicitly deferred — easiest path.)
+  - **Multi-scripture sessions**: Unchanged ceremony — “Scripture Complete!” only when the **entire passage** (all verses) is done; then existing delay → next passage’s bubbles; GameResults only when the queue is done.
+  - **Mastery / scoring**: Still recorded at session end for whole scriptures — mid-passage verse completes must not write mastery.
+- **acceptance_criteria**:
+  - [x] `Scripture` exposes `verses` (non-empty; single-verse ⇒ length 1); existing `fullText` / `words` / consumers keep working without a repo-wide remap
+  - [x] All multi-verse corpus entries split at LDS canon verse boundaries; `fullText` unchanged; `// CANON_DIFF:` comments where church text ≠ app string
+  - [x] Beginner/Intermediate: only current-verse chunks in the pool; completing a verse loads the next verse’s chunks with no verse-complete UI
+  - [x] Chunks never cross verse boundaries; per-verse `adaptiveChunkSize`
+  - [x] Completed verse text stays on the canvas; header stays full reference; progress bar is whole-passage
+  - [x] Advanced/Master behavior unchanged vs pre-task
+  - [x] “Scripture Complete!” / next-scripture / GameResults only after full passage (then full queue); no mastery writes on verse boundaries
+  - [x] Group Play SB untouched
+  - [x] Tests: single-verse unchanged; multi-verse advances verse-by-verse; last verse triggers scripture-complete; adaptive sizing uses verse length; `flutter analyze` + `flutter test` clean; `docs/FEATURES.md` documents verse-gated chunk play
+- **notes**:
+  - Implemented: 55 multi-verse corpus splits via LDS canon JSON; `CANON_DIFF` on ids 83, 92, 99, 100 for owner review.
+  - Provider: `currentVerseIndex`, `completedVerseChunks`, `passageChunkTotal`, per-verse pool reload; screen canvas renders prior verses.
+  - Verified: `flutter analyze` clean, `flutter test` 785/785 green. Validator PASS.
+
+### TASK-077: Group Play Scripture Builder Race — verse-gated chunks (follow-up)
+
+- **status**: `open`
+- **claimed_by**: —
+- **priority**: P2
+- **estimated_effort**: Medium
+- **depends_on**: TASK-076 (ship + owner-validate solo verse gating first)
+- **files_to_touch**: `lib/screens/group_play/group_scripture_builder_screen.dart`, `lib/screens/group_play/widgets/sb_race_board.dart` (and related group SB models/config as needed), group SB tests, `docs/FEATURES.md`
+- **description**: After TASK-076 solo verse-gating is tested and approved, bring the same verse-scoped chunk pool behavior to Group Play Scripture Builder Race (host dashboard + player race board). Do **not** start until owner confirms solo feels right — group race timing, DNF, and sync make this a separate design/QA pass.
+- **design_notes (provisional — re-confirm with owner before claim)**:
+  - Reuse `Scripture.verses` from TASK-076; do not fork a second verse corpus.
+  - Player board: current-verse chunks only; advance verse on verse complete with no “verse complete” ceremony; full-passage finish still drives existing SB race finish / ranking.
+  - Confirm with owner: whether all racers share the same verse gate (expected) and how late joiners / reconnect interact with verse index.
+  - Keep Group Play → no personal mastery writes invariant.
+- **acceptance_criteria** (provisional):
+  - [ ] Solo TASK-076 behavior parity for chunk race boards (verse-scoped pool, canvas keeps prior verses, full reference header)
+  - [ ] Finish / ranking / DNF / realtime flows still correct for multi-verse passages
+  - [ ] No personal mastery/progress writes from Group Play
+  - [ ] `flutter analyze` clean; group SB tests updated/green
+- **notes**: Blocked on owner smoke-test of TASK-076. If solo design tweaks land during testing, fold them into this task’s final spec before claim.
+
+### TASK-075: Adaptive Scripture Builder chunks for long passages
+
+- **status**: `done`
+- **claimed_by**: cursor-worker-task-075
+- **started**: 2026-07-17T17:56:14Z
+- **completed**: 2026-07-17T18:03:36Z
+- **priority**: P2
+- **estimated_effort**: Medium
+- **context**: Beginner splits every scripture into fixed 3-word chunks and Intermediate into 2-word chunks, which creates an unreasonable number of taps for very long passages (largest passage: 270 words → 90 Beginner / 135 Intermediate tiles). Owner played a long passage 2026-07-17 and confirmed both tiers are painful. Design resolved with owner 2026-07-17 — no open decisions; ready to claim.
+- **design (resolved 2026-07-17)**: target-chunk-count strategy, calibrated to 1 Nephi 3:7 (56 words), which under current rules yields 19 Beginner / 28 Intermediate chunks. Those become the per-tier caps:
+  - `chunkSize = clamp(ceil(wordCount / cap), baseSize, maxSize)`
+  - Beginner: cap 19, baseSize 3, maxSize 8
+  - Intermediate: cap 28, baseSize 2, maxSize 6
+  - No threshold branch: for passages ≤ 56 words the formula reduces exactly to today's 3-word/2-word behavior. Longest passage (270 words) becomes ~34 Beginner / ~45 Intermediate chunks.
+  - Chunking stays purely positional (every `chunkSize` words); deterministic and simple. Phrase/punctuation-aware snapping explicitly deferred — revisit only if large chunks read badly in practice.
+- **acceptance_criteria**:
+  - [x] 1 Nephi 3:7 and all shorter passages retain current 3-word (Beginner) / 2-word (Intermediate) behavior — verified by the formula, not a special case.
+  - [x] Longer passages use the clamp formula above on both tiers and require materially fewer taps.
+  - [x] Chunk boundaries remain deterministic; duplicate-chunk handling, scoring, progress, and mastery rules unchanged.
+  - [x] Tile layout remains readable/tappable at maxSize chunks (8 words) on small screens.
+  - [x] Tests cover: the 56-word baseline passage, the first passage over baseline, and the longest passage (270 words), on both tiers.
+  - [x] `docs/FEATURES.md` updated with the chunking rule; `flutter analyze` and `flutter test` clean.
+- **anticipated_files**: `lib/providers/scripture_builder_provider.dart`, scripture-builder provider/widget tests, `docs/FEATURES.md`
+- **notes**: Implemented `adaptiveChunkSize()` (pure, exported). Corpus longest is Exodus 20:3–17 (297 words); tests cover 270-word design scale + real 56/57/297 passages. Existing Wrap chip layout handles maxSize tiles without UI changes. Validator returned PASS on HANDOFF review loop.
+
 ### TASK-072: Game-complete redesign — animated score meter + mastery avatar (solo)
 
 - **status**: `done`
@@ -528,8 +649,26 @@ These tasks are **code-complete** and summarized in the Completed tables above; 
 | Task | What | Effort |
 |------|------|--------|
 | TASK-014 | Legacy social features placeholder (superseded by TASK-048/050) | — |
-| TASK-015 | Localization (i18n) | Large |
+| TASK-015 | Spanish version / localization (i18n) | Large |
 | TASK-069 | Premium AI voice recite for Scripture Builder (Advanced + Master) | Large |
+
+### TASK-015: Spanish version / localization (i18n)
+
+- **status**: open (backlog — prioritize soon)
+- **priority**: P2
+- **estimated_effort**: Large
+- **description**: Add a complete Spanish version of Seminary Sidekick, including app UI and an approved Spanish scripture corpus. This is more than a copy translation because Scripture Builder, Memorize, quizzes, matching, typing normalization, and Sidekick prompts all depend on exact scripture text and language-specific word handling.
+- **corpus_format (resolved with TASK-076)**: English stays structured Dart (`Scripture.verses`) until i18n work starts. **Language packs should load JSON** (same schema: `id`, `reference`, `verses[]`, …) — e.g. `assets/scriptures/en.json` + `es.json` — rather than forking another Dart corpus. TASK-076 shapes the model for that loader; this task owns the migration + Spanish pack.
+- **decisions_to_resolve_before_build**:
+  - Select and verify the authorized Spanish scripture source/edition and its punctuation.
+  - Decide whether language follows the device locale, an in-app selector, or both.
+  - Define launch scope: app UI + core 100 first, and whether Sidekick AI, store listing/screenshots, Group Play, and premium content launch in Spanish at the same time.
+- **acceptance_criteria** (provisional):
+  - [ ] No user-facing English remains in the agreed Spanish launch scope.
+  - [ ] The Spanish scripture corpus is source-verified and reviewed for word-for-word Builder accuracy.
+  - [ ] Scripture Builder, Memorize, Quick Quiz, Scripture Match, mastery, and search work with Spanish text.
+  - [ ] Language-specific normalization and typing behavior have tests, including punctuation and accented characters.
+  - [ ] Localization falls back safely to English for any missing key; `flutter analyze` and `flutter test` are clean.
 
 ### TASK-069: Premium AI voice recite for Scripture Builder (Advanced + Master)
 

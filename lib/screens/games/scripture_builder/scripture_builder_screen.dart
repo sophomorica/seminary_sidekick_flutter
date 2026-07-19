@@ -7,6 +7,7 @@ import '../../../models/scripture.dart';
 import '../../../providers/activity_provider.dart';
 import '../../../providers/progress_provider.dart';
 import '../../../providers/scripture_builder_provider.dart';
+import '../../../providers/scripture_mastery_provider.dart';
 import '../../../services/audio_service.dart';
 import '../../../services/haptic_service.dart';
 import '../../../theme/app_theme.dart';
@@ -455,14 +456,31 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
 
   List<InlineSpan> _buildCanvasSpans(ScriptureBuilderState state, Color diffColor) {
     final spans = <InlineSpan>[];
+    final placedStyle = TextStyle(
+      color: diffColor,
+      fontWeight: FontWeight.w700,
+      decoration: TextDecoration.underline,
+      decorationColor: diffColor.withValues(alpha: 0.2),
+      decorationStyle: TextDecorationStyle.solid,
+    );
+
+    // Prior verses stay visible as built text while the pool advances.
+    for (var i = 0; i < state.completedVerseChunks.length; i++) {
+      if (spans.isNotEmpty) {
+        spans.add(const TextSpan(text: ' '));
+      }
+      spans.add(TextSpan(
+        text: state.completedVerseChunks[i].text,
+        style: placedStyle,
+      ));
+    }
 
     for (int i = 0; i < state.targetChunks.length; i++) {
       final placed = state.placedChunks[i];
       final target = state.targetChunks[i];
       final isNext = i == state.nextChunkIndex && !state.isScriptureComplete;
 
-      if (i > 0) {
-        // Space between chunks
+      if (spans.isNotEmpty) {
         spans.add(const TextSpan(text: ' '));
       }
 
@@ -470,13 +488,7 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
         // ── Already placed: show as bold colored text ──
         spans.add(TextSpan(
           text: placed.text,
-          style: TextStyle(
-            color: diffColor,
-            fontWeight: FontWeight.w700,
-            decoration: TextDecoration.underline,
-            decorationColor: diffColor.withValues(alpha: 0.2),
-            decorationStyle: TextDecorationStyle.solid,
-          ),
+          style: placedStyle,
         ));
       } else if (isNext) {
         // ── Next slot: dashed underline placeholder ──
@@ -493,9 +505,7 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
           ),
         ));
       } else {
-        // ── Future slots: uniform underscores, no readable text ──
-        // Each word in the chunk becomes a run of underscores,
-        // separated by spaces to preserve word-break flow.
+        // ── Future slots (current verse only): uniform underscores ──
         final hidden =
             target.words.map((w) => '_' * w.length.clamp(2, 8)).join(' ');
         spans.add(TextSpan(
@@ -969,24 +979,31 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
     final progressNotifier = ref.read(progressProvider.notifier);
     final activityNotifier = ref.read(activityProvider.notifier);
     final timeInSeconds = (state.completionTime ?? _elapsed).inSeconds;
-    // True when any scripture in this session first crossed into Mastered —
-    // drives the results screen's mastery banner + avatar level-up morph.
+    // Banner flag: true only when a scripture first hits holistic Mastered
+    // (3 consecutive perfect Master-difficulty runs). Never for Beginner /
+    // Intermediate / Advanced finishes — keeps results uncluttered.
+    // Uses ScriptureMastery, NOT accuracy-based UserProgress.masteryLevel.
     var newlyMastered = false;
     // Per-scripture avatar badge for the results screen: shows where you are
     // on THIS scripture (primary = first in queue) after the round.
     AvatarStage? avatarAfter;
+    // Master difficulty only counts toward consecutivePerfectMaster when the
+    // session was flawless. Lower tiers credit any finished round.
+    final sessionPerfect = state.incorrectAttempts == 0;
+    final attemptCorrect =
+        widget.difficulty != DifficultyLevel.master || sessionPerfect;
     for (final scripture in state.scriptureQueue) {
-      // Capture previous mastery level before recording
+      // Holistic mastery before this write — SB difficulty ladder, not accuracy.
+      final prevMastery =
+          ref.read(scriptureMasteryProvider(scripture.id)).level;
       final prevProgress =
           progressNotifier.getProgress(scripture.id, GameType.scriptureBuilder);
-      final prevMastery =
-          prevProgress?.masteryLevel ?? MasteryLevel.newScripture;
       final isFirstAttempt = prevProgress == null;
 
       progressNotifier.recordAttempt(
         scriptureId: scripture.id,
         gameType: GameType.scriptureBuilder,
-        correct: true, // All scriptures are completed at this point
+        correct: attemptCorrect,
         time: timeInSeconds,
         difficultyCompleted: widget.difficulty,
       );
@@ -1009,11 +1026,14 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
         );
       }
 
-      // Check for mastery level-up
+      // Check for mastery level-up (SB progression path)
       final newProgress =
           progressNotifier.getProgress(scripture.id, GameType.scriptureBuilder);
-      final newMastery = newProgress?.masteryLevel ?? MasteryLevel.newScripture;
-      if (prevMastery.index < MasteryLevel.mastered.index &&
+      final newMastery =
+          ref.read(scriptureMasteryProvider(scripture.id)).level;
+      // Banner only on the 3rd perfect Master run → Mastered (not each tier).
+      if (widget.difficulty == DifficultyLevel.master &&
+          prevMastery.index < MasteryLevel.mastered.index &&
           newMastery.index >= MasteryLevel.mastered.index) {
         newlyMastered = true;
       }
