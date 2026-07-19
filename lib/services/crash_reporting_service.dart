@@ -152,7 +152,8 @@ class CrashReportingService {
         options.maxBreadcrumbs = 60;
         // Native iOS failed-request capture duplicates handled Sidekick /
         // Supabase 5xx noise (FLUTTER-6). Dart-side capture stays on;
-        // beforeSend still drops known-transient statuses from either path.
+        // beforeSend drops expected Sidekick noise from either path:
+        // transient HTTP statuses (FLUTTER-6) and premium-gate 403s (FLUTTER-7).
         options.captureNativeFailedRequests = false;
         options.beforeSend = (event, hint) {
           if (shouldDropExpectedSidekickNoise(event)) return null;
