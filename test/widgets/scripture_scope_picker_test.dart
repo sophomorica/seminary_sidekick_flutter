@@ -275,7 +275,7 @@ void main() {
     expect(needsReviewInkWell(tester).onTap, isNull);
   });
 
-  testWidgets('pick-specific row opens selection page with search',
+  testWidgets('selection summary is the pick-specific entry (merged)',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(320, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -285,7 +285,19 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('scope-pick-specific')));
+    // One control: summary copy + chevron entry — no separate label row.
+    final entry = find.byKey(const Key('scope-pick-specific'));
+    expect(entry, findsOneWidget);
+    expect(
+      find.descendant(
+        of: entry,
+        matching: find.textContaining('scriptures selected'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Pick specific scriptures'), findsNothing);
+
+    await tester.tap(entry);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('scope-scripture-search')), findsOneWidget);

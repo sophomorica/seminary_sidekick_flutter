@@ -14,10 +14,11 @@ import 'selection_pill.dart';
 /// Reusable scripture-scope picker.
 ///
 /// Multi-select filters (books + Needs Review / Nearly Mastered) narrow the
-/// pool. "Pick specific scriptures" opens a selection page (in-place when
-/// [fillHeight] is true, otherwise a nested sheet) so the user can hand-pick
-/// a subset. Used by solo Quick Quiz, solo Scripture Match, group Quiz host
-/// lobby, and group Scripture Builder host lobby.
+/// pool. The selection summary row doubles as "Pick specific scriptures" —
+/// tapping it opens a selection page (in-place when [fillHeight] is true,
+/// otherwise a nested sheet) so the user can hand-pick a subset. Used by
+/// solo Quick Quiz, solo Scripture Match, group Quiz host lobby, and group
+/// Scripture Builder host lobby.
 ///
 /// Two ways to embed:
 ///   * Drop the widget into a form (lobby setup view)
@@ -48,10 +49,11 @@ class ScriptureScopePicker extends ConsumerStatefulWidget {
   /// [showConfirmButton] is true.
   final VoidCallback? onConfirm;
 
-  /// Optional override for the individual-scripture entry label.
+  /// Optional override for the individual-scripture selection page title.
   final String individualLabel;
 
-  /// When true (default), shows the "Pick specific scriptures" entry row.
+  /// When true (default), the selection summary is tappable and opens the
+  /// hand-pick scripture page.
   final bool showIndividualSection;
 
   /// When true, the picker fills a bounded parent (e.g. [Expanded]) and swaps
@@ -346,12 +348,8 @@ class _ScriptureScopePickerState extends ConsumerState<ScriptureScopePicker> {
       onToggleNeedsReview: _toggleNeedsReview,
       onToggleNearlyMastered: _toggleNearlyMastered,
       showIndividualSection: widget.showIndividualSection,
-      individualLabel: widget.individualLabel,
-      poolCount: pool.length,
-      selectedCount: _scope.specificIds.length,
       onOpenSelection: () => _openSelection(pool, all),
       resolved: resolved,
-      all: all,
       showConfirmButton: widget.showConfirmButton,
       confirmLabel: widget.confirmLabel,
       onConfirm: widget.onConfirm,
@@ -583,12 +581,8 @@ class _DefaultView extends StatelessWidget {
   final VoidCallback onToggleNeedsReview;
   final VoidCallback onToggleNearlyMastered;
   final bool showIndividualSection;
-  final String individualLabel;
-  final int poolCount;
-  final int selectedCount;
   final VoidCallback onOpenSelection;
   final List<Scripture> resolved;
-  final List<Scripture> all;
   final bool showConfirmButton;
   final String confirmLabel;
   final VoidCallback? onConfirm;
@@ -609,12 +603,8 @@ class _DefaultView extends StatelessWidget {
     required this.onToggleNeedsReview,
     required this.onToggleNearlyMastered,
     required this.showIndividualSection,
-    required this.individualLabel,
-    required this.poolCount,
-    required this.selectedCount,
     required this.onOpenSelection,
     required this.resolved,
-    required this.all,
     required this.showConfirmButton,
     required this.confirmLabel,
     required this.onConfirm,
@@ -656,20 +646,10 @@ class _DefaultView extends StatelessWidget {
           onToggleNeedsReview: onToggleNeedsReview,
           onToggleNearlyMastered: onToggleNearlyMastered,
         ),
-        if (showIndividualSection) ...[
-          const SizedBox(height: 12),
-          _IndividualEntryRow(
-            label: individualLabel,
-            poolCount: poolCount,
-            selectedCount: selectedCount,
-            onTap: onOpenSelection,
-          ),
-        ],
         const SizedBox(height: 20),
         _SelectionPreview(
           resolved: resolved,
-          scope: scope,
-          all: all,
+          onTap: showIndividualSection ? onOpenSelection : null,
         ),
         if (showConfirmButton) ...[
           const SizedBox(height: 16),
@@ -1012,65 +992,6 @@ class _FilterChips extends StatelessWidget {
   }
 }
 
-class _IndividualEntryRow extends StatelessWidget {
-  final String label;
-  final int poolCount;
-  final int selectedCount;
-  final VoidCallback onTap;
-
-  const _IndividualEntryRow({
-    required this.label,
-    required this.poolCount,
-    required this.selectedCount,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final subtitle = selectedCount > 0
-        ? '$selectedCount of $poolCount selected'
-        : '$poolCount in filter';
-
-    return InkWell(
-      key: const Key('scope-pick-specific'),
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant,
-                        ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.chevron_right,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _ScriptureCheckTile extends StatelessWidget {
   final Scripture scripture;
   final bool selected;
@@ -1131,13 +1052,14 @@ class _ScriptureCheckTile extends StatelessWidget {
 
 class _SelectionPreview extends StatelessWidget {
   final List<Scripture> resolved;
-  final ScriptureScope scope;
-  final List<Scripture> all;
+
+  /// When non-null, the preview is the "Pick specific scriptures" entry —
+  /// tappable with a chevron, keyed for tests.
+  final VoidCallback? onTap;
 
   const _SelectionPreview({
     required this.resolved,
-    required this.scope,
-    required this.all,
+    this.onTap,
   });
 
   @override
@@ -1150,52 +1072,77 @@ class _SelectionPreview extends StatelessWidget {
             ? sample
             : '$sample + ${count - 1} more';
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Theme.of(context)
-              .colorScheme
-              .outlineVariant
-              .withValues(alpha: 0.5),
+    final content = Row(
+      children: [
+        Icon(
+          count == 0 ? Icons.error_outline : Icons.menu_book_outlined,
+          size: 18,
+          color: count == 0
+              ? Theme.of(context).colorScheme.error
+              : Theme.of(context).colorScheme.onSurfaceVariant,
         ),
-      ),
-      child: Row(
-        children: [
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$count scripture${count == 1 ? '' : 's'} selected',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              Text(
+                preview,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurfaceVariant,
+                    ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+        if (onTap != null)
           Icon(
-            count == 0 ? Icons.error_outline : Icons.menu_book_outlined,
-            size: 18,
-            color: count == 0
-                ? Theme.of(context).colorScheme.error
-                : Theme.of(context).colorScheme.onSurfaceVariant,
+            Icons.chevron_right,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$count scripture${count == 1 ? '' : 's'} selected',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
-                Text(
-                  preview,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurfaceVariant,
-                      ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
+      ],
+    );
+
+    final decoration = BoxDecoration(
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(
+        color: Theme.of(context)
+            .colorScheme
+            .outlineVariant
+            .withValues(alpha: 0.5),
+      ),
+    );
+
+    if (onTap == null) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: decoration,
+        child: content,
+      );
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: const Key('scope-pick-specific'),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: decoration,
+          child: content,
+        ),
       ),
     );
   }
