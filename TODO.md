@@ -173,6 +173,31 @@ No remaining App Store Connect / banking / EULA / IAP blockers for this submissi
 
 ## Active Tasks
 
+### TASK-079: In-app announcements banner (Supabase-backed)
+
+- **status**: `in_progress`
+- **claimed_by**: cursor-agent-task-079
+- **started**: 2026-07-20T16:45:00Z
+- **priority**: P1
+- **estimated_effort**: Medium
+- **depends_on**: —
+- **files_to_touch**: `supabase/migrations/0009_announcements.sql`, `lib/models/announcement.dart`, `lib/services/announcement_service.dart`, `lib/providers/announcement_provider.dart`, `lib/widgets/announcement_banner.dart`, `lib/screens/home/home_screen.dart`, `lib/main.dart`, `lib/services/data_reset_service.dart`, `test/models/announcement_test.dart`, `test/providers/announcement_provider_test.dart`, `docs/FEATURES.md`, `docs/ARCHITECTURE.md`, `SUPABASE_SETUP.md`, `TODO.md`, `HANDOFF.md`
+- **out_of_scope**: Push notifications (APNs/FCM); per-user targeting / segments; client-side create/edit UI (owner publishes via Supabase dashboard); full video_player dependency (GIF/image + optional external video link); Realtime subscription (poll/fetch on launch is enough for v1)
+- **context**: Owner wants to reach all app users with community announcements, feature alerts, specials, and short how-to tips (GIF/media) when they open the app — pulled from Supabase, shown on Home, dismissible.
+- **design**:
+  1. **Postgres** `announcements` table + RLS: authenticated SELECT of rows where `is_active` and within `starts_at`/`ends_at`. Writes via dashboard/service role only.
+  2. **Storage** public-read bucket `announcement-media` for GIF/image assets (no public write).
+  3. **Client fetch** on app start (after Supabase anon session) via `AnnouncementService`; Hive box stores dismissed announcement IDs so dismiss sticks across launches.
+  4. **UX**: Compact dismissible banner at top of Home. Tap opens a sheet with full copy + optional media + CTA (in-app route or external URL). One announcement at a time (highest `priority`, then newest).
+  5. **Media**: `media_type` `image`/`gif` shown inline; `video` opens `cta_link` / `media_url` externally (no new video package).
+- **acceptance_criteria**:
+  - [ ] Migration + RLS + storage bucket SQL committed; documented in `SUPABASE_SETUP.md` (owner runs `supabase db push`)
+  - [ ] Home shows active undismissed announcement; dismiss hides it and persists in Hive
+  - [ ] Expired / inactive / dismissed announcements never show; fetch failures are silent (no crash, solo app still works)
+  - [ ] Media tip sheet works for image/gif URLs; CTA navigates in-app or launches URL
+  - [ ] Data reset clears announcement dismissals; `flutter analyze` clean; model + provider tests green
+- **notes**: Shared caution on `main.dart` / `TODO.md`. Do not require Supabase for solo play — announcements are best-effort when configured.
+
 ### TASK-078: Wire Continuity Heatmap to real study history
 
 - **status**: `open`
