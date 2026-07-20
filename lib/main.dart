@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 import 'providers/activity_provider.dart';
+import 'providers/announcement_provider.dart';
 import 'providers/goals_provider.dart';
 import 'providers/journal_provider.dart';
 import 'providers/mastery_dates_provider.dart';
@@ -97,13 +98,20 @@ Future<void> _bootstrap() async {
   // skipping the await is a missed profanity hit on the first lobby visit.
   NicknameValidator.preload();
 
-  // Initialize Supabase for Group Play multiplayer.
+  // Restore announcement dismissals (Hive) before Supabase comes up.
+  await container.read(announcementProvider.notifier).init();
+
+  // Initialize Supabase for Group Play multiplayer + announcements.
   // Credentials come from --dart-define at build/run time:
   //   --dart-define=SUPABASE_URL=...
   //   --dart-define=SUPABASE_ANON_KEY=...
-  // If either is missing, group play is gracefully unavailable but the rest
-  // of the app still works (solo mastery loop has no Supabase dependency).
+  // If either is missing, group play / announcements are gracefully
+  // unavailable but the rest of the app still works (solo mastery loop has
+  // no Supabase dependency).
   await _maybeInitSupabase();
+
+  // Pull latest announcements after the anon session exists (best-effort).
+  container.read(announcementProvider.notifier).refresh();
 
   runApp(
     UncontrolledProviderScope(

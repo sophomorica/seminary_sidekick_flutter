@@ -12,7 +12,7 @@
 | Thing | Value |
 |---|---|
 | Project | `seminary-sidekick` (ref `feqxdylouvoulhqwsffp`, West US / N. California) |
-| Migrations | `0001`–`0007` applied; local and remote in sync (`supabase migration list`) |
+| Migrations | `0001`–`0009` (apply `0009` for in-app announcements if not yet pushed); check with `supabase migration list` |
 | Anonymous auth | Enabled (required for Group Play join-by-code). **Enable CAPTCHA** on anonymous sign-in before public `/join` traffic (Auth → Attack Protection / CAPTCHA). |
 | Realtime | Enabled — `rooms`, `players`, `answers`, `group_sb_finishes` in the `supabase_realtime` publication |
 | Edge function | `sidekick-proxy` deployed, ACTIVE (powers premium Sidekick AI) |
@@ -20,7 +20,8 @@
 | Web join | Players join at `https://seminarysidekick.com/join/{CODE}` via RPC surface (`join_room`, `submit_answer`, `advance_question`, `kick_player`). Protocol: `docs/GROUP_PLAY_PROTOCOL.md`. |
 
 The free/solo side of the app (Scripture Builder, quizzes, mastery, journal) does **not**
-touch Supabase. Only **Group Play** and the **premium Sidekick AI** do.
+require Supabase. **Group Play**, **premium Sidekick AI**, and **in-app announcements**
+do (announcements are best-effort — missing credentials just means no banner).
 
 **Anon hygiene:** every web QR scan creates an anonymous auth user. Schedule periodic purge of
 stale anonymous users (Supabase docs: delete `auth.users` with `is_anonymous` older than N days
@@ -39,9 +40,37 @@ and no recent Group Play rows).
 | `0005_group_sb_finishes.sql` | `group_sb_finishes` table + RLS + realtime for the Scripture Builder race (TASK-062) |
 | `0006_lock_bump_host_usage.sql` | MAINT-001 — revokes the implicit `PUBLIC` grant on `bump_host_usage()`, adds an `auth.uid()` guard |
 | `0007_group_play_rpc_strict_rls.sql` | Web join v3 — `join_room` / `submit_answer` / `advance_question` / `kick_player` RPCs, `room_bans`, `question_started_at`, `rooms_player_view`, strict RLS |
+| `0008_group_play_rls_fixes.sql` | Room-scoped reads, heartbeat RPC, finishes table rename |
+| `0009_announcements.sql` | Broadcast `announcements` table + RLS + public-read `announcement-media` storage bucket (Home banner) |
 
 Apply new migrations with `supabase db push`; check sync with `supabase migration list`.
 (`supabase db reset --linked` re-applies from scratch — **never** run it against prod with real users.)
+
+### Publishing an in-app announcement (TASK-079)
+
+1. Apply `0009` if not yet on the project (`supabase db push`).
+2. (Optional) Upload a GIF/PNG to Storage → `announcement-media`, copy the public URL.
+3. Insert a row in Table Editor → `announcements` (or SQL), for example:
+
+```sql
+insert into public.announcements (title, body, kind, media_url, media_type, cta_label, cta_link, priority, ends_at)
+values (
+  'Try Group Play this week',
+  'Host a class race — tap to open Host.',
+  'feature',
+  null, -- or a public announcement-media URL
+  null, -- 'image' | 'gif' | 'video'
+  'Host a game',
+  '/group-play/host',
+  10,
+  now() + interval '14 days'
+);
+```
+
+- `kind`: `info` | `feature` | `event` | `tip` | `update`
+- `cta_link`: in-app path (`/practice`, `/upgrade`, …) or `https://…`
+- `media_type`: `image` / `gif` (inline in the detail sheet) or `video` (opens externally)
+- Clients fetch on launch; dismissals are local (Hive) per device. Set `is_active = false` or `ends_at` to stop showing.
 
 ---
 

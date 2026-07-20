@@ -30,3 +30,7 @@ Scripture Builder, Scripture Match, and Quick Quiz all share `GameResultsScreen`
 
 Group Play Scripture Builder race finish banners still use mistake-based star pips for that social mode only — separate from the solo meter.
 
+### In-app announcements (Home banner)
+
+Broadcast news, feature alerts, community events, and how-to tips from Supabase. On launch the app fetches active rows from the `announcements` table and shows the highest-priority undismissed item as a compact banner under the Home greeting. Tap opens a sheet with full copy, optional GIF/image tip, and a CTA (in-app route or external URL). Dismiss is permanent on that device (Hive). Publishing is dashboard/SQL only — see `SUPABASE_SETUP.md`. Not push notifications; users see updates when they open the app.
+

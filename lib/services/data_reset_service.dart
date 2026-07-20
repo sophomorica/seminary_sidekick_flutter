@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../providers/activity_provider.dart';
+import '../providers/announcement_provider.dart';
 import '../providers/goals_provider.dart';
 import '../providers/journal_provider.dart';
 import '../providers/mastery_dates_provider.dart';
@@ -33,6 +34,7 @@ class DataResetService {
   /// can re-initialize without a full app restart.
   static const List<String> _boxNames = <String>[
     'activities',
+    'announcements',
     'audio_settings',
     'goals',
     'journal_entries',
@@ -99,5 +101,8 @@ class DataResetService {
 
     // Sidekick reloads its own cache (non-blocking, mirrors main.dart).
     ref.read(sidekickProvider.notifier).init();
+    // Announcements: restore empty dismissals then refetch.
+    await ref.read(announcementProvider.notifier).init();
+    ref.read(announcementProvider.notifier).refresh();
   }
 }

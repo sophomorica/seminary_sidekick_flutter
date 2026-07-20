@@ -12,6 +12,7 @@ import '../../providers/subscription_provider.dart';
 import '../../providers/user_preferences_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/scripture_reference_resolver.dart';
+import '../../widgets/announcement_banner.dart';
 import '../../widgets/game_setup_sheet.dart';
 import '../../widgets/group_play_card.dart';
 import 'journal_card.dart';
@@ -108,6 +109,7 @@ class HomeScreen extends ConsumerWidget {
           oneLine: false,
         ),
         const SizedBox(height: AppTheme.spacingXl),
+        const AnnouncementBanner(),
         ..._buildResumeSection(context, ref, resumeTarget, statsAttempted),
         const _HomeEyebrow("Let's play"),
         const SizedBox(height: AppTheme.spacingSm),
@@ -155,6 +157,7 @@ class HomeScreen extends ConsumerWidget {
           oneLine: true,
         ),
         const SizedBox(height: AppTheme.spacingXl),
+        const AnnouncementBanner(),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

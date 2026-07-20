@@ -1,32 +1,34 @@
-# HANDOFF — TASK-076
+# HANDOFF — TASK-079
 
-- **task**: TASK-076 Solo Scripture Builder — verse-gated chunk progression
-- **state**: `PASS`
-- **branch**: `cursor/task-076-verse-gated-builder-026a`
-- **worker**: cursor-agent-task-076
-- **reviewer**: cursor-validator-task-076
-- **updated**: 2026-07-18T13:10:00Z
+- **task**: TASK-079 In-app announcements banner (Supabase-backed)
+- **state**: `NEEDS_REVIEW`
+- **branch**: `cursor/in-app-announcements-banner-d55b`
+- **worker**: cursor-agent-task-079
+- **reviewer**: —
+- **updated**: 2026-07-20T17:00:00Z
 
 ## Summary
 
-Solo Beginner/Intermediate Scripture Builder now loads chunk bubbles **one verse at a time**. Completing a verse swaps the pool in place (no verse-complete UI); prior verses stay on the canvas; header keeps the full reference; progress fills across the whole passage. Advanced/Master unchanged. Group Play untouched (TASK-077).
+Adds a Supabase-backed Home announcement banner so owners can reach every app user with news, feature alerts, events, and how-to tips (GIF/image) without push notifications. Clients fetch on launch; users dismiss locally (Hive).
 
 ## What changed
 
-- `Scripture.verses` + corpus splits at LDS canon boundaries (split-only; `fullText` unchanged)
-- `// CANON_DIFF:` comments on ids 83, 92, 99, 100
-- Provider verse state machine + screen canvas shows `completedVerseChunks`
-- Tests + `docs/FEATURES.md`
+- Migration `0009_announcements.sql` — `announcements` table + RLS (authenticated SELECT of active window) + public-read `announcement-media` storage bucket
+- Model / service / provider + Home `AnnouncementBanner` (tap → detail sheet with media + CTA)
+- `main.dart` init/refresh after Supabase; data reset clears dismissals
+- Docs: `SUPABASE_SETUP.md` publish recipe, `FEATURES.md`, `ARCHITECTURE.md`
+- Tests: model + provider
 
-## Verification (reviewer)
+## Owner follow-up
+
+- Run `supabase db push` to apply `0009` on the live project
+- Publish announcements via Table Editor / SQL (see `SUPABASE_SETUP.md`)
+
+## Verification (worker)
 
 - `flutter analyze` — clean (0 issues)
-- `flutter test test/models/scripture_test.dart test/providers/scripture_builder_provider_test.dart` — green
-- `fullText` byte-identical vs pre-task HEAD for all 100 scriptures
-- 54/55 multi-verse refs match canon verse counts; id 100 abridged (documented `CANON_DIFF`)
-- Group Play paths absent from diff; provider has no mastery writes
-- No “Verse Complete” UI; mastery only via session `_navigateToResults`
+- `flutter test test/models/announcement_test.dart test/providers/announcement_provider_test.dart` — 12/12 green
 
 ## Reviewer verdict
 
-**PASS** — all acceptance criteria met. Nits only (uncommitted working tree; no screen widget test for canvas prior-verse spans).
+— (awaiting `/review`)

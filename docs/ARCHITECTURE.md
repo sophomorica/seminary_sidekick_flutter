@@ -38,7 +38,8 @@ lib/
 │ ├── group_answer.dart # Group play: answer + speed-weighted points
 │ ├── group_sb_config.dart # SB race config (difficulty, play mode, set)
 │ ├── group_sb_finish.dart # SB race finish event (incl. DNF)
-│ └── group_play_state.dart # Aggregate state for GroupPlayNotifier
+│ ├── group_play_state.dart # Aggregate state for GroupPlayNotifier
+│ └── announcement.dart # Broadcast in-app banner (Supabase)
 ├── data/
 │ └── scriptures_data.dart
 ├── providers/
@@ -55,6 +56,7 @@ lib/
 │ ├── goals_provider.dart
 │ ├── journal_provider.dart
 │ ├── group_play_provider.dart # Group play orchestration + realtime subs
+│ ├── announcement_provider.dart # Supabase announcements + Hive dismissals
 │ └── scripture_scope_provider.dart # Hive-backed last-used scope per game
 ├── screens/
 │ ├── home/
@@ -114,11 +116,13 @@ lib/
 │ ├── speech_service.dart
 │ ├── haptic_service.dart # All haptics, gated by user preference
 │ ├── sidekick_service.dart # Grok API calls + snapshot logic
+│ ├── announcement_service.dart # Supabase fetch for in-app Home announcements
 │ ├── group_play_service.dart # All Supabase calls + resilient realtime streams
 │ ├── quiz_question_factory.dart # Shared question generation (solo + group)
 │ ├── nickname_validator.dart # Group play nickname profanity filter
 │ └── crash_reporting_service.dart # Sentry wrapper: init gate, breadcrumbs, tags
 ├── widgets/
+│ ├── announcement_banner.dart # Dismissible Home banner + detail sheet
 │ ├── scripture_card.dart
 │ ├── mastery_badge.dart
 │ ├── progress_ring.dart
