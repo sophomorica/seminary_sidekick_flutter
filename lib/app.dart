@@ -88,7 +88,16 @@ class _SeminarySidekickAppState extends ConsumerState<SeminarySidekickApp> {
               routes: [
                 GoRoute(
                   path: '/library',
-                  builder: (context, state) => const ScriptureLibraryScreen(),
+                  builder: (context, state) {
+                    final params = state.uri.queryParameters;
+                    return ScriptureLibraryScreen(
+                      // Remount when Stats (or others) deep-link with new
+                      // query params so IndexedStack can't keep a stale filter.
+                      key: ValueKey(state.uri.toString()),
+                      initialStatus: params['status'],
+                      initialBook: params['book'],
+                    );
+                  },
                 ),
                 // Lives in the Library branch so scripture detail keeps the
                 // bottom tab bar — same flex chrome as the rest of the app.
