@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../models/enums.dart';
@@ -47,6 +48,10 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
   final _typingFocusNode = FocusNode();
   bool _isResetting = false; // Guard against onChanged re-triggers during reset
   bool _advanceScheduled = false; // Completion handled for current scripture
+
+  // Keeps the active canvas/cursor slot visible as long passages grow.
+  // One key is enough — chunk-tap and typing never share the tree.
+  final _activeAnswerSlotKey = GlobalKey();
 
   // Chunk colors for visual distinction
   static const _chunkPalette = [
@@ -169,6 +174,12 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
       if (next.currentIndex != (prev?.currentIndex ?? -1)) {
         _advanceScheduled = false;
         setState(() => _hintRevealed = false);
+      }
+      // Follow the active slot down long passages (chunk-tap + typing).
+      if (_shouldFollowAnswerProgress(prev, next)) {
+        _scrollActiveAnswerSlotIntoView(
+          animated: next.mode == ScriptureBuilderMode.chunkTap,
+        );
       }
     });
 
@@ -492,16 +503,27 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
         ));
       } else if (isNext) {
         // ── Next slot: dashed underline placeholder ──
+        // WidgetSpan so we can ensureVisible as the user advances.
         final placeholder = '─' * target.text.length.clamp(3, 10);
-        spans.add(TextSpan(
-          text: placeholder,
-          style: TextStyle(
-            color:
-                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.25),
-            letterSpacing: 2,
-            decoration: TextDecoration.underline,
-            decorationColor: diffColor.withValues(alpha: 0.5),
-            decorationStyle: TextDecorationStyle.dashed,
+        spans.add(WidgetSpan(
+          alignment: PlaceholderAlignment.baseline,
+          baseline: TextBaseline.alphabetic,
+          child: Text(
+            key: _activeAnswerSlotKey,
+            placeholder,
+            style: TextStyle(
+              fontSize: 22,
+              height: 1.6,
+              fontFamily: 'Merriweather',
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.25),
+              letterSpacing: 2,
+              decoration: TextDecoration.underline,
+              decorationColor: diffColor.withValues(alpha: 0.5),
+              decorationStyle: TextDecorationStyle.dashed,
+            ),
           ),
         ));
       } else {
@@ -732,11 +754,14 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
     );
   }
 
-  List<TextSpan> _buildTypedSpans(ScriptureBuilderState state) {
-    final spans = <TextSpan>[];
+  List<InlineSpan> _buildTypedSpans(ScriptureBuilderState state) {
+    final spans = <InlineSpan>[];
     final target = state.targetText;
     final typed = state.typedChars;
     final isMaster = widget.difficulty == DifficultyLevel.master;
+    final isTablet = AppTheme.isTabletLandscape(context);
+    final fontSize = isTablet ? 21.0 : 16.0;
+    final lineHeight = isTablet ? 1.8 : 1.6;
 
     // For Advanced: pre-compute which indices are "first letter of a word"
     // so we can show those as hints. Never reveal any other untyped letter —
@@ -753,22 +778,43 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
         ? -1
         : TypedDisplayRules.nextLetterIndex(target, typed.length);
 
+    // Scroll anchor: Advanced cursor, else the next untyped glyph (Master /
+    // error paths), clamped into the passage.
+    final anchorIndex = cursorIndex >= 0
+        ? cursorIndex
+        : typed.length.clamp(0, target.isEmpty ? 0 : target.length - 1);
+
     for (int i = 0; i < target.length; i++) {
+      final isAnchor = i == anchorIndex && !state.isScriptureComplete;
+
       if (i < typed.length) {
         // Already typed — show green or red
         final tc = typed[i];
-        spans.add(TextSpan(
-          text: tc.char,
-          style: TextStyle(
-            color: tc.isCorrect ? AppTheme.success : AppTheme.error,
-            fontWeight: FontWeight.w700,
-            backgroundColor: tc.isCorrect
-                ? AppTheme.success.withValues(alpha: 0.1)
-                : AppTheme.error.withValues(alpha: 0.15),
-            decoration: tc.isCorrect ? null : TextDecoration.underline,
-            decorationColor: AppTheme.error,
-          ),
-        ));
+        final style = TextStyle(
+          fontSize: fontSize,
+          height: lineHeight,
+          fontFamily: 'Merriweather',
+          color: tc.isCorrect ? AppTheme.success : AppTheme.error,
+          fontWeight: FontWeight.w700,
+          backgroundColor: tc.isCorrect
+              ? AppTheme.success.withValues(alpha: 0.1)
+              : AppTheme.error.withValues(alpha: 0.15),
+          decoration: tc.isCorrect ? null : TextDecoration.underline,
+          decorationColor: AppTheme.error,
+        );
+        if (isAnchor) {
+          spans.add(WidgetSpan(
+            alignment: PlaceholderAlignment.baseline,
+            baseline: TextBaseline.alphabetic,
+            child: Text(
+              key: _activeAnswerSlotKey,
+              tc.char,
+              style: style,
+            ),
+          ));
+        } else {
+          spans.add(TextSpan(text: tc.char, style: style));
+        }
       } else {
         // Untyped — the glyph choice is centralized in TypedDisplayRules
         // (unit-tested) so this branch can never disclose a hidden letter:
@@ -785,29 +831,66 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
             ? AppTheme.accent.withValues(alpha: 0.15)
             : null;
         if (glyph == ' ' || glyph == '\n') {
+          if (isAnchor) {
+            spans.add(WidgetSpan(
+              alignment: PlaceholderAlignment.baseline,
+              baseline: TextBaseline.alphabetic,
+              child: SizedBox(
+                key: _activeAnswerSlotKey,
+                width: 1,
+                height: fontSize,
+              ),
+            ));
+          }
           spans.add(TextSpan(text: glyph));
         } else if (glyph == '_') {
-          spans.add(TextSpan(
-            text: '_',
-            style: TextStyle(
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withValues(alpha: atCursor ? 0.45 : 0.25),
-              letterSpacing: 1,
-              backgroundColor: cursorBg,
-            ),
-          ));
+          final style = TextStyle(
+            fontSize: fontSize,
+            height: lineHeight,
+            fontFamily: 'Merriweather',
+            color: Theme.of(context)
+                .colorScheme
+                .onSurface
+                .withValues(alpha: atCursor ? 0.45 : 0.25),
+            letterSpacing: 1,
+            backgroundColor: cursorBg,
+          );
+          if (isAnchor) {
+            spans.add(WidgetSpan(
+              alignment: PlaceholderAlignment.baseline,
+              baseline: TextBaseline.alphabetic,
+              child: Text(
+                key: _activeAnswerSlotKey,
+                '_',
+                style: style,
+              ),
+            ));
+          } else {
+            spans.add(TextSpan(text: '_', style: style));
+          }
         } else {
           // First letter hint — show it dimly (bolden slightly at cursor)
-          spans.add(TextSpan(
-            text: glyph,
-            style: TextStyle(
-              color: AppTheme.accent.withValues(alpha: atCursor ? 0.95 : 0.7),
-              fontWeight: atCursor ? FontWeight.w700 : FontWeight.w600,
-              backgroundColor: cursorBg,
-            ),
-          ));
+          final style = TextStyle(
+            fontSize: fontSize,
+            height: lineHeight,
+            fontFamily: 'Merriweather',
+            color: AppTheme.accent.withValues(alpha: atCursor ? 0.95 : 0.7),
+            fontWeight: atCursor ? FontWeight.w700 : FontWeight.w600,
+            backgroundColor: cursorBg,
+          );
+          if (isAnchor) {
+            spans.add(WidgetSpan(
+              alignment: PlaceholderAlignment.baseline,
+              baseline: TextBaseline.alphabetic,
+              child: Text(
+                key: _activeAnswerSlotKey,
+                glyph,
+                style: style,
+              ),
+            ));
+          } else {
+            spans.add(TextSpan(text: glyph, style: style));
+          }
         }
       }
     }
@@ -932,6 +1015,77 @@ class _ScriptureBuilderScreenState extends ConsumerState<ScriptureBuilderScreen>
   // ═══════════════════════════════════════════════════════════════
   // SHARED HELPERS
   // ═══════════════════════════════════════════════════════════════
+
+  /// Whether answer-sheet progress moved enough that we should re-center
+  /// the active slot (correct chunk, verse advance, or typed progress).
+  bool _shouldFollowAnswerProgress(
+    ScriptureBuilderState? prev,
+    ScriptureBuilderState next,
+  ) {
+    if (next.isScriptureComplete || next.currentScripture == null) {
+      return false;
+    }
+    if (prev == null) return true;
+
+    if (next.mode == ScriptureBuilderMode.chunkTap) {
+      return next.nextChunkIndex != prev.nextChunkIndex ||
+          next.currentVerseIndex != prev.currentVerseIndex ||
+          next.completedVerseChunks.length != prev.completedVerseChunks.length ||
+          next.currentIndex != prev.currentIndex;
+    }
+
+    // Typing: follow as characters/words commit; also after a Master reset
+    // so the view returns to the top of the passage.
+    return next.typedChars.length != prev.typedChars.length ||
+        next.lastFeedback == 'reset' ||
+        next.currentIndex != prev.currentIndex;
+  }
+
+  /// Scroll the scripture canvas / typed display so the active slot sits
+  /// near the vertical center of the visible sheet.
+  ///
+  /// Follows downward progress; skips tiny re-centers so we don't fight a
+  /// user who already has the slot on screen. Large upward jumps (verse
+  /// reset / new scripture) still snap back to the active slot.
+  void _scrollActiveAnswerSlotIntoView({required bool animated}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final slotContext = _activeAnswerSlotKey.currentContext;
+      if (slotContext == null) return;
+
+      final renderObject = slotContext.findRenderObject();
+      if (renderObject is! RenderBox || !renderObject.hasSize) return;
+
+      final scrollableState = Scrollable.maybeOf(slotContext);
+      if (scrollableState == null) return;
+      final position = scrollableState.position;
+      if (!position.hasContentDimensions) return;
+
+      final viewport = RenderAbstractViewport.maybeOf(renderObject);
+      if (viewport == null) return;
+
+      final targetOffset = viewport
+          .getOffsetToReveal(renderObject, 0.4)
+          .offset
+          .clamp(position.minScrollExtent, position.maxScrollExtent);
+      final delta = targetOffset - position.pixels;
+
+      // Already near the desired band.
+      if (delta.abs() < 32) return;
+      // Small upward nudge — slot is still comfortably on screen.
+      if (delta < 0 && delta > -120) return;
+
+      if (animated) {
+        position.animateTo(
+          targetOffset,
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeOutCubic,
+        );
+      } else {
+        position.jumpTo(targetOffset);
+      }
+    });
+  }
 
   Widget _buildScriptureCompleteOverlay(ScriptureBuilderState state) {
     return Center(
