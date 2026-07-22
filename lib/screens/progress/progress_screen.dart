@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../models/enums.dart';
 import '../../models/scripture.dart';
@@ -65,50 +66,70 @@ class ProgressScreen extends ConsumerWidget {
 
   /// Mastery hero — 140px ring with Started + Needs Review tiles alongside.
   /// Relocated from the home screen as part of TASK-046.
+  /// Tapping the ring opens Library filtered to Mastered scriptures.
   Widget _buildMasteryHero(BuildContext context, HolisticStats stats) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        SizedBox(
-          width: 140.0,
-          height: 140.0,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              CustomPaint(
-                size: const Size(140, 140),
-                painter: _ProgressRingPainter(
-                  progress: stats.totalScriptures > 0
-                      ? stats.mastered / stats.totalScriptures
-                      : 0.0,
-                  color: Theme.of(context).colorScheme.primary,
-                  strokeWidth: 10.0,
-                  backgroundColor:
-                      Theme.of(context).colorScheme.surfaceContainerHighest,
-                ),
-              ),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+        Semantics(
+          button: true,
+          label: stats.mastered == 0
+              ? 'View mastered scriptures'
+              : 'View ${stats.mastered} mastered scriptures',
+          child: InkWell(
+            onTap: () => context.go(
+              '/library?status=mastered&t=${DateTime.now().millisecondsSinceEpoch}',
+            ),
+            customBorder: const CircleBorder(),
+            child: SizedBox(
+              width: 140.0,
+              height: 140.0,
+              child: Stack(
+                alignment: Alignment.center,
                 children: [
-                  Text(
-                    '${stats.mastered}',
-                    style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                          fontFamily: 'Merriweather',
-                          fontWeight: FontWeight.bold,
-                          height: 1.0,
-                        ),
+                  CustomPaint(
+                    size: const Size(140, 140),
+                    painter: _ProgressRingPainter(
+                      progress: stats.totalScriptures > 0
+                          ? stats.mastered / stats.totalScriptures
+                          : 0.0,
+                      color: Theme.of(context).colorScheme.primary,
+                      strokeWidth: 10.0,
+                      backgroundColor: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest,
+                    ),
                   ),
-                  const SizedBox(height: 4.0),
-                  Text(
-                    '/ ${stats.totalScriptures} MASTERED',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          letterSpacing: 0.6,
-                        ),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '${stats.mastered}',
+                        style: Theme.of(context)
+                            .textTheme
+                            .displayMedium
+                            ?.copyWith(
+                              fontFamily: 'Merriweather',
+                              fontWeight: FontWeight.bold,
+                              height: 1.0,
+                            ),
+                      ),
+                      const SizedBox(height: 4.0),
+                      Text(
+                        '/ ${stats.totalScriptures} MASTERED',
+                        style:
+                            Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                  letterSpacing: 0.6,
+                                ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
         const SizedBox(width: 16.0),
@@ -283,6 +304,10 @@ class ProgressScreen extends ConsumerWidget {
           progress: progress,
           percentage: (progress * 100).toInt(),
           bookColor: AppTheme.bookColor(book.displayName),
+          onTap: () => context.go(
+            '/library?status=mastered&book=${book.name}'
+            '&t=${DateTime.now().millisecondsSinceEpoch}',
+          ),
         );
       }).toList(),
     );
@@ -524,68 +549,87 @@ class _BookBreakdownCard extends StatelessWidget {
   final double progress;
   final int percentage;
   final Color bookColor;
+  final VoidCallback onTap;
 
   const _BookBreakdownCard({
     required this.bookName,
     required this.progress,
     required this.percentage,
     required this.bookColor,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12.0),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
-        boxShadow: AppTheme.editorialShadow,
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Circular progress ring (70px = w-12 h-12)
-          SizedBox(
-            width: 70,
-            height: 70,
-            child: CustomPaint(
-              painter: _ProgressRingPainter(
-                progress: progress,
-                color: bookColor,
-                strokeWidth: 4,
-                backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-              ),
-              child: Center(
-                child: Text(
-                  '$percentage%',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontStyle: FontStyle.italic,
-                        color: bookColor,
-                        fontSize: 14,
+    return Semantics(
+      button: true,
+      label: 'View mastered $bookName scriptures',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+          child: Container(
+            padding: const EdgeInsets.all(12.0),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+              boxShadow: AppTheme.editorialShadow,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Circular progress ring (70px = w-12 h-12)
+                SizedBox(
+                  width: 70,
+                  height: 70,
+                  child: CustomPaint(
+                    painter: _ProgressRingPainter(
+                      progress: progress,
+                      color: bookColor,
+                      strokeWidth: 4,
+                      backgroundColor: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$percentage%',
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineSmall
+                            ?.copyWith(
+                              fontStyle: FontStyle.italic,
+                              color: bookColor,
+                              fontSize: 14,
+                            ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4.0),
+                Text(
+                  bookName,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
                       ),
                 ),
-              ),
+                const SizedBox(height: 1.5),
+                Text(
+                  'Scripture Mastery',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color:
+                            Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 9,
+                      ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 4.0),
-          Text(
-            bookName,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                ),
-          ),
-          const SizedBox(height: 1.5),
-          Text(
-            'Scripture Mastery',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 9,
-                ),
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -38,8 +38,21 @@ enum _StatusFilter {
 /// Sacred Editorial Scripture Library — fast lookup across all 100
 /// scriptures with pinned search, volume filter pills, status filters,
 /// and sorting. Built for "find it in two taps", not endless scrolling.
+///
+/// Optional [initialStatus] / [initialBook] come from `/library` query
+/// params (e.g. Stats → Mastered drill-down: `?status=mastered&book=oldTestament`).
 class ScriptureLibraryScreen extends ConsumerStatefulWidget {
-  const ScriptureLibraryScreen({super.key});
+  const ScriptureLibraryScreen({
+    super.key,
+    this.initialStatus,
+    this.initialBook,
+  });
+
+  /// `_StatusFilter.name` from the route, e.g. `mastered`.
+  final String? initialStatus;
+
+  /// [ScriptureBook.name] from the route, e.g. `oldTestament`.
+  final String? initialBook;
 
   @override
   ConsumerState<ScriptureLibraryScreen> createState() =>
@@ -57,10 +70,72 @@ class _ScriptureLibraryScreenState
   _LibrarySort _sort = _LibrarySort.canonical;
 
   @override
+  void initState() {
+    super.initState();
+    _applyRouteFilters(
+      widget.initialStatus,
+      widget.initialBook,
+      notify: false,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant ScriptureLibraryScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialStatus != oldWidget.initialStatus ||
+        widget.initialBook != oldWidget.initialBook) {
+      _applyRouteFilters(widget.initialStatus, widget.initialBook);
+    }
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  /// Seeds filters from Stats (or other) deep links. No-ops when both
+  /// query params are absent so a plain `/library` visit keeps defaults.
+  void _applyRouteFilters(
+    String? status,
+    String? book, {
+    bool notify = true,
+  }) {
+    if (status == null && book == null) return;
+
+    _StatusFilter parsedStatus = _StatusFilter.all;
+    if (status != null) {
+      for (final value in _StatusFilter.values) {
+        if (value.name == status) {
+          parsedStatus = value;
+          break;
+        }
+      }
+    }
+
+    ScriptureBook? parsedBook;
+    if (book != null) {
+      for (final value in ScriptureBook.values) {
+        if (value.name == book) {
+          parsedBook = value;
+          break;
+        }
+      }
+    }
+
+    void apply() {
+      _statusFilter = parsedStatus;
+      _bookFilter = parsedBook;
+      _searchController.clear();
+      _searchQuery = '';
+    }
+
+    if (notify) {
+      setState(apply);
+    } else {
+      apply();
+    }
   }
 
   bool get _hasActiveFilters =>
@@ -556,23 +631,34 @@ class _ScriptureLibraryScreenState
 
   Widget _buildEmptyState(BuildContext context) {
     final theme = Theme.of(context);
+    final masteredEmpty = _statusFilter == _StatusFilter.mastered &&
+        _searchQuery.isEmpty;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingXl),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.menu_book_outlined,
-              size: 48, color: theme.colorScheme.outline),
+          Icon(
+            masteredEmpty
+                ? Icons.workspace_premium_outlined
+                : Icons.menu_book_outlined,
+            size: 48,
+            color: theme.colorScheme.outline,
+          ),
           const SizedBox(height: AppTheme.spacingMd),
           Text(
-            'No scriptures found',
+            masteredEmpty
+                ? 'No mastered scriptures yet'
+                : 'No scriptures found',
             style: theme.textTheme.headlineSmall,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppTheme.spacingSm),
           Text(
-            'Try a different search or clear your filters.',
+            masteredEmpty
+                ? 'Complete 3 perfect Master runs in Scripture Builder to earn Mastered.'
+                : 'Try a different search or clear your filters.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
