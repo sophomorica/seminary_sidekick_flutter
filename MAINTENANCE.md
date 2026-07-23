@@ -21,6 +21,7 @@
 | MAINT-007 | Scripture Builder Advanced typing display was revealing the next correct letter as a "cursor" highlight, defeating first-letter-only hints. Untyped Advanced positions now stay first-letter hints + underscores; cursor chrome highlights the slot without disclosing non-hint letters. Master blanking unchanged. | 2026-07-12 |
 | MAINT-008 | Sentry FLUTTER-6 (`HTTPClientError` status 529): upstream Sidekick/xAI overload was auto-captured as a crash. Filter transient HTTP client errors (429/502/503/529) in `beforeSend`, disable native iOS failed-request capture, map proxy overload to structured 503, and surface `SidekickUnavailableException` with retry-friendly copy (breadcrumb only — no `recordError`). | 2026-07-13 |
 | MAINT-010 | Sentry FLUTTER-7 (`FunctionException` status 403 premium gate): TASK-067's `recordError` on the expected `sidekick-proxy` entitlement 403 opened a false crash issue. Stop recording that path (breadcrumb only, same pattern as FLUTTER-6) and drop matching entitlement-gate `FunctionException` events in `beforeSend`. UI Refresh/upgrade handling unchanged. | 2026-07-17 |
+| MAINT-011 | Sentry FLUTTER-8 (`Failed to load font` / `fonts.gstatic.com` DNS failure): `google_fonts` fetched Merriweather/Inter over the network and threw when host lookup failed. Bundle Inter + Merriweather under `assets/google_fonts/`, disable `GoogleFonts.config.allowRuntimeFetching` at bootstrap, and add a regression test for the asset list. | 2026-07-19 |
 
 ---
 

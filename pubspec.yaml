@@ -81,6 +81,10 @@ flutter:
     - assets/audio/
     - assets/icon/
     - assets/images/
+    # Bundled Google Fonts (Inter + Merriweather) — loaded offline by
+    # package:google_fonts. Do not rename files; names must match the
+    # google_fonts API filename prefixes (e.g. Inter-Regular.ttf).
+    - assets/google_fonts/
 
 flutter_launcher_icons:
   android: true

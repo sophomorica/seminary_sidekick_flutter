@@ -51,6 +51,11 @@ titleLarge      // Card titles (Inter)
 bodyLarge       // Body text
 bodySmall       // Captions
 
+// Fonts are bundled under assets/google_fonts/ and runtime HTTP fetching
+// is disabled (configureBundledGoogleFonts in main). If you add a new
+// GoogleFonts.* family or weight, ship the matching TTF there too —
+// never rely on fonts.gstatic.com at runtime (FLUTTER-8).
+
 // Spacing
 AppTheme.spacingSm (8), spacingMd (16), spacingLg (24), spacingXl (32)
 

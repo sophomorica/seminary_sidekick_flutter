@@ -9,6 +9,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
+import 'theme/google_fonts_bootstrap.dart';
 import 'providers/activity_provider.dart';
 import 'providers/announcement_provider.dart';
 import 'providers/goals_provider.dart';
@@ -37,6 +38,9 @@ void main() async {
 
 Future<void> _bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // FLUTTER-8: use bundled Inter/Merriweather; never hit fonts.gstatic.com.
+  configureBundledGoogleFonts();
 
   // Initialize local storage
   await Hive.initFlutter();
