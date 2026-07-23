@@ -9,10 +9,10 @@ import 'package:seminary_sidekick/services/announcement_service.dart';
 class _FakeAnnouncementService extends AnnouncementService {
   _FakeAnnouncementService(this.rows);
 
-  List<Announcement> rows;
+  List<Announcement>? rows;
 
   @override
-  Future<List<Announcement>> fetchActive() async => rows;
+  Future<List<Announcement>?> fetchActive() async => rows;
 }
 
 Announcement _announcement({
@@ -92,6 +92,26 @@ void main() {
         endsAt: DateTime.utc(2021, 1, 1),
       ),
     ];
+    await notifier.refresh();
+    expect(notifier.state.visible, isNull);
+  });
+
+  test('failed fetch (null) keeps last-known-good announcements', () async {
+    service.rows = [_announcement(id: 'keep', priority: 1)];
+    await notifier.refresh();
+    expect(notifier.state.visible?.id, 'keep');
+
+    // Simulate no-session / network failure (e.g. right after data reset).
+    service.rows = null;
+    await notifier.refresh();
+    expect(notifier.state.visible?.id, 'keep');
+    expect(notifier.state.isLoading, isFalse);
+  });
+
+  test('empty fetch really clears announcements', () async {
+    service.rows = [_announcement(id: 'gone', priority: 1)];
+    await notifier.refresh();
+    service.rows = [];
     await notifier.refresh();
     expect(notifier.state.visible, isNull);
   });

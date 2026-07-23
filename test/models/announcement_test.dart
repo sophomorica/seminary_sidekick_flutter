@@ -41,6 +41,68 @@ void main() {
       expect(a.hasCta, isFalse);
       expect(a.mediaType, isNull);
     });
+
+    test('coerces double priority from JSON', () {
+      final a = Announcement.fromJson({
+        'id': '33333333-3333-3333-3333-333333333333',
+        'title': 'T',
+        'body': 'B',
+        'priority': 7.0,
+        'starts_at': '2026-07-01T00:00:00Z',
+        'created_at': '2026-07-01T00:00:00Z',
+      });
+      expect(a.priority, 7);
+    });
+  });
+
+  group('URL safety', () {
+    Announcement withCta(String? link, {String? mediaUrl, String? mediaType}) =>
+        Announcement.fromJson({
+          'id': '44444444-4444-4444-4444-444444444444',
+          'title': 'T',
+          'body': 'B',
+          'cta_label': 'Go',
+          if (link != null) 'cta_link': link,
+          if (mediaUrl != null) 'media_url': mediaUrl,
+          if (mediaType != null) 'media_type': mediaType,
+          'starts_at': '2026-07-01T00:00:00Z',
+          'created_at': '2026-07-01T00:00:00Z',
+        });
+
+    test('in-app path is a CTA and marked in-app', () {
+      final a = withCta('/group-play/host');
+      expect(a.hasCta, isTrue);
+      expect(a.ctaIsInApp, isTrue);
+      expect(a.ctaIsExternal, isFalse);
+    });
+
+    test('https link is a CTA and marked external', () {
+      final a = withCta('https://example.com/x');
+      expect(a.hasCta, isTrue);
+      expect(a.ctaIsInApp, isFalse);
+      expect(a.ctaIsExternal, isTrue);
+    });
+
+    test('scheme-relative and non-http schemes are rejected', () {
+      expect(withCta('//evil.com/x').hasCta, isFalse);
+      expect(withCta('javascript:alert(1)').hasCta, isFalse);
+      expect(withCta('file:///etc/passwd').hasCta, isFalse);
+      expect(Announcement.isHttpUrl('//evil.com/x'), isFalse);
+      expect(Announcement.isHttpUrl('javascript:alert(1)'), isFalse);
+      expect(Announcement.isHttpUrl('https://ok.com/a'), isTrue);
+    });
+
+    test('non-http media URL means no media', () {
+      final a = withCta(null,
+          mediaUrl: 'javascript:alert(1)', mediaType: 'gif');
+      expect(a.hasMedia, isFalse);
+      expect(a.hasInlineMedia, isFalse);
+    });
+
+    test('empty video url shows no watch button', () {
+      final a = withCta(null, mediaUrl: '', mediaType: 'video');
+      expect(a.hasVideoMedia, isFalse);
+    });
   });
 
   group('Announcement.isLiveAt', () {

@@ -31,19 +31,38 @@ class Announcement {
     required this.createdAt,
   });
 
-  bool get hasMedia =>
-      mediaUrl != null && mediaUrl!.isNotEmpty && mediaType != null;
+  /// True only for absolute http(s) URLs — the sole schemes we ever hand to
+  /// `launchUrl` or `Image.network`. Blocks `javascript:`, `file:`,
+  /// scheme-relative `//host`, etc.
+  static bool isHttpUrl(String? url) {
+    if (url == null || url.isEmpty) return false;
+    final uri = Uri.tryParse(url.trim());
+    return uri != null &&
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.host.isNotEmpty;
+  }
+
+  bool get hasMedia => isHttpUrl(mediaUrl) && mediaType != null;
 
   bool get hasInlineMedia =>
       hasMedia &&
       (mediaType == AnnouncementMediaType.image ||
           mediaType == AnnouncementMediaType.gif);
 
+  bool get hasVideoMedia => hasMedia && mediaType == AnnouncementMediaType.video;
+
+  /// In-app go_router path: a single leading slash. `//host` is a
+  /// scheme-relative URL, not a route — excluded so it can't sneak past as
+  /// either an in-app push or an external launch.
+  bool get ctaIsInApp {
+    final link = ctaLink?.trim();
+    return link != null && link.startsWith('/') && !link.startsWith('//');
+  }
+
+  bool get ctaIsExternal => isHttpUrl(ctaLink);
+
   bool get hasCta =>
-      ctaLink != null &&
-      ctaLink!.isNotEmpty &&
-      ctaLabel != null &&
-      ctaLabel!.isNotEmpty;
+      ctaLabel != null && ctaLabel!.isNotEmpty && (ctaIsInApp || ctaIsExternal);
 
   /// Whether this announcement is within its publish window for [now].
   bool isLiveAt(DateTime now) {
@@ -62,7 +81,7 @@ class Announcement {
       mediaType: AnnouncementMediaType.fromName(json['media_type'] as String?),
       ctaLabel: json['cta_label'] as String?,
       ctaLink: json['cta_link'] as String?,
-      priority: json['priority'] as int? ?? 0,
+      priority: (json['priority'] as num?)?.toInt() ?? 0,
       startsAt: DateTime.parse(json['starts_at'] as String).toUtc(),
       endsAt: json['ends_at'] != null
           ? DateTime.parse(json['ends_at'] as String).toUtc()

@@ -83,10 +83,21 @@ class AnnouncementNotifier extends StateNotifier<AnnouncementState> {
   }
 
   /// Fetch latest announcements from Supabase (best-effort).
+  ///
+  /// A failed/unavailable fetch (null) keeps the last-known-good list —
+  /// announcements are broadcast content, so stale beats blank. This matters
+  /// after Settings → "Delete All My Data": the refresh there races the
+  /// anonymous re-sign-in and would otherwise wipe the banner until the next
+  /// cold start.
   Future<void> refresh() async {
     if (state.isLoading) return;
     state = state.copyWith(isLoading: true);
     final list = await _service.fetchActive();
+    if (!mounted) return;
+    if (list == null) {
+      state = state.copyWith(isLoading: false);
+      return;
+    }
     state = state.copyWith(
       announcements: list,
       isLoading: false,

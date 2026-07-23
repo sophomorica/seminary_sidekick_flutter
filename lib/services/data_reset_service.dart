@@ -101,7 +101,10 @@ class DataResetService {
 
     // Sidekick reloads its own cache (non-blocking, mirrors main.dart).
     ref.read(sidekickProvider.notifier).init();
-    // Announcements: restore empty dismissals then refetch.
+    // Announcements: restore (now-empty) dismissals then refetch. The refetch
+    // races the anonymous re-sign-in triggered by the signOut above; if it
+    // loses (no session yet), refresh() keeps the last-known-good broadcast
+    // list rather than blanking the banner until next cold start.
     await ref.read(announcementProvider.notifier).init();
     ref.read(announcementProvider.notifier).refresh();
   }

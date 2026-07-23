@@ -28,7 +28,7 @@ class AnnouncementBanner extends ConsumerWidget {
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
         child: InkWell(
           borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-          onTap: () => _openDetail(context, ref, announcement),
+          onTap: () => _openDetail(context, announcement),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
               AppTheme.spacingMd,
@@ -116,7 +116,6 @@ class AnnouncementBanner extends ConsumerWidget {
 
   static Future<void> _openDetail(
     BuildContext context,
-    WidgetRef ref,
     Announcement announcement,
   ) {
     return showModalBottomSheet<void>(
@@ -141,15 +140,16 @@ class _AnnouncementDetailSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
-    final bottom = MediaQuery.paddingOf(context).bottom;
 
     return SafeArea(
+      // SafeArea already applies the bottom system inset — no manual
+      // MediaQuery padding on top of it.
       child: Padding(
-        padding: EdgeInsets.fromLTRB(
+        padding: const EdgeInsets.fromLTRB(
           AppTheme.spacingLg,
           AppTheme.spacingMd,
           AppTheme.spacingLg,
-          AppTheme.spacingLg + bottom,
+          AppTheme.spacingLg,
         ),
         child: SingleChildScrollView(
           child: Column(
@@ -211,11 +211,10 @@ class _AnnouncementDetailSheet extends ConsumerWidget {
                   ),
                 ),
               ],
-              if (announcement.mediaType == AnnouncementMediaType.video &&
-                  announcement.mediaUrl != null) ...[
+              if (announcement.hasVideoMedia) ...[
                 const SizedBox(height: AppTheme.spacingLg),
                 OutlinedButton.icon(
-                  onPressed: () => _openLink(context, announcement.mediaUrl!),
+                  onPressed: () => _openLink(announcement.mediaUrl!),
                   icon: const Icon(Icons.play_circle_outline),
                   label: const Text('Watch tip'),
                 ),
@@ -223,10 +222,7 @@ class _AnnouncementDetailSheet extends ConsumerWidget {
               if (announcement.hasCta) ...[
                 const SizedBox(height: AppTheme.spacingLg),
                 FilledButton(
-                  onPressed: () async {
-                    Navigator.of(context).pop();
-                    await _handleCta(context, announcement.ctaLink!);
-                  },
+                  onPressed: () => _handleCta(context, announcement),
                   child: Text(announcement.ctaLabel!),
                 ),
               ],
@@ -247,17 +243,26 @@ class _AnnouncementDetailSheet extends ConsumerWidget {
     );
   }
 
-  static Future<void> _handleCta(BuildContext context, String link) async {
-    final trimmed = link.trim();
-    if (trimmed.startsWith('/')) {
-      if (context.mounted) context.push(trimmed);
+  /// Pop the sheet, then run the CTA. The router is captured BEFORE the pop —
+  /// after `Navigator.pop`, this sheet's context is unmounted and
+  /// `context.push` would be a silent no-op.
+  static void _handleCta(BuildContext context, Announcement announcement) {
+    final link = announcement.ctaLink!.trim();
+    if (announcement.ctaIsInApp) {
+      final router = GoRouter.of(context);
+      Navigator.of(context).pop();
+      router.push(link);
       return;
     }
-    await _openLink(context, trimmed);
+    Navigator.of(context).pop();
+    _openLink(link);
   }
 
-  static Future<void> _openLink(BuildContext context, String link) async {
-    final uri = Uri.tryParse(link);
+  static Future<void> _openLink(String link) async {
+    // Only launch absolute http(s) URLs — never javascript:, file:,
+    // scheme-relative //host, etc.
+    if (!Announcement.isHttpUrl(link)) return;
+    final uri = Uri.tryParse(link.trim());
     if (uri == null) return;
     try {
       await launchUrl(uri, mode: LaunchMode.externalApplication);

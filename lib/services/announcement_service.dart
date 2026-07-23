@@ -25,10 +25,15 @@ class AnnouncementService {
 
   /// Returns currently active announcements (RLS + window already applied
   /// server-side), ordered by priority desc then created_at desc.
-  Future<List<Announcement>> fetchActive() async {
+  ///
+  /// Returns `null` when the fetch could not be attempted or failed (no
+  /// Supabase, no session, network/API error) so callers can keep their
+  /// last-known-good list instead of clobbering it with an empty one.
+  /// An empty list means the server really has no active announcements.
+  Future<List<Announcement>?> fetchActive() async {
     final client = _resolvedClient;
     if (client == null || client.auth.currentUser == null) {
-      return const [];
+      return null;
     }
 
     try {
@@ -38,11 +43,21 @@ class AnnouncementService {
           .order('priority', ascending: false)
           .order('created_at', ascending: false);
 
-      final list = (rows as List<dynamic>)
-          .map((row) => Announcement.fromJson(
-                Map<String, dynamic>.from(row as Map),
-              ))
-          .toList();
+      // Parse per-row: one malformed row is skipped (and logged) instead of
+      // failing the whole fetch.
+      final list = <Announcement>[];
+      for (final row in rows as List<dynamic>) {
+        try {
+          list.add(Announcement.fromJson(
+            Map<String, dynamic>.from(row as Map),
+          ));
+        } catch (e) {
+          developer.log(
+            'Skipping malformed announcement row: $e',
+            name: 'AnnouncementService',
+          );
+        }
+      }
       return list;
     } catch (e, st) {
       developer.log(
@@ -50,7 +65,7 @@ class AnnouncementService {
         name: 'AnnouncementService',
         stackTrace: st,
       );
-      return const [];
+      return null;
     }
   }
 }
